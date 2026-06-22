@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Check, Circle, Dot } from '@lucide/vue'
+import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
 import { h, ref } from 'vue'
 import { toast } from 'sonner'
 import * as z from 'zod'
+import { format, parseISO } from 'date-fns'
+import { CalendarDate } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -13,6 +15,8 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
+  CardTitle,
+  CardDescription,
 } from '@/components/ui/card'
 import {
   Select,
@@ -22,9 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Stepper, StepperDescription, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
 
-// Form schema updated to match your new step sequence
+// Form schema unchanged
 const formSchema = [
   // Step 1: Personal Details
   z.object({
@@ -43,7 +49,7 @@ const formSchema = [
     is_4ps: z.boolean().default(false),
     is_pwd: z.boolean().default(false),
   }),
-  
+
   // Step 3: Account Information
   z.object({
     email: z.string().email('Invalid email address'),
@@ -60,22 +66,17 @@ const formSchema = [
 
 const stepIndex = ref(1)
 const steps = [
-  {
-    step: 1,
-    title: 'Personal Details',
-    description: 'Basic Information',
-  },
-  {
-    step: 2,
-    title: 'Contacts',
-    description: 'Address and Contact',
-  },
-  {
-    step: 3,
-    title: 'Account Information',
-    description: 'Credentials',
-  }
+  { step: 1, title: 'Personal Details', description: 'Basic Information' },
+  { step: 2, title: 'Contacts', description: 'Address and Contact' },
+  { step: 3, title: 'Account Information', description: 'Credentials' },
 ]
+
+// Helper: convert an ISO date string <-> CalendarDate for the Calendar component
+function toCalendarDate(value?: string) {
+  if (!value) return undefined
+  const d = parseISO(value)
+  return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
+}
 
 function onSubmit(values: any) {
   toast('Form structure ready for submission:', {
@@ -101,7 +102,12 @@ function onSubmit(values: any) {
             }
           }"
         >
-          <CardHeader class="border-b pb-6">
+          <CardHeader class="border-b pb-6 space-y-6">
+            <div>
+              <CardTitle class="text-xl">Create your account</CardTitle>
+              <CardDescription>Step {{ stepIndex }} of {{ steps.length }} — {{ steps[stepIndex - 1]?.title }}</CardDescription>
+            </div>
+
             <div class="flex w-full flex-start gap-2">
               <StepperItem
                 v-for="(step, index) in steps"
@@ -149,8 +155,8 @@ function onSubmit(values: any) {
           </CardHeader>
 
           <CardContent class="pt-6 min-h-85">
-            <div class="flex flex-col gap-4">
-              
+            <div class="flex flex-col space-y-5">
+
               <template v-if="stepIndex === 1">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField v-slot="{ componentField }" name="firstname">
@@ -185,12 +191,32 @@ function onSubmit(values: any) {
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField v-slot="{ componentField }" name="birthdate">
-                    <FormItem>
+                  <FormField v-slot="{ componentField, value, setValue }" name="birthdate">
+                    <FormItem class="flex flex-col">
                       <FormLabel>Birthdate</FormLabel>
-                      <FormControl>
-                        <Input type="date" v-bind="componentField" />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger as-child>
+                          <FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              class="w-full justify-start text-left font-normal"
+                              :class="!value && 'text-muted-foreground'"
+                            >
+                              <CalendarIcon class="mr-2 size-4" />
+                              {{ value ? format(parseISO(value), 'PPP') : 'Select a date' }}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            :model-value="toCalendarDate(value)"
+                            @update:model-value="(d) => setValue(d ? `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}` : '')"
+                            v-bind="componentField"
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   </FormField>
@@ -200,7 +226,7 @@ function onSubmit(values: any) {
                       <FormLabel>Gender</FormLabel>
                       <Select v-bind="componentField">
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger class="w-full">
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
                         </FormControl>
@@ -223,41 +249,41 @@ function onSubmit(values: any) {
                   <FormItem>
                     <FormLabel>Contact Number</FormLabel>
                     <FormControl>
-                      <Input type="text" placeholder="e.g., +639..." v-bind="componentField" />
+                      <Input type="tel" placeholder="e.g., +639..." v-bind="componentField" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 </FormField>
 
-                <FormField v-slot="{ componentField }" name="current_address">
-                  <FormItem>
-                    <FormLabel>Current Address</FormLabel>
-                    <FormControl>
-                      <Input type="text" v-bind="componentField" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField v-slot="{ componentField }" name="current_address">
+                    <FormItem>
+                      <FormLabel>Current Address</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
 
-                <FormField v-slot="{ componentField }" name="home_address">
-                  <FormItem>
-                    <FormLabel>Home Address</FormLabel>
-                    <FormControl>
-                      <Input type="text" v-bind="componentField" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
+                  <FormField v-slot="{ componentField }" name="home_address">
+                    <FormItem>
+                      <FormLabel>Home Address</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                </div>
 
-                <div class="flex flex-col gap-3 mt-2 border rounded-lg p-4 bg-muted/20">
+                <div class="flex flex-col gap-3 border rounded-lg p-4">
                   <FormField v-slot="{ value, handleChange }" name="is_4ps">
                     <FormItem class="flex flex-row items-center space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox :checked="value" @update:checked="handleChange" />
                       </FormControl>
-                      <div class="space-y-1 leading-none">
-                        <FormLabel>4Ps Beneficiary</FormLabel>
-                      </div>
+                      <FormLabel class="font-normal">4Ps Beneficiary</FormLabel>
                     </FormItem>
                   </FormField>
 
@@ -266,9 +292,7 @@ function onSubmit(values: any) {
                       <FormControl>
                         <Checkbox :checked="value" @update:checked="handleChange" />
                       </FormControl>
-                      <div class="space-y-1 leading-none">
-                        <FormLabel>Person with Disability (PWD)</FormLabel>
-                      </div>
+                      <FormLabel class="font-normal">Person with Disability (PWD)</FormLabel>
                     </FormItem>
                   </FormField>
                 </div>
@@ -285,25 +309,27 @@ function onSubmit(values: any) {
                   </FormItem>
                 </FormField>
 
-                <FormField v-slot="{ componentField }" name="password">
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" v-bind="componentField" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField v-slot="{ componentField }" name="password">
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
 
-                <FormField v-slot="{ componentField }" name="confirmPassword">
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" v-bind="componentField" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
+                  <FormField v-slot="{ componentField }" name="confirmPassword">
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                </div>
               </template>
 
             </div>
