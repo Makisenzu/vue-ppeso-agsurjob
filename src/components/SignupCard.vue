@@ -1,277 +1,321 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Check, Circle, Dot } from '@lucide/vue'
+import { toTypedSchema } from '@vee-validate/zod'
+import { h, ref } from 'vue'
+import { toast } from 'sonner'
+import * as z from 'zod'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Stepper,
-  StepperIndicator,
-  StepperItem,
-  StepperTitle,
-  StepperTrigger,
-  StepperSeparator,
-} from '@/components/ui/stepper'
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Stepper, StepperDescription, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
 
+// Form schema broken into steps following your profiles structure
+const formSchema = [
+  // Step 1: Account Setup
+  z.object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(50),
+    confirmPassword: z.string(),
+  }).refine(
+    (values) => values.password === values.confirmPassword,
+    {
+      message: 'Passwords must match!',
+      path: ['confirmPassword'],
+    },
+  ),
+  
+  // Step 2: Personal Identity
+  z.object({
+    firstname: z.string().min(1, 'First name is required'),
+    middlename: z.string().optional(),
+    lastname: z.string().min(1, 'Last name is required'),
+    birthdate: z.string().min(1, 'Birthdate is required'), // Format: YYYY-MM-DD
+    gender: z.union([z.literal('male'), z.literal('female'), z.literal('other')]),
+    contact_number: z.string().min(1, 'Contact number is required'),
+  }),
+
+  // Step 3: Address & Info
+  z.object({
+    current_address: z.string().min(1, 'Current address is required'),
+    home_address: z.string().min(1, 'Home address is required'),
+    is_4ps: z.boolean().default(false),
+    is_pwd: z.boolean().default(false),
+  }),
+]
+
+const stepIndex = ref(1)
 const steps = [
   {
     step: 1,
     title: 'Account',
-    description: 'Login credentials'
+    description: 'Email and credentials',
   },
   {
     step: 2,
-    title: 'Personal',
-    description: 'Basic information'
+    title: 'Identity',
+    description: 'Your personal information',
   },
   {
     step: 3,
-    title: 'Contact',
-    description: 'Address & Phone'
+    title: 'Profile Details',
+    description: 'Address and background',
   },
-  {
-    step: 4,
-    title: 'Additional',
-    description: 'Other details'
-  }
 ]
 
-const currentStep = ref(1)
-
-const form = ref({
-  email: '',
-  password: '',
-  confirmPassword: '',
-  firstname: '',
-  middlename: '',
-  lastname: '',
-  birthdate: '',
-  gender: '',
-  contact_number: '',
-  home_address: '',
-  current_address: '',
-  is_4ps: false,
-  is_pwd: false,
-  role: 'applicant', // default
-})
-
-const progressValue = computed(() => {
-  return ((currentStep.value) / steps.length) * 100
-})
-
-const emit = defineEmits(['switch-to-login'])
-
-const handleNext = () => {
-  if (currentStep.value < steps.length) {
-    currentStep.value++
-  } else {
-    handleCreate()
-  }
-}
-
-const handleBack = () => {
-  if (currentStep.value > 1) {
-    currentStep.value--
-  }
-}
-
-const handleCreate = () => {
-  console.log('Account payload:', form.value)
-  // Call supabase registration here
+function onSubmit(values: any) {
+  // Structure this payload to match your Supabase auth sign-up 
+  // and metadata/profile table insert requirements
+  toast('Form structure ready for submission:', {
+    description: h('pre', { class: 'mt-2 w-[320px] rounded-md bg-neutral-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
+  })
 }
 </script>
 
 <template>
-  <Card class="signup-card border-0 shadow-lg rounded-3xl! flex w-full max-w-240 min-h-140 mx-auto p-0 overflow-hidden font-sans">
-    <!-- Left Column -->
-    <div class="signup-left w-2/5 p-10 flex flex-col relative z-1 bg-gray-50 border-r border-gray-100">
-      <div class="flex items-center gap-2 mb-6">
-        <div class="signup-seal flex items-center shrink-0">
-          <img
-            src="/src/assets/images/agsur-logo.png"
-            alt="AGSURJOBS Logo"
-            class="h-16 w-auto max-w-55 object-contain"
-          />
-        </div>
-      </div>
+  <Form
+    v-slot="{ meta, values, validate }"
+    as="" keep-values :validation-schema="toTypedSchema(formSchema[stepIndex - 1]!)"
+  >
+    <Stepper v-slot="{ isNextDisabled, isPrevDisabled, nextStep, prevStep, modelValue }" v-model="stepIndex" class="block w-full">
+      <form
+        @submit="(e) => {
+          e.preventDefault()
+          validate()
 
-      <div class="mt-2">
-        <h1 class="text-2xl font-extrabold text-[#0f1d3d] mb-1 leading-tight tracking-tight">Create an Account</h1>
-        <p class="text-sm text-gray-500 font-medium">Join AGSURJOB today</p>
-      </div>
+          if (stepIndex === steps.length && meta.valid) {
+            onSubmit(values)
+          }
+        }"
+      >
+        <!-- Stepper Header Navigation -->
+        <div class="flex w-full flex-start gap-2">
+          <StepperItem
+            v-for="(step, index) in steps"
+            :key="step.step"
+            v-slot="{ state }"
+            class="relative flex w-full flex-col items-center justify-center"
+            :step="step.step"
+          >
+            <StepperSeparator
+              v-if="step.step !== steps[steps.length - 1]!.step"
+              class="absolute left-[calc(50%+20px)] right-[calc(-50%+10px)] top-5 block h-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"
+            />
 
-      <!-- Wave decoration -->
-      <div class="absolute bottom-0 left-0 w-full z-0 pointer-events-none">
-        <img
-          src="/src/assets/images/wave.png"
-          alt=""
-          class="w-full h-auto block object-contain object-bottom-left"
-        />
-      </div>
-    </div>
+            <StepperTrigger as-child>
+              <Button
+                :variant="state === 'completed' || state === 'active' ? 'default' : 'outline'"
+                size="icon"
+                class="z-10 rounded-full shrink-0"
+                :class="[state === 'active' && 'ring-2 ring-ring ring-offset-2 ring-offset-background']"
+                :disabled="state !== 'completed' && (index >= (modelValue || 0) && !meta.valid)"
+              >
+                <Check v-if="state === 'completed'" class="size-5" />
+                <Circle v-if="state === 'active'" />
+                <Dot v-if="state === 'inactive'" />
+              </Button>
+            </StepperTrigger>
 
-    <!-- Right Column (Form Steps) -->
-    <CardContent class="signup-right flex-1 flex flex-col p-10 z-2 box-border relative">
-      
-      <div class="mb-6">
-        <Stepper v-model.number="currentStep" class="flex w-full items-start mb-6">
-          <template v-for="(s, index) in steps" :key="s.step">
-            <StepperItem
-              :step="s.step"
-              class="relative flex w-full justify-center"
-            >
-              <StepperTrigger class="flex flex-col items-center gap-2 pointer-events-none">
-                <StepperIndicator class="w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors" 
-                  :class="currentStep === s.step ? 'bg-[#0b1d4e] text-white border-[#0b1d4e]' : currentStep > s.step ? 'bg-[#0b1d4e] text-white border-[#0b1d4e]' : 'bg-gray-100 text-gray-400 border-transparent'">
-                  <span v-if="currentStep > s.step">✓</span>
-                  <span v-else>{{ s.step }}</span>
-                </StepperIndicator>
-                <div class="flex flex-col items-center text-center">
-                  <StepperTitle :class="currentStep >= s.step ? 'text-[#0b1d4e]' : 'text-gray-400'" class="text-xs font-bold transition-colors">
-                    {{ s.title }}
-                  </StepperTitle>
-                </div>
-              </StepperTrigger>
-              
-              <StepperSeparator
-                v-if="index !== steps.length - 1"
-                class="absolute left-[calc(50%+1rem)] right-[calc(-50%+1rem)] top-4 h-0.5 -translate-y-1/2 rounded-full"
-                :class="currentStep > s.step ? 'bg-[#0b1d4e]' : 'bg-gray-200'"
-              />
-            </StepperItem>
-          </template>
-        </Stepper>
-        
-        <Progress :model-value="progressValue" class="h-1.5 bg-gray-100" />
-      </div>
-
-      <div class="flex-1 mb-6">
-        <!-- STEP 1: Account -->
-        <div v-show="currentStep === 1" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Email Address</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="email" v-model="form.email" placeholder="Enter your email" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Password</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="password" v-model="form.password" placeholder="Create a password" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Confirm Password</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="password" v-model="form.confirmPassword" placeholder="Confirm your password" />
-          </div>
-        </div>
-
-        <!-- STEP 2: Personal -->
-        <div v-show="currentStep === 2" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">First Name</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.firstname" placeholder="First Name" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Middle Name</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.middlename" placeholder="Middle Name" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Last Name</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.lastname" placeholder="Last Name" />
-          </div>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="w-full space-y-1.5">
-              <label class="text-sm font-bold text-gray-700">Gender</label>
-              <select class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" v-model="form.gender">
-                <option value="" disabled>Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
+            <div class="mt-5 flex flex-col items-center text-center">
+              <StepperTitle
+                :class="[state === 'active' && 'text-primary']"
+                class="text-sm font-semibold transition lg:text-base"
+              >
+                {{ step.title }}
+              </StepperTitle>
+              <StepperDescription
+                :class="[state === 'active' && 'text-primary']"
+                class="sr-only text-xs text-muted-foreground transition md:not-sr-only lg:text-sm"
+              >
+                {{ step.description }}
+              </StepperDescription>
             </div>
-            <div class="w-full space-y-1.5">
-              <label class="text-sm font-bold text-gray-700">Birthdate</label>
-              <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="date" v-model="form.birthdate" />
-            </div>
-          </div>
+          </StepperItem>
         </div>
 
-        <!-- STEP 3: Contact -->
-        <div v-show="currentStep === 3" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Contact Number</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.contact_number" placeholder="ex. 09123456789" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Home Address</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.home_address" placeholder="Full Home Address" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Current Address</label>
-            <input class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" type="text" v-model="form.current_address" placeholder="Current Address (if different)" />
-          </div>
-        </div>
-
-        <!-- STEP 4: Additional -->
-        <div v-show="currentStep === 4" class="space-y-4">
-          <div class="flex items-center space-x-3 mb-4">
-            <Checkbox id="is_4ps" :checked="form.is_4ps" @update:checked="(val: any) => form.is_4ps = !!val" />
-            <label for="is_4ps" class="text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-              Yes, I am a 4Ps Member
-            </label>
-          </div>
-          <div class="flex items-center space-x-3 mb-6">
-            <Checkbox id="is_pwd" :checked="form.is_pwd" @update:checked="(val: any) => form.is_pwd = !!val" />
-            <label for="is_pwd" class="text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-              Yes, I am a Person With Disability (PWD)
-            </label>
-          </div>
+        <!-- Dynamic Form Content -->
+        <div class="flex flex-col gap-4 mt-4">
           
-          <div class="space-y-1.5">
-            <label class="text-sm font-bold text-gray-700">Account Type</label>
-            <select class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" v-model="form.role">
-              <option value="applicant">Applicant</option>
-              <option value="employer">Employer</option>
-            </select>
+          <!-- STEP 1: Credentials -->
+          <template v-if="stepIndex === 1">
+            <FormField v-slot="{ componentField }" name="email">
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <Input type="email" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="password">
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="confirmPassword">
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input type="password" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </template>
+
+          <!-- STEP 2: Identity (Profile Basics) -->
+          <template v-if="stepIndex === 2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField v-slot="{ componentField }" name="firstname">
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input type="text" v-bind="componentField" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="middlename">
+                <FormItem>
+                  <FormLabel>Middle Name (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="text" v-bind="componentField" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="lastname">
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input type="text" v-bind="componentField" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+
+            <FormField v-slot="{ componentField }" name="birthdate">
+              <FormItem>
+                <FormLabel>Birthdate</FormLabel>
+                <FormControl>
+                  <Input type="date" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="gender">
+              <FormItem>
+                <FormLabel>Gender</FormLabel>
+                <Select v-bind="componentField">
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="contact_number">
+              <FormItem>
+                <FormLabel>Contact Number</FormLabel>
+                <FormControl>
+                  <Input type="text" placeholder="e.g., +639..." v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </template>
+
+          <!-- STEP 3: Context & Location -->
+          <template v-if="stepIndex === 3">
+            <FormField v-slot="{ componentField }" name="current_address">
+              <FormItem>
+                <FormLabel>Current Address</FormLabel>
+                <FormControl>
+                  <Input type="text" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="home_address">
+              <FormItem>
+                <FormLabel>Home Address</FormLabel>
+                <FormControl>
+                  <Input type="text" v-bind="componentField" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <div class="flex flex-col gap-3 mt-2 border rounded-lg p-4 bg-muted/20">
+              <FormField v-slot="{ value, handleChange }" name="is_4ps">
+                <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox :checked="value" @update:checked="handleChange" />
+                  </FormControl>
+                  <div class="space-y-1 leading-none">
+                    <FormLabel>4Ps Beneficiary</FormLabel>
+                  </div>
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ value, handleChange }" name="is_pwd">
+                <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox :checked="value" @update:checked="handleChange" />
+                  </FormControl>
+                  <div class="space-y-1 leading-none">
+                    <FormLabel>Person with Disability (PWD)</FormLabel>
+                  </div>
+                </FormItem>
+              </FormField>
+            </div>
+          </template>
+        </div>
+
+        <!-- Stepper Navigation Actions -->
+        <div class="flex items-center justify-between mt-6">
+          <Button :disabled="isPrevDisabled" variant="outline" size="sm" type="button" @click="prevStep()">
+            Back
+          </Button>
+          <div class="flex items-center gap-3">
+            <Button v-if="stepIndex !== 3" :type="meta.valid ? 'button' : 'submit'" :disabled="isNextDisabled" size="sm" @click="meta.valid && nextStep()">
+              Next
+            </Button>
+            <Button v-if="stepIndex === 3" size="sm" type="submit">
+              Submit
+            </Button>
           </div>
         </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex items-center mt-auto justify-between pt-4">
-        <Button 
-          variant="outline"
-          class="font-bold text-gray-500 hover:text-black border-0 bg-transparent hover:bg-gray-100 rounded-full px-4"
-          :class="{'invisible': currentStep === 1}"
-          @click="handleBack"
-        >
-          BACK
-        </Button>
-
-        <Button 
-          class="font-bold uppercase tracking-wider rounded-full px-8 py-5 bg-[#0b1d4e] hover:bg-[#091640] shadow-md hover:shadow-lg transition-all text-white"
-          @click="handleNext"
-        >
-          {{ currentStep === steps.length ? 'CREATE' : 'NEXT' }}
-        </Button>
-      </div>
-
-      <div class="text-center mt-6 text-sm text-gray-500 font-medium">
-        Already have an account? 
-        <a href="#" class="text-blue-600 font-bold hover:underline" @click.prevent="$emit('switch-to-login')">Sign In</a>
-      </div>
-    </CardContent>
-  </Card>
+      </form>
+    </Stepper>
+  </Form>
 </template>
-
-<style scoped>
-@media (max-width: 768px) {
-  .signup-card {
-    flex-direction: column !important;
-  }
-  .signup-left {
-    width: 100% !important;
-    padding: 32px !important;
-  }
-  .signup-right {
-    padding: 32px !important;
-  }
-}
-</style>
