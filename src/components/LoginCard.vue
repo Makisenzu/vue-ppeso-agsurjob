@@ -94,7 +94,8 @@ const handleCreate = () => {
           <!-- LinkedIn -->
           <button class="social-btn" aria-label="Continue with LinkedIn">
             <svg viewBox="0 0 24 24" width="42" height="42">
-              <path fill="#0a66c2" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/>
+              <rect x="2" y="2" width="20" height="20" rx="10" fill="#0a66c2"/>
+              <path fill="#ffffff" d="M8.55 16V9.75H6.2v6.25h2.35zM7.38 8.8c.8 0 1.3-.53 1.3-1.18c-.02-.67-.5-1.18-1.27-1.18c-.77 0-1.3.5-1.3 1.18c0 .65.5 1.18 1.25 1.18h.02zm10.12 7.2V12.7c0-1.8-.9-2.6-2.2-2.6c-1.1 0-1.6.6-1.9 1v-1.4H10v6.3h2.4v-3.7c0-.2 0-.4.1-.5c.2-.5.6-.9 1.3-.9c.9 0 1.2.7 1.2 1.7V16h2.4z"/>
             </svg>
           </button>
         </div>
@@ -123,6 +124,8 @@ const handleCreate = () => {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.07), 0 2px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   font-family: 'Nunito Sans', system-ui, sans-serif;
+  margin: 0 auto;
+  padding: 0;
 }
 
 /* ─── Left Column ─── */
@@ -249,11 +252,14 @@ const handleCreate = () => {
   padding: 40px 44px 36px 44px;
   z-index: 2;
   margin-top: 100px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Input area */
 .login-input-area {
   margin-bottom: 36px;
+  width: 100%;
 }
 
 .input-wrapper {
@@ -341,6 +347,12 @@ const handleCreate = () => {
   transform: scale(0.95);
 }
 
+.social-btn svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 /* Actions */
 .login-actions {
   display: flex;
@@ -394,37 +406,234 @@ const handleCreate = () => {
 }
 
 /* ─── Responsive ─── */
+
+/* Tablet and mobile: 768px and below */
 @media (max-width: 768px) {
   .login-card {
     flex-direction: column;
-    max-width: 420px;
+    max-width: 90%;
     min-height: auto;
-    border-radius: 20px;
+    border-radius: 28px;
+    margin: 24px auto;
+    border: 1px solid #cccccc;
+    box-shadow: none;
   }
 
   .login-left {
     width: 100%;
-    padding: 28px 28px 0;
-    min-height: 200px;
+    padding: 40px 40px 0 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: auto;
+  }
+
+  .login-logo {
+    margin-bottom: 24px;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .login-logo-img {
+    height: 48px;
+    max-width: 180px;
+    margin-top: 0;
+  }
+
+  .login-seal {
+    min-width: auto;
+  }
+
+  .login-title-area {
+    margin-top: 0;
+    width: 100%;
+  }
+
+  .login-title {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .login-subtitle {
+    font-size: 14px;
   }
 
   .login-wave-container {
-    height: auto;
+    display: none !important;
   }
 
-  .login-back-btn {
-    bottom: 16px;
-    left: 16px;
-    width: 34px;
-    height: 34px;
+  .login-wave-img {
+    display: none !important;
   }
 
   .login-right {
-    padding: 32px 28px 28px;
+    padding: 32px 40px 40px 40px;
+    width: 100%;
+    margin-top: 0;
+    box-sizing: border-box;
+  }
+
+  .login-input-area {
+    margin-bottom: 28px;
+    width: 100%;
+  }
+
+  .input-wrapper input {
+    padding: 18px 16px 12px;
+    font-size: 15px;
+  }
+
+  .login-social {
+    margin-bottom: 36px;
+    width: 100%;
+  }
+
+  .social-icons {
+    gap: 16px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .social-label {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  .login-actions {
+    gap: 16px;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .btn-create {
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 10px 8px;
+  }
+
+  .btn-next {
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 12px 32px;
+  }
+}
+
+/* Small phones: 480px and below */
+@media (max-width: 480px) {
+  .login-card {
+    max-width: 100%;
+    margin: 16px auto;
+    border-radius: 24px;
+  }
+
+  .login-left {
+    padding: 32px 24px 0 24px;
+  }
+
+  .login-logo {
+    margin-bottom: 16px;
+  }
+
+  .login-logo-img {
+    height: 44px;
+    max-width: 150px;
   }
 
   .login-title {
     font-size: 22px;
+  }
+
+  .login-subtitle {
+    font-size: 13px;
+  }
+
+  .login-right {
+    padding: 24px 24px 32px 24px;
+  }
+
+  .login-input-area {
+    margin-bottom: 24px;
+  }
+
+  .input-wrapper input {
+    padding: 16px 14px 10px;
+    font-size: 14px;
+  }
+
+  .login-social {
+    margin-bottom: 28px;
+  }
+
+  .social-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .login-actions {
+    gap: 12px;
+  }
+
+  .btn-create {
+    font-size: 13px;
+  }
+
+  .btn-next {
+    font-size: 13px;
+    padding: 10px 24px;
+  }
+}
+
+/* Extra small: 380px and below */
+@media (max-width: 380px) {
+  .login-card {
+    border-radius: 20px;
+  }
+
+  .login-left {
+    padding: 24px 16px 0 16px;
+  }
+
+  .login-logo-img {
+    height: 38px;
+    max-width: 130px;
+  }
+
+  .login-title {
+    font-size: 20px;
+  }
+
+  .login-subtitle {
+    font-size: 12px;
+  }
+
+  .login-right {
+    padding: 20px 16px 24px 16px;
+  }
+
+  .input-wrapper input {
+    padding: 14px 12px 8px;
+    font-size: 13px;
+  }
+
+  .input-wrapper label {
+    font-size: 13px;
+  }
+
+  .input-wrapper label.floated {
+    font-size: 11px;
+  }
+
+  .social-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .btn-next {
+    padding: 10px 20px;
   }
 }
 </style>
