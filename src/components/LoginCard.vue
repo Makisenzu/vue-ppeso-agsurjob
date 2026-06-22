@@ -6,12 +6,14 @@ const isFocused = ref(false)
 
 const labelFloated = computed(() => isFocused.value || emailOrUsername.value.length > 0)
 
+const emit = defineEmits(['create-account'])
+
 const handleNext = () => {
   console.log('Next clicked:', emailOrUsername.value)
 }
 
 const handleCreate = () => {
-  console.log('Create account clicked')
+  emit('create-account')
 }
 </script>
 
