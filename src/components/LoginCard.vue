@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const emailOrUsername = ref('')
 const isFocused = ref(false)
 
 const labelFloated = computed(() => isFocused.value || emailOrUsername.value.length > 0)
 
-const emit = defineEmits(['create-account'])
-
 const handleNext = () => {
   console.log('Next clicked:', emailOrUsername.value)
+  // If you want to proceed to a password screen or dashboard:
+  // router.push('/next-step')
 }
 
+// Replaced custom $emit with Vue Router navigation
 const handleCreate = () => {
-  emit('create-account')
+  router.push('/signup')
 }
 </script>
 
@@ -38,15 +42,12 @@ const handleCreate = () => {
         </div>
       </div>
 
-      <!-- Title -->
       <div class="login-title-area">
         <h1 class="login-title">Sign In to AGSURJOB</h1>
         <p class="login-subtitle">Use your agsurjob account</p>
       </div>
 
-      <!-- Wave decoration – SVG recreation of red/white/blue swooping wave -->
       <div class="login-wave-container">
-        <!-- If user has wave.png, show it; otherwise the SVG fallback below shows -->
         <img
           src="/src/assets/images/wave.png"
           alt=""
@@ -57,7 +58,6 @@ const handleCreate = () => {
     </div>
 
     <div class="login-right">
-      <!-- Input -->
       <div class="login-input-area">
         <div class="input-wrapper">
           <input
@@ -74,17 +74,14 @@ const handleCreate = () => {
         </div>
       </div>
 
-      <!-- Social -->
       <div class="login-social">
         <span class="social-label">Continue with</span>
         <div class="social-icons">
-          <!-- Facebook -->
           <button class="social-btn" aria-label="Continue with Facebook">
             <svg viewBox="0 0 24 24" width="42" height="42">
               <path fill="#1877f2" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/>
             </svg>
           </button>
-          <!-- Google -->
           <button class="social-btn" aria-label="Continue with Google">
             <svg viewBox="0 0 48 48" width="42" height="42">
               <path fill="#ffc107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
@@ -93,7 +90,6 @@ const handleCreate = () => {
               <path fill="#1976d2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
             </svg>
           </button>
-          <!-- LinkedIn -->
           <button class="social-btn" aria-label="Continue with LinkedIn">
             <svg viewBox="0 0 24 24" width="42" height="42">
               <rect x="2" y="2" width="20" height="20" rx="10" fill="#0a66c2"/>
@@ -103,7 +99,6 @@ const handleCreate = () => {
         </div>
       </div>
 
-      <!-- Actions -->
       <div class="login-actions">
         <button class="btn-create" @click="handleCreate">CREATE</button>
         <button class="btn-next" @click="handleNext">NEXT</button>
@@ -175,14 +170,6 @@ const handleCreate = () => {
   display: block;
 }
 
-.logo-dark {
-  color: #0f1d3d;
-}
-
-.logo-red {
-  color: #d32f2f;
-}
-
 /* Title Area */
 .login-title-area {
   margin-top: -10px;
@@ -204,7 +191,7 @@ const handleCreate = () => {
   font-weight: 500;
 }
 
-/* Wave Container – absolute bottom-left of the left column */
+/* Wave Container */
 .login-wave-container {
   position: absolute;
   bottom: 0;
@@ -221,28 +208,6 @@ const handleCreate = () => {
   display: block;
   object-fit: contain;
   object-position: bottom left;
-}
-
-/* SVG fallback – hidden unless the PNG fails to load */
-.login-wave-svg {
-  display: none;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.login-wave-svg.wave-svg-visible {
-  display: block;
-}
-
-.login-back-btn:hover {
-  background: #1f2937;
-}
-
-.login-back-btn:active {
-  transform: scale(0.93);
 }
 
 /* ─── Right Column ─── */
@@ -349,12 +314,6 @@ const handleCreate = () => {
   transform: scale(0.95);
 }
 
-.social-btn svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 /* Actions */
 .login-actions {
   display: flex;
@@ -407,9 +366,7 @@ const handleCreate = () => {
   transform: scale(0.97);
 }
 
-/* ─── Responsive ─── */
-
-/* Tablet and mobile: 768px and below */
+/* ─── Responsive Media Queries ─── */
 @media (max-width: 768px) {
   .login-card {
     flex-direction: column;
@@ -420,222 +377,49 @@ const handleCreate = () => {
     border: 1px solid #cccccc;
     box-shadow: none;
   }
-
   .login-left {
     width: 100%;
     padding: 40px 40px 0 40px;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    text-align: left;
-    min-height: auto;
   }
-
-  .login-logo {
-    margin-bottom: 24px;
-    justify-content: flex-start;
-    width: 100%;
-  }
-
   .login-logo-img {
     height: 48px;
     max-width: 180px;
     margin-top: 0;
   }
-
-  .login-seal {
-    min-width: auto;
-  }
-
   .login-title-area {
-    margin-top: 0;
     width: 100%;
   }
-
   .login-title {
     font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 6px;
   }
-
-  .login-subtitle {
-    font-size: 14px;
-  }
-
   .login-wave-container {
     display: none !important;
   }
-
-  .login-wave-img {
-    display: none !important;
-  }
-
   .login-right {
     padding: 32px 40px 40px 40px;
     width: 100%;
     margin-top: 0;
     box-sizing: border-box;
   }
-
-  .login-input-area {
-    margin-bottom: 28px;
-    width: 100%;
-  }
-
-  .input-wrapper input {
-    padding: 18px 16px 12px;
-    font-size: 15px;
-  }
-
-  .login-social {
-    margin-bottom: 36px;
-    width: 100%;
-  }
-
-  .social-icons {
-    gap: 16px;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .social-label {
-    font-size: 13px;
-    margin-bottom: 14px;
-  }
-
-  .login-actions {
-    gap: 16px;
-    justify-content: flex-end;
-    width: 100%;
-  }
-
-  .btn-create {
-    font-size: 14px;
-    letter-spacing: 1px;
-    padding: 10px 8px;
-  }
-
-  .btn-next {
-    font-size: 14px;
-    letter-spacing: 1px;
-    padding: 12px 32px;
-  }
 }
 
-/* Small phones: 480px and below */
 @media (max-width: 480px) {
   .login-card {
     max-width: 100%;
     margin: 16px auto;
-    border-radius: 24px;
   }
-
   .login-left {
     padding: 32px 24px 0 24px;
   }
-
-  .login-logo {
-    margin-bottom: 16px;
-  }
-
-  .login-logo-img {
-    height: 44px;
-    max-width: 150px;
-  }
-
   .login-title {
     font-size: 22px;
   }
-
-  .login-subtitle {
-    font-size: 13px;
-  }
-
   .login-right {
     padding: 24px 24px 32px 24px;
   }
-
-  .login-input-area {
-    margin-bottom: 24px;
-  }
-
-  .input-wrapper input {
-    padding: 16px 14px 10px;
-    font-size: 14px;
-  }
-
-  .login-social {
-    margin-bottom: 28px;
-  }
-
-  .social-btn {
-    width: 38px;
-    height: 38px;
-  }
-
-  .login-actions {
-    gap: 12px;
-  }
-
-  .btn-create {
-    font-size: 13px;
-  }
-
   .btn-next {
-    font-size: 13px;
     padding: 10px 24px;
-  }
-}
-
-/* Extra small: 380px and below */
-@media (max-width: 380px) {
-  .login-card {
-    border-radius: 20px;
-  }
-
-  .login-left {
-    padding: 24px 16px 0 16px;
-  }
-
-  .login-logo-img {
-    height: 38px;
-    max-width: 130px;
-  }
-
-  .login-title {
-    font-size: 20px;
-  }
-
-  .login-subtitle {
-    font-size: 12px;
-  }
-
-  .login-right {
-    padding: 20px 16px 24px 16px;
-  }
-
-  .input-wrapper input {
-    padding: 14px 12px 8px;
-    font-size: 13px;
-  }
-
-  .input-wrapper label {
-    font-size: 13px;
-  }
-
-  .input-wrapper label.floated {
-    font-size: 11px;
-  }
-
-  .social-btn {
-    width: 36px;
-    height: 36px;
-  }
-
-  .btn-next {
-    padding: 10px 20px;
   }
 }
 </style>

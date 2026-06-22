@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import LoginCard from './components/LoginCard.vue'
-import SignupCard from './components/SignupCard.vue'
-
-const currentView = ref('login')
 </script>
 
 <template>
   <div class="login-page">
-    <transition name="fade" mode="out-in">
-      <LoginCard v-if="currentView === 'login'" @create-account="currentView = 'signup'" />
-      <SignupCard v-else-if="currentView === 'signup'" @switch-to-login="currentView = 'login'" />
-    </transition>
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
@@ -27,6 +23,7 @@ const currentView = ref('login')
   box-sizing: border-box;
 }
 
+/* Transition Animations */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;

@@ -2,6 +2,7 @@
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
 import { h, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'sonner'
 import * as z from 'zod'
 import { format, parseISO } from 'date-fns'
@@ -31,6 +32,8 @@ import { Calendar } from '@/components/ui/calendar'
 import { Stepper, StepperDescription, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
 
 // Form schema unchanged
+const router = useRouter()
+
 const formSchema = [
   // Step 1: Personal Details
   z.object({
@@ -103,9 +106,14 @@ function onSubmit(values: any) {
           }"
         >
           <CardHeader class="border-b pb-6 space-y-6">
-            <div>
-              <CardTitle class="text-xl">Create your account</CardTitle>
-              <CardDescription>Step {{ stepIndex }} of {{ steps.length }} — {{ steps[stepIndex - 1]?.title }}</CardDescription>
+            <div class="flex items-start justify-between">
+              <div>
+                <CardTitle class="text-xl">Create your account</CardTitle>
+                <CardDescription>Step {{ stepIndex }} of {{ steps.length }} — {{ steps[stepIndex - 1]?.title }}</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" type="button" @click="router.push('/login')" class="text-muted-foreground hover:text-foreground">
+                Log In
+              </Button>
             </div>
 
             <div class="flex w-full flex-start gap-2">
