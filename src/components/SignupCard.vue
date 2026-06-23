@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
-import { h, ref, onMounted, computed } from 'vue'
+import { h, ref, onMounted} from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -172,6 +172,11 @@ const getPasswordStrength = (password: string) => {
     </div>
 
     <div class="flex flex-1 flex-col">
+      <!-- Mobile-only header: shows the logo since the visual panel is hidden below md -->
+      <div class="flex items-center border-b border-neutral-100 px-6 py-4 md:hidden">
+        <img :src="logoUrl" alt="AgSurJobs" class="h-7 w-auto object-contain select-none" />
+      </div>
+
       <Form
         v-slot="{ meta, values, validate }"
         as="" keep-values 
