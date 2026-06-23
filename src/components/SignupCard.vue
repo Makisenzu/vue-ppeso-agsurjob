@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
-import { h, ref, onMounted } from 'vue'
+import { h, ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -10,6 +10,7 @@ import { CalendarDate } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress' // 1. Import Progress Bar Component
 import {
   Select,
   SelectContent,
@@ -51,7 +52,8 @@ const formSchema = [
   // Step 3: Account Information
   z.object({
     email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters').max(50),
+    // Updated requirement: min(15)
+    password: z.string().min(15, 'Password must be at least 15 characters long').max(50),
     confirmPassword: z.string(),
   }).refine(
     (values) => values.password === values.confirmPassword,
@@ -121,6 +123,39 @@ function onSubmit(values: any) {
   
   // Clear data after submission is verified
   localStorage.removeItem(STORAGE_KEY)
+}
+
+// Password Strength Evaluation Utility
+const getPasswordStrength = (password: string) => {
+  if (!password) return { score: 0, label: 'Too short', color: 'bg-neutral-200' }
+  
+  let score = 0
+  
+  // Rule checks
+  if (password.length >= 15) score += 1
+  if (/[A-Z]/.test(password)) score += 1
+  if (/[a-z]/.test(password)) score += 1
+  if (/[0-9]/.test(password)) score += 1
+  if (/[^A-Za-z0-9]/.test(password)) score += 1
+
+  // Handle lengths under 15 strictly as weak for this specific logic if preferred
+  if (password.length < 15) {
+    return { score: 20, label: 'Weak (Must be 15+ characters)', color: 'bg-red-500' }
+  }
+
+  switch (score) {
+    case 1:
+    case 2:
+      return { score: 40, label: 'Weak', color: 'bg-red-500' }
+    case 3:
+      return { score: 60, label: 'Medium', color: 'bg-yellow-500' }
+    case 4:
+      return { score: 80, label: 'Strong', color: 'bg-emerald-500' }
+    case 5:
+      return { score: 100, label: 'Very Strong', color: 'bg-green-600' }
+    default:
+      return { score: 0, label: 'Too short', color: 'bg-neutral-200' }
+  }
 }
 </script>
 
@@ -424,6 +459,24 @@ function onSubmit(values: any) {
                             Password
                           </FormLabel>
                         </div>
+                        
+                        <div class="mt-2.5 px-0.5">
+                          <Progress 
+                            :model-value="getPasswordStrength(values.password).score" 
+                            class="h-1.5 transition-all"
+                            :class="getPasswordStrength(values.password).color"
+                          />
+                          <div class="flex justify-between items-center mt-1 text-[11px]">
+                            <span class="text-neutral-400">Password strength:</span>
+                            <span :class="[
+                              getPasswordStrength(values.password).score >= 80 ? 'text-emerald-600 font-semibold' : 
+                              getPasswordStrength(values.password).score >= 60 ? 'text-yellow-600 font-semibold' : 'text-red-500'
+                            ]">
+                              {{ getPasswordStrength(values.password).label }}
+                            </span>
+                          </div>
+                        </div>
+
                         <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
