@@ -223,7 +223,7 @@ function onSubmit(values: any) {
                             First name
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
 
@@ -239,7 +239,7 @@ function onSubmit(values: any) {
                             Middle name
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
 
@@ -255,7 +255,7 @@ function onSubmit(values: any) {
                             Last name
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
                   </div>
@@ -290,7 +290,7 @@ function onSubmit(values: any) {
                             />
                           </PopoverContent>
                         </Popover>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
 
@@ -315,7 +315,7 @@ function onSubmit(values: any) {
                             Gender
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
                   </div>
@@ -335,7 +335,7 @@ function onSubmit(values: any) {
                           Contact number
                         </FormLabel>
                       </div>
-                      <FormMessage />
+                      <FormMessage class="text-[11px] leading-none mt-1" />
                     </FormItem>
                   </FormField>
 
@@ -352,7 +352,7 @@ function onSubmit(values: any) {
                             Current address
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
 
@@ -368,7 +368,7 @@ function onSubmit(values: any) {
                             Home address
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
                   </div>
@@ -407,7 +407,7 @@ function onSubmit(values: any) {
                           Email address
                         </FormLabel>
                       </div>
-                      <FormMessage />
+                      <FormMessage class="text-[11px] leading-none mt-1" />
                     </FormItem>
                   </FormField>
 
@@ -424,7 +424,7 @@ function onSubmit(values: any) {
                             Password
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
 
@@ -440,7 +440,7 @@ function onSubmit(values: any) {
                             Confirm password
                           </FormLabel>
                         </div>
-                        <FormMessage />
+                        <FormMessage class="text-[11px] leading-none mt-1" />
                       </FormItem>
                     </FormField>
                   </div>
