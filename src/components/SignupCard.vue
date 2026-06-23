@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
-import { h, ref, onMounted} from 'vue'
+import { h, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -10,7 +10,7 @@ import { CalendarDate } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Progress } from '@/components/ui/progress' // 1. Import Progress Bar Component
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -23,13 +23,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar'
 import { Stepper, StepperItem, StepperSeparator, StepperTitle, StepperTrigger, StepperDescription } from '@/components/ui/stepper'
 
+import { useAuthStore } from '@/stores/auth'
+
 import logoUrl from '@/assets/images/agsur-logo.png'
 import waveUrl from '@/assets/images/wave.png'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const STORAGE_KEY = 'registration_draft'
 
-// Define validation schemas for individual validation passes
 const formSchema = [
   // Step 1: Personal Details
   z.object({
@@ -52,7 +54,6 @@ const formSchema = [
   // Step 3: Account Information
   z.object({
     email: z.string().email('Invalid email address'),
-    // Updated requirement: min(15)
     password: z.string().min(15, 'Password must be at least 15 characters long').max(50),
     confirmPassword: z.string(),
   }).refine(
@@ -63,7 +64,7 @@ const formSchema = [
     },
   ),
 
-  // Step 4: Summary / Review (Empty validation object since entries are checked)
+  // Step 4: Summary / Review
   z.object({})
 ]
 
@@ -97,6 +98,21 @@ onMounted(() => {
   if (savedData) {
     try {
       initialValues.value = { ...initialValues.value, ...JSON.parse(savedData) }
+      
+      // Update Pinia store cache with the recovered background layout items
+      authStore.updateSignupFields({
+        firstName: initialValues.value.firstname,
+        middlename: initialValues.value.middlename,
+        lastName: initialValues.value.lastname,
+        birthdate: initialValues.value.birthdate,
+        gender: initialValues.value.gender,
+        contact_number: initialValues.value.contact_number,
+        current_address: initialValues.value.current_address,
+        home_address: initialValues.value.home_address,
+        is_4ps: initialValues.value.is_4ps,
+        is_pwd: initialValues.value.is_pwd,
+        email: initialValues.value.email,
+      })
     } catch (e) {
       console.error('Failed parsing registration cache data', e)
     }
@@ -110,35 +126,55 @@ function toCalendarDate(value?: string) {
   return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
 }
 
+// 3. SECURE SYNC PROCESS: Separate sensitive values out of localStorage
 function handleCacheSync(values: Record<string, any>) {
   if (Object.keys(values).length > 0) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
+    // Write everything directly to Pinia execution RAM
+    authStore.updateSignupFields({
+      firstName: values.firstname,
+      middlename: values.middlename,
+      lastName: values.lastname,
+      birthdate: values.birthdate,
+      gender: values.gender,
+      contact_number: values.contact_number,
+      current_address: values.current_address,
+      home_address: values.home_address,
+      is_4ps: values.is_4ps,
+      is_pwd: values.is_pwd,
+      email: values.email,
+      password: values.password // Pinia remembers this securely!
+    })
+
+    // Create a safe structural clone strictly for persistent localStorage cache
+    const safeDraftData = { ...values }
+    delete safeDraftData.password
+    delete safeDraftData.confirmPassword
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safeDraftData))
   }
 }
 
 function onSubmit(values: any) {
+  // 4. Access full structural object via authStore.signupData for backend operations
   toast('Form registration successful!', {
-    description: h('pre', { class: 'mt-2 w-[320px] rounded-md bg-neutral-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
+    description: h('pre', { class: 'mt-2 w-[320px] rounded-md bg-neutral-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(authStore.signupData, null, 2))),
   })
   
-  // Clear data after submission is verified
+  // Wipe both caching tracks completely on completion
   localStorage.removeItem(STORAGE_KEY)
+  authStore.clearSignupData()
 }
 
-// Password Strength Evaluation Utility
 const getPasswordStrength = (password: string) => {
   if (!password) return { score: 0, label: 'Too short', color: 'bg-neutral-200' }
   
   let score = 0
-  
-  // Rule checks
   if (password.length >= 15) score += 1
   if (/[A-Z]/.test(password)) score += 1
   if (/[a-z]/.test(password)) score += 1
   if (/[0-9]/.test(password)) score += 1
   if (/[^A-Za-z0-9]/.test(password)) score += 1
 
-  // Handle lengths under 15 strictly as weak for this specific logic if preferred
   if (password.length < 15) {
     return { score: 20, label: 'Weak (Must be 15+ characters)', color: 'bg-red-500' }
   }
@@ -161,7 +197,6 @@ const getPasswordStrength = (password: string) => {
 
 <template>
   <div class="w-full max-w-4xl mx-auto flex overflow-hidden rounded-[28px] bg-white shadow-xl">
-
     <div class="relative hidden w-[38%] shrink-0 flex-col items-start overflow-hidden bg-white px-8 pt-8 md:flex">
       <img :src="logoUrl" alt="AgSurJobs" class="h-8 w-auto shrink-0 object-contain select-none" />
       <img
@@ -172,7 +207,6 @@ const getPasswordStrength = (password: string) => {
     </div>
 
     <div class="flex flex-1 flex-col">
-      <!-- Mobile-only header: shows the logo since the visual panel is hidden below md -->
       <div class="flex items-center border-b border-neutral-100 px-6 py-4 md:hidden">
         <img :src="logoUrl" alt="AgSurJobs" class="h-7 w-auto object-contain select-none" />
       </div>

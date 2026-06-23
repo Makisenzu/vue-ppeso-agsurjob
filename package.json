@@ -16,6 +16,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "pinia": "^3.0.4",
     "reka-ui": "^2.10.0",
     "shadcn-vue": "^2.7.4",
     "sonner": "^2.0.7",
