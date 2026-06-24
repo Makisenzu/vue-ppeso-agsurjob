@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Added LayoutDashboard icon to imports
 import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
 import {
   Sidebar,
@@ -25,7 +24,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Badge } from '@/components/ui/badge'
+import { ref } from 'vue'
 
+const isVerified = ref(true)
 import { useRoute } from 'vue-router'
 const route = useRoute()
 
@@ -124,7 +126,7 @@ const jobHuntItems = [
                     <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
                         <SidebarMenuSubButton as-child>
                             <a :href="subItem.url" class="flex items-center gap-2">
-                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <!-- <component :is="subItem.icon" class="size-4 shrink-0" /> -->
                             <span>{{ subItem.title }}</span>
                         </a>
                         </SidebarMenuSubButton>
@@ -151,7 +153,7 @@ const jobHuntItems = [
                     <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
                         <SidebarMenuSubButton as-child>
                             <a :href="subItem.url" class="flex items-center gap-2">
-                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <!-- <component :is="subItem.icon" class="size-4 shrink-0" /> -->
                             <span>{{ subItem.title }}</span>
                         </a>
                         </SidebarMenuSubButton>
@@ -178,7 +180,7 @@ const jobHuntItems = [
                     <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                         <SidebarMenuSubButton as-child>
                             <a :href="subItem.url" class="flex items-center gap-2">
-                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <!-- <component :is="subItem.icon" class="size-4 shrink-0" /> -->
                             <span>{{ subItem.title }}</span>
                         </a>
                         </SidebarMenuSubButton>
@@ -194,7 +196,7 @@ const jobHuntItems = [
       </SidebarGroup>
     </SidebarContent>
 
-    <SidebarFooter>
+<SidebarFooter>
   <SidebarMenu>
     <SidebarMenuItem>
       <DropdownMenu :modal="false">
@@ -208,12 +210,24 @@ const jobHuntItems = [
               <AvatarFallback class="rounded-lg">U</AvatarFallback>
             </Avatar>
             
-            <div v-if="state === 'expanded'" class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-semibold">Denmark B. Rivera</span>
-              <span class="truncate text-xs text-muted-foreground">denmarkbarbarona13@gmail.com</span>
+            <!-- min-w-0 overrides CSS defaults so inner elements can truncate safely -->
+            <div v-if="state === 'expanded'" class="min-w-0 flex-1 text-left text-sm leading-tight pr-2">
+              <div class="flex items-center gap-1.5 w-full min-w-0">
+                <span class="truncate font-semibold">Denmark B. Rivera</span>
+                
+                <!-- Micro-scaled & protected from text shrinkage -->
+                <Badge 
+                  :variant="isVerified ? 'default' : 'secondary'"
+                  class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
+                  :class="isVerified ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-amber-500 hover:bg-amber-500 text-black'"
+                >
+                  {{ isVerified ? 'Verified' : 'Pending' }}
+                </Badge>
+              </div>
+              <span class="truncate text-xs text-muted-foreground block">denmarkbarbarona13@gmail.com</span>
             </div>
             
-            <ChevronUp v-if="state === 'expanded'" class="ml-auto size-4" />
+            <ChevronUp v-if="state === 'expanded'" class="ml-auto size-4 shrink-0" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
 
@@ -227,9 +241,21 @@ const jobHuntItems = [
               <AvatarImage src="/src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
               <AvatarFallback class="rounded-lg">U</AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-semibold text-foreground">Denmark B. Rivera</span>
-              <span class="truncate text-xs text-muted-foreground">denmarkbarbarona13@gmail.com</span>
+            
+            <div class="min-w-0 flex-1 text-left text-sm leading-tight">
+              <div class="flex items-center gap-1.5 w-full min-w-0">
+                <span class="truncate font-semibold text-foreground">Denmark B. Rivera</span>
+                
+                <!-- Fixed color layout to match emerald theme -->
+                <Badge 
+                  :variant="isVerified ? 'default' : 'secondary'"
+                  class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
+                  :class="isVerified ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-amber-500 hover:bg-amber-500 text-black'"
+                >
+                  {{ isVerified ? 'Verified' : 'Pending' }}
+                </Badge>
+              </div>
+              <span class="truncate text-xs text-muted-foreground block">denmarkbarbarona13@gmail.com</span>
             </div>
           </div>
           
