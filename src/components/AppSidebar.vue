@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Calendar, Home, Inbox, Search, Settings, ChevronUp, ChevronRight } from '@lucide/vue'
+// Added LayoutDashboard icon to imports
+import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +12,6 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  // Added sub-menu imports here:
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
@@ -24,24 +24,38 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
-// Import Collapsible primitives from your UI folder
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
-const { state } = useSidebar()
+import { useRoute } from 'vue-router'
+const route = useRoute()
 
-// Nested sub-menu items for "Home" (similar to Playground in image_6e867f.png)
-const homeSubItems = [
-  { title: 'History', url: '#' },
-  { title: 'Starred', url: '#' },
-  { title: 'Recent', url: '#' },
+const { state, isMobile } = useSidebar()
+
+const activitySubItems = [
+  { title: 'Job Applications', url: '#', icon: Inbox },
+  { title: 'Interviews', url: '#', icon: Phone },
+  { title: 'Chats', url: '#', icon: MessageCircle },
+  { title: 'Offers', url: '#', icon: Mail },
+]
+const contactSubItems = [
+  { title: 'Help Center & FAQ', url: '#', icon: Search },
+  { title: 'Submit a Ticket', url: '#', icon: Mail },
+  { title: 'Live Chat', url: '#', icon: Phone },
+  { title: 'Feedbacks', url: '#', icon: Star },
 ]
 
-const items = [
-  { title: 'Inbox', url: '#', icon: Inbox },
-  { title: 'Calendar', url: '#', icon: Calendar },
-  { title: 'Search', url: '#', icon: Search },
-  { title: 'Settings', url: '#', icon: Settings },
+const settingsSubItems = [
+  { title: 'Profile Settings', url: '#', icon:  UserRoundCog },
+  { title: 'Account Security', url: '#', icon: Settings },
+  { title: 'Notification Preferences', url: '#', icon: Bell },
 ]
+
+const jobHuntItems = [
+  { title: 'Find Jobs', url: '#', icon: Search },
+  { title: 'Saved Jobs', url: '#', icon: Bookmark },
+  { title: 'Companies', url: '#', icon: Building },
+]
+
 </script>
 
 <template>
@@ -58,40 +72,32 @@ const items = [
 
     <SidebarContent>
       <SidebarGroup>
+        <SidebarMenuItem>
+            <SidebarMenuButton as-child :tooltip="'Home'">
+                <RouterLink to="#">
+                  <Home />
+                  <span>Home</span>
+                </RouterLink>
+            </SidebarMenuButton>
+            <SidebarMenuButton as-child :tooltip="'Dashboard'">
+                <RouterLink to="#">
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
+                </RouterLink>
+            </SidebarMenuButton>
+            <SidebarMenuButton as-child :tooltip="'Notification'">
+                <RouterLink to="#">
+                  <Bell />
+                  <span>Notification</span>
+                </RouterLink>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+        <div class="my-1 h-px bg-sidebar-border" />
         <SidebarGroupLabel>Job Search</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            
-            <!-- Collapsible Menu Item (Like "Playground" in image_6e867f.png) -->
-            <SidebarMenuItem>
-              <Collapsible as-child default-open class="group/collapsible">
-                <div>
-                  <CollapsibleTrigger as-child>
-                    <SidebarMenuButton :tooltip="'Home'">
-                      <Home />
-                      <span>Home</span>
-                      <!-- Arrow indicator that turns 90 degrees when open -->
-                      <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem v-for="subItem in homeSubItems" :key="subItem.title">
-                        <SidebarMenuSubButton as-child>
-                          <a :href="subItem.url">
-                            <span>{{ subItem.title }}</span>
-                          </a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            </SidebarMenuItem>
 
-            <!-- Regular Menu Items -->
-            <SidebarMenuItem v-for="item in items" :key="item.title">
+            <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
               <SidebarMenuButton as-child :tooltip="item.title">
                 <a :href="item.url">
                   <component :is="item.icon" />
@@ -99,41 +105,150 @@ const items = [
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
+            <div class="my-1 h-px bg-sidebar-border" />
+            <SidebarGroupLabel>Others</SidebarGroupLabel>
+            <SidebarMenuItem>
+            <Collapsible as-child default-open class="group/collapsible">
+                <div>
+                <CollapsibleTrigger as-child>
+                    <SidebarMenuButton :tooltip="'My Activities'">
+                    <Zap />
+                    <span>My Activities</span>
+                    <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+      
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                    <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
+                        <SidebarMenuSubButton as-child>
+                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <span>{{ subItem.title }}</span>
+                        </a>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+                </div>
+            </Collapsible>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+            <Collapsible as-child default-open class="group/collapsible">
+                <div>
+                <CollapsibleTrigger as-child>
+                    <SidebarMenuButton :tooltip="'My Activities'">
+                    <UserRound />
+                    <span>Support</span>
+                    <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+      
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                    <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
+                        <SidebarMenuSubButton as-child>
+                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <span>{{ subItem.title }}</span>
+                        </a>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+                </div>
+            </Collapsible>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+            <Collapsible as-child default-open class="group/collapsible">
+                <div>
+                <CollapsibleTrigger as-child>
+                    <SidebarMenuButton :tooltip="'My Activities'">
+                    <Settings2 />
+                    <span>Settings</span>
+                    <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+      
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                    <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
+                        <SidebarMenuSubButton as-child>
+                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <component :is="subItem.icon" class="size-4 shrink-0" />
+                            <span>{{ subItem.title }}</span>
+                        </a>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+                </div>
+            </Collapsible>
+            </SidebarMenuItem>
             
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
 
-    <!-- Footer Component -->
     <SidebarFooter>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <SidebarMenuButton 
-                class="w-full flex items-center gap-2 h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
-              >
-                <Avatar class="size-8 rounded-lg shrink-0">
-                  <AvatarImage src="src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
-                  <AvatarFallback class="rounded-lg">U</AvatarFallback>
-                </Avatar>
-                <div v-if="state === 'expanded'" class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="truncate font-semibold">Denmark B. Rivera</span>
-                  <span class="truncate text-xs text-muted-foreground">denmarkbarbarona13@gmail.com</span>
-                </div>
-                <ChevronUp v-if="state === 'expanded'" class="ml-auto size-4" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" class="w-56">
-              <DropdownMenuItem><span>Account</span></DropdownMenuItem>
-              <DropdownMenuItem><span>Billing</span></DropdownMenuItem>
-              <DropdownMenuItem><span>Sign out</span></DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarFooter>
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <DropdownMenu :modal="false">
+        <DropdownMenuTrigger as-child>
+          <SidebarMenuButton 
+            class="w-full flex items-center gap-2 h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
+          >
+            <Avatar class="size-8 rounded-lg shrink-0">
+              <AvatarImage src="/src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
+              <AvatarFallback class="rounded-lg">U</AvatarFallback>
+            </Avatar>
+            
+            <div v-if="state === 'expanded'" class="grid flex-1 text-left text-sm leading-tight">
+              <span class="truncate font-semibold">Denmark B. Rivera</span>
+              <span class="truncate text-xs text-muted-foreground">denmarkbarbarona13@gmail.com</span>
+            </div>
+            
+            <ChevronUp v-if="state === 'expanded'" class="ml-auto size-4" />
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent 
+          :side="isMobile ? 'top' : 'right'" 
+          align="end" 
+          class="w-64 p-1 mb-2 data-[side=right]:ml-2"
+        >
+          <div class="flex items-center gap-2 px-2 py-1.5 text-sm font-normal">
+            <Avatar class="size-8 rounded-lg shrink-0">
+              <AvatarImage src="/src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
+              <AvatarFallback class="rounded-lg">U</AvatarFallback>
+            </Avatar>
+            <div class="grid flex-1 text-left text-sm leading-tight">
+              <span class="truncate font-semibold text-foreground">Denmark B. Rivera</span>
+              <span class="truncate text-xs text-muted-foreground">denmarkbarbarona13@gmail.com</span>
+            </div>
+          </div>
+          
+          <div class="my-1 h-px bg-sidebar-border" />
+
+          <DropdownMenuItem class="cursor-pointer gap-2">
+            <UserRound class="size-4" />
+            <span>Account</span>
+          </DropdownMenuItem>
+          
+          <div class="my-1 h-px bg-sidebar-border" />
+          
+          <DropdownMenuItem class="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2">
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
+  </SidebarMenu>
+</SidebarFooter>
   </Sidebar>
 </template>

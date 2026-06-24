@@ -4,14 +4,17 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 </script>
 
 <template>
-  <SidebarProvider  
-  :default-open="true"
-  storage-key="sidebar"
-  class="flex min-h-screen">
-    <AppSidebar />
-    <main>
-      <SidebarTrigger />
-      <slot />
-    </main>
-  </SidebarProvider>
+  <div class="w-full">
+    <SidebarProvider  
+      :default-open="true"
+      storage-key="sidebar"
+      class="flex min-h-screen"
+    >
+      <AppSidebar />
+      <main class="flex-1">
+        <SidebarTrigger />
+        <slot />
+      </main>
+    </SidebarProvider>
+  </div>
 </template>
