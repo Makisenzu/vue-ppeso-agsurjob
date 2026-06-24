@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+
 import {
   Sidebar,
   SidebarContent,
@@ -16,12 +17,14 @@ import {
   SidebarMenuSubButton,
   useSidebar,
 } from '@/components/ui/sidebar'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
