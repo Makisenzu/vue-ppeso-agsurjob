@@ -59,7 +59,7 @@ const jobHuntItems = [
 </script>
 
 <template>
-  <Sidebar collapsible="icon">
+  <Sidebar collapsible="icon" class="border-r border-sidebar-border/50">
     
     <SidebarHeader class="p-2 flex items-center w-full transition-all duration-200">
       <div v-if="state === 'expanded'" class="w-full max-w-[200px] flex justify-start mr-auto p-2">
@@ -109,7 +109,7 @@ const jobHuntItems = [
             <div class="my-1 h-px bg-sidebar-border" />
             <SidebarGroupLabel>Others</SidebarGroupLabel>
             <SidebarMenuItem>
-            <Collapsible as-child default-open class="group/collapsible">
+            <Collapsible as-child default-close class="group/collapsible">
                 <div>
                 <CollapsibleTrigger as-child>
                     <SidebarMenuButton :tooltip="'My Activities'">
@@ -136,10 +136,10 @@ const jobHuntItems = [
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-            <Collapsible as-child default-open class="group/collapsible">
+            <Collapsible as-child default-close class="group/collapsible">
                 <div>
                 <CollapsibleTrigger as-child>
-                    <SidebarMenuButton :tooltip="'My Activities'">
+                    <SidebarMenuButton :tooltip="'Support'">
                     <UserRound />
                     <span>Support</span>
                     <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -163,10 +163,10 @@ const jobHuntItems = [
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-            <Collapsible as-child default-open class="group/collapsible">
+            <Collapsible as-child default-close class="group/collapsible">
                 <div>
                 <CollapsibleTrigger as-child>
-                    <SidebarMenuButton :tooltip="'My Activities'">
+                    <SidebarMenuButton :tooltip="'Settings'">
                     <Settings2 />
                     <span>Settings</span>
                     <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
