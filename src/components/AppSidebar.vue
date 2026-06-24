@@ -22,7 +22,6 @@ import {
     Avatar,
     AvatarImage,
     AvatarFallback,
-    AvatarBadge,
 } from '@/components/ui/avatar'
 
 // Menu items.
