@@ -74,9 +74,9 @@ const jobHuntItems = [
         <img src="/src/assets/images/agsur.png" alt="AGSURJOBS Logo" class="size-full object-contain">
       </div>
     </SidebarHeader>
-
     <SidebarContent>
       <SidebarGroup>
+        <SidebarGroupLabel>General</SidebarGroupLabel>
         <SidebarMenuItem>
             <SidebarMenuButton as-child :tooltip="'Home'">
                 <RouterLink to="#">
@@ -209,7 +209,7 @@ const jobHuntItems = [
             :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
           >
             <Avatar class="size-8 rounded-lg shrink-0">
-              <AvatarImage src="/src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
+              <AvatarImage src="https://github.com/Makisenzu.png" alt="User profile" class="rounded-lg object-contain" />
               <AvatarFallback class="rounded-lg">U</AvatarFallback>
             </Avatar>
             
@@ -241,7 +241,7 @@ const jobHuntItems = [
         >
           <div class="flex items-center gap-2 px-2 py-1.5 text-sm font-normal">
             <Avatar class="size-8 rounded-lg shrink-0">
-              <AvatarImage src="/src/assets/images/agsur.png" alt="User profile" class="rounded-lg object-contain" />
+              <AvatarImage src="https://github.com/Makisenzu.png" alt="User profile" class="rounded-lg object-contain" />
               <AvatarFallback class="rounded-lg">U</AvatarFallback>
             </Avatar>
             
