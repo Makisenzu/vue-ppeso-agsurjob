@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
-import { h, ref, onMounted } from 'vue'
+import { h, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -126,10 +126,9 @@ function toCalendarDate(value?: string) {
   return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
 }
 
-// 3. SECURE SYNC PROCESS: Separate sensitive values out of localStorage
+// SECURE SYNC PROCESS: Separate sensitive values out of localStorage safely via watch
 function handleCacheSync(values: Record<string, any>) {
-  if (Object.keys(values).length > 0) {
-    // Write everything directly to Pinia execution RAM
+  if (values && Object.keys(values).length > 0) {
     authStore.updateSignupFields({
       firstName: values.firstname,
       middlename: values.middlename,
@@ -142,10 +141,9 @@ function handleCacheSync(values: Record<string, any>) {
       is_4ps: values.is_4ps,
       is_pwd: values.is_pwd,
       email: values.email,
-      password: values.password // Pinia remembers this securely!
+      password: values.password
     })
 
-    // Create a safe structural clone strictly for persistent localStorage cache
     const safeDraftData = { ...values }
     delete safeDraftData.password
     delete safeDraftData.confirmPassword
@@ -154,18 +152,27 @@ function handleCacheSync(values: Record<string, any>) {
   }
 }
 
+// Move form handle validation logic down into form submission steps
+function handleStepSubmit(values: any, actions: any) {
+  if (stepIndex.value < steps.length) {
+    // Save draft data dynamically at each successful intermediate step step boundary
+    handleCacheSync(values)
+    stepIndex.value++
+  } else {
+    onSubmit(values)
+  }
+}
+
 function onSubmit(values: any) {
-  // 4. Access full structural object via authStore.signupData for backend operations
   toast('Form registration successful!', {
     description: h('pre', { class: 'mt-2 w-[320px] rounded-md bg-neutral-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(authStore.signupData, null, 2))),
   })
   
-  // Wipe both caching tracks completely on completion
   localStorage.removeItem(STORAGE_KEY)
   authStore.clearSignupData()
 }
 
-const getPasswordStrength = (password: string) => {
+const getPasswordStrength = (password: string = '') => {
   if (!password) return { score: 0, label: 'Too short', color: 'bg-neutral-200' }
   
   let score = 0
@@ -212,398 +219,358 @@ const getPasswordStrength = (password: string) => {
       </div>
 
       <Form
-        v-slot="{ meta, values, validate }"
-        as="" keep-values 
+        v-slot="{ meta, values, handleSubmit }"
+        as="form" 
+        keep-values 
         :validation-schema="toTypedSchema(formSchema[stepIndex - 1]!)"
         :initial-values="initialValues"
+        @submit="handleStepSubmit"
+        class="flex h-full flex-col"
       >
-        <span class="hidden" :data-sync="handleCacheSync(values)"></span>
+        <Stepper v-slot="{ isPrevDisabled, prevStep }" v-model="stepIndex" class="flex h-full flex-col">
+          
+          <div class="flex items-start gap-6 px-8 pt-8">
+            <div class="flex w-full gap-2">
+              <StepperItem
+                v-for="(step) in steps"
+                :key="step.step"
+                v-slot="{ state }"
+                class="relative flex w-full flex-col items-center"
+                :step="step.step"
+              >
+                <StepperSeparator
+                  v-if="step.step !== steps[steps.length - 1]!.step"
+                  class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 block h-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"
+                />
 
-        <Stepper v-slot="{ isNextDisabled, isPrevDisabled, nextStep, prevStep, modelValue }" v-model="stepIndex" class="flex h-full flex-col">
-          <form
-            class="flex h-full flex-col"
-            @submit="(e) => {
-              e.preventDefault()
-              validate()
+                <StepperTrigger as-child>
+                  <Button
+                    size="icon"
+                    class="z-10 size-8 shrink-0 rounded-full border-2 transition-colors"
+                    :class="[
+                      (state === 'completed' || state === 'active')
+                        ? 'border-[#4f46e5] bg-[#4f46e5] text-white hover:bg-[#4f46e5] hover:text-white'
+                        : 'border-neutral-300 bg-white text-neutral-400 hover:bg-white hover:text-neutral-400',
+                    ]"
+                    :disabled="state !== 'completed' && step.step !== stepIndex"
+                    type="button"
+                  >
+                    <Check v-if="state === 'completed'" class="size-4" />
+                    <Circle v-if="state === 'active'" class="size-3" />
+                    <Dot v-if="state === 'inactive'" />
+                  </Button>
+                </StepperTrigger>
 
-              if (stepIndex === steps.length && meta.valid) {
-                onSubmit(values)
-              }
-            }"
-          >
-            <div class="flex items-start gap-6 px-8 pt-8">
-              <div class="flex w-full gap-2">
-                <StepperItem
-                  v-for="(step) in steps"
-                  :key="step.step"
-                  v-slot="{ state }"
-                  class="relative flex w-full flex-col items-center"
-                  :step="step.step"
-                >
-                  <StepperSeparator
-                    v-if="step.step !== steps[steps.length - 1]!.step"
-                    class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 block h-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"
-                  />
-
-                  <StepperTrigger as-child>
-                    <Button
-                      size="icon"
-                      class="z-10 size-8 shrink-0 rounded-full border-2 transition-colors"
-                      :class="[
-                        (state === 'completed' || state === 'active')
-                          ? 'border-[#4f46e5] bg-[#4f46e5] text-white hover:bg-[#4f46e5] hover:text-white'
-                          : 'border-neutral-300 bg-white text-neutral-400 hover:bg-white hover:text-neutral-400',
-                      ]"
-                      :disabled="state !== 'completed' && (step.step - 1 >= (modelValue || 0) && !meta.valid)"
-                      type="button"
-                    >
-                      <Check v-if="state === 'completed'" class="size-4" />
-                      <Circle v-if="state === 'active'" class="size-3" />
-                      <Dot v-if="state === 'inactive'" />
-                    </Button>
-                  </StepperTrigger>
-
-                  <div class="mt-3 flex flex-col items-center text-center">
-                    <StepperTitle
-                      :class="[state === 'active' ? 'text-[#4f46e5]' : 'text-neutral-800']"
-                      class="text-[11px] font-semibold transition md:text-xs"
-                    >
-                      {{ step.title }}
-                    </StepperTitle>
-                    <StepperDescription
-                      class="sr-only text-[10px] text-muted-foreground transition md:not-sr-only"
-                    >
-                      {{ step.description }}
-                    </StepperDescription>
-                  </div>
-                </StepperItem>
-              </div>
+                <div class="mt-3 flex flex-col items-center text-center">
+                  <StepperTitle
+                    :class="[state === 'active' ? 'text-[#4f46e5]' : 'text-neutral-800']"
+                    class="text-[11px] font-semibold transition md:text-xs"
+                  >
+                    {{ step.title }}
+                  </StepperTitle>
+                  <StepperDescription
+                    class="sr-only text-[10px] text-muted-foreground transition md:not-sr-only"
+                  >
+                    {{ step.description }}
+                  </StepperDescription>
+                </div>
+              </StepperItem>
             </div>
+          </div>
 
-            <div class="flex-1 px-8 py-8">
-              <div class="flex flex-col gap-5">
+          <div class="flex-1 px-8 py-8">
+            <div class="flex flex-col gap-5">
 
-                <template v-if="stepIndex === 1">
-                  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormField v-slot="{ componentField }" name="firstname">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="text"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            First name
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ componentField }" name="middlename">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="text"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Middle name
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ componentField }" name="lastname">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="text"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Last name
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField v-slot="{ value, setValue }" name="birthdate">
-                      <FormItem>
-                        <Popover>
-                          <PopoverTrigger as-child>
-                            <div class="relative">
-                              <input
-                                type="text"
-                                placeholder="YYYY-MM-DD"
-                                :value="value"
-                                @input="(e) => {
-                                  const target = e.target as HTMLInputElement;
-                                  setValue(target.value);
-                                }"
-                                class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 pl-9 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                              />
-                              <CalendarIcon class="pointer-events-none absolute left-3 top-4 size-4 shrink-0 text-neutral-400" />
-                              <FormLabel class="pointer-events-none absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                                Birthdate
-                              </FormLabel>
-                            </div>
-                          </PopoverTrigger>
-                          <PopoverContent class="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              :model-value="toCalendarDate(value)"
-                              @update:model-value="(d) => setValue(d ? `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}` : '')"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ componentField }" name="gender">
-                      <FormItem>
-                        <div class="relative">
-                          <Select v-bind="componentField">
-                            <FormControl>
-                              <SelectTrigger class="w-full rounded-md border-neutral-300 px-3 pb-2.5 pt-3.5">
-                                <SelectValue placeholder="Select gender" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="male">Male</SelectItem>
-                                <SelectItem value="female">Female</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                          <FormLabel class="pointer-events-none absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Gender
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-                  </div>
-                </template>
-
-                <template v-if="stepIndex === 2">
-                  <FormField v-slot="{ componentField }" name="contact_number">
+              <template v-if="stepIndex === 1">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <FormField v-slot="{ componentField }" name="firstname">
                     <FormItem>
-                      <div class="relative">
+                      <label class="relative block">
                         <input
                           type="text"
-                          placeholder="e.g., +639..."
                           v-bind="componentField"
                           class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
                         />
-                        <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                          Contact number
-                        </FormLabel>
-                      </div>
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">First name</span>
+                      </label>
                       <FormMessage class="text-[11px] leading-none mt-1" />
                     </FormItem>
                   </FormField>
 
-                  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField v-slot="{ componentField }" name="current_address">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="text"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                  <FormField v-slot="{ componentField }" name="middlename">
+                    <FormItem>
+                      <label class="relative block">
+                        <input
+                          type="text"
+                          v-bind="componentField"
+                          class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                        />
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Middle name</span>
+                      </label>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+
+                  <FormField v-slot="{ componentField }" name="lastname">
+                    <FormItem>
+                      <label class="relative block">
+                        <input
+                          type="text"
+                          v-bind="componentField"
+                          class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                        />
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Last name</span>
+                      </label>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField v-slot="{ value, setValue }" name="birthdate">
+                    <FormItem>
+                      <Popover>
+                        <PopoverTrigger as-child>
+                          <label class="relative block cursor-pointer">
+                            <input
+                              type="text"
+                              placeholder="YYYY-MM-DD"
+                              :value="value"
+                              @input="(e) => {
+                                const target = e.target as HTMLInputElement;
+                                setValue(target.value);
+                              }"
+                              class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 pl-9 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                            />
+                            <CalendarIcon class="pointer-events-none absolute left-3 top-4 size-4 shrink-0 text-neutral-400" />
+                            <span class="pointer-events-none absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Birthdate</span>
+                          </label>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            :model-value="toCalendarDate(value)"
+                            @update:model-value="(d) => setValue(d ? `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}` : '')"
                           />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Current address
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
 
-                    <FormField v-slot="{ componentField }" name="home_address">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="text"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Home address
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-                  </div>
-
-                  <div class="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
-                    <FormField v-slot="{ value, handleChange }" name="is_4ps">
-                      <FormItem class="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
-                        </FormControl>
-                        <FormLabel class="font-normal">4Ps Beneficiary</FormLabel>
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ value, handleChange }" name="is_pwd">
-                      <FormItem class="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
-                        </FormControl>
-                        <FormLabel class="font-normal">Person with Disability (PWD)</FormLabel>
-                      </FormItem>
-                    </FormField>
-                  </div>
-                </template>
-
-                <template v-if="stepIndex === 3">
-                  <FormField v-slot="{ componentField }" name="email">
+                  <FormField v-slot="{ componentField }" name="gender">
                     <FormItem>
                       <div class="relative">
+                        <Select v-bind="componentField">
+                          <FormControl>
+                            <SelectTrigger class="w-full rounded-md border-neutral-300 px-3 pb-2.5 pt-3.5">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <span class="pointer-events-none absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Gender</span>
+                      </div>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+                </div>
+              </template>
+
+              <template v-if="stepIndex === 2">
+                <FormField v-slot="{ componentField }" name="contact_number">
+                  <FormItem>
+                    <label class="relative block">
+                      <input
+                        type="text"
+                        placeholder="e.g., +639..."
+                        v-bind="componentField"
+                        class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                      />
+                      <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Contact number</span>
+                    </label>
+                    <FormMessage class="text-[11px] leading-none mt-1" />
+                  </FormItem>
+                </FormField>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField v-slot="{ componentField }" name="current_address">
+                    <FormItem>
+                      <label class="relative block">
                         <input
-                          type="email"
+                          type="text"
                           v-bind="componentField"
                           class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
                         />
-                        <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                          Email address
-                        </FormLabel>
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Current address</span>
+                      </label>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+
+                  <FormField v-slot="{ componentField }" name="home_address">
+                    <FormItem>
+                      <label class="relative block">
+                        <input
+                          type="text"
+                          v-bind="componentField"
+                          class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                        />
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Home address</span>
+                      </label>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+                </div>
+
+                <div class="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
+                  <FormField v-slot="{ value, handleChange }" name="is_4ps">
+                    <FormItem>
+                      <label class="flex flex-row items-center space-x-3 space-y-0 cursor-pointer">
+                        <FormControl>
+                          <Checkbox :checked="value" @update:checked="handleChange" />
+                        </FormControl>
+                        <span class="text-sm font-normal text-neutral-900 select-none">4Ps Beneficiary</span>
+                      </label>
+                    </FormItem>
+                  </FormField>
+
+                  <FormField v-slot="{ value, handleChange }" name="is_pwd">
+                    <FormItem>
+                      <label class="flex flex-row items-center space-x-3 space-y-0 cursor-pointer">
+                        <FormControl>
+                          <Checkbox :checked="value" @update:checked="handleChange" />
+                        </FormControl>
+                        <span class="text-sm font-normal text-neutral-900 select-none">Person with Disability (PWD)</span>
+                      </label>
+                    </FormItem>
+                  </FormField>
+                </div>
+              </template>
+
+              <template v-if="stepIndex === 3">
+                <FormField v-slot="{ componentField }" name="email">
+                  <FormItem>
+                    <label class="relative block">
+                      <input
+                        type="email"
+                        v-bind="componentField"
+                        class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                      />
+                      <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Email address</span>
+                    </label>
+                    <FormMessage class="text-[11px] leading-none mt-1" />
+                  </FormItem>
+                </FormField>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField v-slot="{ componentField }" name="password">
+                    <FormItem>
+                      <label class="relative block">
+                        <input
+                          type="password"
+                          v-bind="componentField"
+                          class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                        />
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Password</span>
+                      </label>
+                      
+                      <div class="mt-2.5 px-0.5">
+                        <Progress 
+                          :model-value="getPasswordStrength(values.password).score" 
+                          class="h-1.5 transition-all"
+                          :class="getPasswordStrength(values.password).color"
+                        />
+                        <div class="flex justify-between items-center mt-1 text-[11px]">
+                          <span class="text-neutral-400">Password strength:</span>
+                          <span :class="[
+                            getPasswordStrength(values.password).score >= 80 ? 'text-emerald-600 font-semibold' : 
+                            getPasswordStrength(values.password).score >= 60 ? 'text-yellow-600 font-semibold' : 'text-red-500'
+                          ]">
+                            {{ getPasswordStrength(values.password).label }}
+                          </span>
+                        </div>
                       </div>
                       <FormMessage class="text-[11px] leading-none mt-1" />
                     </FormItem>
                   </FormField>
 
-                  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField v-slot="{ componentField }" name="password">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="password"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Password
-                          </FormLabel>
-                        </div>
-                        
-                        <div class="mt-2.5 px-0.5">
-                          <Progress 
-                            :model-value="getPasswordStrength(values.password).score" 
-                            class="h-1.5 transition-all"
-                            :class="getPasswordStrength(values.password).color"
-                          />
-                          <div class="flex justify-between items-center mt-1 text-[11px]">
-                            <span class="text-neutral-400">Password strength:</span>
-                            <span :class="[
-                              getPasswordStrength(values.password).score >= 80 ? 'text-emerald-600 font-semibold' : 
-                              getPasswordStrength(values.password).score >= 60 ? 'text-yellow-600 font-semibold' : 'text-red-500'
-                            ]">
-                              {{ getPasswordStrength(values.password).label }}
-                            </span>
-                          </div>
-                        </div>
+                  <FormField v-slot="{ componentField }" name="confirmPassword">
+                    <FormItem>
+                      <label class="relative block">
+                        <input
+                          type="password"
+                          v-bind="componentField"
+                          class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                        />
+                        <span class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">Confirm password</span>
+                      </label>
+                      <FormMessage class="text-[11px] leading-none mt-1" />
+                    </FormItem>
+                  </FormField>
+                </div>
+              </template>
 
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ componentField }" name="confirmPassword">
-                      <FormItem>
-                        <div class="relative">
-                          <input
-                            type="password"
-                            v-bind="componentField"
-                            class="w-full rounded-md border border-neutral-300 px-3 pb-2.5 pt-3.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
-                          />
-                          <FormLabel class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-neutral-500">
-                            Confirm password
-                          </FormLabel>
-                        </div>
-                        <FormMessage class="text-[11px] leading-none mt-1" />
-                      </FormItem>
-                    </FormField>
-                  </div>
-                </template>
-
-                <template v-if="stepIndex === 4">
-                  <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-5 text-sm text-neutral-800">
-                    <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-neutral-400">Review Inputted Credentials</h3>
-                    
-                    <div class="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
-                      <div><span class="font-semibold text-neutral-500">Full Name:</span> {{ values.firstname }} {{ values.middlename || '' }} {{ values.lastname }}</div>
-                      <div><span class="font-semibold text-neutral-500">Birthdate:</span> {{ values.birthdate }}</div>
-                      <div><span class="font-semibold text-neutral-500">Gender:</span> <span class="capitalize">{{ values.gender }}</span></div>
-                      <div><span class="font-semibold text-neutral-500">Contact Number:</span> {{ values.contact_number }}</div>
-                      <div class="md:col-span-2"><span class="font-semibold text-neutral-500">Current Address:</span> {{ values.current_address }}</div>
-                      <div class="md:col-span-2"><span class="font-semibold text-neutral-500">Home Address:</span> {{ values.home_address }}</div>
-                      <div><span class="font-semibold text-neutral-500">Email:</span> {{ values.email }}</div>
-                      <div>
-                        <span class="font-semibold text-neutral-500">Affiliations:</span> 
-                        {{ [values.is_4ps ? '4Ps Beneficiary' : '', values.is_pwd ? 'PWD' : ''].filter(Boolean).join(', ') || 'None' }}
-                      </div>
-                    </div>
-
-                    <div class="mt-4 border-t border-neutral-200 pt-3 text-xs text-neutral-400 italic">
-                      Please double-check everything before finalizing registration.
+              <template v-if="stepIndex === 4">
+                <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-5 text-sm text-neutral-800">
+                  <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-neutral-400">Review Inputted Credentials</h3>
+                  
+                  <div class="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
+                    <div><span class="font-semibold text-neutral-500">Full Name:</span> {{ values.firstname }} {{ values.middlename || '' }} {{ values.lastname }}</div>
+                    <div><span class="font-semibold text-neutral-500">Birthdate:</span> {{ values.birthdate }}</div>
+                    <div><span class="font-semibold text-neutral-500">Gender:</span> <span class="capitalize">{{ values.gender }}</span></div>
+                    <div><span class="font-semibold text-neutral-500">Contact Number:</span> {{ values.contact_number }}</div>
+                    <div class="md:col-span-2"><span class="font-semibold text-neutral-500">Current Address:</span> {{ values.current_address }}</div>
+                    <div class="md:col-span-2"><span class="font-semibold text-neutral-500">Home Address:</span> {{ values.home_address }}</div>
+                    <div><span class="font-semibold text-neutral-500">Email:</span> {{ values.email }}</div>
+                    <div>
+                      <span class="font-semibold text-neutral-500">Affiliations:</span> 
+                      {{ [values.is_4ps ? '4Ps Beneficiary' : '', values.is_pwd ? 'PWD' : ''].filter(Boolean).join(', ') || 'None' }}
                     </div>
                   </div>
-                </template>
 
-              </div>
+                  <div class="mt-4 border-t border-neutral-200 pt-3 text-xs text-neutral-400 italic">
+                    Please double-check everything before finalizing registration.
+                  </div>
+                </div>
+              </template>
+
             </div>
+          </div>
 
-            <div class="flex items-center justify-end gap-5 px-8 pb-8">
-              <button
-                v-if="stepIndex === 1"
-                type="button"
-                class="text-sm font-medium text-neutral-400 transition hover:text-neutral-700"
-                @click="router.push('/login')"
-              >
-                Log In
-              </button>
+          <div class="flex items-center justify-end gap-5 px-8 pb-8">
+            <button
+              v-if="stepIndex === 1"
+              type="button"
+              class="text-sm font-medium text-neutral-400 transition hover:text-neutral-700"
+              @click="router.push('/login')"
+            >
+              Log In
+            </button>
 
-              <button
-                v-if="stepIndex > 1"
-                type="button"
-                :disabled="isPrevDisabled"
-                class="text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:text-neutral-600 disabled:opacity-40"
-                @click="prevStep()"
-              >
-                Back
-              </button>
+            <button
+              v-if="stepIndex > 1"
+              type="button"
+              :disabled="isPrevDisabled"
+              class="text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:text-neutral-600 disabled:opacity-40"
+              @click="prevStep()"
+            >
+              Back
+            </button>
 
-              <button
-                v-if="stepIndex < steps.length"
-                :type="meta.valid ? 'button' : 'submit'"
-                :disabled="isNextDisabled"
-                class="rounded-full bg-[#0b1d4e] px-7 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#0b1d4e]/90 disabled:opacity-40"
-                @click="meta.valid && nextStep()"
-              >
-                Next
-              </button>
-
-              <button
-                v-if="stepIndex === steps.length"
-                type="submit"
-                class="rounded-full bg-[#0b1d4e] px-7 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#0b1d4e]/90"
-              >
-                Submit
-              </button>
-            </div>
-          </form>
+            <Button
+              type="submit"
+              class="rounded-full bg-[#0b1d4e] px-7 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#0b1d4e]/90"
+            >
+              {{ stepIndex === steps.length ? 'Submit' : 'Next' }}
+            </Button>
+          </div>
         </Stepper>
       </Form>
     </div>
