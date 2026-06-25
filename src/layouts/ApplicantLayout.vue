@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useColorMode } from '@vueuse/core'
 import { Sun, Moon } from '@lucide/vue'
 
-// Initialize VueUse color mode management
 const mode = useColorMode()
 
 function toggleTheme() {
@@ -23,7 +22,7 @@ function toggleTheme() {
       
       <main class="flex-1 flex flex-col">
         
-        <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-200">
+        <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200">
           <SidebarTrigger class="-ml-1 text-muted-foreground" />
 
           <button 
