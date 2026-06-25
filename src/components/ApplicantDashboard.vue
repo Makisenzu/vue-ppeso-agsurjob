@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute, RouterLink } from 'vue-router'
 import {
   Card,
   CardContent,
@@ -24,6 +25,15 @@ import {
   Star,
   XCircle,
 } from '@lucide/vue'
+
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 
 const profileCompletion = ref(85)
 
@@ -95,20 +105,43 @@ const recommendedJobs = [
     match: '88%'
   }
 ]
+const route = useRoute()
+const breadcrumbs = computed(() => {
+  return route.matched
+    .filter(r => r.name && r.meta?.breadcrumb !== false)
+    .map((r) => {
+      const title = typeof r.meta?.title === 'string' 
+        ? r.meta.title 
+        : String(r.name).charAt(0).toUpperCase() + String(r.name).slice(1)
+
+      return {
+        title,
+        to: r.path === '/app' ? { name: 'dashboard' } : { name: r.name }
+      }
+    })
+})
 </script>
 
 <template>
   <div class="flex-1 space-y-6 w-full max-w-7xl mx-auto">
-    <!-- Header Section -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div class="space-y-1.5">
-        <h2 class="text-3xl font-bold tracking-tight bg-linear-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
-          Dashboard
-        </h2>
-        <p class="text-muted-foreground">
-          Welcome back! Here's an overview of your job search journey.
-        </p>
-      </div>
+<Breadcrumb v-if="breadcrumbs.length" class="mb-2">
+      <BreadcrumbList>
+        <template v-for="(crumb, index) in breadcrumbs" :key="crumb.title">
+          <BreadcrumbItem>
+            <BreadcrumbPage v-if="index === breadcrumbs.length - 1">
+              {{ crumb.title }}
+            </BreadcrumbPage>
+            
+            <BreadcrumbLink v-else as-child>
+              <RouterLink :to="crumb.to">{{ crumb.title }}</RouterLink>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          
+          <BreadcrumbSeparator v-if="index < breadcrumbs.length - 1" />
+        </template>
+      </BreadcrumbList>
+    </Breadcrumb>
       <div class="flex items-center gap-3">
         <Button variant="outline" class="gap-2 rounded-xl">
           <Search class="h-4 w-4" />
