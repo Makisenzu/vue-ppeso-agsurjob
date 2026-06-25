@@ -122,12 +122,15 @@ const jobHuntItems = [
 
     <template v-else>
       <SidebarHeader class="p-2 flex items-center w-full transition-all duration-200">
+  
         <div v-if="state === 'expanded'" class="w-full max-w-50 flex justify-start mr-auto p-2">
-          <img src="/src/assets/images/agsurlogo.png" alt="AGSURJOBS Logo" class="w-full h-auto object-contain">
+          <img src="/src/assets/images/agsur-logo.png" alt="AGSURJOBS Logo" class="dark:hidden w-full h-auto object-contain">
+          <img src="/src/assets/images/agsur.png" alt="AGSURJOBS Seal" class="hidden dark:block size-8 object-contain">
         </div>
         <div v-else class="flex items-center justify-center size-8 mx-auto overflow-hidden">
-          <img src="/src/assets/images/agsur.png" alt="AGSURJOBS Logo" class="size-full object-contain">
+          <img src="/src/assets/images/agsur.png" alt="AGSURJOBS Seal" class="size-full object-contain">
         </div>
+
       </SidebarHeader>
       
       <SidebarContent>
@@ -160,10 +163,10 @@ const jobHuntItems = [
             <SidebarMenu>
               <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <a :href="item.url">
+                  <RouterLink to="">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </a>
+                  </RouterLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -184,9 +187,9 @@ const jobHuntItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <RouterLink to="">
                               <span>{{ subItem.title }}</span>
-                            </a>
+                            </RouterLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -209,9 +212,9 @@ const jobHuntItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <RouterLink to="">
                               <span>{{ subItem.title }}</span>
-                            </a>
+                            </RouterLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -234,9 +237,9 @@ const jobHuntItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <a :href="subItem.url" class="flex items-center gap-2">
+                            <RouterLink to="">
                               <span>{{ subItem.title }}</span>
-                            </a>
+                            </RouterLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
