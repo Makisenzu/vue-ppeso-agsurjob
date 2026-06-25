@@ -83,7 +83,7 @@ const jobHuntItems = [
           <Skeleton v-if="state === 'expanded'" class="h-3 w-16 mx-2 mb-3" />
           <div v-for="i in 3" :key="'gen-'+i" class="flex items-center gap-3 h-9 px-2">
             <Skeleton class="size-4 shrink-0 rounded" />
-            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-[110px]" />
+            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-27.5" />
           </div>
         </div>
 
@@ -93,7 +93,7 @@ const jobHuntItems = [
           <Skeleton v-if="state === 'expanded'" class="h-3 w-20 mx-2 mb-3" />
           <div v-for="i in 3" :key="'job-'+i" class="flex items-center gap-3 h-9 px-2">
             <Skeleton class="size-4 shrink-0 rounded" />
-            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-[90px]" />
+            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-22.5" />
           </div>
         </div>
 
@@ -103,7 +103,7 @@ const jobHuntItems = [
           <Skeleton v-if="state === 'expanded'" class="h-3 w-14 mx-2 mb-3" />
           <div v-for="i in 3" :key="'oth-'+i" class="flex items-center gap-3 h-9 px-2">
             <Skeleton class="size-4 shrink-0 rounded" />
-            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-[120px]" />
+            <Skeleton v-if="state === 'expanded'" class="h-4 flex-1 max-w-30" />
             <Skeleton v-if="state === 'expanded'" class="size-3 ml-auto rounded" />
           </div>
         </div>
@@ -122,7 +122,7 @@ const jobHuntItems = [
 
     <template v-else>
       <SidebarHeader class="p-2 flex items-center w-full transition-all duration-200">
-        <div v-if="state === 'expanded'" class="w-full max-w-[200px] flex justify-start mr-auto p-2">
+        <div v-if="state === 'expanded'" class="w-full max-w-50 flex justify-start mr-auto p-2">
           <img src="/src/assets/images/agsur-logo.png" alt="AGSURJOBS Logo" class="w-full h-auto object-contain">
         </div>
         <div v-else class="flex items-center justify-center size-8 mx-auto overflow-hidden">
