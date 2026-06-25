@@ -32,7 +32,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ref, onMounted } from 'vue'
 
 const isVerified = ref(true)
-const isLoading = ref(true)
+const isLoading = ref(false)
 
 import { useRoute } from 'vue-router'
 const route = useRoute()
@@ -46,26 +46,26 @@ onMounted(() => {
 })
 
 const activitySubItems = [
-  { title: 'Job Applications', url: '#', icon: Inbox },
-  { title: 'Interviews', url: '#', icon: Phone },
-  { title: 'Chats', url: '#', icon: MessageCircle },
-  { title: 'Offers', url: '#', icon: Mail },
+  { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
+  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
+  { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
+  { title: 'Offers', to: {name: 'dashboard'}, icon: Mail },
 ]
 const contactSubItems = [
-  { title: 'Help Center & FAQ', url: '#', icon: Search },
-  { title: 'Submit a Ticket', url: '#', icon: Mail },
-  { title: 'Live Chat', url: '#', icon: Phone },
-  { title: 'Feedbacks', url: '#', icon: Star },
+  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', url: '#', icon:  UserRoundCog },
-  { title: 'Account Security', url: '#', icon: Settings },
-  { title: 'Notification Preferences', url: '#', icon: Bell },
+  { title: 'Profile Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
+  { title: 'Account Security', to: {name: 'dashboard'}, icon: Settings },
+  { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
 ]
 const jobHuntItems = [
-  { title: 'Find Jobs', url: '#', icon: Search },
-  { title: 'Saved Jobs', url: '#', icon: Bookmark },
-  { title: 'Companies', url: '#', icon: Building },
+  { title: 'Find Jobs', to: {name: 'dashboard'}, icon: Search },
+  { title: 'Saved Jobs', to: {name: 'dashboard'}, icon: Bookmark },
+  { title: 'Companies', to: {name: 'dashboard'}, icon: Building },
 ]
 </script>
 
@@ -138,13 +138,13 @@ const jobHuntItems = [
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
               <SidebarMenuButton as-child :tooltip="'Home'">
-                  <RouterLink to="#">
+                  <RouterLink :to="{ name: 'login' }">
                     <Home />
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'">
-                  <RouterLink to="#">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
+                  <RouterLink :to="{ name: 'dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>

@@ -451,6 +451,15 @@ code {
   }
 }
 
+.group\/sidebar-menu-button .router-link-active,
+.group\/sidebar-menu-button .router-link-exact-active {
+  @apply bg-sidebar-accent text-sidebar-accent-foreground font-medium;
+}
+
+.router-link-active span {
+  @apply text-sidebar-accent-foreground;
+}
+
 /* Global #app reset overrides */
 #app {
   width: 100% !important;

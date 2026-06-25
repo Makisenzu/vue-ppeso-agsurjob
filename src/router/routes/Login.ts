@@ -1,13 +1,15 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
 import LoginView from '@/views/auth/Login.vue'
 import SignupView from '@/views/auth/Signup.vue'
 import ApplicantLayout from '@/layouts/ApplicantLayout.vue'
+import ApplicantDashboard from '@/components/ApplicantDashboard.vue'
 
-const routes = [
+export const loginRoutes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/login'
   },
+  
   {
     path: '/login',
     name: 'login',
@@ -19,15 +21,14 @@ const routes = [
     component: SignupView
   },
   {
-    path: '/sidebar',
-    name: 'sidebar',
-    component: ApplicantLayout
-  }
+    path: '/app',
+    component: ApplicantLayout,
+    children: [
+      {
+        path: 'dashboard',
+        name: 'dashboard',
+        component: ApplicantDashboard
+      }
+    ]
+  },
 ]
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
-
-export default router
