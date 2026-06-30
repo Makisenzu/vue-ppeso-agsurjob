@@ -58,10 +58,10 @@ const handleSignOut = async () => {
 }
 
 const activitySubItems = [
-  { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
-  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
-  { title: 'Offers', to: {name: 'dashboard'}, icon: Mail },
+  { title: 'Job Applications', to: {name: 'application'}, icon: Inbox },
+  { title: 'Interviews', to: {name: 'interview'}, icon: Phone },
+  { title: 'Chats', to: {name: 'chat'}, icon: MessageCircle },
+  { title: 'Offers', to: {name: 'offer'}, icon: Mail },
 ]
 const contactSubItems = [
   { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
@@ -75,9 +75,9 @@ const settingsSubItems = [
   { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
 ]
 const jobHuntItems = [
-  { title: 'Find Jobs', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Saved Jobs', to: {name: 'dashboard'}, icon: Bookmark },
-  { title: 'Companies', to: {name: 'dashboard'}, icon: Building },
+  { title: 'Find Jobs', to: {name: 'find-job'}, icon: Search },
+  { title: 'Saved Jobs', to: {name: 'saved-job'}, icon: Bookmark },
+  { title: 'Companies', to: {name: 'company'}, icon: Building },
 ]
 </script>
 
@@ -149,8 +149,8 @@ const jobHuntItems = [
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
-              <SidebarMenuButton as-child :tooltip="'Home'">
-                  <RouterLink :to="{ name: 'login' }">
+              <SidebarMenuButton as-child :tooltip="'Home'" :is-active="route.name === 'home'">
+                  <RouterLink :to="{ name: 'home' }">
                     <Home />
                     <span>Home</span>
                   </RouterLink>
@@ -161,8 +161,8 @@ const jobHuntItems = [
                     <span>Dashboard</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'">
-                  <RouterLink to="#">
+              <SidebarMenuButton as-child :tooltip="'Notification'" :is-active="route.name === 'notification'">
+                  <RouterLink :to="{ name: 'notification' }">
                     <Bell />
                     <span>Notification</span>
                   </RouterLink>
@@ -174,8 +174,8 @@ const jobHuntItems = [
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink to="">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
+                  <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
                   </RouterLink>
@@ -198,8 +198,8 @@ const jobHuntItems = [
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                          <SidebarMenuSubButton as-child :is-active="route.name === subItem.to.name">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>
