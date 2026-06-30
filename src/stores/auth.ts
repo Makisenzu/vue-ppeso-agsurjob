@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { User, Session } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
 
 export const useAuthStore = defineStore('auth', () => {
 
@@ -13,6 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
     middlename: string | null
     lastname: string | null
     status: string | null
+    role: Database["public"]["Enums"]["user_role"] | null
   } | null>(null)
   const isInitialized = ref(false)
 
@@ -36,6 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!session.value)
 
   const userEmail = computed(() => user.value?.email || '')
+
+  const userRole = computed(() => profile.value?.role || null)
 
   const displayName = computed(() => {
     if (!profile.value) return 'User'
@@ -61,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
-      .select('firstname, middlename, lastname, status')
+      .select('firstname, middlename, lastname, status, role')
       .eq('id', userId)
       .single()
 
@@ -142,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Computed
     isAuthenticated,
     userEmail,
+    userRole,
     displayName,
     userInitials,
     isVerified,

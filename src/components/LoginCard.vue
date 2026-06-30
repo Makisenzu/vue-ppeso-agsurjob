@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 
@@ -63,8 +64,20 @@ const handleNext = async () => {
         email: emailOrUsername.value.trim(),
         password: password.value
       })
+      const authStore = useAuthStore()
+      await authStore.init()
+      const userRole = authStore.userRole
+      
       toast.success('Successfully logged in!')
-      router.push({ name: 'dashboard' })
+      if (userRole === 'admin') {
+        router.push({ name: 'admin-dashboard' })
+      } else if (userRole === 'employer') {
+        router.push({ name: 'employer-dashboard' })
+      } else if (userRole === 'peso_staff') {
+        router.push({ name: 'peso-dashboard' })
+      } else {
+        router.push({ name: 'dashboard' })
+      }
     } catch (error: any) {
       // Set visual error representation for password
       passwordError.value = 'Incorrect password'

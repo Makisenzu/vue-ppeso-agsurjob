@@ -6,7 +6,7 @@ export const applicantRoutes : RouteRecordRaw[] = [
   {
     path: '/app',
     component: ApplicantLayout,
-    meta: { breadcrumb: false, requiresAuth: true },
+    meta: { breadcrumb: false, requiresAuth: true, role: 'applicant' },
     children: [
       {
         path: 'dashboard',
