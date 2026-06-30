@@ -1,18 +1,53 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { authService } from '@/services/authService'
+import { toast } from 'sonner'
 
 const router = useRouter()
 
+const step = ref(1)
 const emailOrUsername = ref('')
-const isFocused = ref(false)
+const password = ref('')
+const isEmailFocused = ref(false)
+const isPasswordFocused = ref(false)
+const loading = ref(false)
 
-const labelFloated = computed(() => isFocused.value || emailOrUsername.value.length > 0)
+const labelFloated = computed(() => isEmailFocused.value || emailOrUsername.value.length > 0)
+const passwordLabelFloated = computed(() => isPasswordFocused.value || password.value.length > 0)
 
-const handleNext = () => {
-  console.log('Next clicked:', emailOrUsername.value)
-  // If you want to proceed to a password screen or dashboard:
-  // router.push('/next-step')
+const handleNext = async () => {
+  if (step.value === 1) {
+    if (!emailOrUsername.value.trim()) {
+      toast.error('Please enter your email or username')
+      return
+    }
+    step.value = 2
+  } else {
+    if (!password.value) {
+      toast.error('Please enter your password')
+      return
+    }
+    
+    loading.value = true
+    try {
+      await authService.login({
+        email: emailOrUsername.value.trim(),
+        password: password.value
+      })
+      toast.success('Successfully logged in!')
+      router.push({ name: 'dashboard' })
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to login')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const handleBack = () => {
+  step.value = 1
+  password.value = ''
 }
 
 // Replaced custom $emit with Vue Router navigation
@@ -59,17 +94,38 @@ const handleCreate = () => {
 
     <div class="login-right">
       <div class="login-input-area">
-        <div class="input-wrapper">
+        <!-- Step 1: Email -->
+        <div v-if="step === 1" class="input-wrapper">
           <input
             type="text"
             id="loginEmail"
             v-model="emailOrUsername"
-            @focus="isFocused = true"
-            @blur="isFocused = false"
+            @focus="isEmailFocused = true"
+            @blur="isEmailFocused = false"
             autocomplete="username"
+            :disabled="loading"
+            @keyup.enter="handleNext"
           />
           <label for="loginEmail" :class="{ floated: labelFloated }">
             Email or username
+          </label>
+        </div>
+
+        <!-- Step 2: Password -->
+        <div v-else class="input-wrapper">
+          <input
+            type="password"
+            id="loginPassword"
+            v-model="password"
+            @focus="isPasswordFocused = true"
+            @blur="isPasswordFocused = false"
+            autocomplete="current-password"
+            :disabled="loading"
+            @keyup.enter="handleNext"
+            ref="passwordInput"
+          />
+          <label for="loginPassword" :class="{ floated: passwordLabelFloated }">
+            Password
           </label>
         </div>
       </div>
@@ -77,12 +133,12 @@ const handleCreate = () => {
       <div class="login-social">
         <span class="social-label">Continue with</span>
         <div class="social-icons">
-          <button class="social-btn" aria-label="Continue with Facebook">
+          <button class="social-btn" aria-label="Continue with Facebook" :disabled="loading">
             <svg viewBox="0 0 24 24" width="42" height="42">
               <path fill="#1877f2" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/>
             </svg>
           </button>
-          <button class="social-btn" aria-label="Continue with Google">
+          <button class="social-btn" aria-label="Continue with Google" :disabled="loading">
             <svg viewBox="0 0 48 48" width="42" height="42">
               <path fill="#ffc107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
               <path fill="#ff3d00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
@@ -90,7 +146,7 @@ const handleCreate = () => {
               <path fill="#1976d2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
             </svg>
           </button>
-          <button class="social-btn" aria-label="Continue with LinkedIn">
+          <button class="social-btn" aria-label="Continue with LinkedIn" :disabled="loading">
             <svg viewBox="0 0 24 24" width="42" height="42">
               <rect x="2" y="2" width="20" height="20" rx="10" fill="#0a66c2"/>
               <path fill="#ffffff" d="M8.55 16V9.75H6.2v6.25h2.35zM7.38 8.8c.8 0 1.3-.53 1.3-1.18c-.02-.67-.5-1.18-1.27-1.18c-.77 0-1.3.5-1.3 1.18c0 .65.5 1.18 1.25 1.18h.02zm10.12 7.2V12.7c0-1.8-.9-2.6-2.2-2.6c-1.1 0-1.6.6-1.9 1v-1.4H10v6.3h2.4v-3.7c0-.2 0-.4.1-.5c.2-.5.6-.9 1.3-.9c.9 0 1.2.7 1.2 1.7V16h2.4z"/>
@@ -100,8 +156,11 @@ const handleCreate = () => {
       </div>
 
       <div class="login-actions">
-        <button class="btn-create" @click="handleCreate">CREATE</button>
-        <button class="btn-next" @click="handleNext">NEXT</button>
+        <button v-if="step === 1" class="btn-create" :disabled="loading" @click="handleCreate">CREATE</button>
+        <button v-else class="btn-create" :disabled="loading" @click="handleBack">BACK</button>
+        <button class="btn-next" :disabled="loading" @click="handleNext">
+          {{ loading ? 'SIGNING IN...' : (step === 1 ? 'NEXT' : 'SIGN IN') }}
+        </button>
       </div>
     </div>
   </div>
