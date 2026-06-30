@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
+import { Avatar, AvatarFallback} from '@/components/ui/avatar' 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -42,7 +42,7 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 
 const authStore = useAuthStore()
-const { displayName, userInitials, userEmail, isVerified, isInitialized } = storeToRefs(authStore)
+const { displayName, userInitials, userEmail, isVerified} = storeToRefs(authStore)
 
 // Show skeleton while store hasn't loaded yet
 const isLoading = ref(!authStore.isInitialized)

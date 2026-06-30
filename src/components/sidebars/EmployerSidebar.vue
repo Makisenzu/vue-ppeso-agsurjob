@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+import { Activity, Hexagon, FolderSearch2, Newspaper, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
+import { Avatar, AvatarFallback} from '@/components/ui/avatar' 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -42,7 +42,7 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 
 const authStore = useAuthStore()
-const { displayName, userInitials, userEmail, isVerified, isInitialized } = storeToRefs(authStore)
+const { displayName, userInitials, userEmail, isVerified} = storeToRefs(authStore)
 
 // Show skeleton while store hasn't loaded yet
 const isLoading = ref(!authStore.isInitialized)
@@ -58,10 +58,9 @@ const handleSignOut = async () => {
 }
 
 const activitySubItems = [
-  { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
+  { title: 'Posting History', to: {name: 'dashboard'}, icon: Inbox },
   { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
   { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
-  { title: 'Offers', to: {name: 'dashboard'}, icon: Mail },
 ]
 const contactSubItems = [
   { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
@@ -70,14 +69,15 @@ const contactSubItems = [
   { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
+  { title: 'Company Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
+  { title: 'Team Member', to: {name: 'dashboard'}, icon: Settings },
 ]
-const jobHuntItems = [
-  { title: 'Find Jobs', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Saved Jobs', to: {name: 'dashboard'}, icon: Bookmark },
-  { title: 'Companies', to: {name: 'dashboard'}, icon: Building },
+
+const companyItems = [
+  { title: 'Company Profile', to: {name: 'dashboard'}, icon: Hexagon },
+  { title: 'Job Posting', to: {name: 'dashboard'}, icon: Newspaper },
+  { title: 'Applicants', to: {name: 'dashboard'}, icon: FolderSearch2 },
+  { title: 'Shortlisted Candidates', to: {name: 'dashboard'}, icon: Bookmark },
 ]
 </script>
 
@@ -170,10 +170,10 @@ const jobHuntItems = [
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />
-          <SidebarGroupLabel>Job Search</SidebarGroupLabel>
+          <SidebarGroupLabel>Company Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
+              <SidebarMenuItem v-for="item in companyItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
                   <RouterLink to="">
                     <component :is="item.icon" />
@@ -190,8 +190,8 @@ const jobHuntItems = [
                   <div>
                     <CollapsibleTrigger as-child>
                       <SidebarMenuButton :tooltip="'My Activities'">
-                        <Zap />
-                        <span>My Activities</span>
+                        <Activity />
+                        <span>Activities    </span>
                         <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
