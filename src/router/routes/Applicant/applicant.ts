@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 import ApplicantLayout from '@/layouts/ApplicantLayout.vue'
-import ApplicantDashboard from '@/components/ApplicantDashboard.vue'
+import ApplicantDashboard from '@/components/applicant/ApplicantDashboard.vue'
 
 export const applicantRoutes : RouteRecordRaw[] = [
   {
