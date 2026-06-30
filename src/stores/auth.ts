@@ -1,8 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { supabase } from '@/lib/supabaseClient'
+import type { User, Session } from '@supabase/supabase-js'
 
 export const useAuthStore = defineStore('auth', () => {
 
+  // ─── Session State ───
+  const user = ref<User | null>(null)
+  const session = ref<Session | null>(null)
+  const profile = ref<{
+    firstname: string | null
+    middlename: string | null
+    lastname: string | null
+    status: string | null
+  } | null>(null)
+  const isInitialized = ref(false)
+
+  // ─── Signup State ───
   const signupData = ref({
     firstName: '',
     middlename: '',
@@ -18,9 +32,71 @@ export const useAuthStore = defineStore('auth', () => {
     password: ''
   })
 
+  // ─── Computed ───
+  const isAuthenticated = computed(() => !!session.value)
+
+  const userEmail = computed(() => user.value?.email || '')
+
+  const displayName = computed(() => {
+    if (!profile.value) return 'User'
+    const first = profile.value.firstname || ''
+    const middle = profile.value.middlename ? `${profile.value.middlename.charAt(0)}.` : ''
+    const last = profile.value.lastname || ''
+    return [first, middle, last].filter(Boolean).join(' ') || 'User'
+  })
+
+  const userInitials = computed(() => {
+    const first = profile.value?.firstname?.charAt(0)?.toUpperCase() || ''
+    const last = profile.value?.lastname?.charAt(0)?.toUpperCase() || ''
+    return `${first}${last}` || 'U'
+  })
+
+  const isVerified = computed(() => profile.value?.status === 'approved')
+
   const isPersonalDetailsComplete = computed(() => {
     return signupData.value.firstName && signupData.value.lastName
   })
+
+  // ─── Actions ───
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('firstname, middlename, lastname, status')
+      .eq('id', userId)
+      .single()
+
+    if (data) {
+      profile.value = data
+    }
+  }
+
+  async function init() {
+    if (isInitialized.value) return
+
+    const { data: { session: currentSession } } = await supabase.auth.getSession()
+    session.value = currentSession
+    user.value = currentSession?.user ?? null
+
+    if (currentSession?.user) {
+      await fetchProfile(currentSession.user.id)
+    }
+
+    // Listen for auth state changes (login/logout/token refresh)
+    supabase.auth.onAuthStateChange(async (event, newSession) => {
+      session.value = newSession
+      user.value = newSession?.user ?? null
+
+      if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        await fetchProfile(newSession.user.id)
+      }
+
+      if (event === 'SIGNED_OUT') {
+        profile.value = null
+      }
+    })
+
+    isInitialized.value = true
+  }
 
   function updateSignupFields(fields: Partial<typeof signupData.value>) {
     signupData.value = { ...signupData.value, ...fields }
@@ -57,8 +133,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return { 
-    signupData, 
-    isPersonalDetailsComplete, 
+    // State
+    user,
+    session,
+    profile,
+    isInitialized,
+    signupData,
+    // Computed
+    isAuthenticated,
+    userEmail,
+    displayName,
+    userInitials,
+    isVerified,
+    isPersonalDetailsComplete,
+    // Actions
+    init,
+    fetchProfile,
     updateStepOne, 
     clearSignupData,
     updateSignupFields

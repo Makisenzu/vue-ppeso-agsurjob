@@ -29,18 +29,23 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
+import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const route = useRoute()
 
-const isVerified = ref(true)
-const isLoading = ref(false)
-
 const { state, isMobile } = useSidebar()
+
+const authStore = useAuthStore()
+const { displayName, userInitials, userEmail, isVerified, isInitialized } = storeToRefs(authStore)
+
+// Show skeleton while store hasn't loaded yet
+const isLoading = ref(!authStore.isInitialized)
 
 const handleSignOut = async () => {
   try {
@@ -51,12 +56,6 @@ const handleSignOut = async () => {
     toast.error(error.message || 'Error signing out')
   }
 }
-
-onMounted(() => {
-  setTimeout(() => {
-    isLoading.value = false
-  }, 2000)
-})
 
 const activitySubItems = [
   { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
@@ -275,13 +274,12 @@ const jobHuntItems = [
                   :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
                 >
                   <Avatar class="size-8 rounded-lg shrink-0">
-                    <AvatarImage src="https://github.com/Makisenzu.png" alt="User profile" class="rounded-lg object-contain" />
-                    <AvatarFallback class="rounded-lg">DR</AvatarFallback>
+                    <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   
                   <div v-if="state === 'expanded'" class="min-w-0 flex-1 text-left text-sm leading-tight pr-2">
                     <div class="flex items-center gap-1.5 w-full min-w-0">
-                      <span class="truncate font-semibold">Denmark B. Rivera</span>
+                      <span class="truncate font-semibold">{{ displayName }}</span>
                       <Badge 
                         :variant="isVerified ? 'default' : 'secondary'"
                         class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
@@ -290,7 +288,7 @@ const jobHuntItems = [
                         {{ isVerified ? 'Verified' : 'Pending' }}
                       </Badge>
                     </div>
-                    <span class="truncate text-xs text-muted-foreground block">denmarkbarbarona13@gmail.com</span>
+                    <span class="truncate text-xs text-muted-foreground block">{{ userEmail }}</span>
                   </div>
                   
                   <ChevronUp v-if="state === 'expanded'" class="ml-auto size-4 shrink-0" />
@@ -304,13 +302,12 @@ const jobHuntItems = [
               >
                 <div class="flex items-center gap-2 px-2 py-1.5 text-sm font-normal">
                   <Avatar class="size-8 rounded-lg shrink-0">
-                    <AvatarImage src="https://github.com/Makisenzu.png" alt="User profile" class="rounded-lg object-contain" />
-                    <AvatarFallback class="rounded-lg">DR</AvatarFallback>
+                    <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   
                   <div class="min-w-0 flex-1 text-left text-sm leading-tight">
                     <div class="flex items-center gap-1.5 w-full min-w-0">
-                      <span class="truncate font-semibold text-foreground">Denmark B. Rivera</span>
+                      <span class="truncate font-semibold text-foreground">{{ displayName }}</span>
                       <Badge 
                         :variant="isVerified ? 'default' : 'secondary'"
                         class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
@@ -319,7 +316,7 @@ const jobHuntItems = [
                         {{ isVerified ? 'Verified' : 'Pending' }}
                       </Badge>
                     </div>
-                    <span class="truncate text-xs text-muted-foreground block">denmarkbarbarona13@gmail.com</span>
+                    <span class="truncate text-xs text-muted-foreground block">{{ userEmail }}</span>
                   </div>
                 </div>
                 
