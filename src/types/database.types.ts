@@ -1048,7 +1048,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_if_email_exists: {
+        Args: { target_email: string }
+        Returns: boolean
+      }
     }
     Enums: {
       application_stage_type:

@@ -30,14 +30,27 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { authService } from '@/services/authService'
+import { toast } from 'sonner'
+
+const router = useRouter()
+const route = useRoute()
 
 const isVerified = ref(true)
 const isLoading = ref(false)
 
-import { useRoute } from 'vue-router'
-const route = useRoute()
-
 const { state, isMobile } = useSidebar()
+
+const handleSignOut = async () => {
+  try {
+    await authService.logout()
+    toast.success('Successfully signed out')
+    router.push({ name: 'login' })
+  } catch (error: any) {
+    toast.error(error.message || 'Error signing out')
+  }
+}
 
 onMounted(() => {
   setTimeout(() => {
@@ -319,7 +332,7 @@ const jobHuntItems = [
                 
                 <div class="my-1 h-px bg-sidebar-border" />
                 
-                <DropdownMenuItem class="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2">
+                <DropdownMenuItem class="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2" @click="handleSignOut">
                   <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

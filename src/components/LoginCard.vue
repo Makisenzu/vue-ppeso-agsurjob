@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { toast } from 'sonner'
@@ -13,19 +13,47 @@ const isEmailFocused = ref(false)
 const isPasswordFocused = ref(false)
 const loading = ref(false)
 
+const emailError = ref('')
+const passwordError = ref('')
+
 const labelFloated = computed(() => isEmailFocused.value || emailOrUsername.value.length > 0)
 const passwordLabelFloated = computed(() => isPasswordFocused.value || password.value.length > 0)
 
+// Clear errors when the user types
+watch(emailOrUsername, () => {
+  emailError.value = ''
+})
+watch(password, () => {
+  passwordError.value = ''
+})
+
 const handleNext = async () => {
+  emailError.value = ''
+  passwordError.value = ''
+  
   if (step.value === 1) {
-    if (!emailOrUsername.value.trim()) {
-      toast.error('Please enter your email or username')
+    const email = emailOrUsername.value.trim()
+    if (!email) {
+      emailError.value = 'Please enter your email or username'
       return
     }
-    step.value = 2
+    
+    loading.value = true
+    try {
+      const exists = await authService.checkEmailExists(email)
+      if (!exists) {
+        emailError.value = 'This email or username is not registered'
+        return
+      }
+      step.value = 2
+    } catch (error: any) {
+      emailError.value = error.message || 'Error checking user credentials'
+    } finally {
+      loading.value = false
+    }
   } else {
     if (!password.value) {
-      toast.error('Please enter your password')
+      passwordError.value = 'Please enter your password'
       return
     }
     
@@ -38,7 +66,9 @@ const handleNext = async () => {
       toast.success('Successfully logged in!')
       router.push({ name: 'dashboard' })
     } catch (error: any) {
-      toast.error(error.message || 'Failed to login')
+      // Set visual error representation for password
+      passwordError.value = 'Incorrect password'
+      toast.error('Incorrect password')
     } finally {
       loading.value = false
     }
@@ -48,6 +78,8 @@ const handleNext = async () => {
 const handleBack = () => {
   step.value = 1
   password.value = ''
+  emailError.value = ''
+  passwordError.value = ''
 }
 
 // Replaced custom $emit with Vue Router navigation
@@ -105,10 +137,14 @@ const handleCreate = () => {
             autocomplete="username"
             :disabled="loading"
             @keyup.enter="handleNext"
+            :class="{ 'input-error': emailError }"
           />
-          <label for="loginEmail" :class="{ floated: labelFloated }">
+          <label for="loginEmail" :class="{ floated: labelFloated, 'label-error': emailError }">
             Email or username
           </label>
+          <div v-if="emailError" class="error-msg-text">
+            {{ emailError }}
+          </div>
         </div>
 
         <!-- Step 2: Password -->
@@ -123,10 +159,14 @@ const handleCreate = () => {
             :disabled="loading"
             @keyup.enter="handleNext"
             ref="passwordInput"
+            :class="{ 'input-error': passwordError }"
           />
-          <label for="loginPassword" :class="{ floated: passwordLabelFloated }">
+          <label for="loginPassword" :class="{ floated: passwordLabelFloated, 'label-error': passwordError }">
             Password
           </label>
+          <div v-if="passwordError" class="error-msg-text">
+            {{ passwordError }}
+          </div>
         </div>
       </div>
 
@@ -159,7 +199,7 @@ const handleCreate = () => {
         <button v-if="step === 1" class="btn-create" :disabled="loading" @click="handleCreate">CREATE</button>
         <button v-else class="btn-create" :disabled="loading" @click="handleBack">BACK</button>
         <button class="btn-next" :disabled="loading" @click="handleNext">
-          {{ loading ? 'SIGNING IN...' : (step === 1 ? 'NEXT' : 'SIGN IN') }}
+          {{ step === 1 ? (loading ? 'CHECKING...' : 'NEXT') : (loading ? 'SIGNING IN...' : 'SIGN IN') }}
         </button>
       </div>
     </div>
@@ -301,7 +341,7 @@ const handleCreate = () => {
   color: #1f2937;
   border: 1.5px solid #9ca3af;
   border-radius: 6px;
-  background: transparent;
+  background: #ffffff;
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
@@ -309,6 +349,14 @@ const handleCreate = () => {
 
 .input-wrapper input:focus {
   border-color: #2563eb;
+}
+
+.input-wrapper input:-webkit-autofill,
+.input-wrapper input:-webkit-autofill:hover, 
+.input-wrapper input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .input-wrapper label {
@@ -479,6 +527,40 @@ const handleCreate = () => {
   }
   .btn-next {
     padding: 10px 24px;
+  }
+}
+
+/* ─── Validation Error Styles ─── */
+.input-wrapper input.input-error {
+  border-color: #dc2626 !important;
+}
+
+.input-wrapper input.input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15) !important;
+}
+
+.input-wrapper label.label-error {
+  color: #dc2626 !important;
+}
+
+.error-msg-text {
+  color: #dc2626;
+  font-size: 12.5px;
+  margin-top: 5px;
+  font-weight: 600;
+  text-align: left;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
