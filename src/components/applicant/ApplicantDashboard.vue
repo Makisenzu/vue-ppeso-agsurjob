@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { ref } from 'vue'
 import {
   Card,
   CardContent,
