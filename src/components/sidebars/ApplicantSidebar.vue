@@ -155,12 +155,14 @@ const jobHuntItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
+
               <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
                   <RouterLink :to="{ name: 'dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
               </SidebarMenuButton>
+              
               <SidebarMenuButton as-child :tooltip="'Notification'" :is-active="route.name === 'notification'">
                   <RouterLink :to="{ name: 'notification' }">
                     <Bell />
