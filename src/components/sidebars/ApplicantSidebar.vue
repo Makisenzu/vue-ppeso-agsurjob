@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChartSpline, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+import { ChartSpline, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
 
 import {
   Sidebar,
