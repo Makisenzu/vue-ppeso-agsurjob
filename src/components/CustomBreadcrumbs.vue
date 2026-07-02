@@ -10,6 +10,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
+import { formatRouteName } from '@/helpers/formatters'
+
 const route = useRoute()
 const breadcrumbs = computed(() => {
   return route.matched
@@ -17,10 +19,7 @@ const breadcrumbs = computed(() => {
     .map((r) => {
       const title = typeof r.meta?.title === 'string' 
         ? r.meta.title 
-        : String(r.name)
-            .split(/[-_]/)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
+        : formatRouteName(String(r.name))
 
       return {
         title,

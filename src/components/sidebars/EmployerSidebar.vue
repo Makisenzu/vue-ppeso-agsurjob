@@ -29,33 +29,13 @@ import { Avatar, AvatarFallback} from '@/components/ui/avatar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { authService } from '@/services/authService'
-import { useAuthStore } from '@/stores/auth'
-import { toast } from 'sonner'
-import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
-const router = useRouter()
 const route = useRoute()
 
 const { state, isMobile } = useSidebar()
-
-const authStore = useAuthStore()
-const { displayName, userInitials, userEmail, isVerified} = storeToRefs(authStore)
-
-// Show skeleton while store hasn't loaded yet
-const isLoading = ref(!authStore.isInitialized)
-
-const handleSignOut = async () => {
-  try {
-    await authService.logout()
-    toast.success('Successfully signed out')
-    router.push({ name: 'login' })
-  } catch (error: any) {
-    toast.error(error.message || 'Error signing out')
-  }
-}
+const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
 const activitySubItems = [
   { title: 'Posting History', to: {name: 'dashboard'}, icon: Inbox },
