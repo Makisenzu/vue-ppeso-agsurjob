@@ -1,15 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
 import ApplicantLayout from '@/layouts/ApplicantLayout.vue'
-import ApplicantDashboard from '@/components/applicant/ApplicantDashboard.vue'
-import Home from '@/components/applicant/ApplicantHome.vue'
-import Notification from '@/components/applicant/ApplicantNotification.vue'
-import FindJob from '@/components/applicant/ApplicantFindJob.vue'
-import SavedJob from '@/components/applicant/ApplicantSavedJob.vue'
-import Company from '@/components/applicant/ApplicantCompany.vue'
-import Application from '@/components/applicant/ApplicantApplication.vue' 
-import Interview from '@/components/applicant/ApplicantInterviews.vue'
-import Chat from '@/components/applicant/ApplicantChat.vue'
-import Offer from '@/components/applicant/ApplicantOffers.vue'
 export const applicantRoutes : RouteRecordRaw[] = [
   {
     path: '/app',
@@ -19,52 +9,57 @@ export const applicantRoutes : RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'dashboard',
-        component: ApplicantDashboard
+        component: () => import('@/components/applicant/ApplicantDashboard.vue')
       },
       {
         path: 'home',
         name: 'home',
-        component: Home
+        component: () => import('@/components/applicant/ApplicantHome.vue')
       },
       {
         path: 'notification',
         name: 'notification',
-        component: Notification
+        component: () => import('@/components/applicant/ApplicantNotification.vue')
       },
       {
         path: 'find-job',
         name: 'find-job',
-        component: FindJob
+        component: () => import('@/components/applicant/ApplicantFindJob.vue')
       },
       {
         path: 'saved-job',
         name: 'saved-job',
-        component: SavedJob
+        component: () => import('@/components/applicant/ApplicantSavedJob.vue')
       },
       {
         path: 'company',
         name: 'company',
-        component: Company
+        component: () => import('@/components/applicant/ApplicantCompany.vue')
       },
       {
         path: 'application',
         name: 'application',
-        component: Application
+        component: () => import('@/components/applicant/ApplicantApplication.vue')
       },
       {
         path: 'interview',
         name: 'interview',
-        component: Interview
+        component: () => import('@/components/applicant/ApplicantInterviews.vue')
       },
       {
         path: 'chat',
         name: 'chat',
-        component: Chat
+        component: () => import('@/components/applicant/ApplicantChat.vue')
       },
       {
         path: 'offer',
         name: 'offer',
-        component: Offer
+        component: () => import('@/components/applicant/ApplicantOffers.vue')
+      },
+      {
+        path: 'profile',
+        name: 'profile',
+        component: () => import('@/components/applicant/Profile/ApplicantProfile.vue')
       }
     ]
   },

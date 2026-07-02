@@ -1,6 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
 import EmployerLayout from '@/layouts/EmployerLayout.vue'
-import EmployerDashboard from '@/components/employer/EmployerDashboard.vue'
 
 export const employerRoutes: RouteRecordRaw[] = [
   {
@@ -11,7 +10,7 @@ export const employerRoutes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'employer-dashboard',
-        component: EmployerDashboard
+        component: () => import('@/components/employer/EmployerDashboard.vue')
       }
     ]
   },

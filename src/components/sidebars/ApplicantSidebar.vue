@@ -304,9 +304,14 @@ const jobHuntItems = [
                 
                 <div class="my-1 h-px bg-sidebar-border" />
 
-                <DropdownMenuItem class="cursor-pointer gap-2">
-                  <UserRound class="size-4" />
-                  <span>Account</span>
+                <DropdownMenuItem as-child>
+                  <RouterLink
+                    :to="{ name: 'profile' }"
+                    class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground"
+                  >
+                    <UserRound class="size-4" />
+                    <span>Account</span>
+                  </RouterLink>
                 </DropdownMenuItem>
                 
                 <div class="my-1 h-px bg-sidebar-border" />
