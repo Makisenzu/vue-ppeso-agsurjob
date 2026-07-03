@@ -3,8 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabaseClient'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
-import { Button } from '@/components/ui/button'
-import { FileText, Share2, Check, X } from '@lucide/vue'
+import { Check, X } from '@lucide/vue'
 import {
   Stepper,
   StepperItem,
@@ -146,19 +145,8 @@ const displaySkills = computed(() => {
 
 <template>
   <div class="flex-1 space-y-6 w-full max-w-7xl mx-auto">
-    <!-- Breadcrumbs & Actions -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
       <CustomBreadcrumbs />
-      <div class="flex items-center gap-3">
-        <Button variant="outline" class="gap-2 rounded-xl">
-          <FileText class="h-4 w-4" />
-          Download Resume
-        </Button>
-        <Button class="gap-2 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-          <Share2 class="h-4 w-4" />
-          Share Profile
-        </Button>
-      </div>
     </div>
 
     <!-- Main Grid -->
@@ -219,8 +207,8 @@ const displaySkills = computed(() => {
                         : 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30'
                     ]"
                   >
-                    <Check v-if="file.uploaded" class="size-4 stroke-[3]" />
-                    <X v-else class="size-4 stroke-[3]" />
+                    <Check v-if="file.uploaded" class="size-4 stroke-3" />
+                    <X v-else class="size-4 stroke-3" />
                   </div>
                 </StepperTrigger>
 
@@ -240,7 +228,6 @@ const displaySkills = computed(() => {
           </Stepper>
         </div>
 
-        <!-- Profile Summary Card -->
         <ProfileReadme
           :username="displayUsername"
           :preferred-job="displayPreferredJob"

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Building2 } from '@lucide/vue'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 
 export interface Experience {
   id?: number
@@ -23,57 +26,50 @@ defineProps<{
         <Building2 class="h-4 w-4" />
         Work Experience
       </h3>
-      <span class="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded-full">
+      <Badge variant="secondary" class="font-mono">
         {{ experiences.length }} {{ experiences.length === 1 ? 'role' : 'roles' }}
-      </span>
+      </Badge>
     </div>
 
-    <!-- Experience Timeline -->
-    <div class="relative space-y-0">
-      <!-- Timeline connector line -->
-      <div
-        v-if="experiences.length > 1"
-        class="absolute left-[19px] top-6 bottom-6 w-px bg-border/60"
-      ></div>
-
-      <div
+    <di v-if="experiences.length" class="space-y-3">
+      <Card
         v-for="(exp, idx) in experiences"
         :key="exp.id ?? idx"
-        class="relative group"
+        class="group transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
+        size="sm"
       >
-        <!-- Experience Card with timeline dot -->
-        <div class="flex gap-4">
-          <!-- Timeline Dot -->
-          <div class="relative z-10 mt-4 shrink-0">
-            <div
-              class="w-[10px] h-[10px] rounded-full border-2 transition-all duration-200"
-              :class="idx === 0
-                ? 'bg-primary border-primary shadow-[0_0_0_3px] shadow-primary/20'
-                : 'bg-card border-border group-hover:border-primary group-hover:bg-primary/20'"
-            ></div>
-          </div>
-
-          <!-- Card Content -->
-          <div class="flex-1 p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 cursor-default mb-3 group-hover:shadow-sm">
-            <div class="flex justify-between items-start mb-2">
-              <div class="space-y-0.5 min-w-0 flex-1">
-                <h4 class="font-semibold text-sm text-foreground/90 group-hover:text-primary transition-colors leading-tight truncate">
-                  {{ exp.company_name }}
-                </h4>
-                <p class="text-xs text-muted-foreground">
-                  {{ exp.job_title }}
-                </p>
-              </div>
-              <span class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-md shrink-0 ml-3">
-                {{ exp.start_date }} — {{ exp.end_date || 'Present' }}
-              </span>
+        <CardHeader class="space-y-3 pb-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 space-y-1">
+              <CardTitle class="text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors truncate">
+                {{ exp.company_name || 'Unknown Company' }}
+              </CardTitle>
+              <p class="text-xs text-muted-foreground">
+                {{ exp.job_title || 'Role not specified' }}
+              </p>
             </div>
-            <p class="text-xs text-muted-foreground leading-relaxed">
-              {{ exp.description }}
-            </p>
+
+            <Badge variant="outline" class="shrink-0 font-mono text-[10px]">
+              {{ exp.start_date || 'N/A' }} — {{ exp.end_date || 'Present' }}
+            </Badge>
           </div>
-        </div>
-      </div>
-    </div>
+        </CardHeader>
+
+        <CardContent class="pt-0">
+          <Separator class="mb-3" />
+          <p class="text-xs leading-relaxed text-muted-foreground whitespace-pre-line">
+            {{ exp.description || 'No description provided.' }}
+          </p>
+        </CardContent>
+      </Card>
+    </di  v>
+
+    <Card v-else size="sm">
+      <CardContent class="flex items-center justify-center px-6 py-8 text-center">
+        <p class="text-sm text-muted-foreground">
+          No work experience added yet.
+        </p>
+      </CardContent>
+    </Card>
   </div>
 </template>

@@ -8,7 +8,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  CircleDot,
   Pencil,
   AtSign,
 } from '@lucide/vue'

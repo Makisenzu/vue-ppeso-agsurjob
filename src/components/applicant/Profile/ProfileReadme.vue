@@ -9,7 +9,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Pencil } from '@lucide/vue'
 
@@ -24,8 +23,6 @@ const props = defineProps<{
   skills: string[]
   bio: string
 }>()
-
-const initial = props.username?.charAt(0)?.toUpperCase() ?? '?'
 </script>
 
 <template>
@@ -34,7 +31,7 @@ const initial = props.username?.charAt(0)?.toUpperCase() ?? '?'
     <div class="px-6 py-5 sm:px-8 sm:py-6 flex items-center justify-between gap-4">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <h2 class="text-xl font-bold tracking-tight text-foreground">
+          <h2 class="text-xl font-bold tracking-tight text-black">
             Profile Summary
           </h2>
         </div>
