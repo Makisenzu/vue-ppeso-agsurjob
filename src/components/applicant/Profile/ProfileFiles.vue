@@ -5,16 +5,10 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
-  FolderOpen,
   FileText,
-  FileCheck2,
-  FileUser,
-  FileBadge2,
   Download,
   Eye,
   Upload,
-  CheckCircle2,
-  Clock,
 } from '@lucide/vue'
 import { computed } from 'vue'
 
@@ -37,101 +31,72 @@ const defaultFiles: DocumentFile[] = [
 
 const displayFiles = computed(() => props.files?.length ? props.files : defaultFiles)
 
-const fileIconMap: Record<string, any> = {
-  form: FileCheck2,
-  application: FileText,
-  resume: FileUser,
-  certificate: FileBadge2,
-}
-
-const fileColorMap: Record<string, string> = {
-  form: 'text-blue-500 bg-blue-500/10 dark:bg-blue-500/20',
-  application: 'text-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20',
-  resume: 'text-violet-500 bg-violet-500/10 dark:bg-violet-500/20',
-  certificate: 'text-amber-500 bg-amber-500/10 dark:bg-amber-500/20',
+const typeLabelMap: Record<string, string> = {
+  form: 'Form',
+  application: 'Application',
+  resume: 'Resume',
+  certificate: 'Certificate',
 }
 </script>
 
 <template>
-  <Card class="border-none shadow-sm overflow-hidden">
-    <!-- Header -->
-    <div class="bg-muted/30 border-b border-border/40 px-5 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="bg-indigo-500/10 dark:bg-indigo-500/20 p-1.5 rounded-lg">
-          <FolderOpen class="w-4 h-4 text-indigo-500" />
-        </div>
-        <h3 class="text-sm font-bold tracking-wide text-foreground uppercase">
-          My Files
-        </h3>
-      </div>
-      <span class="text-[10px] text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded-full">
-        {{ displayFiles.filter(f => f.uploaded).length }}/{{ displayFiles.length }}
-      </span>
-    </div>
+  <div class="flex items-center justify-between">
+    <h3 class="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+      My Files
+    </h3>
+    <span class="text-xs text-muted-foreground tabular-nums">
+      {{ displayFiles.filter(f => f.uploaded).length }} / {{ displayFiles.length }} uploaded
+    </span>
+  </div>
 
-    <!-- File List -->
+  <Card class="border border-border/60 shadow-none">
     <CardContent class="p-0">
-      <div class="divide-y divide-border/30">
+      <div class="divide-y divide-border/60">
         <div
-          v-for="(file, idx) in displayFiles"
+          v-for="file in displayFiles"
           :key="file.name"
-          class="flex items-center gap-3.5 px-5 py-3.5 hover:bg-muted/20 transition-all duration-200 group cursor-pointer"
-          :style="{ animationDelay: `${idx * 60}ms` }"
+          class="flex items-center gap-3.5 px-4 py-3 hover:bg-muted/30 transition-colors duration-150 group"
         >
-          <!-- File Icon -->
-          <div
-            class="p-2 rounded-xl shrink-0 transition-all duration-200 group-hover:scale-105"
-            :class="fileColorMap[file.type]"
-          >
-            <component
-              :is="fileIconMap[file.type] || FileText"
-              class="w-4.5 h-4.5"
-            />
+          <!-- File icon -->
+          <div class="shrink-0 text-muted-foreground">
+            <FileText class="w-4 h-4" />
           </div>
 
-          <!-- File Info -->
+          <!-- File info -->
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-foreground/90 truncate group-hover:text-foreground transition-colors">
+            <p class="text-sm font-medium text-foreground truncate leading-tight">
               {{ file.name }}
             </p>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <CheckCircle2
-                v-if="file.uploaded"
-                class="w-3 h-3 text-emerald-500"
-              />
-              <Clock
-                v-else
-                class="w-3 h-3 text-amber-500"
-              />
-              <span class="text-[10px] font-mono" :class="file.uploaded ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
-                {{ file.uploaded ? 'Uploaded' : 'Pending' }}
-              </span>
-            </div>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              {{ typeLabelMap[file.type] }}
+            </p>
           </div>
 
-          <!-- Actions (reveal on hover) -->
-          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <!-- Status -->
+          <span
+            class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
+            :class="file.uploaded
+              ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10'
+              : 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/10'"
+          >
+            {{ file.uploaded ? 'Uploaded' : 'Pending' }}
+          </span>
+
+          <!-- Actions -->
+          <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0">
+            <template v-if="file.uploaded">
+              <Button variant="ghost" size="icon" class="h-7 w-7 text-muted-foreground hover:text-foreground">
+                <Eye class="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" class="h-7 w-7 text-muted-foreground hover:text-foreground">
+                <Download class="w-3.5 h-3.5" />
+              </Button>
+            </template>
             <Button
-              v-if="file.uploaded"
+              v-else
               variant="ghost"
               size="icon"
-              class="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary"
-            >
-              <Eye class="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              v-if="file.uploaded"
-              variant="ghost"
-              size="icon"
-              class="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary"
-            >
-              <Download class="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              v-if="!file.uploaded"
-              variant="ghost"
-              size="icon"
-              class="h-7 w-7 rounded-lg hover:bg-amber-500/10 hover:text-amber-500"
+              class="h-7 w-7 text-muted-foreground hover:text-foreground"
             >
               <Upload class="w-3.5 h-3.5" />
             </Button>

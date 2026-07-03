@@ -4,14 +4,30 @@ import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabaseClient'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Button } from '@/components/ui/button'
-import { FileText, Share2 } from '@lucide/vue'
+import { FileText, Share2, Check, X } from '@lucide/vue'
+import {
+  Stepper,
+  StepperItem,
+  StepperSeparator,
+  StepperTrigger,
+  StepperTitle,
+  StepperDescription,
+} from '@/components/ui/stepper'
 
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
 import ProfileReadme from '@/components/applicant/Profile/ProfileReadme.vue'
 import ProfileExperience from '@/components/applicant/Profile/ProfileExperience.vue'
-import ProfileFiles from '@/components/applicant/Profile/ProfileFiles.vue'
+import ProfileFiles, { type DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
 
 const authStore = useAuthStore()
+
+// ─── File Upload State ───
+const files = ref<DocumentFile[]>([
+  { name: 'NSRP Form', type: 'form', uploaded: true },
+  { name: 'Application Form', type: 'application', uploaded: true },
+  { name: 'Resume', type: 'resume', uploaded: true },
+  { name: 'Birth Certificate', type: 'certificate', uploaded: false },
+])
 
 // ─── State ───
 const isLoading = ref(true)
@@ -168,6 +184,62 @@ const displaySkills = computed(() => {
       <!-- Right Content Area -->
       <div class="md:col-span-5 lg:col-span-9 space-y-6">
 
+        <!-- Document Upload Progress Stepper -->
+        <div class="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h3 class="text-sm font-semibold text-foreground">Document Upload Progress</h3>
+              <p class="text-xs text-muted-foreground mt-0.5">Please ensure all required documents are uploaded to complete your profile.</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+              {{ files.filter(f => f.uploaded).length }} / {{ files.length }} Uploaded
+            </span>
+          </div>
+
+          <Stepper class="flex w-full items-start gap-4">
+            <StepperItem
+              v-for="(file, index) in files"
+              :key="file.name"
+              :step="index + 1"
+              class="relative flex flex-1 flex-col items-center group"
+            >
+              <StepperSeparator
+                v-if="index !== files.length - 1"
+                class="absolute left-[calc(50%+20px)] right-[calc(-50%+20px)] top-4 block h-0.5 shrink-0 rounded-full transition-colors duration-300"
+                :class="file.uploaded ? 'bg-emerald-500' : 'bg-muted'"
+              />
+
+              <div class="flex flex-col items-center text-center">
+                <StepperTrigger as-child>
+                  <div
+                    class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
+                    :class="[
+                      file.uploaded
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30'
+                        : 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30'
+                    ]"
+                  >
+                    <Check v-if="file.uploaded" class="size-4 stroke-[3]" />
+                    <X v-else class="size-4 stroke-[3]" />
+                  </div>
+                </StepperTrigger>
+
+                <div class="mt-3">
+                  <StepperTitle class="text-xs font-semibold text-foreground">
+                    {{ file.name }}
+                  </StepperTitle>
+                  <StepperDescription
+                    class="text-[10px] mt-0.5 font-medium"
+                    :class="file.uploaded ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
+                  >
+                    {{ file.uploaded ? 'Uploaded' : 'Pending' }}
+                  </StepperDescription>
+                </div>
+              </div>
+            </StepperItem>
+          </Stepper>
+        </div>
+
         <!-- Profile Summary Card -->
         <ProfileReadme
           :username="displayUsername"
@@ -187,7 +259,7 @@ const displaySkills = computed(() => {
             <ProfileExperience :experiences="displayExperiences" />
           </div>
           <div class="lg:col-span-5">
-            <ProfileFiles />
+            <ProfileFiles :files="files" />
           </div>
         </div>
 

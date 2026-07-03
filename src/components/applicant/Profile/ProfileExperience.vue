@@ -20,9 +20,7 @@ defineProps<{
     <!-- Section Header -->
     <div class="flex items-center justify-between pb-2 border-b border-border/40">
       <h3 class="text-base font-semibold text-foreground flex items-center gap-2">
-        <div class="bg-blue-500/10 dark:bg-blue-500/20 p-1.5 rounded-lg">
-          <Building2 class="h-4 w-4 text-blue-500" />
-        </div>
+        <Building2 class="h-4 w-4" />
         Work Experience
       </h3>
       <span class="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded-full">
