@@ -144,55 +144,59 @@ const displaySkills = computed(() => {
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 w-full max-w-7xl mx-auto">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+  <div class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-6">
       <CustomBreadcrumbs />
     </div>
 
-    <!-- Main Grid -->
-    <div class="grid gap-6 md:grid-cols-7 lg:grid-cols-12">
+    <!-- Main Content Grid -->
+    <div class="grid gap-6 grid-cols-1 lg:grid-cols-12">
 
-      <!-- Left Sidebar -->
-      <div class="md:col-span-2 lg:col-span-3">
-        <ProfileSidebar
-          :display-name="authStore.displayName"
-          :user-initials="authStore.userInitials"
-          :username="displayUsername"
-          :bio="displayBio"
-          :email="displayEmail"
-          :phone="displayPhone"
-          :location="displayLocation"
-          :joined-date="displayJoinedDate"
-          :employment-status="displayEmploymentStatus"
-          :is4ps="is4ps"
-          :is-pwd="isPwd"
-        />
+      <!-- Left Sidebar (Mobile: Full width, Desktop: Sticky) -->
+      <div class="lg:col-span-3">
+        <div class="lg:sticky lg:top-6">
+            <ProfileSidebar
+            :display-name="authStore.displayName"
+            :user-initials="authStore.userInitials"
+            :username="displayUsername"
+            :bio="displayBio"
+            :email="displayEmail"
+            :phone="displayPhone"
+            :location="displayLocation"
+            :joined-date="displayJoinedDate"
+            :employment-status="displayEmploymentStatus"
+            :is4ps="is4ps"
+            :is-pwd="isPwd"
+          />
+        </div>
       </div>
 
-      <!-- Right Content Area -->
-      <div class="md:col-span-5 lg:col-span-9 space-y-6">
+      <!-- Right Content Area (Mobile: Full width, Desktop: 9 cols) -->
+      <div class="lg:col-span-9 space-y-6">
 
         <!-- Document Upload Progress Stepper -->
-          <div class="flex items-center justify-between mb-6">
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h3 class="text-sm font-semibold text-foreground">Document Upload Progress</h3>
               <p class="text-xs text-muted-foreground mt-0.5">Please ensure all required documents are uploaded to verify your profile.</p>
             </div>
-            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit">
               {{ files.filter(f => f.uploaded).length }} / {{ files.length }} Uploaded
             </span>
           </div>
 
-          <Stepper class="flex w-full items-start gap-4">
+          <Stepper class="flex w-full items-start gap-2 overflow-x-auto pb-2">
             <StepperItem
               v-for="(file, index) in files"
               :key="file.name"
               :step="index + 1"
-              class="relative flex flex-1 flex-col items-center group"
+              class="relative flex min-w-32 flex-1 flex-col items-center group"
             >
               <StepperSeparator
                 v-if="index !== files.length - 1"
-                class="absolute left-[calc(50%+20px)] right-[calc(-50%+20px)] top-4 block h-0.5 shrink-0 rounded-full transition-colors duration-300"
+                class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 hidden sm:block h-0.5 shrink-0 rounded-full transition-colors duration-300"
                 :class="file.uploaded ? 'bg-emerald-500' : 'bg-muted'"
               />
 
@@ -211,8 +215,8 @@ const displaySkills = computed(() => {
                   </div>
                 </StepperTrigger>
 
-                <div class="mt-3">
-                  <StepperTitle class="text-xs font-semibold text-foreground">
+                <div class="mt-2">
+                  <StepperTitle class="text-xs font-semibold text-foreground truncate max-w-28">
                     {{ file.name }}
                   </StepperTitle>
                   <StepperDescription
@@ -225,6 +229,7 @@ const displaySkills = computed(() => {
               </div>
             </StepperItem>
           </Stepper>
+        </div>
 
         <ProfileReadme
           :username="displayUsername"
@@ -239,11 +244,11 @@ const displaySkills = computed(() => {
         />
 
         <!-- Bottom Grid: Work Experience + My Files -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-7">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+          <div class="md:col-span-1 lg:col-span-7">
             <ProfileExperience :experiences="displayExperiences" />
           </div>
-          <div class="lg:col-span-5">
+          <div class="md:col-span-1 lg:col-span-5">
             <ProfileFiles :files="files" />
           </div>
         </div>
