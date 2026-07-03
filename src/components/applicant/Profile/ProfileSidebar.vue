@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import VariableProximity from '@/components/ui/variable-proximity/VariableProximity.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,6 +13,8 @@ import {
   Pencil,
   AtSign,
 } from '@lucide/vue'
+
+const containerRef = ref<HTMLElement | null>(null)
 
 defineProps<{
   displayName: string
@@ -29,8 +33,6 @@ defineProps<{
 
 <template>
   <div class="flex flex-col space-y-5">
-
-    <!-- Avatar with subtle ring -->
     <div class="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-full lg:h-auto aspect-square mx-auto lg:mx-0">
       <div class="w-full h-full rounded-full overflow-hidden border-[3px] border-border shadow-lg ring-4 ring-primary/5">
         <Avatar class="w-full h-full rounded-none">
@@ -45,11 +47,16 @@ defineProps<{
       </div>
     </div>
 
-    <!-- Name & Handle -->
-    <div class="space-y-0.5 text-center lg:text-left">
-      <h1 class="text-xs font-bold tracking-tight text-foreground">
-        {{ displayName }}
-      </h1>
+    <div ref="containerRef" class="space-y-0.5 text-center lg:text-left">
+      <VariableProximity
+        :label="displayName"
+        class-name="variable-proximity-demo text-lg font-semibold text-foreground lg:text-xl"
+        from-font-variation-settings="'wght' 400, 'opsz' 9"
+        to-font-variation-settings="'wght' 1000, 'opsz' 40"
+        :container-ref="containerRef"
+        :radius="100"
+        falloff="linear"
+      />
       <p class="text-muted-foreground font-mono text-sm">
         @{{ username }}
       </p>
