@@ -1,10 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import VariableProximity from '@/components/ui/variable-proximity/VariableProximity.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useMediaQuery } from '@vueuse/core'  
+const isDesktop = useMediaQuery('(min-width: 640px)')
+const Modal = computed(() => ({
+  Root: isDesktop.value ? Dialog : Drawer,
+  Trigger: isDesktop.value ? DialogTrigger : DrawerTrigger,
+  Content: isDesktop.value ? DialogContent : DrawerContent,
+  Header: isDesktop.value ? DialogHeader : DrawerHeader,
+  Title: isDesktop.value ? DialogTitle : DrawerTitle,
+  Description: isDesktop.value ? DialogDescription : DrawerDescription,
+  Footer: isDesktop.value ? DialogFooter : DrawerFooter,
+  Close: isDesktop.value ? DialogClose : DrawerClose,
+}))
+const open = ref(false)
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer'
+
 import {
   MapPin,
   Mail,
@@ -12,7 +50,10 @@ import {
   Calendar,
   Pencil,
   AtSign,
+  Settings,
+  Share2,
 } from '@lucide/vue'
+
 
 const containerRef = ref<HTMLElement | null>(null)
 
@@ -63,10 +104,53 @@ defineProps<{
     </div>
 
     <!-- Edit Profile Button -->
-    <Button class="w-full rounded-xl gap-2 shadow-sm hover:shadow-md transition-shadow">
-      <Pencil class="h-3.5 w-3.5" />
-      Edit Profile
-    </Button>
+    <div class="flex gap-2 w-full">
+      <Button class="flex-1 rounded-xl gap-2 shadow-sm hover:shadow-md transition-shadow">
+        <Pencil class="h-3.5 w-3.5" />
+        Edit Profile
+      </Button>
+      <component :is="Modal.Root" v-model:open="open">
+        <component :is="Modal.Trigger" as-child>
+          <Button size="icon" variant="outline" class="h-10 w-10 shrink-0 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <Share2 class="h-4 w-4" /> 
+          </Button>
+        </component>
+      <component
+        :is="Modal.Content"
+        class="sm:max-w-md" :class="[
+        { 'px-2 pb-8 *:px-4': !isDesktop },
+        ]"
+      >
+      <component :is="Modal.Header">
+        <component :is="Modal.Title">
+          Share Profile
+        </component>
+        <component :is="Modal.Description">
+          Anyone with this link can view this profile.
+        </component>
+      </component>
+      <div class="flex items-center gap-2">
+        <div class="grid flex-1 gap-2">
+          <Label for="link" class="sr-only">
+            Link
+          </Label>
+          <Input
+            id="link"
+            default-value="https://www.shadcn-vue.com/docs/installation"
+            readonly
+          />
+        </div>
+      </div>
+      <component :is="Modal.Footer" class="pt-4">
+        <component :is="Modal.Close" as-child>
+          <Button variant="outline">
+            Close
+          </Button>
+        </component>
+      </component>
+    </component>
+  </component>
+    </div>
 
     <!-- Beneficiary Badges -->
     <div v-if="is4ps || isPwd" class="flex flex-wrap gap-2">
