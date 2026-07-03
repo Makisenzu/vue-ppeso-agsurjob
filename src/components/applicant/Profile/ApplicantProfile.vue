@@ -173,11 +173,10 @@ const displaySkills = computed(() => {
       <div class="md:col-span-5 lg:col-span-9 space-y-6">
 
         <!-- Document Upload Progress Stepper -->
-        <div class="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <div>
               <h3 class="text-sm font-semibold text-foreground">Document Upload Progress</h3>
-              <p class="text-xs text-muted-foreground mt-0.5">Please ensure all required documents are uploaded to complete your profile.</p>
+              <p class="text-xs text-muted-foreground mt-0.5">Please ensure all required documents are uploaded to verify your profile.</p>
             </div>
             <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
               {{ files.filter(f => f.uploaded).length }} / {{ files.length }} Uploaded
@@ -226,7 +225,6 @@ const displaySkills = computed(() => {
               </div>
             </StepperItem>
           </Stepper>
-        </div>
 
         <ProfileReadme
           :username="displayUsername"
