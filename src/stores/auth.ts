@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
     lastname: string | null
     status: string | null
     role: Database["public"]["Enums"]["user_role"] | null
+    username: string | null
   } | null>(null)
   const isInitialized = ref(false)
 
@@ -38,8 +39,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!session.value)
 
   const userEmail = computed(() => user.value?.email || '')
-
+  
   const userRole = computed(() => profile.value?.role || null)
+  const username = computed(() => profile.value?.username || '')
 
   const displayName = computed(() => {
     if (!profile.value) return 'User'
@@ -65,7 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
-      .select('firstname, middlename, lastname, status, role')
+      .select('firstname, middlename, lastname, status, role, username')
       .eq('id', userId)
       .single()
 
@@ -147,6 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userEmail,
     userRole,
+    username,
     displayName,
     userInitials,
     isVerified,

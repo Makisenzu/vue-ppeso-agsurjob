@@ -35,7 +35,7 @@ import { useAuth } from '@/composables/useAuth'
 const route = useRoute()
 
 const { state, isMobile } = useSidebar()
-const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
+const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut, profileUsername } = useAuth()
 
 const activitySubItems = [
   { title: 'Job Applications', to: {name: 'application'}, icon: Inbox },
@@ -306,7 +306,7 @@ const jobHuntItems = [
 
                 <DropdownMenuItem as-child>
                   <RouterLink
-                    :to="{ name: 'profile' }"
+                    :to="profileUsername ? { name: 'profile', params: { username: profileUsername } } : { name: 'dashboard' }"
                     class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground"
                   >
                     <UserRound class="size-4" />
@@ -328,3 +328,8 @@ const jobHuntItems = [
 
   </Sidebar>
 </template>
+
+
+
+
+

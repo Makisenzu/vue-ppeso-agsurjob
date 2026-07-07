@@ -875,6 +875,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"] | null
           status: Database["public"]["Enums"]["status_type"] | null
           updated_at: string | null
+          username: string | null
         }
         Insert: {
           birthdate?: string | null
@@ -893,6 +894,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
           birthdate?: string | null
@@ -911,6 +913,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }

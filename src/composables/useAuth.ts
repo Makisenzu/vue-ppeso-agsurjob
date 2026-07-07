@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { useAuthStore } from '@/stores/auth'
@@ -8,10 +8,11 @@ import { storeToRefs } from 'pinia'
 export function useAuth() {
   const router = useRouter()
   const authStore = useAuthStore()
-  const { displayName, userInitials, userEmail, isVerified } = storeToRefs(authStore)
-  
+  const { displayName, userInitials, userEmail, isVerified, username } = storeToRefs(authStore)
+
   // Show skeleton while store hasn't loaded yet
   const isLoading = ref(!authStore.isInitialized)
+  const profileUsername = computed(() => username.value || '')
 
   const handleSignOut = async () => {
     try {
@@ -28,6 +29,7 @@ export function useAuth() {
     userInitials,
     userEmail,
     isVerified,
+    profileUsername,
     isLoading,
     handleSignOut
   }

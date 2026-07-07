@@ -6,6 +6,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
+import {
+  HoverCard,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useMediaQuery } from '@vueuse/core'  
@@ -50,14 +55,13 @@ import {
   Calendar,
   Pencil,
   AtSign,
-  Settings,
   Share2,
 } from '@lucide/vue'
 
 
 const containerRef = ref<HTMLElement | null>(null)
 
-defineProps<{
+const props = defineProps<{
   displayName: string
   userInitials: string
   username: string
@@ -70,6 +74,12 @@ defineProps<{
   is4ps: boolean
   isPwd: boolean
 }>()
+
+const profileShareUrl = computed(() => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const safeUsername = encodeURIComponent(props.username || '')
+  return `${origin}/app/profile/${safeUsername}`
+})
 </script>
 
 <template>
@@ -78,11 +88,11 @@ defineProps<{
       <div class="w-full h-full rounded-full overflow-hidden border-[3px] border-border shadow-lg ring-4 ring-primary/5">
         <Avatar class="w-full h-full rounded-none">
           <AvatarImage
-            :src="`https://api.dicebear.com/7.x/initials/svg?seed=${displayName}&backgroundColor=09090b&fontFamily=Arial`"
+            :src="`https://api.dicebear.com/7.x/initials/svg?seed=${props.displayName}&backgroundColor=09090b&fontFamily=Arial`"
             alt="Profile Picture"
           />
           <AvatarFallback class="text-3xl font-semibold bg-primary text-primary-foreground">
-            {{ userInitials }}
+            {{ props.userInitials }}
           </AvatarFallback>
         </Avatar>
       </div>
@@ -90,7 +100,7 @@ defineProps<{
 
     <div ref="containerRef" class="space-y-0.5 text-center lg:text-left">
       <VariableProximity
-        :label="displayName"
+        :label="props.displayName"
         class-name="variable-proximity-demo text-lg font-semibold text-foreground lg:text-xl"
         from-font-variation-settings="'wght' 400, 'opsz' 9"
         to-font-variation-settings="'wght' 1000, 'opsz' 40"
@@ -99,7 +109,7 @@ defineProps<{
         falloff="linear"
       />
       <p class="text-muted-foreground font-mono text-sm">
-        @{{ username }}
+        @{{ props.email.split('@')[0] }}
       </p>
     </div>
 
@@ -136,7 +146,7 @@ defineProps<{
           </Label>
           <Input
             id="link"
-            default-value="https://www.shadcn-vue.com/docs/installation"
+            :model-value="profileShareUrl"
             readonly
           />
         </div>
@@ -153,40 +163,60 @@ defineProps<{
     </div>
 
     <!-- Beneficiary Badges -->
-    <div v-if="is4ps || isPwd" class="flex flex-wrap gap-2">
-      <Badge v-if="is4ps" variant="secondary" class="rounded-full font-medium px-3 py-1 border-0">
+    <div v-if="props.is4ps || props.isPwd" class="flex flex-wrap gap-2">
+      <Badge v-if="props.is4ps" variant="secondary" class="rounded-full font-medium px-3 py-1 border-0">
         4Ps Beneficiary
       </Badge>
-      <Badge v-if="isPwd" variant="secondary" class="rounded-full font-medium px-3 py-1 border-0">
+      <Badge v-if="props.isPwd" variant="secondary" class="rounded-full font-medium px-3 py-1 border-0">
         PWD Candidate
       </Badge>
     </div>
-
-    <!-- Social Links -->
-    <div class="space-y-2">
+<div class="space-y-2">
+  <HoverCard>
+    <HoverCardTrigger as-child>
       <a
         href="#"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/40 bg-muted/20 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all duration-200 group cursor-pointer"
+        class="flex items-center gap-2 px-1 py-2.5 group cursor-pointer"
       >
-        <div class="bg-blue-600/10 dark:bg-blue-500/20 p-1.5 rounded-lg group-hover:scale-105 transition-transform">
+        <div>
           <AtSign class="w-4 h-4 text-red-500 dark:text-red-400" />
         </div>
         <span class="text-sm font-medium text-foreground/80 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
           Facebook
         </span>
       </a>
+    </HoverCardTrigger>
+  </HoverCard>
+
+  <HoverCard>
+    <HoverCardTrigger as-child>
       <a
-        :href="`mailto:${email}`"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/40 bg-muted/20 hover:bg-red-500/5 hover:border-red-500/30 transition-all duration-200 group cursor-pointer"
+        :href="`mailto:${props.email}`"
+        class="flex items-center gap-2 px-1 py-2.5 group cursor-pointer"
       >
-        <div class="bg-red-500/10 dark:bg-red-500/20 p-1.5 rounded-lg group-hover:scale-105 transition-transform">
+        <div>
           <AtSign class="w-4 h-4 text-red-500 dark:text-red-400" />
         </div>
         <span class="text-sm font-medium text-foreground/80 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
           Gmail
         </span>
       </a>
-    </div>
+    </HoverCardTrigger>
+    
+    <!-- <HoverCardContent side="right" class="w-64 rounded-xl p-4">
+      <div class="flex flex-col gap-1">
+        <h4 class="text-sm font-semibold text-foreground">Direct Email</h4>
+        <p class="text-xs text-muted-foreground mb-1">
+          Send an inquiry or directly get in touch via business mail.
+        </p>
+        <span class="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded truncate">
+          {{ email }}
+        </span>
+      </div>
+    </HoverCardContent> -->
+  </HoverCard>
+
+</div>
 
     <Separator />
 
@@ -194,19 +224,19 @@ defineProps<{
     <ul class="space-y-3 text-sm text-muted-foreground">
       <li class="flex items-center gap-3">
         <MapPin class="w-4 h-4 shrink-0" />
-        <span>{{ location }}</span>
+        <span>{{ props.location }}</span>
       </li>
       <li class="flex items-center gap-3">
         <Mail class="w-4 h-4 shrink-0" />
-        <span class="truncate">{{ email }}</span>
+        <span class="truncate">{{ props.email }}</span>
       </li>
       <li class="flex items-center gap-3">
         <Phone class="w-4 h-4 shrink-0" />
-        <span>{{ phone }}</span>
+        <span>{{ props.phone }}</span>
       </li>
       <li class="flex items-center gap-3">
         <Calendar class="w-4 h-4 shrink-0" />
-        <span>Joined {{ joinedDate }}</span>
+        <span>Joined {{ props.joinedDate }}</span>
       </li>
     </ul>
   </div>

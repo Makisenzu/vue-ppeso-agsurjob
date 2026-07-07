@@ -57,9 +57,10 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/ApplicantOffers.vue')
       },
       {
-        path: 'profile',
+        path: 'profile/:username',
         name: 'profile',
-        component: () => import('@/components/applicant/Profile/ApplicantProfile.vue')
+        component: () => import('@/components/applicant/Profile/ApplicantProfile.vue'),
+        props: true
       }
     ]
   },

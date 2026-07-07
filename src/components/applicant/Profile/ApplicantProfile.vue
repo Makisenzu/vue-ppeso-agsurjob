@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabaseClient'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Check, X } from '@lucide/vue'
+
 import {
   Stepper,
   StepperItem,
@@ -17,9 +19,25 @@ import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
 import ProfileReadme from '@/components/applicant/Profile/ProfileReadme.vue'
 import ProfileExperience from '@/components/applicant/Profile/ProfileExperience.vue'
 import ProfileFiles, { type DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
+import { f } from 'vue-router/dist/router-CWoNjPRp.mjs'
 
 const authStore = useAuthStore()
 
+const route = useRoute()
+
+defineProps<{
+  displayName: string
+  userInitials: string
+  username: string
+  bio: string
+  email: string
+  phone: string
+  location: string
+  joinedDate: string
+  employmentStatus: string
+  is4ps: boolean
+  isPwd: boolean
+}>()
 // ─── File Upload State ───
 const files = ref<DocumentFile[]>([
   { name: 'NSRP Form', type: 'form', uploaded: true },
@@ -37,7 +55,8 @@ const skills = ref<any[]>([])
 
 // ─── Data Fetching ───
 async function fetchApplicantProfile() {
-  if (!authStore.user) return
+  const routeUsername = String(route.params.username ?? '')
+  if (!routeUsername) return
 
   try {
     isLoading.value = true
@@ -45,15 +64,17 @@ async function fetchApplicantProfile() {
     const { data: prof } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', authStore.user.id)
+      .eq('username', routeUsername)
       .maybeSingle()
 
-    if (prof) fullProfileData.value = prof
+    if (!prof) return
+
+    fullProfileData.value = prof
 
     const { data: applicant } = await supabase
       .from('applicants')
       .select('*')
-      .eq('profile_id', authStore.user.id)
+      .eq('profile_id', prof.id)
       .maybeSingle()
 
     if (applicant) {
@@ -85,7 +106,7 @@ onMounted(async () => {
 
 // ─── Computed Display Values (with fallbacks) ───
 const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
-const displayUsername = computed(() => displayEmail.value.split('@')[0])
+const displayUsername = computed(() => fullProfileData.value?.username || 'candidate')
 const displayPhone = computed(() => fullProfileData.value?.contact_number || '0912 345 6789')
 const displayLocation = computed(() => fullProfileData.value?.current_address || 'Agusan del Sur, Philippines')
 const displayBio = computed(() =>
@@ -231,7 +252,7 @@ const displaySkills = computed(() => {
           </Stepper>
         </div>
 
-        <ProfileReadme
+        <!-- <ProfileReadme
           :username="displayUsername"
           :preferred-job="displayPreferredJob"
           :experience-years="displayExperienceYears"
@@ -241,17 +262,17 @@ const displaySkills = computed(() => {
           :course="displayCourse"
           :skills="displaySkills"
           :bio="displayBio"
-        />
+        /> -->
 
         <!-- Bottom Grid: Work Experience + My Files -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
           <div class="md:col-span-1 lg:col-span-7">
             <ProfileExperience :experiences="displayExperiences" />
           </div>
           <div class="md:col-span-1 lg:col-span-5">
             <ProfileFiles :files="files" />
           </div>
-        </div>
+        </div> -->
 
       </div>
 
