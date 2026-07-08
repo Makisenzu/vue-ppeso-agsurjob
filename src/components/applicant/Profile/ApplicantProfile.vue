@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
+import { useApplicantProfile } from '@/composables/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Check, X } from '@lucide/vue'
 
@@ -16,170 +13,36 @@ import {
 } from '@/components/ui/stepper'
 
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
-import ProfileReadme from '@/components/applicant/Profile/ProfileReadme.vue'
-import ProfileExperience from '@/components/applicant/Profile/ProfileExperience.vue'
-import ProfileFiles, { type DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
-import { f } from 'vue-router/dist/router-CWoNjPRp.mjs'
 
-const authStore = useAuthStore()
-
-const route = useRoute()
-
-defineProps<{
-  displayName: string
-  userInitials: string
-  username: string
-  bio: string
-  email: string
-  phone: string
-  location: string
-  joinedDate: string
-  employmentStatus: string
-  is4ps: boolean
-  isPwd: boolean
-}>()
-// ─── File Upload State ───
-const files = ref<DocumentFile[]>([
-  { name: 'NSRP Form', type: 'form', uploaded: true },
-  { name: 'Application Form', type: 'application', uploaded: true },
-  { name: 'Resume', type: 'resume', uploaded: true },
-  { name: 'Birth Certificate', type: 'certificate', uploaded: false },
-])
-
-// ─── State ───
-const isLoading = ref(true)
-const fullProfileData = ref<any>(null)
-const applicantData = ref<any>(null)
-const experiences = ref<any[]>([])
-const skills = ref<any[]>([])
-
-// ─── Data Fetching ───
-async function fetchApplicantProfile() {
-  const routeUsername = String(route.params.username ?? '')
-  if (!routeUsername) return
-
-  try {
-    isLoading.value = true
-
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('username', routeUsername)
-      .maybeSingle()
-
-    if (!prof) return
-
-    fullProfileData.value = prof
-
-    const { data: applicant } = await supabase
-      .from('applicants')
-      .select('*')
-      .eq('profile_id', prof.id)
-      .maybeSingle()
-
-    if (applicant) {
-      applicantData.value = applicant
-
-      const { data: expData } = await supabase
-        .from('applicant_experiences')
-        .select('*')
-        .eq('applicant_id', applicant.id)
-      if (expData) experiences.value = expData
-
-      const { data: skillData } = await supabase
-        .from('applicant_skills')
-        .select('*')
-        .eq('applicant_id', applicant.id)
-      if (skillData) skills.value = skillData
-    }
-  } catch (error) {
-    console.error('Error fetching applicant data:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(async () => {
-  await authStore.init()
-  await fetchApplicantProfile()
-})
-
-// ─── Computed Display Values (with fallbacks) ───
-const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
-const displayUsername = computed(() => fullProfileData.value?.username || 'candidate')
-const displayPhone = computed(() => fullProfileData.value?.contact_number || '0912 345 6789')
-const displayLocation = computed(() => fullProfileData.value?.current_address || 'Agusan del Sur, Philippines')
-const displayBio = computed(() =>
-  'Passionate and results-driven professional dedicated to delivering high-quality work. Experienced in collaborating with cross-functional teams to build efficient solutions.'
-)
-const displayJoinedDate = computed(() =>
-  new Date(authStore.user?.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-)
-
-const displayPreferredJob = computed(() => applicantData.value?.preferred_job || 'Software Engineer / Web Developer')
-const displayEmploymentStatus = computed(() => applicantData.value?.employment_status || 'Available for Work')
-const displayExpectedSalary = computed(() => {
-  if (applicantData.value?.expected_salary) {
-    return `₱${applicantData.value.expected_salary.toLocaleString()}`
-  }
-  return '₱35,000 - ₱45,000'
-})
-const displayExperienceYears = computed(() => {
-  if (applicantData.value?.years_experience !== undefined && applicantData.value?.years_experience !== null) {
-    return `${applicantData.value.years_experience} Years`
-  }
-  return '3 Years'
-})
-const displayEducationLevel = computed(() => applicantData.value?.education_level || 'Bachelor\'s Degree')
-const displayCourse = computed(() => applicantData.value?.course || 'Information Technology')
-
-const is4ps = computed(() => fullProfileData.value?.is_4ps ?? false)
-const isPwd = computed(() => fullProfileData.value?.is_pwd ?? false)
-
-// ─── Experience list (DB or fallback) ───
-const displayExperiences = computed(() => {
-  if (experiences.value.length > 0) return experiences.value
-  return [
-    {
-      job_title: 'Frontend Developer',
-      company_name: 'TechSolutions Inc.',
-      start_date: '2024-01',
-      end_date: 'Present',
-      description: 'Developed responsive user interfaces using Vue.js, Vuex, and Tailwind CSS. Collaborative partner in agile workflows.'
-    },
-    {
-      job_title: 'Junior Web Developer',
-      company_name: 'DevCraft Studio',
-      start_date: '2022-06',
-      end_date: '2023-12',
-      description: 'Designed interactive web prototypes and handled API integration with RESTful endpoints.'
-    }
-  ]
-})
-
-// ─── Skills list (DB or fallback) ───
-const displaySkills = computed(() => {
-  if (skills.value.length > 0) return skills.value.map((s: any) => s.skill_name)
-  return ['Vue.js', 'JavaScript', 'TypeScript', 'Tailwind CSS', 'Node.js', 'Git', 'REST APIs', 'Supabase']
-})
+const {
+  files,
+  displayName,
+  userInitials,
+  displayEmail,
+  displayUsername,
+  displayPhone,
+  displayLocation,
+  displayBio,
+  displayJoinedDate,
+  displayEmploymentStatus,
+  is4ps,
+  isPwd,
+} = useApplicantProfile()
 </script>
 
 <template>
   <div class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
     <div class="mb-6">
       <CustomBreadcrumbs />
     </div>
 
-    <!-- Main Content Grid -->
     <div class="grid gap-6 grid-cols-1 lg:grid-cols-12">
 
-      <!-- Left Sidebar (Mobile: Full width, Desktop: Sticky) -->
       <div class="lg:col-span-3">
         <div class="lg:sticky lg:top-6">
             <ProfileSidebar
-            :display-name="authStore.displayName"
-            :user-initials="authStore.userInitials"
+            :display-name="displayName"
+            :user-initials="userInitials"
             :username="displayUsername"
             :bio="displayBio"
             :email="displayEmail"
@@ -193,10 +56,8 @@ const displaySkills = computed(() => {
         </div>
       </div>
 
-      <!-- Right Content Area (Mobile: Full width, Desktop: 9 cols) -->
       <div class="lg:col-span-9 space-y-6">
 
-        <!-- Document Upload Progress Stepper -->
         <div class="space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
