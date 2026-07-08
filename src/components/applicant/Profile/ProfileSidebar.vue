@@ -202,18 +202,6 @@ const profileShareUrl = computed(() => {
         </span>
       </a>
     </HoverCardTrigger>
-    
-    <!-- <HoverCardContent side="right" class="w-64 rounded-xl p-4">
-      <div class="flex flex-col gap-1">
-        <h4 class="text-sm font-semibold text-foreground">Direct Email</h4>
-        <p class="text-xs text-muted-foreground mb-1">
-          Send an inquiry or directly get in touch via business mail.
-        </p>
-        <span class="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded truncate">
-          {{ email }}
-        </span>
-      </div>
-    </HoverCardContent> -->
   </HoverCard>
 
 </div>
