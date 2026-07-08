@@ -857,6 +857,41 @@ export type Database = {
           },
         ]
       }
+      profile_socials: {
+        Row: {
+          created_at: string
+          id: number
+          profile_id: string | null
+          social_link: string | null
+          social_name: string | null
+          updated_At: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          profile_id?: string | null
+          social_link?: string | null
+          social_name?: string | null
+          updated_At?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          profile_id?: string | null
+          social_link?: string | null
+          social_name?: string | null
+          updated_At?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_socials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           birthdate: string | null
