@@ -14,11 +14,18 @@ export function useAuth() {
   const isLoading = ref(!authStore.isInitialized)
   const profileUsername = computed(() => username.value || '')
 
+  const redirectToLogin = async () => {
+    try {
+      await router.replace('/login')
+    } catch {
+      window.location.assign('/login')
+    }
+  }
+
   const handleSignOut = async () => {
     try {
       await authService.logout()
-      toast.success('Successfully signed out')
-      router.push({ name: 'login' })
+      await redirectToLogin()
     } catch (error: any) {
       toast.error(error.message || 'Error signing out')
     }
