@@ -20,6 +20,9 @@ export function useApplicantProfile() {
   const applicantData = ref<any>(null)
   const experiences = ref<any[]>([])
   const skills = ref<any[]>([])
+  const socials = ref<any[]>([])
+  const notifications = ref<any[]>([])
+  const media = ref<any[]>([])
 
   const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
   const displayName = computed(() => authStore.displayName)
@@ -27,6 +30,7 @@ export function useApplicantProfile() {
   const displayUsername = computed(() => fullProfileData.value?.username || 'candidate')
   const displayPhone = computed(() => fullProfileData.value?.contact_number || '0912 345 6789')
   const displayLocation = computed(() => fullProfileData.value?.current_address || 'Agusan del Sur, Philippines')
+  
   const displayBio = computed(() =>
     'Passionate and results-driven professional dedicated to delivering high-quality work. Experienced in collaborating with cross-functional teams to build efficient solutions.'
   )
@@ -49,6 +53,10 @@ export function useApplicantProfile() {
       applicantData.value = result.applicant
       experiences.value = result.experiences
       skills.value = result.skills
+      socials.value = result.socials
+      notifications.value = result.notifications
+      media.value = result.media
+
     } catch (error) {
       console.error('Error fetching applicant data:', error)
     } finally {
@@ -66,16 +74,22 @@ export function useApplicantProfile() {
     isLoading,
     fullProfileData,
     applicantData,
+
     displayEmail,
     displayName,
     userInitials,
+
     displayUsername,
     displayPhone,
     displayLocation,
     displayBio,
     displayJoinedDate,
     displayEmploymentStatus,
+    
     is4ps,
     isPwd,
+    socials,
+    notifications,
+    media,
   }
 }

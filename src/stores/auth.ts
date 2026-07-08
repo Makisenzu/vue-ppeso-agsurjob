@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
+import { authService } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
@@ -13,7 +14,14 @@ export const useAuthStore = defineStore('auth', () => {
     firstname: string | null
     middlename: string | null
     lastname: string | null
+    birthdate: string | null
+    current_address: string | null
+    home_address: string | null
+    contact_number: string | null
+    gender: string | null
     status: string | null
+    is_pwd: boolean | null
+    is_4ps: boolean | null
     role: Database["public"]["Enums"]["user_role"] | null
     username: string | null
   } | null>(null)
@@ -63,16 +71,13 @@ export const useAuthStore = defineStore('auth', () => {
     return signupData.value.firstName && signupData.value.lastName
   })
 
-  // ─── Actions ───
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('firstname, middlename, lastname, status, role, username')
-      .eq('id', userId)
-      .single()
-
-    if (data) {
+    try {
+      const data = await authService.fetchProfile(userId)
       profile.value = data
+    } catch (error) {
+      console.error('fetchProfile error:', error)
+      profile.value = null
     }
   }
 

@@ -13,6 +13,19 @@ export const authService = {
     if (error) throw error
   },
 
+  async fetchProfile(userId: string) {
+    const {data, error } = await supabase
+    .from('profiles')
+    .select('firstname, middlename, lastname, birthdate, current_address, home_address, contact_number, gender, status, is_pwd, is_4ps, role, username')
+    .eq('id', userId)
+    .single()
+    if (data) {
+      return data
+    } else {
+      throw new Error(error?.message || 'Failed to fetch profile')
+    }
+  },
+
   async checkEmailExists(email: string): Promise<boolean> {
     const { data, error } = await supabase.rpc('check_if_email_exists', {
       target_email: email.trim()
