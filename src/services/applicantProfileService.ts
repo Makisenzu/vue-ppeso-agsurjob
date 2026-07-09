@@ -123,7 +123,6 @@ export interface UpdateProfileInput {
 }
 
 export async function updateApplicantProfile(userId: string, updates: UpdateProfileInput): Promise<void> {
-  console.log('updateApplicantProfile called with:', { userId, updates })
   const payload: Partial<Database['public']['Tables']['profiles']['Update']> = {}
 
   if (updates.firstname !== undefined) payload.firstname = updates.firstname

@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
-import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/psgcHelpers'
-import { useAuthStore } from '@/stores/auth'
-import { updateApplicantProfile } from '@/services/applicantProfileService'
+import { onMounted, watch } from 'vue'
 import { Pencil, CalendarIcon, AlertCircle, CheckIcon, ChevronsUpDownIcon } from '@lucide/vue'
-import { useToastAlert } from '@/composables/useToastAlert'
+import { usePsgc } from '@/composables/usePsgc'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 import {
@@ -41,12 +38,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import {
-  DateFormatter,
-  getLocalTimeZone,
-  parseDate,
-} from '@internationalized/date'
-
 import { cn } from '@/lib/utils'
 import { Calendar } from '@/components/ui/calendar'
 
@@ -56,246 +47,53 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-const authStore = useAuthStore()
+import useProfileEdit from '@/composables/useProfileEdit'
 
-const formData = ref({
-  firstname: authStore.profile?.firstname || '',
-  middlename: authStore.profile?.middlename || '',
-  lastname: authStore.profile?.lastname || '',
-  username: authStore.profile?.username || '',
-  birthdate: authStore.profile?.birthdate || '',
-  contact_number: authStore.profile?.contact_number || '',
-  region: authStore.profile?.region || '',
-  province: authStore.profile?.province || '',
-  geographic: authStore.profile?.geographic || '',
-  barangay: authStore.profile?.barangay || '',
-  gender: authStore.profile?.gender ?? null,
-  is_pwd: authStore.profile?.is_pwd || false,
-  is_4ps: authStore.profile?.is_4ps || false,
-})
+const {
+  selectedRegion,
+  selectedProvince,
+  selectedCity,
+  selectedBarangay,
+  regionSearch,
+  provinceSearch,
+  citySearch,
+  barangaySearch,
+  filteredRegions,
+  filteredProvinces,
+  filteredCities,
+  filteredBarangays,
+  initialize,
+  reset,
+} = usePsgc()
 
-const selectedRegion = ref<any>(null)
-const selectedProvince = ref<any>(null)
-const selectedCity = ref<any>(null)
-const selectedBarangay = ref<any>(null)
-
-const regionSearch = ref('')
-const provinceSearch = ref('')
-const citySearch = ref('')
-const barangaySearch = ref('')
-
-// Parse the current birthdate from the profile
-const date = ref<any>(
-  formData.value.birthdate
-    ? parseDate(formData.value.birthdate.slice(0, 10))
-    : undefined
-)
-
-const df = new DateFormatter('en-US', {
-  dateStyle: 'long',
-})
-
-const isLoading = ref(false)
-const isOpen = ref(false)
-const toastAlert = useToastAlert()
-
-const birthdateLabel = computed(() => {
-  if (!date.value) return 'Select birthdate'
-  return df.format(date.value.toDate(getLocalTimeZone()))
-})
-
-// Watch sheet visibility to sync with authStore profile state when opened
-watch(isOpen, (newVal) => {
-  if (newVal) {
-    errors.value = {}
-    formData.value = {
-      firstname: authStore.profile?.firstname || '',
-      middlename: authStore.profile?.middlename || '',
-      lastname: authStore.profile?.lastname || '',
-      username: authStore.profile?.username || '',
-      birthdate: authStore.profile?.birthdate || '',
-      contact_number: authStore.profile?.contact_number || '',
-      gender: authStore.profile?.gender ?? null,
-      is_pwd: authStore.profile?.is_pwd || false,
-      is_4ps: authStore.profile?.is_4ps || false,
-      region: authStore.profile?.region || '',
-      province: authStore.profile?.province || '',
-      geographic: authStore.profile?.geographic || '',
-      barangay: authStore.profile?.barangay || '',
-    }
-    date.value = formData.value.birthdate
-      ? parseDate(formData.value.birthdate.slice(0, 10))
-      : undefined
-  }
-})
-
-// Watch for region selection changes
-watch(selectedRegion, async (newRegion) => {
-  if (newRegion) {
-    selectedProvince.value = null
-    selectedCity.value = null
-    selectedBarangay.value = null
-    await loadProvinces(newRegion.code)
-  }
-})
-
-// Watch for province selection changes
-watch(selectedProvince, async (newProvince) => {
-  if (newProvince) {
-    selectedCity.value = null
-    selectedBarangay.value = null
-    await loadCities(newProvince.code)
-  }
-})
-
-// Watch for city selection changes
-watch(selectedCity, async (newCity) => {
-  if (newCity) {
-    selectedBarangay.value = null
-    await loadBarangays(newCity.code)
-  }
-})
-
-// Watch formData fields to clear validation errors dynamically when they are filled in
-watch(
+const {
   formData,
-  (newVal) => {
-    if (newVal.firstname.trim() && errors.value.firstname) delete errors.value.firstname
-    if (newVal.lastname.trim() && errors.value.lastname) delete errors.value.lastname
-    if (newVal.username.trim() && errors.value.username) delete errors.value.username
-    if (newVal.contact_number.trim() && errors.value.contact_number) delete errors.value.contact_number
-    if (newVal.gender && errors.value.gender) delete errors.value.gender
-    if (newVal.region && errors.value.region) delete errors.value.region
-    if (newVal.province && errors.value.province) delete errors.value.province
-    if (newVal.geographic && errors.value.geographic) delete errors.value.geographic
-    if (newVal.barangay && errors.value.barangay) delete errors.value.bar
-  },
-  { deep: true }
-)
+  date,
+  birthdateLabel,
+  isLoading,
+  isOpen,
+  errors,
+  handleSubmit,
+  getFieldLabel,
+} = useProfileEdit()
 
-const handleSubmit = async () => {
-  errors.value = {}
-
-  if (!validateForm()) {
-    return
+watch(isOpen, async (newVal) => {
+  if (newVal) {
+    await initialize(
+      formData.value.region,
+      formData.value.province,
+      formData.value.geographic,
+      formData.value.barangay
+    )
+  } else {
+    reset()
   }
-
-  isLoading.value = true
-  try {
-    formData.value.birthdate = date.value
-      ? date.value.toString()
-      : ''
-
-    const userId = authStore.user?.id
-    if (!userId) throw new Error('No authenticated user found')
-
-    await updateApplicantProfile(userId, {
-      firstname: formData.value.firstname.trim(),
-      middlename: formData.value.middlename.trim(),
-      lastname: formData.value.lastname.trim(),
-      username: formData.value.username.trim(),
-      birthdate: formData.value.birthdate || null,
-      contact_number: formData.value.contact_number.trim() || null,
-      gender: (formData.value?.gender as 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null) ?? null,
-      is_pwd: formData.value.is_pwd || null,
-      is_4ps: formData.value.is_4ps || null,
-      region: selectedRegion.value?.name || null,
-      province: selectedProvince.value?.name || null,
-      geographic: selectedCity.value?.name || null,
-      barangay: selectedBarangay.value?.name || null,
-    })
-
-    await authStore.fetchProfile(userId)
-
-    toastAlert.success('Profile updated successfully')
-    isOpen.value = false
-  } catch (error: any) {
-    console.error('Failed to update profile:', error)
-    toastAlert.error('Update Failed', error.message || 'Failed to update profile')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const errors = ref<Record<string, string>>({})
-const validateForm = () => {
-  const nextErrors: Record<string, string> = {}
-
-  if (!formData.value.firstname.trim()) nextErrors.firstname = 'First name is required'
-  if (!formData.value.lastname.trim()) nextErrors.lastname = 'Last name is required'
-  if (!formData.value.username.trim()) nextErrors.username = 'Username is required'
-  if (!formData.value.contact_number.trim()) nextErrors.contact_number = 'Contact number is required'
-  if (!formData.value.gender) nextErrors.gender = 'Gender is required'
-
-  errors.value = nextErrors
-  return Object.keys(nextErrors).length === 0
-}
-
-const getFieldLabel = (field: string) => {
-  const labels: Record<string, string> = {
-    firstname: 'First Name',
-    lastname: 'Last Name',
-    username: 'Username',
-    contact_number: 'Contact Number',
-    gender: 'Gender',
-  }
-  return labels[field] || field
-}
-
-const regions = ref<any[]>([])
-const provinces = ref<any[]>([])
-const cities = ref<any[]>([])
-const barangays = ref<any[]>([])
-
-const filteredRegions = computed(() => {
-  if (!regionSearch.value) return regions.value
-  return regions.value.filter(r =>
-    r.name.toLowerCase().includes(regionSearch.value.toLowerCase())
-  )
 })
-
-const filteredProvinces = computed(() => {
-  if (!provinceSearch.value) return provinces.value
-  return provinces.value.filter(p =>
-    p.name.toLowerCase().includes(provinceSearch.value.toLowerCase())
-  )
-})
-
-const filteredCities = computed(() => {
-  if (!citySearch.value) return cities.value
-  return cities.value.filter(c =>
-    c.name.toLowerCase().includes(citySearch.value.toLowerCase())
-  )
-})
-
-const filteredBarangays = computed(() => {
-  if (!barangaySearch.value) return barangays.value
-  return barangays.value.filter(b =>
-    b.name.toLowerCase().includes(barangaySearch.value.toLowerCase())
-  )
-})
-
-const loadRegions = async () => {
-  regions.value = await getRegions()
-}
-
-const loadProvinces = async (regionCode: string) => {
-  provinces.value = await getProvinces(regionCode)
-}
-
-const loadCities = async (provinceCode: string) => {
-  cities.value = await getCities(provinceCode)
-}
-
-const loadBarangays = async (cityCode: string) => {
-  barangays.value = await getBarangays(cityCode)
-}
 
 onMounted(() => {
-  loadRegions()
-  console.log('Regions:', regions.value)
+  initialize()
 })
-  
+
 </script>
 
 <template>
@@ -596,7 +394,7 @@ onMounted(() => {
         </Button>
 
         <Button
-          @click="handleSubmit"
+          @click="handleSubmit({ region: selectedRegion?.name, province: selectedProvince?.name, geographic: selectedCity?.name, barangay: selectedBarangay?.name })"
           :disabled="isLoading"
         >
           {{ isLoading ? 'Saving...' : 'Save Changes' }}
