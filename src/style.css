@@ -94,14 +94,14 @@
 
   --sidebar-accent: oklch(0.96 0.002 17.2);
 
+
   --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
 
   --sidebar-border: oklch(0.922 0.005 34.3);
 
   --sidebar-ring: oklch(0.714 0.014 41.2)}
 
-@media (prefers-color-scheme: dark) {
-  :root {
+.dark {
     --text: #9ca3af;
     --text-h: #f3f4f6;
     --bg: #16171d;
@@ -113,7 +113,6 @@
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
 
   #social .button-icon {
     filter: invert(1) brightness(2);

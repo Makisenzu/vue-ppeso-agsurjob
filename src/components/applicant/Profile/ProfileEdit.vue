@@ -268,7 +268,7 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <div class="flex justify-end gap-3 border-t p-6 bg-background shrink-0">
+      <div class="flex justify-end gap-3 border-t border-border p-6 bg-transparent shrink-0">
         <Button
           variant="outline"
           @click="isOpen = false"
