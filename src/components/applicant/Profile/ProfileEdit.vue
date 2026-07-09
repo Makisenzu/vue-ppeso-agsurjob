@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -270,23 +269,6 @@ const handleSubmit = async () => {
             placeholder="Home address"
           />
         </div>
-
-        <!-- Checkboxes/Tags -->
-        <!-- <div class="flex flex-col gap-3 pt-2">
-          <label class="flex items-center space-x-3 cursor-pointer">
-            <Checkbox id="is_pwd" v-model:checked="formData.is_pwd" />
-            <span class="text-sm font-normal text-foreground select-none">
-              Person with Disability (PWD)
-            </span>
-          </label>
-
-          <label class="flex items-center space-x-3 cursor-pointer">
-            <Checkbox id="is_4ps" v-model:checked="formData.is_4ps" />
-            <span class="text-sm font-normal text-foreground select-none">
-              4Ps Beneficiary
-            </span>
-          </label>
-        </div> -->
       </div>
 
       <div class="flex justify-end gap-3 border-t p-6 bg-background shrink-0">
