@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateApplicantProfile } from '@/services/applicantProfileService'
 import { Pencil, CalendarIcon } from '@lucide/vue'
+import { useToastAlert } from '@/composables/useToastAlert'
 import {
   Sheet,
   SheetContent,
@@ -65,6 +66,7 @@ const df = new DateFormatter('en-US', {
 
 const isLoading = ref(false)
 const isOpen = ref(false)
+const toastAlert = useToastAlert()
 
 const birthdateLabel = computed(() => {
   if (!date.value) return 'Select birthdate'
@@ -120,9 +122,11 @@ const handleSubmit = async () => {
 
     await authStore.fetchProfile(userId)
 
+    toastAlert.success('Profile updated successfully')
     isOpen.value = false
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update profile:', error)
+    toastAlert.error('Update Failed', error.message || 'Failed to update profile')
   } finally {
     isLoading.value = false
   }
