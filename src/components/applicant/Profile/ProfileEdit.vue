@@ -1,0 +1,310 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/lib/supabaseClient'
+import { Pencil, CalendarIcon } from '@lucide/vue'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+import {
+  DateFormatter,
+  getLocalTimeZone,
+  parseDate,
+} from '@internationalized/date'
+
+import { cn } from '@/lib/utils'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+
+const authStore = useAuthStore()
+
+const formData = ref({
+  firstname: authStore.profile?.firstname || '',
+  middlename: authStore.profile?.middlename || '',
+  lastname: authStore.profile?.lastname || '',
+  username: authStore.profile?.username || '',
+  birthdate: authStore.profile?.birthdate || '',
+  current_address: authStore.profile?.current_address || '',
+  home_address: authStore.profile?.home_address || '',
+  contact_number: authStore.profile?.contact_number || '',
+  gender: authStore.profile?.gender || '',
+  is_pwd: authStore.profile?.is_pwd || false,
+  is_4ps: authStore.profile?.is_4ps || false,
+})
+
+// Parse the current birthdate from the profile
+const date = ref<any>(
+  formData.value.birthdate
+    ? parseDate(formData.value.birthdate.slice(0, 10))
+    : undefined
+)
+
+const df = new DateFormatter('en-US', {
+  dateStyle: 'long',
+})
+
+const isLoading = ref(false)
+const isOpen = ref(false)
+
+const birthdateLabel = computed(() => {
+  if (!date.value) return 'Select birthdate'
+  return df.format(date.value.toDate(getLocalTimeZone()))
+})
+
+// Watch sheet visibility to sync with authStore profile state when opened
+watch(isOpen, (newVal) => {
+  if (newVal) {
+    formData.value = {
+      firstname: authStore.profile?.firstname || '',
+      middlename: authStore.profile?.middlename || '',
+      lastname: authStore.profile?.lastname || '',
+      username: authStore.profile?.username || '',
+      birthdate: authStore.profile?.birthdate || '',
+      current_address: authStore.profile?.current_address || '',
+      home_address: authStore.profile?.home_address || '',
+      contact_number: authStore.profile?.contact_number || '',
+      gender: authStore.profile?.gender || '',
+      is_pwd: authStore.profile?.is_pwd || false,
+      is_4ps: authStore.profile?.is_4ps || false,
+    }
+    date.value = formData.value.birthdate
+      ? parseDate(formData.value.birthdate.slice(0, 10))
+      : undefined
+  }
+})
+
+const handleSubmit = async () => {
+  isLoading.value = true
+
+  try {
+    formData.value.birthdate = date.value
+      ? date.value.toString()
+      : ''
+
+    console.log('Updating profile:', formData.value)
+
+    const userId = authStore.user?.id
+    if (!userId) throw new Error('No authenticated user found')
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        firstname: formData.value.firstname,
+        middlename: formData.value.middlename,
+        lastname: formData.value.lastname,
+        username: formData.value.username,
+        birthdate: formData.value.birthdate || null,
+        current_address: formData.value.current_address || null,
+        home_address: formData.value.home_address || null,
+        contact_number: formData.value.contact_number || null,
+        gender: formData.value.gender || null,
+        is_pwd: formData.value.is_pwd || null,
+        is_4ps: formData.value.is_4ps || null,
+      })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    await authStore.fetchProfile(userId)
+
+    isOpen.value = false
+  } catch (error) {
+    console.error('Failed to update profile:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+<template>
+  <Sheet v-model:open="isOpen">
+    <SheetTrigger as-child>
+      <Button class="flex-1 rounded-xl gap-2 shadow-sm hover:shadow-md transition-shadow">
+        <Pencil class="size-4" />
+        Edit Profile
+      </Button>
+    </SheetTrigger>
+
+    <SheetContent class="sm:max-w-lg flex flex-col h-full p-0">
+      <SheetHeader class="px-6 pt-6 pb-2 shrink-0">
+        <SheetTitle>Edit Profile</SheetTitle>
+        <SheetDescription>
+          Update your personal information
+        </SheetDescription>
+      </SheetHeader>
+
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <!-- Names Grid -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <Label for="firstname">First Name</Label>
+            <Input
+              id="firstname"
+              v-model="formData.firstname"
+              placeholder="First name"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="lastname">Last Name</Label>
+            <Input
+              id="lastname"
+              v-model="formData.lastname"
+              placeholder="Last name"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <Label for="middlename">Middle Name</Label>
+            <Input
+              id="middlename"
+              v-model="formData.middlename"
+              placeholder="Middle name"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="username">Username</Label>
+            <Input
+              id="username"
+              v-model="formData.username"
+              placeholder="Username"
+            />
+          </div>
+        </div>
+
+        <!-- Contact & Gender Grid -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <Label for="contact_number">Contact Number</Label>
+            <Input
+              id="contact_number"
+              v-model="formData.contact_number"
+              placeholder="Contact number"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="gender">Gender</Label>
+            <Select v-model="formData.gender">
+              <SelectTrigger id="gender" class="w-full">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <!-- Birthdate -->
+        <div class="space-y-2">
+          <Label>Birthdate</Label>
+          <Popover v-slot="{ close }">
+            <PopoverTrigger as-child>
+              <Button
+                variant="outline"
+                :class="
+                  cn(
+                    'w-full justify-start text-left font-normal',
+                    !date && 'text-muted-foreground'
+                  )
+                "
+              >
+                <CalendarIcon class="mr-2 h-4 w-4" />
+                {{ birthdateLabel }}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent class="w-auto p-0" align="start">
+              <Calendar
+                v-model="date"
+                layout="month-and-year"
+                initial-focus
+                @update:model-value="close"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <!-- Addresses -->
+        <div class="space-y-2">
+          <Label for="current_address">Current Address</Label>
+          <Input
+            id="current_address"
+            v-model="formData.current_address"
+            placeholder="Current address"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="home_address">Home Address</Label>
+          <Input
+            id="home_address"
+            v-model="formData.home_address"
+            placeholder="Home address"
+          />
+        </div>
+
+        <!-- Checkboxes/Tags -->
+        <!-- <div class="flex flex-col gap-3 pt-2">
+          <label class="flex items-center space-x-3 cursor-pointer">
+            <Checkbox id="is_pwd" v-model:checked="formData.is_pwd" />
+            <span class="text-sm font-normal text-foreground select-none">
+              Person with Disability (PWD)
+            </span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer">
+            <Checkbox id="is_4ps" v-model:checked="formData.is_4ps" />
+            <span class="text-sm font-normal text-foreground select-none">
+              4Ps Beneficiary
+            </span>
+          </label>
+        </div> -->
+      </div>
+
+      <div class="flex justify-end gap-3 border-t p-6 bg-background shrink-0">
+        <Button
+          variant="outline"
+          @click="isOpen = false"
+          :disabled="isLoading"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          @click="handleSubmit"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? 'Saving...' : 'Save Changes' }}
+        </Button>
+      </div>
+    </SheetContent>
+  </Sheet>
+</template>

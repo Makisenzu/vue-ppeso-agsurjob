@@ -9,9 +9,9 @@ export function useApplicantProfile() {
   const route = useRoute()
 
   const files = ref<DocumentFile[]>([
-    { name: 'NSRP Form', type: 'form', uploaded: true },
-    { name: 'Application Form', type: 'application', uploaded: true },
-    { name: 'Resume', type: 'resume', uploaded: true },
+    { name: 'NSRP Form', type: 'form', uploaded: false },
+    { name: 'Application Form', type: 'application', uploaded: false },
+    { name: 'Resume', type: 'resume', uploaded: false },
     { name: 'Birth Certificate', type: 'certificate', uploaded: false },
   ])
 

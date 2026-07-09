@@ -11,6 +11,8 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
 
+import ProfileEdit from './ProfileEdit.vue'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useMediaQuery } from '@vueuse/core'  
@@ -53,7 +55,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  Pencil,
   AtSign,
   Share2,
 } from '@lucide/vue'
@@ -115,10 +116,7 @@ const profileShareUrl = computed(() => {
 
     <!-- Edit Profile Button -->
     <div class="flex gap-2 w-full">
-      <Button class="flex-1 rounded-xl gap-2 shadow-sm hover:shadow-md transition-shadow">
-        <Pencil class="h-3.5 w-3.5" />
-        Edit Profile
-      </Button>
+        <ProfileEdit />
       <component :is="Modal.Root" v-model:open="open">
         <component :is="Modal.Trigger" as-child>
           <Button size="icon" variant="outline" class="h-10 w-10 shrink-0 rounded-xl shadow-sm hover:shadow-md transition-shadow">
