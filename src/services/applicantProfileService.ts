@@ -104,3 +104,32 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     media: media?? [], 
   }
 }
+
+export interface UpdateProfileInput {
+  firstname?: string
+  middlename?: string
+  lastname?: string
+  username?: string
+  birthdate?: string | null
+  current_address?: string | null
+  home_address?: string | null
+  contact_number?: string | null
+  gender?: string | null
+  is_pwd?: boolean | null
+  is_4ps?: boolean | null
+}
+
+export async function updateApplicantProfile(userId: string, updates: UpdateProfileInput): Promise<void> {
+  console.log('updateApplicantProfile called with:', { userId, updates })
+  const { data, error, status, statusText } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+
+  console.log('updateApplicantProfile result:', { data, error, status, statusText })
+
+  if (error) {
+    throw error
+  }
+}

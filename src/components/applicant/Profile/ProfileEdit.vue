@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
+import { updateApplicantProfile } from '@/services/applicantProfileService'
 import { Pencil, CalendarIcon } from '@lucide/vue'
 import {
   Sheet,
@@ -101,29 +101,22 @@ const handleSubmit = async () => {
       ? date.value.toString()
       : ''
 
-    console.log('Updating profile:', formData.value)
-
     const userId = authStore.user?.id
     if (!userId) throw new Error('No authenticated user found')
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        firstname: formData.value.firstname,
-        middlename: formData.value.middlename,
-        lastname: formData.value.lastname,
-        username: formData.value.username,
-        birthdate: formData.value.birthdate || null,
-        current_address: formData.value.current_address || null,
-        home_address: formData.value.home_address || null,
-        contact_number: formData.value.contact_number || null,
-        gender: formData.value.gender || null,
-        is_pwd: formData.value.is_pwd || null,
-        is_4ps: formData.value.is_4ps || null,
-      })
-      .eq('id', userId)
-
-    if (error) throw error
+    await updateApplicantProfile(userId, {
+      firstname: formData.value.firstname,
+      middlename: formData.value.middlename,
+      lastname: formData.value.lastname,
+      username: formData.value.username,
+      birthdate: formData.value.birthdate || null,
+      current_address: formData.value.current_address || null,
+      home_address: formData.value.home_address || null,
+      contact_number: formData.value.contact_number || null,
+      gender: formData.value.gender || null,
+      is_pwd: formData.value.is_pwd || null,
+      is_4ps: formData.value.is_4ps || null,
+    })
 
     await authStore.fetchProfile(userId)
 
