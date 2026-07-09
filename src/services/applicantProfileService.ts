@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import type { Database } from '@/types/database.types'
 
 export type ApplicantProfileRecord = Record<string, any>
 export type ApplicantRecord = Record<string, any>
@@ -111,23 +112,39 @@ export interface UpdateProfileInput {
   lastname?: string
   username?: string
   birthdate?: string | null
-  current_address?: string | null
-  home_address?: string | null
   contact_number?: string | null
-  gender?: string | null
+  gender?: 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null
   is_pwd?: boolean | null
-  is_4ps?: boolean | null
+  is_4ps?: boolean | null,
+  region?: string | null,
+  province?: string | null,
+  geographic?: string | null,
+  barangay?: string | null,
 }
 
 export async function updateApplicantProfile(userId: string, updates: UpdateProfileInput): Promise<void> {
   console.log('updateApplicantProfile called with:', { userId, updates })
+  const payload: Partial<Database['public']['Tables']['profiles']['Update']> = {}
+
+  if (updates.firstname !== undefined) payload.firstname = updates.firstname
+  if (updates.middlename !== undefined) payload.middlename = updates.middlename
+  if (updates.lastname !== undefined) payload.lastname = updates.lastname
+  if (updates.username !== undefined) payload.username = updates.username
+  if (updates.birthdate !== undefined) payload.birthdate = updates.birthdate
+  if (updates.contact_number !== undefined) payload.contact_number = updates.contact_number
+  if (updates.gender !== undefined) payload.gender = updates.gender
+  if (updates.is_pwd !== undefined) payload.is_pwd = updates.is_pwd
+  if (updates.is_4ps !== undefined) payload.is_4ps = updates.is_4ps
+  if (updates.region !== undefined) payload.region = updates.region
+  if (updates.province !== undefined) payload.province = updates.province
+  if (updates.geographic !== undefined) payload.geographic = updates.geographic
+  if (updates.barangay !== undefined) payload.barangay = updates.barangay
+
   const { data, error, status, statusText } = await supabase
     .from('profiles')
-    .update(updates)
+    .update(payload)
     .eq('id', userId)
     .select()
-
-  console.log('updateApplicantProfile result:', { data, error, status, statusText })
 
   if (error) {
     throw error

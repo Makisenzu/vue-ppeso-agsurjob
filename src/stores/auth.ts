@@ -15,8 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
     middlename: string | null
     lastname: string | null
     birthdate: string | null
-    current_address: string | null
-    home_address: string | null
+    region: string | null
+    province: string | null
+    geographic: string | null
+    barangay: string | null
     contact_number: string | null
     gender: string | null
     status: string | null
@@ -34,9 +36,11 @@ export const useAuthStore = defineStore('auth', () => {
     lastName: '',
     birthdate: '',
     gender: '',
+    region: '',
+    province: '',
+    geographic: '',
+    barangay: '',
     contact_number: '',
-    current_address: '',
-    home_address: '',
     is_4ps: false,
     is_pwd: false,
     email: '',
@@ -113,17 +117,19 @@ export const useAuthStore = defineStore('auth', () => {
     signupData.value = { ...signupData.value, ...fields }
   }
 
-  function updateStepOne(details: { firstName: string; middlename: string; lastName: string; birthdate: string; gender: string; contact_number: string; current_address: string; home_address: string; is_4ps: boolean; is_pwd: boolean }) {
+  function updateStepOne(details: { firstName: string; middlename: string; lastName: string; birthdate: string; gender: string; contact_number: string; is_4ps: boolean; is_pwd: boolean; region: string; province: string; geographic: string; barangay: string }) {
     signupData.value.firstName = details.firstName
     signupData.value.middlename = details.middlename
     signupData.value.lastName = details.lastName
     signupData.value.birthdate = details.birthdate
     signupData.value.gender = details.gender
     signupData.value.contact_number = details.contact_number
-    signupData.value.current_address = details.current_address
-    signupData.value.home_address = details.home_address
     signupData.value.is_4ps = details.is_4ps
     signupData.value.is_pwd = details.is_pwd
+    signupData.value.region = details.region
+    signupData.value.province = details.province
+    signupData.value.geographic = details.geographic
+    signupData.value.barangay = details.barangay
   }
 
   function clearSignupData() {
@@ -134,8 +140,10 @@ export const useAuthStore = defineStore('auth', () => {
         birthdate: '',
         gender: '',
         contact_number: '',
-        current_address: '',
-        home_address: '',
+        region: '',
+        province: '',
+        geographic: '',
+        barangay: '',
         is_4ps: false,
         is_pwd: false,
         email: '',

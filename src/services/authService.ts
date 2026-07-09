@@ -16,7 +16,7 @@ export const authService = {
   async fetchProfile(userId: string) {
     const {data, error } = await supabase
     .from('profiles')
-    .select('firstname, middlename, lastname, birthdate, current_address, home_address, contact_number, gender, status, is_pwd, is_4ps, role, username')
+    .select('firstname, middlename, lastname, birthdate, contact_number, gender, status, is_pwd, is_4ps, role, username, region, province, geographic, barangay')
     .eq('id', userId)
     .single()
     if (data) {

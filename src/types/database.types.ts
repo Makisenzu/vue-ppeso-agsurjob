@@ -894,57 +894,63 @@ export type Database = {
       }
       profiles: {
         Row: {
+          barangay: string | null
           birthdate: string | null
           contact_number: string | null
           created_at: string
-          current_address: string | null
           firstname: string | null
-          gender: string | null
-          home_address: string | null
+          gender: Database["public"]["Enums"]["gender_type"] | null
+          geographic: string | null
           id: string
           is_4ps: boolean | null
           is_pwd: boolean | null
           last_login: string | null
           lastname: string | null
           middlename: string | null
+          province: string | null
+          region: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           status: Database["public"]["Enums"]["status_type"] | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
+          barangay?: string | null
           birthdate?: string | null
           contact_number?: string | null
           created_at?: string
-          current_address?: string | null
           firstname?: string | null
-          gender?: string | null
-          home_address?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          geographic?: string | null
           id?: string
           is_4ps?: boolean | null
           is_pwd?: boolean | null
           last_login?: string | null
           lastname?: string | null
           middlename?: string | null
+          province?: string | null
+          region?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
+          barangay?: string | null
           birthdate?: string | null
           contact_number?: string | null
           created_at?: string
-          current_address?: string | null
           firstname?: string | null
-          gender?: string | null
-          home_address?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          geographic?: string | null
           id?: string
           is_4ps?: boolean | null
           is_pwd?: boolean | null
           last_login?: string | null
           lastname?: string | null
           middlename?: string | null
+          province?: string | null
+          region?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
@@ -1099,6 +1105,7 @@ export type Database = {
         | "offered"
         | "hired"
         | "rejected"
+      gender_type: "male" | "female" | "non-binary" | "prefer_not_to_say"
       job_status_type: "draft" | "active" | "paused" | "closed"
       notification_type:
         | "application_status"
@@ -1248,6 +1255,7 @@ export const Constants = {
         "hired",
         "rejected",
       ],
+      gender_type: ["male", "female", "non-binary", "prefer_not_to_say"],
       job_status_type: ["draft", "active", "paused", "closed"],
       notification_type: [
         "application_status",

@@ -47,10 +47,8 @@ const formData = ref({
   lastname: authStore.profile?.lastname || '',
   username: authStore.profile?.username || '',
   birthdate: authStore.profile?.birthdate || '',
-  current_address: authStore.profile?.current_address || '',
-  home_address: authStore.profile?.home_address || '',
   contact_number: authStore.profile?.contact_number || '',
-  gender: authStore.profile?.gender || '',
+  gender: authStore.profile?.gender ?? null,
   is_pwd: authStore.profile?.is_pwd || false,
   is_4ps: authStore.profile?.is_4ps || false,
 })
@@ -85,10 +83,8 @@ watch(isOpen, (newVal) => {
       lastname: authStore.profile?.lastname || '',
       username: authStore.profile?.username || '',
       birthdate: authStore.profile?.birthdate || '',
-      current_address: authStore.profile?.current_address || '',
-      home_address: authStore.profile?.home_address || '',
       contact_number: authStore.profile?.contact_number || '',
-      gender: authStore.profile?.gender || '',
+      gender: authStore.profile?.gender ?? null,
       is_pwd: authStore.profile?.is_pwd || false,
       is_4ps: authStore.profile?.is_4ps || false,
     }
@@ -133,10 +129,8 @@ const handleSubmit = async () => {
       lastname: formData.value.lastname.trim(),
       username: formData.value.username.trim(),
       birthdate: formData.value.birthdate || null,
-      current_address: formData.value.current_address.trim() || null,
-      home_address: formData.value.home_address.trim() || null,
       contact_number: formData.value.contact_number.trim() || null,
-      gender: formData.value.gender || null,
+      gender: (formData.value?.gender as 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null) ?? null,
       is_pwd: formData.value.is_pwd || null,
       is_4ps: formData.value.is_4ps || null,
     })
@@ -296,7 +290,8 @@ onMounted(() => {
               <SelectContent>
                 <SelectItem value="male">Male</SelectItem>
                 <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="non-binary">Non-binary</SelectItem>
+                <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
               </SelectContent>
             </Select>
             <p v-if="errors.gender" class="text-xs text-destructive">{{ errors.gender }}</p>
@@ -331,25 +326,6 @@ onMounted(() => {
               />
             </PopoverContent>
           </Popover>
-        </div>
-
-        <!-- Addresses -->
-        <div class="space-y-2">
-          <Label for="current_address">Current Address</Label>
-          <Input
-            id="current_address"
-            v-model="formData.current_address"
-            placeholder="Current address"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <Label for="home_address">Home Address</Label>
-          <Input
-            id="home_address"
-            v-model="formData.home_address"
-            placeholder="Home address"
-          />
         </div>
 
         <!-- Alert for incomplete inputs -->
