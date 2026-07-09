@@ -3,7 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/psgcHelpers'
 import { useAuthStore } from '@/stores/auth'
 import { updateApplicantProfile } from '@/services/applicantProfileService'
-import { Pencil, CalendarIcon, AlertCircle } from '@lucide/vue'
+import { Pencil, CalendarIcon, AlertCircle, CheckIcon, ChevronsUpDownIcon } from '@lucide/vue'
 import { useToastAlert } from '@/composables/useToastAlert'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
@@ -19,6 +19,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxViewport,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxGroup,
+  ComboboxItemIndicator,
+} from '@/components/ui/combobox'
 
 import {
   Select,
@@ -52,10 +65,24 @@ const formData = ref({
   username: authStore.profile?.username || '',
   birthdate: authStore.profile?.birthdate || '',
   contact_number: authStore.profile?.contact_number || '',
+  region: authStore.profile?.region || '',
+  province: authStore.profile?.province || '',
+  geographic: authStore.profile?.geographic || '',
+  barangay: authStore.profile?.barangay || '',
   gender: authStore.profile?.gender ?? null,
   is_pwd: authStore.profile?.is_pwd || false,
   is_4ps: authStore.profile?.is_4ps || false,
 })
+
+const selectedRegion = ref<any>(null)
+const selectedProvince = ref<any>(null)
+const selectedCity = ref<any>(null)
+const selectedBarangay = ref<any>(null)
+
+const regionSearch = ref('')
+const provinceSearch = ref('')
+const citySearch = ref('')
+const barangaySearch = ref('')
 
 // Parse the current birthdate from the profile
 const date = ref<any>(
@@ -91,10 +118,41 @@ watch(isOpen, (newVal) => {
       gender: authStore.profile?.gender ?? null,
       is_pwd: authStore.profile?.is_pwd || false,
       is_4ps: authStore.profile?.is_4ps || false,
+      region: authStore.profile?.region || '',
+      province: authStore.profile?.province || '',
+      geographic: authStore.profile?.geographic || '',
+      barangay: authStore.profile?.barangay || '',
     }
     date.value = formData.value.birthdate
       ? parseDate(formData.value.birthdate.slice(0, 10))
       : undefined
+  }
+})
+
+// Watch for region selection changes
+watch(selectedRegion, async (newRegion) => {
+  if (newRegion) {
+    selectedProvince.value = null
+    selectedCity.value = null
+    selectedBarangay.value = null
+    await loadProvinces(newRegion.code)
+  }
+})
+
+// Watch for province selection changes
+watch(selectedProvince, async (newProvince) => {
+  if (newProvince) {
+    selectedCity.value = null
+    selectedBarangay.value = null
+    await loadCities(newProvince.code)
+  }
+})
+
+// Watch for city selection changes
+watch(selectedCity, async (newCity) => {
+  if (newCity) {
+    selectedBarangay.value = null
+    await loadBarangays(newCity.code)
   }
 })
 
@@ -107,6 +165,10 @@ watch(
     if (newVal.username.trim() && errors.value.username) delete errors.value.username
     if (newVal.contact_number.trim() && errors.value.contact_number) delete errors.value.contact_number
     if (newVal.gender && errors.value.gender) delete errors.value.gender
+    if (newVal.region && errors.value.region) delete errors.value.region
+    if (newVal.province && errors.value.province) delete errors.value.province
+    if (newVal.geographic && errors.value.geographic) delete errors.value.geographic
+    if (newVal.barangay && errors.value.barangay) delete errors.value.bar
   },
   { deep: true }
 )
@@ -137,6 +199,10 @@ const handleSubmit = async () => {
       gender: (formData.value?.gender as 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null) ?? null,
       is_pwd: formData.value.is_pwd || null,
       is_4ps: formData.value.is_4ps || null,
+      region: selectedRegion.value?.name || null,
+      province: selectedProvince.value?.name || null,
+      geographic: selectedCity.value?.name || null,
+      barangay: selectedBarangay.value?.name || null,
     })
 
     await authStore.fetchProfile(userId)
@@ -176,10 +242,38 @@ const getFieldLabel = (field: string) => {
   return labels[field] || field
 }
 
-const regions = ref([])
-const provinces = ref([])
-const cities = ref([])
-const barangays = ref([])
+const regions = ref<any[]>([])
+const provinces = ref<any[]>([])
+const cities = ref<any[]>([])
+const barangays = ref<any[]>([])
+
+const filteredRegions = computed(() => {
+  if (!regionSearch.value) return regions.value
+  return regions.value.filter(r =>
+    r.name.toLowerCase().includes(regionSearch.value.toLowerCase())
+  )
+})
+
+const filteredProvinces = computed(() => {
+  if (!provinceSearch.value) return provinces.value
+  return provinces.value.filter(p =>
+    p.name.toLowerCase().includes(provinceSearch.value.toLowerCase())
+  )
+})
+
+const filteredCities = computed(() => {
+  if (!citySearch.value) return cities.value
+  return cities.value.filter(c =>
+    c.name.toLowerCase().includes(citySearch.value.toLowerCase())
+  )
+})
+
+const filteredBarangays = computed(() => {
+  if (!barangaySearch.value) return barangays.value
+  return barangays.value.filter(b =>
+    b.name.toLowerCase().includes(barangaySearch.value.toLowerCase())
+  )
+})
 
 const loadRegions = async () => {
   regions.value = await getRegions()
@@ -199,6 +293,7 @@ const loadBarangays = async (cityCode: string) => {
 
 onMounted(() => {
   loadRegions()
+  console.log('Regions:', regions.value)
 })
   
 </script>
@@ -330,6 +425,155 @@ onMounted(() => {
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        <!-- Location Fields - Region, Province, City, Barangay -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Region -->
+          <div class="space-y-2">
+            <Label for="region">Region</Label>
+            <Combobox v-model="selectedRegion" v-model:search-term="regionSearch" :ignore-filter="true" by="name">
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button variant="outline" class="w-full justify-between overflow-hidden">
+                      <span class="truncate text-left flex-1">
+                        {{ selectedRegion?.name ?? 'Select region...' }}
+                      </span>
+                    <ChevronsUpDownIcon class="opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+
+              <ComboboxList>
+                <ComboboxInput placeholder="Search region..." @input="regionSearch = ($event.target as HTMLInputElement).value"/>
+                <ComboboxViewport>
+                  <ComboboxEmpty>No region found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="region in filteredRegions"
+                      :key="region.code"
+                      :value="region"
+                    >
+                      {{ region.name }}
+                      <ComboboxItemIndicator>
+                        <CheckIcon />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+          </div>
+
+          <!-- Province -->
+          <div class="space-y-2">
+            <Label for="province">Province</Label>
+            <Combobox v-model="selectedProvince" v-model:search-term="provinceSearch" :ignore-filter="true" :disabled="!selectedRegion" by="name">
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button variant="outline" class="w-full justify-between overflow-hidden" :class="!selectedRegion ? 'opacity-60' : ''">
+                    <span class="truncate text-left flex-1">
+                      {{ selectedProvince?.name ?? 'Select province...' }}
+                    </span>
+                    <ChevronsUpDownIcon class="opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+
+              <ComboboxList v-if="selectedRegion">
+                <ComboboxInput placeholder="Search province..." @input="provinceSearch = ($event.target as HTMLInputElement).value"/>
+                <ComboboxViewport>
+                  <ComboboxEmpty>No province found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="province in filteredProvinces"
+                      :key="province.code"
+                      :value="province"
+                    >
+                      {{ province.name }}
+                      <ComboboxItemIndicator>
+                        <CheckIcon />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <!-- City -->
+          <div class="space-y-2">
+            <Label for="city">City / Municipality</Label>
+            <Combobox v-model="selectedCity" v-model:search-term="citySearch" :ignore-filter="true" :disabled="!selectedProvince" by="name">
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button variant="outline" class="w-full justify-between overflow-hidden" :class="!selectedProvince ? 'opacity-60' : ''">
+                    <span class="truncate text-left flex-1">
+                      {{ selectedCity?.name ?? 'Select city...' }}
+                    </span>
+                    <ChevronsUpDownIcon class="opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+
+              <ComboboxList v-if="selectedProvince">
+                <ComboboxInput placeholder="Search city..." @input="citySearch = ($event.target as HTMLInputElement).value"/>
+                <ComboboxViewport>
+                  <ComboboxEmpty>No city found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="city in filteredCities"
+                      :key="city.code"
+                      :value="city"
+                    >
+                      {{ city.name }}
+                      <ComboboxItemIndicator>
+                        <CheckIcon />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+          </div>
+
+          <!-- Barangay -->
+          <div class="space-y-2">
+            <Label for="barangay">Barangay</Label>
+            <Combobox v-model="selectedBarangay" v-model:search-term="barangaySearch" :ignore-filter="true" :disabled="!selectedCity" by="name">
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button variant="outline" class="w-full justify-between overflow-hidden" :class="!selectedCity ? 'opacity-60' : ''">
+                    <span class="truncate text-left flex-1">
+                      {{ selectedBarangay?.name ?? 'Select barangay...' }}
+                    </span>
+                    <ChevronsUpDownIcon class="opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+
+              <ComboboxList v-if="selectedCity">
+                <ComboboxInput placeholder="Search barangay..." @input="barangaySearch = ($event.target as HTMLInputElement).value"/>
+                <ComboboxViewport>
+                  <ComboboxEmpty>No barangay found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="barangay in filteredBarangays"
+                      :key="barangay.code"
+                      :value="barangay"
+                    >
+                      {{ barangay.name }}
+                      <ComboboxItemIndicator>
+                        <CheckIcon />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+          </div>
         </div>
 
         <!-- Alert for incomplete inputs -->
