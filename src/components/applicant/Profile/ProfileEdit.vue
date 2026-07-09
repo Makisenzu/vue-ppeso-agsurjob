@@ -97,8 +97,14 @@ watch(isOpen, (newVal) => {
 
 const handleSubmit = async () => {
   isLoading.value = true
+  errors.value = {}
 
   try {
+    if (!validateForm()) {
+      
+      return
+    }
+
     formData.value.birthdate = date.value
       ? date.value.toString()
       : ''
@@ -107,14 +113,14 @@ const handleSubmit = async () => {
     if (!userId) throw new Error('No authenticated user found')
 
     await updateApplicantProfile(userId, {
-      firstname: formData.value.firstname,
-      middlename: formData.value.middlename,
-      lastname: formData.value.lastname,
-      username: formData.value.username,
+      firstname: formData.value.firstname.trim(),
+      middlename: formData.value.middlename.trim(),
+      lastname: formData.value.lastname.trim(),
+      username: formData.value.username.trim(),
       birthdate: formData.value.birthdate || null,
-      current_address: formData.value.current_address || null,
-      home_address: formData.value.home_address || null,
-      contact_number: formData.value.contact_number || null,
+      current_address: formData.value.current_address.trim() || null,
+      home_address: formData.value.home_address.trim() || null,
+      contact_number: formData.value.contact_number.trim() || null,
       gender: formData.value.gender || null,
       is_pwd: formData.value.is_pwd || null,
       is_4ps: formData.value.is_4ps || null,
@@ -130,6 +136,20 @@ const handleSubmit = async () => {
   } finally {
     isLoading.value = false
   }
+}
+const requiredFields = ['firstname', 'lastname', 'username', 'contact_number', 'gender'] as const
+const errors = ref<Record<string, string>>({})
+const validateForm = () => {
+  const nextErrors: Record<string, string> = {}
+
+  if (!formData.value.firstname.trim()) nextErrors.firstname = 'First name is required'
+  if (!formData.value.lastname.trim()) nextErrors.lastname = 'Last name is required'
+  if (!formData.value.username.trim()) nextErrors.username = 'Username is required'
+  if (!formData.value.contact_number.trim()) nextErrors.contact_number = 'Contact number is required'
+  if (!formData.value.gender) nextErrors.gender = 'Gender is required'
+
+  errors.value = nextErrors
+  return Object.keys(nextErrors).length === 0
 }
 </script>
 
@@ -159,6 +179,7 @@ const handleSubmit = async () => {
               id="firstname"
               v-model="formData.firstname"
               placeholder="First name"
+              :class="errors.firstname ? 'border-destructive' : ''"
             />
           </div>
 
@@ -168,6 +189,7 @@ const handleSubmit = async () => {
               id="lastname"
               v-model="formData.lastname"
               placeholder="Last name"
+              :class="errors.lastname ? 'border-destructive' : ''"
             />
           </div>
         </div>
@@ -179,6 +201,7 @@ const handleSubmit = async () => {
               id="middlename"
               v-model="formData.middlename"
               placeholder="Middle name"
+              :class="errors.middlename ? 'border-destructive' : ''"
             />
           </div>
 
@@ -188,6 +211,7 @@ const handleSubmit = async () => {
               id="username"
               v-model="formData.username"
               placeholder="Username"
+              :class="errors.username ? 'border-destructive' : ''"
             />
           </div>
         </div>
@@ -200,13 +224,17 @@ const handleSubmit = async () => {
               id="contact_number"
               v-model="formData.contact_number"
               placeholder="Contact number"
+              :class="errors.contact_number ? 'border-destructive' : ''"
             />
           </div>
 
           <div class="space-y-2">
             <Label for="gender">Gender</Label>
             <Select v-model="formData.gender">
-              <SelectTrigger id="gender" class="w-full">
+              <SelectTrigger 
+                id="gender" 
+                class="w-full" 
+                :class="errors.gender ? 'border-destructive' : ''">
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>
