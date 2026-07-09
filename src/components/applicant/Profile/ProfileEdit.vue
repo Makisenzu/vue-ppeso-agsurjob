@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/psgcHelpers'
 import { useAuthStore } from '@/stores/auth'
 import { updateApplicantProfile } from '@/services/applicantProfileService'
 import { Pencil, CalendarIcon, AlertCircle } from '@lucide/vue'
@@ -176,6 +177,32 @@ const getFieldLabel = (field: string) => {
   }
   return labels[field] || field
 }
+
+const regions = ref([])
+const provinces = ref([])
+const cities = ref([])
+const barangays = ref([])
+
+const loadRegions = async () => {
+  regions.value = await getRegions()
+}
+
+const loadProvinces = async (regionCode: string) => {
+  provinces.value = await getProvinces(regionCode)
+}
+
+const loadCities = async (provinceCode: string) => {
+  cities.value = await getCities(provinceCode)
+}
+
+const loadBarangays = async (cityCode: string) => {
+  barangays.value = await getBarangays(cityCode)
+}
+
+onMounted(() => {
+  loadRegions()
+})
+  
 </script>
 
 <template>
