@@ -6,6 +6,7 @@ import { updateApplicantProfile } from '@/services/applicantProfileService'
 import { Pencil, CalendarIcon, AlertCircle } from '@lucide/vue'
 import { useToastAlert } from '@/composables/useToastAlert'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+
 import {
   Sheet,
   SheetContent,
@@ -14,9 +15,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
 import {
   Select,
   SelectContent,
@@ -33,6 +36,7 @@ import {
 
 import { cn } from '@/lib/utils'
 import { Calendar } from '@/components/ui/calendar'
+
 import {
   Popover,
   PopoverContent,
