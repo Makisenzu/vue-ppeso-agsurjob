@@ -2,8 +2,9 @@
 import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateApplicantProfile } from '@/services/applicantProfileService'
-import { Pencil, CalendarIcon } from '@lucide/vue'
+import { Pencil, CalendarIcon, AlertCircle } from '@lucide/vue'
 import { useToastAlert } from '@/composables/useToastAlert'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import {
   Sheet,
   SheetContent,
@@ -76,6 +77,7 @@ const birthdateLabel = computed(() => {
 // Watch sheet visibility to sync with authStore profile state when opened
 watch(isOpen, (newVal) => {
   if (newVal) {
+    errors.value = {}
     formData.value = {
       firstname: authStore.profile?.firstname || '',
       middlename: authStore.profile?.middlename || '',
@@ -95,16 +97,28 @@ watch(isOpen, (newVal) => {
   }
 })
 
+// Watch formData fields to clear validation errors dynamically when they are filled in
+watch(
+  formData,
+  (newVal) => {
+    if (newVal.firstname.trim() && errors.value.firstname) delete errors.value.firstname
+    if (newVal.lastname.trim() && errors.value.lastname) delete errors.value.lastname
+    if (newVal.username.trim() && errors.value.username) delete errors.value.username
+    if (newVal.contact_number.trim() && errors.value.contact_number) delete errors.value.contact_number
+    if (newVal.gender && errors.value.gender) delete errors.value.gender
+  },
+  { deep: true }
+)
+
 const handleSubmit = async () => {
-  isLoading.value = true
   errors.value = {}
 
-  try {
-    if (!validateForm()) {
-      
-      return
-    }
+  if (!validateForm()) {
+    return
+  }
 
+  isLoading.value = true
+  try {
     formData.value.birthdate = date.value
       ? date.value.toString()
       : ''
@@ -137,7 +151,7 @@ const handleSubmit = async () => {
     isLoading.value = false
   }
 }
-const requiredFields = ['firstname', 'lastname', 'username', 'contact_number', 'gender'] as const
+
 const errors = ref<Record<string, string>>({})
 const validateForm = () => {
   const nextErrors: Record<string, string> = {}
@@ -150,6 +164,17 @@ const validateForm = () => {
 
   errors.value = nextErrors
   return Object.keys(nextErrors).length === 0
+}
+
+const getFieldLabel = (field: string) => {
+  const labels: Record<string, string> = {
+    firstname: 'First Name',
+    lastname: 'Last Name',
+    username: 'Username',
+    contact_number: 'Contact Number',
+    gender: 'Gender',
+  }
+  return labels[field] || field
 }
 </script>
 
@@ -181,6 +206,7 @@ const validateForm = () => {
               placeholder="First name"
               :class="errors.firstname ? 'border-destructive' : ''"
             />
+            <p v-if="errors.firstname" class="text-xs text-destructive">{{ errors.firstname }}</p>
           </div>
 
           <div class="space-y-2">
@@ -191,6 +217,7 @@ const validateForm = () => {
               placeholder="Last name"
               :class="errors.lastname ? 'border-destructive' : ''"
             />
+            <p v-if="errors.lastname" class="text-xs text-destructive">{{ errors.lastname }}</p>
           </div>
         </div>
 
@@ -213,6 +240,7 @@ const validateForm = () => {
               placeholder="Username"
               :class="errors.username ? 'border-destructive' : ''"
             />
+            <p v-if="errors.username" class="text-xs text-destructive">{{ errors.username }}</p>
           </div>
         </div>
 
@@ -226,6 +254,7 @@ const validateForm = () => {
               placeholder="Contact number"
               :class="errors.contact_number ? 'border-destructive' : ''"
             />
+            <p v-if="errors.contact_number" class="text-xs text-destructive">{{ errors.contact_number }}</p>
           </div>
 
           <div class="space-y-2">
@@ -243,6 +272,7 @@ const validateForm = () => {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+            <p v-if="errors.gender" class="text-xs text-destructive">{{ errors.gender }}</p>
           </div>
         </div>
 
@@ -294,6 +324,15 @@ const validateForm = () => {
             placeholder="Home address"
           />
         </div>
+
+        <!-- Alert for incomplete inputs -->
+        <Alert v-if="Object.keys(errors).length > 0" variant="destructive" class="mt-4">
+          <AlertCircle class="h-4 w-4" />
+          <AlertTitle class="font-semibold">Incomplete Form</AlertTitle>
+          <AlertDescription>
+            Please fill in the required fields: {{ Object.keys(errors).map(k => getFieldLabel(k)).join(', ') }}.
+          </AlertDescription>
+        </Alert>
       </div>
 
       <div class="flex justify-end gap-3 border-t border-border p-6 bg-transparent shrink-0">

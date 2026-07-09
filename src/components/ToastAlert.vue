@@ -9,7 +9,7 @@ const { alerts, dismiss } = useToastAlert()
 
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-4 left-4 z-[9999] flex flex-col-reverse gap-3 max-w-sm w-full pointer-events-none">
+    <div class="fixed bottom-4 left-4 z-9999 flex flex-col-reverse gap-3 max-w-sm w-full pointer-events-none">
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"
         leave-active-class="transition-all duration-200 ease-in"
