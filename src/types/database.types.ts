@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      applicant_attachment_media: {
+        Row: {
+          alt_text: string | null
+          applicant_skill_id: number | null
+          created_at: string
+          description: string | null
+          filename: string | null
+          id: number
+          media_type_id: number | null
+          mime_type: string | null
+          path: string | null
+          size: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          applicant_skill_id?: number | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: number
+          media_type_id?: number | null
+          mime_type?: string | null
+          path?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          applicant_skill_id?: number | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: number
+          media_type_id?: number | null
+          mime_type?: string | null
+          path?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_attachment_media_applicant_skill_id_fkey"
+            columns: ["applicant_skill_id"]
+            isOneToOne: false
+            referencedRelation: "applicant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_media_media_type_id_fkey"
+            columns: ["media_type_id"]
+            isOneToOne: false
+            referencedRelation: "media_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applicant_experiences: {
         Row: {
           applicant_id: number | null
@@ -48,63 +105,6 @@ export type Database = {
             columns: ["applicant_id"]
             isOneToOne: false
             referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      applicant_media: {
-        Row: {
-          alt_text: string | null
-          applicant_id: number | null
-          created_at: string
-          description: string | null
-          filename: string | null
-          id: number
-          media_type_id: number | null
-          mime_type: string | null
-          path: string | null
-          size: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          alt_text?: string | null
-          applicant_id?: number | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          media_type_id?: number | null
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          alt_text?: string | null
-          applicant_id?: number | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          media_type_id?: number | null
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_media_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applicant_media_media_type_id_fkey"
-            columns: ["media_type_id"]
-            isOneToOne: false
-            referencedRelation: "media_type"
             referencedColumns: ["id"]
           },
         ]
@@ -151,40 +151,14 @@ export type Database = {
             foreignKeyName: "applicant_requirement_media_applicant_requirement_id_fkey"
             columns: ["applicant_requirement_id"]
             isOneToOne: false
-            referencedRelation: "applicant_verification_requirements"
+            referencedRelation: "applicant_requirements"
             referencedColumns: ["id"]
           },
         ]
       }
-      applicant_skills: {
+      applicant_requirements: {
         Row: {
           applicant_id: number
-          id: number
-          skill_name: string | null
-        }
-        Insert: {
-          applicant_id: number
-          id?: number
-          skill_name?: string | null
-        }
-        Update: {
-          applicant_id?: number
-          id?: number
-          skill_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_skills_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      applicant_verification_requirements: {
-        Row: {
-          applicant_id: number | null
           created_at: string
           id: number
           remarks: string | null
@@ -192,7 +166,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_type"] | null
         }
         Insert: {
-          applicant_id?: number | null
+          applicant_id: number
           created_at?: string
           id?: number
           remarks?: string | null
@@ -200,7 +174,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_type"] | null
         }
         Update: {
-          applicant_id?: number | null
+          applicant_id?: number
           created_at?: string
           id?: number
           remarks?: string | null
@@ -220,6 +194,35 @@ export type Database = {
             columns: ["requirement_id"]
             isOneToOne: false
             referencedRelation: "requirement_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_skills: {
+        Row: {
+          applicant_id: number
+          id: number
+          skill_category: string
+          skill_name: string
+        }
+        Insert: {
+          applicant_id: number
+          id?: number
+          skill_category: string
+          skill_name: string
+        }
+        Update: {
+          applicant_id?: number
+          id?: number
+          skill_category?: string
+          skill_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_skills_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
             referencedColumns: ["id"]
           },
         ]
