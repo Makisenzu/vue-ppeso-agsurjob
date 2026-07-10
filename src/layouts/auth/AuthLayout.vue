@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Aurora from '@/components/Aurora.vue'
+import Plasma from '@/components/Plasma.vue'
 import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
 import { useColorMode } from '@vueuse/core'
@@ -27,12 +28,23 @@ onUnmounted(() => {
 <template>
   <div class="relative min-h-screen overflow-hidden">
     <!-- Aurora Background -->
-    <Aurora
+    <!-- <Aurora
       class="absolute inset-0"
       :color-stops="['#4000f2', '#c00008', '#4000f2']"
       :blend="0.5"
       :amplitude="1.0"
       :speed="1"
+    /> -->
+    <Plasma
+      class="absolute inset-0"
+      :colors="['#070074', '#a60000']"
+      :speed1="0.05"
+      :speed2="0.05"
+      :focal-length="0.8"
+      :bend1="1"
+      :bend2="0.5"
+      :dir2="1.0"
+      :rotation-deg="0"
     />
 
     <!-- Optional dark overlay -->
