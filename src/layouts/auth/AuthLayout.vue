@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Aurora from '@/components/Aurora.vue'
 import Plasma from '@/components/Plasma.vue'
 import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
 import { useColorMode } from '@vueuse/core'
+import { Sun, Moon } from '@lucide/vue'
 
 const mode = useColorMode()
 let previousMode: string
@@ -11,18 +11,19 @@ let previousMode: string
 onMounted(() => {
   previousMode = mode.value
   mode.value = 'light'
-
-  // Prevent white flash during auth route transitions by giving
-  // the body a dark backdrop that matches the Aurora background.
   document.body.style.backgroundColor = '#0e0014'
 })
 
 onUnmounted(() => {
   mode.value = previousMode as 'light' | 'dark'
-
-  // Restore the default body background when leaving auth pages.
   document.body.style.backgroundColor = ''
 })
+
+function toggleTheme() {
+  mode.value = mode.value === 'dark' ? 'light' : 'dark'
+}
+
+
 </script>
 
 <template>
@@ -51,6 +52,13 @@ onUnmounted(() => {
     <div class="absolute inset-0 bg-black/10"></div>
 
     <!-- Auth Card (swapped via nested RouterView) -->
+      <button 
+        @click="toggleTheme" 
+        class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        title="Toggle color theme"
+      >
+        <component :is="mode === 'dark' ? Sun : Moon" class="size-4 shrink-0 text-white" />
+      </button>
     <div class="relative z-10 flex min-h-screen items-center justify-center p-6">
       <RouterView v-slot="{ Component }">
         <transition name="fade" mode="out-in">
