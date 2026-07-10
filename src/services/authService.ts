@@ -34,5 +34,11 @@ export const authService = {
       throw new Error(error.message)
     }
     return !!data
-}
+  },  
+
+  async signUp(credentials: SignInWithPasswordCredentials) {
+    const { data, error } = await supabase.auth.signUp(credentials)
+    if (error) throw error
+    return data
+  }
 }

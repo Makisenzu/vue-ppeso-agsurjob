@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import SpotLightCard from './SpotLightCard.vue'
 import Button from './ui/button/Button.vue'
+import { useSignup } from '@/composables/useSignup.ts'
+
+const { canContinue, selectedRole, roles, isSelected, handleBack, handleContinue } = useSignup()
 import {
   Card,
   CardContent,
@@ -11,42 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { UserSearch, Building2, Check } from '@lucide/vue'
+import {Check } from '@lucide/vue'
 
-type Role = 'admin' | 'employer' | 'applicant'
-
-const selectedRole = ref<Role | null>(null)
-const router = useRouter()
-const roles: {
-  id: Role
-  label: string
-  description: string
-  icon: typeof UserSearch
-}[] = [
-  {
-    id: 'applicant',
-    label: 'Applicant',
-    description: 'Search for jobs and apply to opportunities.',
-    icon: UserSearch,
-  },
-  {
-    id: 'employer',
-    label: 'Employer',
-    description: 'Post jobs and manage candidate applications.',
-    icon: Building2,
-  },
-]
-
-const isSelected = (id: Role) => selectedRole.value === id
-const canContinue = computed(() => selectedRole.value !== null)
-
-const handleBack = () => {
-  router.push('/login')
-}
-function handleContinue() {
-  if (!selectedRole.value) return
-  
-}
 </script>
 
 <template>

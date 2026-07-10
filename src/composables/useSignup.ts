@@ -29,6 +29,7 @@ export function useSignup() {
       authStore.selectedRole = role
     },
   })
+  
 
   const isSelected = (id: Role) => selectedRole.value === id
   const canContinue = computed(() => selectedRole.value !== null)
@@ -43,6 +44,7 @@ export function useSignup() {
   }
 
   return {
+    router,
     roles,
     selectedRole,
     isSelected,
