@@ -94,7 +94,7 @@ const handleCreate = () => {
               id="email"
               v-model="emailOrUsername"
               type="email"
-              placeholder="m@example.com"
+              placeholder="example@example.com"
               :class="emailError ? 'border-destructive' : ''"
             />
             <p v-if="emailError" class="text-xs text-destructive">{{ emailError }}</p>

@@ -45,7 +45,7 @@ const handleBack = () => {
 }
 function handleContinue() {
   if (!selectedRole.value) return
-  // proceed with selectedRole.value
+  
 }
 </script>
 
@@ -67,7 +67,7 @@ function handleContinue() {
         class="role-card"
         :class="{ 'role-card--selected': isSelected(role.id) }"
         :style="{ animationDelay: `${index * 80}ms` }"
-        spotlight-color="rgba(0, 0, 196, 0.12)"
+        spotlight-color="rgba(0, 0, 196, 1.5)"
         @click="selectedRole = role.id"
       >
         <div class="flex items-center gap-3">

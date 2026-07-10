@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
     username: string | null
   } | null>(null)
   const isInitialized = ref(false)
+  const selectedRole = ref<Database["public"]["Enums"]["user_role"] | null>(null)
 
   // ─── Signup State ───
   const signupData = ref({
@@ -158,6 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     isInitialized,
     signupData,
+    selectedRole,
     // Computed
     isAuthenticated,
     userEmail,
