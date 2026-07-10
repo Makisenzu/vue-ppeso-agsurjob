@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ─── Signup State ───
   const signupData = ref({
+    role: '' as Database["public"]["Enums"]["user_role"],
     firstName: '',
     middlename: '',
     lastName: '',
@@ -135,6 +136,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearSignupData() {
     signupData.value = {
+        role: '' as Database["public"]["Enums"]["user_role"],
         firstName: '',
         middlename: '',
         lastName: '',
@@ -149,6 +151,37 @@ export const useAuthStore = defineStore('auth', () => {
         is_pwd: false,
         email: '',
         password: ''
+    }
+  }
+
+  async function submitSignup() {
+    try {
+      const result = await authService.signUp({
+        email: signupData.value.email,
+        password: signupData.value.password,
+        options: {
+          data: {
+            role: signupData.value.role || selectedRole.value, // fallback to selectedRole if needed
+            firstname: signupData.value.firstName,
+            middlename: signupData.value.middlename,
+            lastname: signupData.value.lastName,
+            birthdate: signupData.value.birthdate,
+            gender: signupData.value.gender,
+            contact_number: signupData.value.contact_number,
+            region: signupData.value.region,
+            province: signupData.value.province,
+            geographic: signupData.value.geographic,
+            barangay: signupData.value.barangay,
+            is_4ps: signupData.value.is_4ps,
+            is_pwd: signupData.value.is_pwd,
+          }
+        }
+      })
+      
+      return result
+    } catch (error) {
+      console.error("Signup failed:", error)
+      throw error
     }
   }
 
@@ -174,7 +207,8 @@ export const useAuthStore = defineStore('auth', () => {
     fetchProfile,
     updateStepOne, 
     clearSignupData,
-    updateSignupFields
+    updateSignupFields,
+    submitSignup
   }
 
 })

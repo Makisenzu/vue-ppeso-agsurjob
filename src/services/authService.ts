@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient"
-import type { SignInWithPasswordCredentials } from '@supabase/supabase-js'
+import type { SignInWithPasswordCredentials, SignUpWithPasswordCredentials } from '@supabase/supabase-js'
 
 export const authService = {
   async login(credentials: SignInWithPasswordCredentials) {
@@ -36,7 +36,7 @@ export const authService = {
     return !!data
   },  
 
-  async signUp(credentials: SignInWithPasswordCredentials) {
+  async signUp(credentials: SignUpWithPasswordCredentials) {
     const { data, error } = await supabase.auth.signUp(credentials)
     if (error) throw error
     return data
