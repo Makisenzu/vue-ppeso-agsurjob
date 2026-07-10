@@ -1,5 +1,19 @@
 <script setup lang="ts">
 import Aurora from '@/components/Aurora.vue'
+import { onMounted, onUnmounted } from 'vue'
+import { useColorMode } from '@vueuse/core'
+
+const mode = useColorMode()
+let previousMode: string
+
+onMounted(() => {
+  previousMode = mode.value
+  mode.value = 'light'
+})
+
+onUnmounted(() => {
+  mode.value = previousMode as 'light' | 'dark'
+})
 </script>
 
 <template>
