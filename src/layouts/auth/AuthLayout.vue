@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Aurora from '@/components/Aurora.vue'
+import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
 import { useColorMode } from '@vueuse/core'
 
@@ -9,10 +10,17 @@ let previousMode: string
 onMounted(() => {
   previousMode = mode.value
   mode.value = 'light'
+
+  // Prevent white flash during auth route transitions by giving
+  // the body a dark backdrop that matches the Aurora background.
+  document.body.style.backgroundColor = '#0e0014'
 })
 
 onUnmounted(() => {
   mode.value = previousMode as 'light' | 'dark'
+
+  // Restore the default body background when leaving auth pages.
+  document.body.style.backgroundColor = ''
 })
 </script>
 
@@ -30,9 +38,13 @@ onUnmounted(() => {
     <!-- Optional dark overlay -->
     <div class="absolute inset-0 bg-black/10"></div>
 
-    <!-- Login Card -->
+    <!-- Auth Card (swapped via nested RouterView) -->
     <div class="relative z-10 flex min-h-screen items-center justify-center p-6">
-      <slot />
+      <RouterView v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </RouterView>
     </div>
   </div>
 </template>
