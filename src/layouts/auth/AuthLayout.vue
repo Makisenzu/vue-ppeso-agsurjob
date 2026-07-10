@@ -1,29 +1,24 @@
-<!-- src/layouts/auth/AuthLayout.vue -->
+<script setup lang="ts">
+import Aurora from '@/components/Aurora.vue'
+</script>
+
 <template>
-  <div class="auth-layout">
-    <div class="auth-container">
-      <!-- This is where Login.vue or Signup.vue content drops in -->
+  <div class="relative min-h-screen overflow-hidden">
+    <!-- Aurora Background -->
+    <Aurora
+      class="absolute inset-0"
+      :color-stops="['#4000f2', '#c00008', '#4000f2']"
+      :blend="0.5"
+      :amplitude="1.0"
+      :speed="1"
+    />
+
+    <!-- Optional dark overlay -->
+    <div class="absolute inset-0 bg-black/10"></div>
+
+    <!-- Login Card -->
+    <div class="relative z-10 flex min-h-screen items-center justify-center p-6">
       <slot />
     </div>
   </div>
 </template>
-
-<style scoped>
-.auth-layout {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff; /* Entire screen background is pure white */
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-.auth-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>

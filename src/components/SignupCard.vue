@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 import { Check, Circle, Dot, CalendarIcon } from '@lucide/vue'
 import { toTypedSchema } from '@vee-validate/zod'
 import { h, ref, onMounted, watch } from 'vue'
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
+
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { Stepper, StepperItem, StepperSeparator, StepperTitle, StepperTrigger, StepperDescription } from '@/components/ui/stepper'
@@ -108,8 +111,6 @@ onMounted(() => {
         birthdate: initialValues.value.birthdate,
         gender: initialValues.value.gender,
         contact_number: initialValues.value.contact_number,
-        current_address: initialValues.value.current_address,
-        home_address: initialValues.value.home_address,
         is_4ps: initialValues.value.is_4ps,
         is_pwd: initialValues.value.is_pwd,
         email: initialValues.value.email,
@@ -137,8 +138,6 @@ function handleCacheSync(values: Record<string, any>) {
       birthdate: values.birthdate,
       gender: values.gender,
       contact_number: values.contact_number,
-      current_address: values.current_address,
-      home_address: values.home_address,
       is_4ps: values.is_4ps,
       is_pwd: values.is_pwd,
       email: values.email,
