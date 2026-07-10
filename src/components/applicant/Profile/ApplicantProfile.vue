@@ -2,6 +2,7 @@
 import { useApplicantProfile } from '@/composables/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Check, X } from '@lucide/vue'
+import ProfileReadme from './ProfileReadme.vue'
 
 import {
   Stepper,
@@ -115,17 +116,10 @@ const {
           </Stepper>
         </div>
 
-        <!-- <ProfileReadme
+        <ProfileReadme
           :username="displayUsername"
-          :preferred-job="displayPreferredJob"
-          :experience-years="displayExperienceYears"
-          :expected-salary="displayExpectedSalary"
-          :verified-status="authStore.profile?.status || 'Pending'"
-          :education-level="displayEducationLevel"
-          :course="displayCourse"
-          :skills="displaySkills"
           :bio="displayBio"
-        /> -->
+        />
 
         <!-- Bottom Grid: Work Experience + My Files -->
         <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
