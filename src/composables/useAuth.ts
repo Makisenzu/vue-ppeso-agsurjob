@@ -16,7 +16,7 @@ export function useAuth() {
 
   const redirectToLogin = async () => {
     try {
-      await router.replace('/login')
+      await router.push('/login')
     } catch {
       window.location.assign('/login')
     }
