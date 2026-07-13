@@ -95,7 +95,7 @@ function onBarangayChange(code: any) {
 
 <template>
   <Card :class="[
-    'w-full box-border overflow-hidden transition-[max-width] duration-300 ease-in-out [&_[data-slot=native-select-wrapper]]:!w-full',
+    'w-full box-border overflow-hidden transition-[max-width] duration-300 ease-in-out **:data-[slot=native-select-wrapper]:w-full!',
     currentStep >= 4 ? 'max-w-2xl' : 'max-w-md'
   ]">
     <!-- ─── Step 0: Role Selection ─── -->
@@ -110,9 +110,9 @@ function onBarangayChange(code: any) {
           v-for="(role, index) in roles"
           :key="role.id"
           :class="[
-            '!py-[0.875rem] !px-4 !rounded-xl cursor-pointer flex items-center justify-between gap-3 border-[1.5px] transition-all duration-200 ease-in-out animate-in fade-in slide-in-from-bottom-2',
+            'py-3.5! px-4! rounded-xl cursor-pointer flex items-center justify-between gap-3 border-[1.5px] transition-all duration-200 ease-in-out animate-in fade-in slide-in-from-bottom-2',
             isSelected(role.id) 
-              ? 'border-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] bg-primary/[0.04]' 
+              ? 'border-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] bg-primary/4' 
               : 'border-border hover:border-primary/40'
           ]"
           :style="{ animationDelay: `${index * 80}ms`, animationDuration: '350ms' }"
@@ -221,7 +221,7 @@ function onBarangayChange(code: any) {
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="gender">Gender</Label>
-                  <NativeSelect id="gender" v-model="signupData.gender" class="!w-full">
+                  <NativeSelect id="gender" v-model="signupData.gender" class="w-full!">
                     <NativeSelectOption value="" disabled>Select gender</NativeSelectOption>
                     <NativeSelectOption value="male">Male</NativeSelectOption>
                     <NativeSelectOption value="female">Female</NativeSelectOption>
@@ -249,7 +249,7 @@ function onBarangayChange(code: any) {
                   <NativeSelect
                     id="region"
                     :model-value="selectedRegion?.code ?? ''"
-                    class="!w-full"
+                    class="w-full!"
                     @update:model-value="onRegionChange"
                   >
                     <NativeSelectOption value="" disabled>
@@ -275,7 +275,7 @@ function onBarangayChange(code: any) {
                       id="province"
                       :model-value="selectedProvince?.code ?? ''"
                       :disabled="!selectedRegion"
-                      class="!w-full"
+                      class="w-full!"
                       @update:model-value="onProvinceChange"
                     >
                       <NativeSelectOption value="" disabled>
@@ -305,7 +305,7 @@ function onBarangayChange(code: any) {
                       id="geographic"
                       :model-value="selectedCity?.code ?? ''"
                       :disabled="!selectedProvince"
-                      class="!w-full"
+                      class="w-full!"
                       @update:model-value="onCityChange"
                     >
                       <NativeSelectOption value="" disabled>
@@ -336,7 +336,7 @@ function onBarangayChange(code: any) {
                     id="barangay"
                     :model-value="selectedBarangay?.code ?? ''"
                     :disabled="!selectedCity"
-                    class="!w-full"
+                    class="w-full!"
                     @update:model-value="onBarangayChange"
                   >
                     <NativeSelectOption value="" disabled>
@@ -394,6 +394,8 @@ function onBarangayChange(code: any) {
               <div class="flex flex-col space-y-1.5">
                 <Label for="email">Email</Label>
                 <Input id="email" v-model="signupData.email" type="email" placeholder="example@example.com" />
+                <Label for="username">Username</Label>
+                <Input id="username" v-model="signupData.username" type="text" placeholder="username"/>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col space-y-1.5">
@@ -426,7 +428,7 @@ function onBarangayChange(code: any) {
                     <NativeSelect
                       id="educationLevel"
                       v-model="applicantData.education_level"
-                      class="!w-full"
+                      class="w-full!"
                     >
                       <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
                       <NativeSelectOption value="Elementary">Elementary</NativeSelectOption>
@@ -443,7 +445,7 @@ function onBarangayChange(code: any) {
                     <NativeSelect
                       id="employmentStatus"
                       v-model="applicantData.employment_status"
-                      class="!w-full"
+                      class="w-full!"
                     >
                       <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
                       <NativeSelectOption value="Unemployed">Unemployed</NativeSelectOption>
@@ -543,7 +545,7 @@ function onBarangayChange(code: any) {
         <NativeSelect
           id="businessType"
           v-model="employerData.business_type"
-          class="!w-full"
+          class="w-full!"
         >
           <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
           <NativeSelectOption value="Sole Proprietorship">Sole Proprietorship</NativeSelectOption>
@@ -652,6 +654,8 @@ function onBarangayChange(code: any) {
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <Label class="text-muted-foreground">Email</Label>
                       <span>{{ signupData.email }}</span>
+                      <Label class="text-muted-foreground">Username</Label>
+                      <span>{{ signupData.username }}</span>
                     </div>
                   </div>
                   <div class="space-y-1">

@@ -46,7 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
     is_4ps: false,
     is_pwd: false,
     email: '',
-    password: ''
+    password: '',
+    username: ''
   })
 
   const applicantData = ref({
@@ -175,7 +176,8 @@ export const useAuthStore = defineStore('auth', () => {
         is_4ps: false,
         is_pwd: false,
         email: '',
-        password: ''
+        password: '',
+        username: '',
     }
   }
 
@@ -199,6 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
             barangay: signupData.value.barangay,
             is_4ps: signupData.value.is_4ps,
             is_pwd: signupData.value.is_pwd,
+            username: signupData.value.username
           }
         }
       })
@@ -226,6 +229,7 @@ export const useAuthStore = defineStore('auth', () => {
         barangay: signupData.value.barangay,
         is_4ps: signupData.value.is_4ps,
         is_pwd: signupData.value.is_pwd,
+        username: signupData.value.username
       })
 
       // Update the local profile state immediately so fetchProfile isn't strictly required
@@ -243,7 +247,7 @@ export const useAuthStore = defineStore('auth', () => {
         barangay: signupData.value.barangay,
         is_4ps: signupData.value.is_4ps,
         is_pwd: signupData.value.is_pwd,
-        username: null,
+        username: signupData.value.username,
         status: null
       }
 
