@@ -210,33 +210,69 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error("No user ID returned from signup.")
       }
 
+      // 1. Manually insert the user's profile data first
+      await authService.insertProfileData({
+        id: userId,
+        role: roleToInsert,
+        firstname: signupData.value.firstName,
+        middlename: signupData.value.middlename,
+        lastname: signupData.value.lastName,
+        birthdate: signupData.value.birthdate,
+        gender: signupData.value.gender,
+        contact_number: signupData.value.contact_number,
+        region: signupData.value.region,
+        province: signupData.value.province,
+        geographic: signupData.value.geographic,
+        barangay: signupData.value.barangay,
+        is_4ps: signupData.value.is_4ps,
+        is_pwd: signupData.value.is_pwd,
+      })
+
+      // Update the local profile state immediately so fetchProfile isn't strictly required
+      profile.value = {
+        role: roleToInsert,
+        firstname: signupData.value.firstName,
+        middlename: signupData.value.middlename,
+        lastname: signupData.value.lastName,
+        birthdate: signupData.value.birthdate,
+        gender: signupData.value.gender,
+        contact_number: signupData.value.contact_number,
+        region: signupData.value.region,
+        province: signupData.value.province,
+        geographic: signupData.value.geographic,
+        barangay: signupData.value.barangay,
+        is_4ps: signupData.value.is_4ps,
+        is_pwd: signupData.value.is_pwd,
+        username: null,
+        status: null
+      }
+
       let insertApplicantResult = null
       let insertEmployerResult = null
 
       if (roleToInsert === 'applicant') {
         insertApplicantResult = await authService.insertApplicantData({
           profile_id: userId,
-          education_level: applicantData.value.education_level,
-          course: applicantData.value.course,
-          years_experience: applicantData.value.years_experience,
-          preferred_job: applicantData.value.preferred_job,
-          preferred_location: applicantData.value.preferred_location,
-          expected_salary: applicantData.value.expected_salary,
-          employment_status: applicantData.value.employment_status,
+          education_level: applicantData.value.education_level || null,
+          course: applicantData.value.course || null,
+          years_experience: applicantData.value.years_experience ? Number(applicantData.value.years_experience) : null,
+          preferred_job: applicantData.value.preferred_job || null,
+          preferred_location: applicantData.value.preferred_location || null,
+          expected_salary: applicantData.value.expected_salary ? Number(applicantData.value.expected_salary) : null,
+          employment_status: applicantData.value.employment_status || null,
         })
       } else if (roleToInsert === 'employer') {
         insertEmployerResult = await authService.insertEmployerData({
           profile_id: userId,
-          company_name: employerData.value.company_name,
-          company_email: employerData.value.company_email,
-          company_contact: employerData.value.company_contact,
-          business_type: employerData.value.business_type,
-          industry: employerData.value.industry,
-          company_address: employerData.value.company_address,
-          company_description: employerData.value.company_description,
-          website: employerData.value.website,
-          registration_number: employerData.value.registration_number,
-          verification_status: employerData.value.verification_status,
+          company_name: employerData.value.company_name || null,
+          company_email: employerData.value.company_email || null,
+          company_contact: employerData.value.company_contact || null,
+          business_type: employerData.value.business_type || null,
+          industry: employerData.value.industry || null,
+          company_address: employerData.value.company_address || null,
+          company_description: employerData.value.company_description || null,
+          website: employerData.value.website || null,
+          registration_number: employerData.value.registration_number || null,
         })
       }
 

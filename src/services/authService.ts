@@ -26,10 +26,22 @@ export const authService = {
     }
   },
 
+  async insertProfileData(profileData: any) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert(profileData)
+      .select()
+    if (error) {
+      throw new Error(error.message || 'Failed to insert profile data')
+    }
+    return data
+  },
+
   async insertApplicantData(applicantData: any) {
     const { data, error } = await supabase
       .from('applicants')
       .insert(applicantData)
+      .select()
     if (data) {
       return data
     } else {
@@ -41,6 +53,7 @@ export const authService = {
     const { data, error } = await supabase
       .from('employers')
       .insert(employerData)
+      .select()
     if (data) {
       return data
     } else {

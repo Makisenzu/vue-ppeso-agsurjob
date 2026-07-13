@@ -54,7 +54,11 @@ router.beforeEach(async (to, from, next) => {
     } else {
       // Check if user is accessing a page defined for another role
       const routeRole = to.matched.find(record => record.meta.role)?.meta.role
-      if (routeRole && routeRole !== userRole) {
+      
+      // Prevent infinite redirect: if they are already heading to the fallback dashboard, let them through
+      const fallbackRoute = getDashboardRouteForRole(userRole).name
+      
+      if (routeRole && routeRole !== userRole && to.name !== fallbackRoute) {
         next(getDashboardRouteForRole(userRole))
       } else {
         next()
