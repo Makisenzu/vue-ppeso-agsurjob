@@ -3,7 +3,7 @@ import { onMounted, watch } from 'vue'
 import SpotLightCard from './SpotLightCard.vue'
 import { useSignup } from '@/composables/useSignup.ts'
 import { usePsgc } from '@/composables/usePsgc.ts'
-import { Check, ChevronLeft, Loader2 } from '@lucide/vue'
+import { Check, ChevronLeft } from '@lucide/vue'
 
 import {
   Card,
@@ -95,8 +95,8 @@ function onBarangayChange(code: any) {
 
 <template>
   <Card :class="[
-    'w-full box-border overflow-hidden transition-[max-width] duration-300 ease-in-out [&_[data-slot=native-select-wrapper]]:!w-full',
-    currentStep === 5 ? 'max-w-[40rem]' : 'max-w-[24rem]'
+    'w-full box-border overflow-hidden transition-[max-width] duration-300 ease-in-out [&_[data-slot=native-select-wrapper]]: w-full',
+    currentStep === 5 ? 'max-w-160' : 'max-w-[24rem]'
   ]">
     <!-- ─── Step 0: Role Selection ─── -->
     <template v-if="currentStep === 0">
@@ -122,7 +122,7 @@ function onBarangayChange(code: any) {
           <div class="flex items-center gap-3">
             <div :class="[
               'flex items-center justify-center w-9 h-9 shrink-0 rounded-lg transition-colors duration-200 ease-in-out',
-              isSelected(role.id) ? 'bg-primary/[0.12] text-primary' : 'bg-muted text-muted-foreground'
+              isSelected(role.id) ? 'bg-primary/0.12 text-primary' : 'bg-muted text-muted-foreground'
             ]">
               <component :is="role.icon" class="h-5 w-5" />
             </div>
@@ -220,7 +220,7 @@ function onBarangayChange(code: any) {
               </div>
               <div class="flex flex-col space-y-1.5">
                 <Label for="gender">Gender</Label>
-                <NativeSelect id="gender" v-model="signupData.gender" class="!w-full">
+                <NativeSelect id="gender" v-model="signupData.gender" class="w-full!">
                   <NativeSelectOption value="" disabled>Select gender</NativeSelectOption>
                   <NativeSelectOption value="Male">Male</NativeSelectOption>
                   <NativeSelectOption value="Female">Female</NativeSelectOption>
@@ -240,7 +240,7 @@ function onBarangayChange(code: any) {
                 <NativeSelect
                   id="region"
                   :model-value="selectedRegion?.code ?? ''"
-                  class="!w-full"
+                  class="w-full!"
                   @update:model-value="onRegionChange"
                 >
                   <NativeSelectOption value="" disabled>
@@ -262,7 +262,7 @@ function onBarangayChange(code: any) {
                   id="province"
                   :model-value="selectedProvince?.code ?? ''"
                   :disabled="!selectedRegion"
-                  class="!w-full"
+                  class="w-full!"
                   @update:model-value="onProvinceChange"
                 >
                   <NativeSelectOption value="" disabled>
@@ -284,7 +284,7 @@ function onBarangayChange(code: any) {
                   id="geographic"
                   :model-value="selectedCity?.code ?? ''"
                   :disabled="!selectedProvince"
-                  class="!w-full"
+                  class="w-full!"
                   @update:model-value="onCityChange"
                 >
                   <NativeSelectOption value="" disabled>
@@ -306,7 +306,7 @@ function onBarangayChange(code: any) {
                   id="barangay"
                   :model-value="selectedBarangay?.code ?? ''"
                   :disabled="!selectedCity"
-                  class="!w-full"
+                  class="w-full!"
                   @update:model-value="onBarangayChange"
                 >
                   <NativeSelectOption value="" disabled>
@@ -368,7 +368,7 @@ function onBarangayChange(code: any) {
               <template v-if="selectedRole === 'applicant'">
                 <div class="flex flex-col space-y-1.5">
                   <Label for="educationLevel">Education Level</Label>
-                  <NativeSelect id="educationLevel" v-model="applicantData.education_level" class="!w-full">
+                  <NativeSelect id="educationLevel" v-model="applicantData.education_level" class="w-full!">
                     <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
                     <NativeSelectOption value="Elementary">Elementary</NativeSelectOption>
                     <NativeSelectOption value="High School">High School</NativeSelectOption>
@@ -388,7 +388,7 @@ function onBarangayChange(code: any) {
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="employmentStatus">Employment Status</Label>
-                  <NativeSelect id="employmentStatus" v-model="applicantData.employment_status" class="!w-full">
+                  <NativeSelect id="employmentStatus" v-model="applicantData.employment_status" class="w-full!">
                     <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
                     <NativeSelectOption value="Unemployed">Unemployed</NativeSelectOption>
                     <NativeSelectOption value="Employed">Employed</NativeSelectOption>
@@ -426,7 +426,7 @@ function onBarangayChange(code: any) {
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="businessType">Business Type</Label>
-                  <NativeSelect id="businessType" v-model="employerData.business_type" class="!w-full">
+                  <NativeSelect id="businessType" v-model="employerData.business_type" class="w-full!">
                     <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
                     <NativeSelectOption value="Sole Proprietorship">Sole Proprietorship</NativeSelectOption>
                     <NativeSelectOption value="Partnership">Partnership</NativeSelectOption>
