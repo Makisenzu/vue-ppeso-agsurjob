@@ -1,80 +1,46 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { authService } from '@/services/authService'
-import { useAuthStore } from '@/stores/auth'
+import { useLogin } from '@/composables/useLogin';
 
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import Label from './ui/label/Label.vue'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const emailOrUsername = ref('')
-const password = ref('')
-const isLoading = ref(false)
-const loginError = ref('')
-
-const emailError = ref('')
-const passwordError = ref('')
-
-watch(emailOrUsername, () => { emailError.value = '' })
-watch(password, () => { passwordError.value = '' })
-
-function getDashboardRoute(role: string | null) {
-  switch (role) {
-    case 'admin': return { name: 'admin-dashboard' }
-    case 'employer': return { name: 'employer-dashboard' }
-    case 'peso_staff': return { name: 'peso-dashboard' }
-    default: return { name: 'dashboard' }
-  }
-}
-
-const handleLogin = async () => {
-  loginError.value = ''
-
-  if (!emailOrUsername.value.trim()) {
-    emailError.value = 'Email is required.'
-    return
-  }
-  if (!password.value) {
-    passwordError.value = 'Password is required.'
-    return
-  }
-
-  isLoading.value = true
-  try {
-    await authService.login({
-      email: emailOrUsername.value.trim(),
-      password: password.value,
-    })
-    await authStore.init()
-    router.push(getDashboardRoute(authStore.userRole))
-  } catch (error: any) {
-    loginError.value = error?.message || 'Invalid email or password.'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const handleCreate = () => {
-  router.push('/signup')
-}
+const { agsurlogo, 
+        pesologo,
+        emailOrUsername, 
+        password, 
+        isLoading, 
+        loginError, 
+        emailError, 
+        passwordError, 
+        handleLogin, 
+        handleCreate ,
+        Card,
+        CardAction,
+        CardContent,
+        CardDescription,
+        CardFooter,
+        CardHeader,
+        CardTitle,
+        Avatar,
+        AvatarImage,
+        AvatarFallback,
+        Button,
+        Input,
+        Label
+      } = useLogin();
 </script>
 
 <template>
   <Card class="w-full max-w-sm">
     <CardHeader>
+      <div class="flex items-center gap-2 mb-4">
+      <Avatar class="h-14 w-14">
+        <AvatarImage :src="agsurlogo" />
+        <AvatarFallback>CN</AvatarFallback>
+      </Avatar>
+
+      <Avatar class="h-14 w-14">
+        <AvatarImage :src="pesologo" />
+        <AvatarFallback>CN</AvatarFallback>
+      </Avatar>
+    </div>
       <CardTitle>Login to your AGSURJOBS</CardTitle>
       <CardDescription>
         Enter your email below to login to your account
