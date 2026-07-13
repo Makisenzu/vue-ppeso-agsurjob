@@ -8,6 +8,7 @@ export function useSignup() {
   const router = useRouter()
   const authStore = useAuthStore()
 
+  // ─── Role options ───
   const roles: RoleOption[] = [
     {
       id: 'applicant',
@@ -23,99 +24,135 @@ export function useSignup() {
     },
   ]
 
-  const progressStep = [
-    {
-      step: 0,
-      title: 'Select Role',
-      icon: 'user',
-    },
-    {
-      step: 1,
-      title: 'Personal Details',
-      icon: 'user',
-    },
-    {
-      step: 2,
-      title: 'Additional Information',
-      icon: 'user',
-    },
-    {
-      step: 3,
-      title: 'Review & Submit',
-      icon: 'user',
-    }
+  // ─── Step definitions (displayed in the stepper, excludes step 0) ───
+  const stepMeta = [
+    { title: 'Select Role', description: 'Choose the role that best describes you to get started.' },
+    { title: 'Personal Details', description: 'Tell us about yourself.' },
+    { title: 'Address & Status', description: 'Where are you located?' },
+    { title: 'Account Credentials', description: 'Set up your login information.' },
+    { title: 'Additional Information', description: 'Provide details relevant to your role.' },
+    { title: 'Review & Submit', description: 'Verify your information before creating your account.' },
   ]
 
+  // Steps shown in the stepper indicator (excludes step 0 role selection)
+  const progressSteps = stepMeta.slice(1).map((meta, i) => ({
+    step: i + 1,
+    title: meta.title,
+  }))
+
+  // ─── Role selection ───
   const selectedRole = computed({
     get: () => authStore.selectedRole as Role | null,
     set: (role: Role | null) => {
       authStore.selectedRole = role
     },
   })
-  
 
   const isSelected = (id: Role) => selectedRole.value === id
   const canContinue = computed(() => selectedRole.value !== null)
+
+  // ─── Step state ───
+  const currentStep = ref(0)
+  const totalSteps = 6 // 0..5
+  const confirmPassword = ref('')
+  const isSubmitting = ref(false)
+  const submitError = ref('')
+
+  const stepTitle = computed(() => stepMeta[currentStep.value]?.title ?? '')
+  const stepDescription = computed(() => stepMeta[currentStep.value]?.description ?? '')
+
+  // ─── Validation per step ───
+  const canProceed = computed(() => {
+    const s = authStore.signupData
+    const a = authStore.applicantData
+    const e = authStore.employerData
+
+    switch (currentStep.value) {
+      case 0:
+        return selectedRole.value !== null
+      case 1:
+        return !!(s.firstName.trim() && s.lastName.trim() && s.birthdate && s.gender && s.contact_number.trim())
+      case 2:
+        return !!(s.region.trim() && s.province.trim() && s.geographic.trim() && s.barangay.trim())
+      case 3:
+        return !!(
+          s.email.trim() &&
+          s.password.length >= 6 &&
+          confirmPassword.value === s.password
+        )
+      case 4:
+        if (selectedRole.value === 'applicant') {
+          return !!(a.education_level && a.employment_status)
+        }
+        if (selectedRole.value === 'employer') {
+          return !!(e.company_name.trim() && e.company_email.trim() && e.business_type)
+        }
+        return false
+      case 5:
+        return true
+      default:
+        return false
+    }
+  })
+
+  // ─── Navigation ───
+  function nextStep() {
+    if (currentStep.value < totalSteps - 1) {
+      currentStep.value++
+    }
+  }
+
+  function prevStep() {
+    if (currentStep.value > 0) {
+      currentStep.value--
+    }
+  }
 
   const handleBack = () => {
     router.push('/login')
   }
 
-  const step = ref(1)
-  const batch = ref(1)
-
-  function nextStep() {
-    if (step.value === 0) {
-      step.value = 1
-      batch.value = 1
-    } else if (step.value === 1) {
-      if (batch.value < 3) {
-        batch.value++
-      } else {
-        step.value = 2
-        batch.value = 1
-      }
-    } else if (step.value === 2) {
-      const maxBatches = selectedRole.value === 'applicant' ? 2 : 3
-      if (batch.value < maxBatches) {
-        batch.value++
-      } else {
-        console.log("Ready to submit!")
-      }
+  // ─── Submission ───
+  async function handleSubmit() {
+    isSubmitting.value = true
+    submitError.value = ''
+    try {
+      authStore.signupData.role = selectedRole.value as Role
+      await authStore.submitSignup()
+      router.push('/login')
+    } catch (error: any) {
+      submitError.value = error?.message || 'Signup failed. Please try again.'
+    } finally {
+      isSubmitting.value = false
     }
   }
-
-    function prevStep() {
-    if (step.value === 2) {
-      if (batch.value > 1) {
-        batch.value--
-      } else {
-        step.value = 1
-        batch.value = 3 // Step 1 has 3 batches
-      }
-    } else if (step.value === 1) {
-      if (batch.value > 1) {
-        batch.value--
-      } else {
-        step.value = 0 // Go back to role selection
-      }
-    }
-  }
-
-  const currentStep = computed(() => step.value)
 
   return {
-    router,
+    // Role
     roles,
     selectedRole,
     isSelected,
     canContinue,
-    handleBack,
-    step,
+    // Steps
     currentStep,
+    totalSteps,
+    stepTitle,
+    stepDescription,
+    progressSteps,
+    canProceed,
     nextStep,
     prevStep,
-    progressStep,
-    batch,
+    // Form
+    confirmPassword,
+    // Submit
+    isSubmitting,
+    submitError,
+    handleSubmit,
+    // Navigation
+    handleBack,
+    // Store refs
+    signupData: authStore.signupData,
+    applicantData: authStore.applicantData,
+    employerData: authStore.employerData,
   }
 }
