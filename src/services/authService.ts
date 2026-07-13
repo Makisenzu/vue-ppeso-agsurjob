@@ -26,6 +26,28 @@ export const authService = {
     }
   },
 
+  async insertApplicantData(applicantData: any) {
+    const { data, error } = await supabase
+      .from('applicants')
+      .insert(applicantData)
+    if (data) {
+      return data
+    } else {
+      throw new Error(error?.message || 'Failed to insert applicant data')
+    }
+  },
+  
+  async insertEmployerData(employerData: any) {
+    const { data, error } = await supabase
+      .from('employers')
+      .insert(employerData)
+    if (data) {
+      return data
+    } else {
+      throw new Error(error?.message || 'Failed to insert employer data')
+    }
+  },
+
   async checkEmailExists(email: string): Promise<boolean> {
     const { data, error } = await supabase.rpc('check_if_email_exists', {
       target_email: email.trim()

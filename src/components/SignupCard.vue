@@ -2,8 +2,11 @@
 import SpotLightCard from './SpotLightCard.vue'
 import Button from './ui/button/Button.vue'
 import { useSignup } from '@/composables/useSignup.ts'
+import { Check, Circle, Dot } from '@lucide/vue'
 
-const { canContinue, selectedRole, roles, isSelected, handleBack, handleContinue } = useSignup()
+import { Stepper, StepperDescription, StepperIndicator, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
+
+const { canContinue, selectedRole, roles, isSelected, handleBack, nextStep, prevStep, step, progressStep } = useSignup()
 import {
   Card,
   CardContent,
@@ -12,63 +15,115 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {Check } from '@lucide/vue'
 
 </script>
 
 <template>
-  <Card class="w-full max-w-sm border-border/60 shadow-sm">
-    <CardHeader class="space-y-1.5">
-      <CardTitle class="text-xl font-semibold tracking-tight">
-        Create your account
-      </CardTitle>
-      <CardDescription>
-        Choose the role that best describes you to get started.
-      </CardDescription>
-    </CardHeader>
+  <div>
+    <Card v-if="step === 0" class="w-full max-w-sm border-border/60 shadow-sm">
+      <CardHeader class="space-y-1.5">
+        <CardTitle class="text-xl font-semibold tracking-tight">
+          Create your account
+        </CardTitle>
+        <CardDescription>
+          Choose the role that best describes you to get started.
+        </CardDescription>
+      </CardHeader>
 
-    <CardContent class="space-y-2.5">
-      <SpotLightCard
-        v-for="(role, index) in roles"
-        :key="role.id"
-        class="role-card"
-        :class="{ 'role-card--selected': isSelected(role.id) }"
-        :style="{ animationDelay: `${index * 80}ms` }"
-        spotlight-color="rgba(0, 0, 196, 1.5)"
-        @click="selectedRole = role.id"
-      >
-        <div class="flex items-center gap-3">
-          <div class="role-card__icon" :class="{ 'role-card__icon--selected': isSelected(role.id) }">
-            <component :is="role.icon" class="h-5 w-5" />
+      <CardContent class="space-y-2.5">
+        <SpotLightCard
+          v-for="(role, index) in roles"
+          :key="role.id"
+          class="role-card"
+          :class="{ 'role-card--selected': isSelected(role.id) }"
+          :style="{ animationDelay: `${index * 80}ms` }"
+          spotlight-color="rgba(0, 0, 196, 1.5)"
+          @click="selectedRole = role.id"
+        >
+          <div class="flex items-center gap-3">
+            <div class="role-card__icon" :class="{ 'role-card__icon--selected': isSelected(role.id) }">
+              <component :is="role.icon" class="h-5 w-5" />
+            </div>
+            <div class="min-w-0">
+              <p class="font-medium leading-snug">{{ role.label }}</p>
+              <p class="text-sm text-muted-foreground leading-snug">
+                {{ role.description }}
+              </p>
+            </div>
           </div>
-          <div class="min-w-0">
-            <p class="font-medium leading-snug">{{ role.label }}</p>
-            <p class="text-sm text-muted-foreground leading-snug">
-              {{ role.description }}
-            </p>
-          </div>
-        </div>
-        <Transition name="check">
-          <Check
-            v-if="isSelected(role.id)"
-            class="h-5 w-5 shrink-0 text-primary"
-          />
-        </Transition>
-      </SpotLightCard>
-    </CardContent>
+          <Transition name="check">
+            <Check
+              v-if="isSelected(role.id)"
+              class="h-5 w-5 shrink-0 text-primary"
+            />
+          </Transition>
+        </SpotLightCard>
+      </CardContent>
 
-    <CardFooter class="flex flex-col gap-3">
-      <Button class="w-full" :disabled="!canContinue" @click="handleContinue">
-        Continue
-      </Button>
-      <div class="flex items-center justify-center gap-1 text-sm text-muted-foreground">
-        <span>Already have an account?</span>
-        <Button variant="link" class="h-auto p-0" @click="handleBack">
-          Log in
+      <CardFooter class="flex flex-col gap-3">
+        <Button class="w-full" :disabled="!canContinue" @click="nextStep">
+          Continue
         </Button>
+        <div class="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+          <span>Already have an account?</span>
+          <Button variant="link" class="h-auto p-0" @click="handleBack">
+            Log in
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
+
+    <Card v-if="step === 1" class="w-full max-w-sm border-border/60 shadow-sm">
+      <CardHeader class="space-y-1.5">
+        <CardTitle class="text-xl font-semibold tracking-tight">
+          <Stepper class="flex w-full items-start gap-2">
+    <StepperItem
+      v-for="step in progressStep"
+      :key="step.step"
+      v-slot="{ state }"
+      class="relative flex w-full flex-col items-center justify-center"
+      :step="step.step"
+    >
+      <StepperSeparator
+        v-if="step.step !== progressStep[progressStep.length - 1]?.step"
+        class="absolute left-[calc(50%+20px)] right-[calc(-50%+10px)] top-5 block h-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"
+      />
+      <StepperTrigger as-child>
+        <Button
+          :variant="state === 'completed' || state === 'active' ? 'default' : 'outline'"
+          size="icon"
+          class="z-10 rounded-full shrink-0"
+          :class="[state === 'active' && 'ring-2 ring-ring ring-offset-2 ring-offset-background']"
+        >
+          <Check v-if="state === 'completed'" class="size-5" />
+          <Circle v-if="state === 'active'" />
+          <Dot v-if="state === 'inactive'" />
+        </Button>
+      </StepperTrigger>
+      <div class="mt-5 flex flex-col items-center text-center">
+        <StepperTitle
+          :class="[state === 'active' && 'text-primary']"
+          class="text-sm font-semibold transition lg:text-base"
+        >
+          {{ step.title }}
+        </StepperTitle>
       </div>
-    </CardFooter>
-  </Card>
+    </StepperItem>
+  </Stepper>
+        </CardTitle>
+        <CardDescription>
+          
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+      </CardContent>
+
+      <CardFooter>
+
+      </CardFooter>
+    </Card>
+  </div>
 </template>
 
 <style scoped>

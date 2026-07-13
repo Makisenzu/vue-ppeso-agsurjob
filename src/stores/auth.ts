@@ -49,6 +49,31 @@ export const useAuthStore = defineStore('auth', () => {
     password: ''
   })
 
+  const applicantData = ref({
+    profile_id: '',
+    education_level: '',
+    course: '',
+    years_experience: '',
+    preferred_job: '',
+    preferred_location: '',
+    expected_salary: '',
+    employment_status: '',
+  })
+
+  const employerData = ref({
+    profile_id: '',
+    company_name: '',
+    company_email: '',
+    company_contact: '',
+    business_type: '',
+    industry: '',
+    company_address: '',
+    company_description: '',
+    website: '',
+    registration_number: '',
+    verification_status: '' as Database["public"]["Enums"]["status_type"],
+  })
+
   // ─── Computed ───
   const isAuthenticated = computed(() => !!session.value)
 
@@ -161,7 +186,7 @@ export const useAuthStore = defineStore('auth', () => {
         password: signupData.value.password,
         options: {
           data: {
-            role: signupData.value.role || selectedRole.value, // fallback to selectedRole if needed
+            role: signupData.value.role || selectedRole.value,
             firstname: signupData.value.firstName,
             middlename: signupData.value.middlename,
             lastname: signupData.value.lastName,
@@ -177,8 +202,45 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
       })
-      
-      return result
+
+      const roleToInsert = signupData.value.role || selectedRole.value
+      const userId = result.user?.id
+
+      if (!userId) {
+        throw new Error("No user ID returned from signup.")
+      }
+
+      let insertApplicantResult = null
+      let insertEmployerResult = null
+
+      if (roleToInsert === 'applicant') {
+        insertApplicantResult = await authService.insertApplicantData({
+          profile_id: userId,
+          education_level: applicantData.value.education_level,
+          course: applicantData.value.course,
+          years_experience: applicantData.value.years_experience,
+          preferred_job: applicantData.value.preferred_job,
+          preferred_location: applicantData.value.preferred_location,
+          expected_salary: applicantData.value.expected_salary,
+          employment_status: applicantData.value.employment_status,
+        })
+      } else if (roleToInsert === 'employer') {
+        insertEmployerResult = await authService.insertEmployerData({
+          profile_id: userId,
+          company_name: employerData.value.company_name,
+          company_email: employerData.value.company_email,
+          company_contact: employerData.value.company_contact,
+          business_type: employerData.value.business_type,
+          industry: employerData.value.industry,
+          company_address: employerData.value.company_address,
+          company_description: employerData.value.company_description,
+          website: employerData.value.website,
+          registration_number: employerData.value.registration_number,
+          verification_status: employerData.value.verification_status,
+        })
+      }
+
+      return { result, insertApplicantResult, insertEmployerResult }
     } catch (error) {
       console.error("Signup failed:", error)
       throw error
@@ -192,6 +254,8 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     isInitialized,
     signupData,
+    applicantData,
+    employerData,
     selectedRole,
     // Computed
     isAuthenticated,

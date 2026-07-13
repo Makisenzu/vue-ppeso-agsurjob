@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { UserSearch, Building2 } from '@lucide/vue'
@@ -23,6 +23,29 @@ export function useSignup() {
     },
   ]
 
+  const progressStep = [
+    {
+      step: 0,
+      title: 'Select Role',
+      icon: 'user',
+    },
+    {
+      step: 1,
+      title: 'Personal Details',
+      icon: 'user',
+    },
+    {
+      step: 2,
+      title: 'Additional Information',
+      icon: 'user',
+    },
+    {
+      step: 3,
+      title: 'Review & Submit',
+      icon: 'user',
+    }
+  ]
+
   const selectedRole = computed({
     get: () => authStore.selectedRole as Role | null,
     set: (role: Role | null) => {
@@ -38,10 +61,48 @@ export function useSignup() {
     router.push('/login')
   }
 
-  function handleContinue() {
-    if (!selectedRole.value) return
-    // proceed with selectedRole.value
+  const step = ref(1)
+  const batch = ref(1)
+
+  function nextStep() {
+    if (step.value === 0) {
+      step.value = 1
+      batch.value = 1
+    } else if (step.value === 1) {
+      if (batch.value < 3) {
+        batch.value++
+      } else {
+        step.value = 2
+        batch.value = 1
+      }
+    } else if (step.value === 2) {
+      const maxBatches = selectedRole.value === 'applicant' ? 2 : 3
+      if (batch.value < maxBatches) {
+        batch.value++
+      } else {
+        console.log("Ready to submit!")
+      }
+    }
   }
+
+    function prevStep() {
+    if (step.value === 2) {
+      if (batch.value > 1) {
+        batch.value--
+      } else {
+        step.value = 1
+        batch.value = 3 // Step 1 has 3 batches
+      }
+    } else if (step.value === 1) {
+      if (batch.value > 1) {
+        batch.value--
+      } else {
+        step.value = 0 // Go back to role selection
+      }
+    }
+  }
+
+  const currentStep = computed(() => step.value)
 
   return {
     router,
@@ -50,6 +111,11 @@ export function useSignup() {
     isSelected,
     canContinue,
     handleBack,
-    handleContinue,
+    step,
+    currentStep,
+    nextStep,
+    prevStep,
+    progressStep,
+    batch,
   }
 }
