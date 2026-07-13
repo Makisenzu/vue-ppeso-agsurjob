@@ -241,7 +241,6 @@ function onBarangayChange(code: any) {
             </template>
 
             <!-- ─── Step 2: Address & Status ─── -->
-<!-- ─── Step 2: Address & Status ─── -->
               <template v-if="currentStep === 2">
                 <!-- Region -->
                 <div class="flex flex-col space-y-1.5">
@@ -414,96 +413,95 @@ function onBarangayChange(code: any) {
             </template>
 
             <!-- ─── Step 4: Role-Specific ─── -->
-<!-- ─── Step 4: Role-Specific ─── -->
-<template v-if="currentStep === 4">
+            <template v-if="currentStep === 4">
 
-  <!-- Applicant -->
-  <template v-if="selectedRole === 'applicant'">
+              <!-- Applicant -->
+              <template v-if="selectedRole === 'applicant'">
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="educationLevel">Education Level</Label>
-        <NativeSelect
-          id="educationLevel"
-          v-model="applicantData.education_level"
-          class="!w-full"
-        >
-          <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
-          <NativeSelectOption value="Elementary">Elementary</NativeSelectOption>
-          <NativeSelectOption value="High School">High School</NativeSelectOption>
-          <NativeSelectOption value="Senior High School">Senior High School</NativeSelectOption>
-          <NativeSelectOption value="Vocational">Vocational</NativeSelectOption>
-          <NativeSelectOption value="College">College</NativeSelectOption>
-          <NativeSelectOption value="Post Graduate">Post Graduate</NativeSelectOption>
-        </NativeSelect>
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="educationLevel">Education Level</Label>
+                    <NativeSelect
+                      id="educationLevel"
+                      v-model="applicantData.education_level"
+                      class="!w-full"
+                    >
+                      <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
+                      <NativeSelectOption value="Elementary">Elementary</NativeSelectOption>
+                      <NativeSelectOption value="High School">High School</NativeSelectOption>
+                      <NativeSelectOption value="Senior High School">Senior High School</NativeSelectOption>
+                      <NativeSelectOption value="Vocational">Vocational</NativeSelectOption>
+                      <NativeSelectOption value="College">College</NativeSelectOption>
+                      <NativeSelectOption value="Post Graduate">Post Graduate</NativeSelectOption>
+                    </NativeSelect>
+                  </div>
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="employmentStatus">Employment Status</Label>
-        <NativeSelect
-          id="employmentStatus"
-          v-model="applicantData.employment_status"
-          class="!w-full"
-        >
-          <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
-          <NativeSelectOption value="Unemployed">Unemployed</NativeSelectOption>
-          <NativeSelectOption value="Employed">Employed</NativeSelectOption>
-          <NativeSelectOption value="Self-Employed">Self-Employed</NativeSelectOption>
-          <NativeSelectOption value="Student">Student</NativeSelectOption>
-        </NativeSelect>
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="employmentStatus">Employment Status</Label>
+                    <NativeSelect
+                      id="employmentStatus"
+                      v-model="applicantData.employment_status"
+                      class="!w-full"
+                    >
+                      <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
+                      <NativeSelectOption value="Unemployed">Unemployed</NativeSelectOption>
+                      <NativeSelectOption value="Employed">Employed</NativeSelectOption>
+                      <NativeSelectOption value="Self-Employed">Self-Employed</NativeSelectOption>
+                      <NativeSelectOption value="Student">Student</NativeSelectOption>
+                    </NativeSelect>
+                  </div>
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="course">Course / Program</Label>
-        <Input
-          id="course"
-          v-model="applicantData.course"
-          placeholder="e.g. BS Information Technology"
-        />
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="course">Course / Program</Label>
+                    <Input
+                      id="course"
+                      v-model="applicantData.course"
+                      placeholder="e.g. BS Information Technology"
+                    />
+                  </div>
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="yearsExperience">Years of Experience</Label>
-        <Input
-          id="yearsExperience"
-          v-model="applicantData.years_experience"
-          type="number"
-          placeholder="0"
-        />
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="yearsExperience">Years of Experience</Label>
+                    <Input
+                      id="yearsExperience"
+                      v-model="applicantData.years_experience"
+                      type="number"
+                      placeholder="0"
+                    />
+                  </div>
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="preferredJob">Preferred Job</Label>
-        <Input
-          id="preferredJob"
-          v-model="applicantData.preferred_job"
-          placeholder="e.g. Web Developer"
-        />
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="preferredJob">Preferred Job</Label>
+                    <Input
+                      id="preferredJob"
+                      v-model="applicantData.preferred_job"
+                      placeholder="e.g. Web Developer"
+                    />
+                  </div>
 
-      <div class="flex flex-col space-y-1.5">
-        <Label for="preferredLocation">Preferred Location</Label>
-        <Input
-          id="preferredLocation"
-          v-model="applicantData.preferred_location"
-          placeholder="e.g. Naga City"
-        />
-      </div>
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="preferredLocation">Preferred Location</Label>
+                    <Input
+                      id="preferredLocation"
+                      v-model="applicantData.preferred_location"
+                      placeholder="e.g. Naga City"
+                    />
+                  </div>
 
-    </div>
+                </div>
 
-    <div class="flex flex-col space-y-1.5 mt-4">
-      <Label for="expectedSalary">Expected Salary</Label>
-      <Input
-        id="expectedSalary"
-        v-model="applicantData.expected_salary"
-        type="number"
-        placeholder="0"
-      />
-    </div>
+                <div class="flex flex-col space-y-1.5 mt-4">
+                  <Label for="expectedSalary">Expected Salary</Label>
+                  <Input
+                    id="expectedSalary"
+                    v-model="applicantData.expected_salary"
+                    type="number"
+                    placeholder="0"
+                  />
+                </div>
 
-  </template>
+              </template>
 
   <!-- Employer -->
   <template v-if="selectedRole === 'employer'">
@@ -606,8 +604,7 @@ function onBarangayChange(code: any) {
 
   </template>
 
-    </template>
-
+            </template>
             <!-- ─── Step 5: Review ─── -->
             <template v-if="currentStep === 5">
               <div class="space-y-4 text-sm">
@@ -616,30 +613,30 @@ function onBarangayChange(code: any) {
                   <div class="space-y-1">
                     <p class="font-medium text-foreground">Personal Details</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                      <span class="text-muted-foreground">Name</span>
+                      <Label class="text-muted-foreground">Name</Label>
                       <span>{{ signupData.firstName }} {{ signupData.middlename }} {{ signupData.lastName }}</span>
-                      <span class="text-muted-foreground">Birthdate</span>
+                      <Label class="text-muted-foreground">Birthdate</Label>
                       <span>{{ signupData.birthdate }}</span>
-                      <span class="text-muted-foreground">Gender</span>
+                      <Label class="text-muted-foreground">Gender</Label>
                       <span>{{ signupData.gender }}</span>
-                      <span class="text-muted-foreground">Contact</span>
+                      <Label class="text-muted-foreground">Contact</Label>
                       <span>{{ signupData.contact_number }}</span>
                     </div>
                   </div>
                   <div class="space-y-1">
                     <p class="font-medium text-foreground">Address & Status</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                      <span class="text-muted-foreground">Region</span>
+                      <Label class="text-muted-foreground">Region</Label>
                       <span>{{ signupData.region }}</span>
-                      <span class="text-muted-foreground">Province</span>
+                      <Label class="text-muted-foreground">Province</Label>
                       <span>{{ signupData.province }}</span>
-                      <span class="text-muted-foreground">City</span>
+                      <Label class="text-muted-foreground">City</Label>
                       <span>{{ signupData.geographic }}</span>
-                      <span class="text-muted-foreground">Barangay</span>
+                      <Label class="text-muted-foreground">Barangay</Label>
                       <span>{{ signupData.barangay }}</span>
-                      <span class="text-muted-foreground">4Ps</span>
+                      <Label class="text-muted-foreground">4Ps</Label>
                       <span>{{ signupData.is_4ps ? 'Yes' : 'No' }}</span>
-                      <span class="text-muted-foreground">PWD</span>
+                      <Label class="text-muted-foreground">PWD</Label>
                       <span>{{ signupData.is_pwd ? 'Yes' : 'No' }}</span>
                     </div>
                   </div>
@@ -652,10 +649,8 @@ function onBarangayChange(code: any) {
                   <div class="space-y-1">
                     <p class="font-medium text-foreground">Account</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                      <span class="text-muted-foreground">Email</span>
+                      <Label class="text-muted-foreground">Email</Label>
                       <span>{{ signupData.email }}</span>
-                      <span class="text-muted-foreground">Role</span>
-                      <span class="capitalize">{{ selectedRole }}</span>
                     </div>
                   </div>
                   <div class="space-y-1">
@@ -664,37 +659,37 @@ function onBarangayChange(code: any) {
                     </p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <template v-if="selectedRole === 'applicant'">
-                        <span class="text-muted-foreground">Education</span>
+                        <Label class="text-muted-foreground">Education</Label>
                         <span>{{ applicantData.education_level || '--' }}</span>
-                        <span class="text-muted-foreground">Course</span>
+                        <Label class="text-muted-foreground">Course</Label>
                         <span>{{ applicantData.course || '--' }}</span>
-                        <span class="text-muted-foreground">Experience</span>
+                        <Label class="text-muted-foreground">Experience</Label>
                         <span>{{ applicantData.years_experience || '0' }} yr(s)</span>
-                        <span class="text-muted-foreground">Status</span>
+                        <Label class="text-muted-foreground">Status</Label>
                         <span>{{ applicantData.employment_status || '--' }}</span>
-                        <span class="text-muted-foreground">Job</span>
+                        <Label class="text-muted-foreground">Job</Label>
                         <span>{{ applicantData.preferred_job || '--' }}</span>
-                        <span class="text-muted-foreground">Location</span>
+                        <Label class="text-muted-foreground">Location</Label>
                         <span>{{ applicantData.preferred_location || '--' }}</span>
-                        <span class="text-muted-foreground">Salary</span>
+                        <Label class="text-muted-foreground">Salary</Label>
                         <span>{{ applicantData.expected_salary || '--' }}</span>
                       </template>
                       <template v-if="selectedRole === 'employer'">
-                        <span class="text-muted-foreground">Company</span>
+                        <Label class="text-muted-foreground">Company</Label>
                         <span>{{ employerData.company_name || '--' }}</span>
-                        <span class="text-muted-foreground">Email</span>
+                        <Label class="text-muted-foreground">Email</Label>
                         <span>{{ employerData.company_email || '--' }}</span>
-                        <span class="text-muted-foreground">Contact</span>
+                        <Label class="text-muted-foreground">Contact</Label>
                         <span>{{ employerData.company_contact || '--' }}</span>
-                        <span class="text-muted-foreground">Type</span>
+                        <Label class="text-muted-foreground">Type</Label>
                         <span>{{ employerData.business_type || '--' }}</span>
-                        <span class="text-muted-foreground">Industry</span>
+                        <Label class="text-muted-foreground">Industry</Label>
                         <span>{{ employerData.industry || '--' }}</span>
-                        <span class="text-muted-foreground">Address</span>
+                        <Label class="text-muted-foreground">Address</Label>
                         <span>{{ employerData.company_address || '--' }}</span>
-                        <span class="text-muted-foreground">Website</span>
+                        <Label class="text-muted-foreground">Website</Label>
                         <span>{{ employerData.website || '--' }}</span>
-                        <span class="text-muted-foreground">Reg. No.</span>
+                        <Label class="text-muted-foreground">Reg. No.</Label>
                         <span>{{ employerData.registration_number || '--' }}</span>
                       </template>
                     </div>

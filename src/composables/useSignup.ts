@@ -3,7 +3,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { UserSearch, Building2 } from '@lucide/vue'
 import type { Role, RoleOption } from '@/types/auth'
-
 export function useSignup() {
   const router = useRouter()
   const authStore = useAuthStore()
