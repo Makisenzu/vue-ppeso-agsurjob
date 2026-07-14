@@ -3,6 +3,10 @@ import { useApplicantProfile } from '@/composables/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Check, X } from '@lucide/vue'
 import ProfileReadme from './ProfileReadme.vue'
+import ProfileExperience from './ProfileExperience.vue'
+import ProfileSkillsEducation from './ProfileSkillsEducation.vue'
+
+import { Card, CardContent } from '@/components/ui/card'
 
 import {
   Stepper,
@@ -14,6 +18,7 @@ import {
 } from '@/components/ui/stepper'
 
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
+import { h } from 'vue'
 
 const {
   files,
@@ -27,9 +32,15 @@ const {
   displayBio,
   displayJoinedDate,
   displayEmploymentStatus,
+  displayExperiences,
+  displaySkills,
+  displayEducationLevel,
+  displayCourse,
   
   is4ps,
   isPwd,
+  hasExperiences,
+  hasSkills,
   media,
 } = useApplicantProfile()
 </script>
@@ -116,21 +127,44 @@ const {
               </div>
             </StepperItem>
           </Stepper>
+          <div v-if="hasExperiences">
+
+          </div>
         </div>
 
-        <ProfileReadme
+        <!-- <ProfileReadme
           :username="displayUsername"
           :bio="displayBio"
-        />
+        /> -->
 
-        <!-- Bottom Grid: Work Experience + My Files -->
-        <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-          <div class="md:col-span-1 lg:col-span-7">
-            <ProfileExperience :experiences="displayExperiences" />
-          </div>
-          <div class="md:col-span-1 lg:col-span-5">
-            <ProfileFiles :files="files" />
-          </div>
+        <!-- <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ProfileExperience
+            v-if="hasExperiences"
+            :experiences="displayExperiences"
+          />
+
+          <Card v-else class="border-none shadow-sm">
+            <CardContent class="flex items-center justify-center px-6 py-10 text-center">
+              <p class="text-sm text-muted-foreground">
+                No work experience added yet.
+              </p>
+            </CardContent>
+          </Card>
+
+          <ProfileSkillsEducation
+            v-if="hasSkills"
+            :skills="displaySkills"
+            :education-level="displayEducationLevel || 'No education level added yet.'"
+            :course="displayCourse || 'No course added yet.'"
+          />
+
+          <Card v-else class="border-none shadow-sm">
+            <CardContent class="flex items-center justify-center px-6 py-10 text-center">
+              <p class="text-sm text-muted-foreground">
+                No skills or education details added yet.
+              </p>
+            </CardContent>
+          </Card>
         </div> -->
 
       </div>

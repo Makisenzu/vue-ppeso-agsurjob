@@ -1,13 +1,13 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { Database } from '@/types/database.types'
+import type { Tables, TablesUpdate } from '@/types/database.types'
 
-export type ApplicantProfileRecord = Record<string, any>
-export type ApplicantRecord = Record<string, any>
-export type ApplicantExperienceRecord = Record<string, any>
-export type ApplicantSkillRecord = Record<string, any>
-export type ProfileSocialRecord = Record<string, any>
-export type ProfileNotificationRecord = Record<string, any>
-export type ProfileMediaRecord = Record<string, any>
+export type ApplicantProfileRecord = Tables<'profiles'>
+export type ApplicantRecord = Tables<'applicants'>
+export type ApplicantExperienceRecord = Tables<'applicant_experiences'>
+export type ApplicantSkillRecord = Tables<'applicant_skills'>
+export type ProfileSocialRecord = Tables<'profile_socials'>
+export type ProfileNotificationRecord = Tables<'notifications'>
+export type ProfileMediaRecord = Tables<'profile_media'>
 
 export interface ApplicantProfileResult {
   profile: ApplicantProfileRecord | null
@@ -17,21 +17,85 @@ export interface ApplicantProfileResult {
   socials: ProfileSocialRecord[]
   notifications: ProfileNotificationRecord[]
   media: ProfileMediaRecord[]
+  hasExperiences: boolean
+  hasSkills: boolean
+  hasSocials: boolean
+  hasNotifications: boolean
+  hasMedia: boolean
+}
+
+function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | null = null, applicant: ApplicantRecord | null = null): ApplicantProfileResult {
+  return {
+    profile,
+    applicant,
+    experiences: [],
+    skills: [],
+    socials: [],
+    notifications: [],
+    media: [],
+    hasExperiences: false,
+    hasSkills: false,
+    hasSocials: false,
+    hasNotifications: false,
+    hasMedia: false,
+  }
+}
+
+export async function hasApplicantExperienceEntries(applicantId: number): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('applicant_experiences')
+    .select('id', { head: true, count: 'exact' })
+    .eq('applicant_id', applicantId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function hasApplicantSkillEntries(applicantId: number): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('applicant_skills')
+    .select('id', { head: true, count: 'exact' })
+    .eq('applicant_id', applicantId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function hasProfileSocialEntries(profileId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('profile_socials')
+    .select('id', { head: true, count: 'exact' })
+    .eq('profile_id', profileId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function hasProfileNotificationEntries(profileId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('id', { head: true, count: 'exact' })
+    .eq('recipient_id', profileId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function hasProfileMediaEntries(profileId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('profile_media')
+    .select('id', { head: true, count: 'exact' })
+    .eq('profile_id', profileId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
 }
 
 export async function fetchApplicantProfileByUsername(username: string): Promise<ApplicantProfileResult> {
   const routeUsername = username.trim()
 
   if (!routeUsername) {
-    return {
-      profile: null,
-      applicant: null,
-      experiences: [],
-      skills: [],
-      socials: [],
-      notifications: [],
-      media: [],
-    }
+    return createEmptyApplicantProfileResult()
   }
 
   const { data: profile } = await supabase
@@ -41,15 +105,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     .maybeSingle()
 
   if (!profile) {
-    return {
-      profile: null,
-      applicant: null,
-      experiences: [],
-      skills: [],
-      socials: [],
-      notifications: [],
-      media: [],
-    }
+    return createEmptyApplicantProfileResult()
   }
 
   const { data: applicant } = await supabase
@@ -59,15 +115,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     .maybeSingle()
 
   if (!applicant) {
-    return {
-      profile,
-      applicant: null,
-      experiences: [],
-      skills: [],
-      socials: [],
-      notifications: [],
-      media: [],
-    }
+    return createEmptyApplicantProfileResult(profile)
   }
 
   const { data: experiences } = await supabase
@@ -102,7 +150,12 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     skills: skills ?? [],
     socials: socials ?? [],
     notifications: notifications ?? [],
-    media: media?? [], 
+    media: media ?? [],
+    hasExperiences: (experiences?.length ?? 0) > 0,
+    hasSkills: (skills?.length ?? 0) > 0,
+    hasSocials: (socials?.length ?? 0) > 0,
+    hasNotifications: (notifications?.length ?? 0) > 0,
+    hasMedia: (media?.length ?? 0) > 0,
   }
 }
 
@@ -123,7 +176,7 @@ export interface UpdateProfileInput {
 }
 
 export async function updateApplicantProfile(userId: string, updates: UpdateProfileInput): Promise<void> {
-  const payload: Partial<Database['public']['Tables']['profiles']['Update']> = {}
+  const payload: Partial<TablesUpdate<'profiles'>> = {}
 
   if (updates.firstname !== undefined) payload.firstname = updates.firstname
   if (updates.middlename !== undefined) payload.middlename = updates.middlename
@@ -139,7 +192,7 @@ export async function updateApplicantProfile(userId: string, updates: UpdateProf
   if (updates.geographic !== undefined) payload.geographic = updates.geographic
   if (updates.barangay !== undefined) payload.barangay = updates.barangay
 
-  const { data, error, status, statusText } = await supabase
+  const { error } = await supabase
     .from('profiles')
     .update(payload)
     .eq('id', userId)

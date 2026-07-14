@@ -24,12 +24,23 @@ export function useApplicantProfile() {
   const notifications = ref<any[]>([])
   const media = ref<any[]>([])
 
+  const hasExperiences = computed(() => experiences.value.length > 0)
+  const hasSkills = computed(() => skills.value.length > 0)
+  const hasSocials = computed(() => socials.value.length > 0)
+  const hasNotifications = computed(() => notifications.value.length > 0)
+  const hasMedia = computed(() => media.value.length > 0)
+
+  const displayExperiences = computed(() => experiences.value)
+  const displaySkills = computed(() => skills.value.map((skill) => skill?.skill_name).filter(Boolean))
+  const displayEducationLevel = computed(() => applicantData.value?.education_level || '')
+  const displayCourse = computed(() => applicantData.value?.course || '')
+
   const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
   const displayName = computed(() => authStore.displayName)
   const userInitials = computed(() => authStore.userInitials)
   const displayUsername = computed(() => fullProfileData.value?.username || 'candidate')
   const displayPhone = computed(() => fullProfileData.value?.contact_number || '0912 345 6789')
-  const displayLocation = computed(() => fullProfileData.value?.current_address || 'Agusan del Sur, Philippines')
+  const displayLocation = computed(() => fullProfileData.value?.province || 'Agusan del Sur, Philippines')
   
   const displayBio = computed(() =>
     'Passionate and results-driven professional dedicated to delivering high-quality work. Experienced in collaborating with cross-functional teams to build efficient solutions.'
@@ -88,6 +99,15 @@ export function useApplicantProfile() {
     
     is4ps,
     isPwd,
+    hasExperiences,
+    hasSkills,
+    hasSocials,
+    hasNotifications,
+    hasMedia,
+    displayExperiences,
+    displaySkills,
+    displayEducationLevel,
+    displayCourse,
     socials,
     notifications,
     media,
