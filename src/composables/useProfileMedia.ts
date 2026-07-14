@@ -1,7 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAuthStore } from '@/stores/auth'
 import { mediaService } from '@/services/mediaService'
+import type { ProfileMediaRow } from '@/services/mediaService'
 
 export function useProfileMedia() {
   const store = useProfileStore()
@@ -10,6 +11,13 @@ export function useProfileMedia() {
 
   const isUploading = computed(() => store.isUploading)
   const profileMedia = computed(() => store.currentMedia)
+
+  onMounted(async () => {
+    const userId = authStore.user?.id
+    if (userId && !store.currentMedia) {
+      await store.fetchProfileMedia(userId)
+    }
+  })
 
   const handleUpload = async (file: File) => {
     const userId = authStore.user?.id
@@ -28,11 +36,13 @@ export function useProfileMedia() {
     }
   }
 
-  const getAvatarUrl = (displayName: string, initialMedia?: any[]) => {
+  const getAvatarUrl = (displayName: string, initialMedia?: ProfileMediaRow[]) => {
+    // Priority 1: Store media (freshly uploaded or fetched on init)
     if (profileMedia.value?.public_url) {
       return profileMedia.value.public_url
     }
     
+    // Priority 2: Media passed as a prop from the parent query
     if (initialMedia && initialMedia.length > 0) {
       const sortedMedia = [...initialMedia].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -43,6 +53,7 @@ export function useProfileMedia() {
       }
     }
 
+    // Priority 3: Fallback to DiceBear avatar
     return `https://api.dicebear.com/7.x/initials/svg?seed=${displayName}&backgroundColor=09090b&fontFamily=Arial`
   }
 

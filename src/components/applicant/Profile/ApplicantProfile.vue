@@ -30,6 +30,7 @@ const {
   
   is4ps,
   isPwd,
+  media,
 } = useApplicantProfile()
 </script>
 
@@ -55,6 +56,7 @@ const {
             :employment-status="displayEmploymentStatus"
             :is4ps="is4ps"
             :is-pwd="isPwd"
+            :media="media"
           />
         </div>
       </div>

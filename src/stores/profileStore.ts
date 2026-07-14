@@ -1,14 +1,38 @@
 import { defineStore } from 'pinia'
-import { mediaService } from '@/services/mediaService'
+import { mediaService, type ProfileMediaRow } from '@/services/mediaService'
 import { fileHelpers } from '@/helpers/fileHelpers'
+
+export interface ProfileMediaWithUrl extends ProfileMediaRow {
+  public_url: string
+}
 
 export const useProfileStore = defineStore('profile', {
   state: () => ({
-    currentMedia: null as any,
-    isUploading: false
+    currentMedia: null as ProfileMediaWithUrl | null,
+    isUploading: false,
+    isFetchingMedia: false
   }),
   
   actions: {
+    async fetchProfileMedia(profileId: string) {
+      this.isFetchingMedia = true
+      try {
+        const mediaRecords = await mediaService.fetchMediaByProfileId(profileId)
+        
+        if (mediaRecords.length > 0) {
+          const latest = mediaRecords[0]
+          if (latest.path) {
+            const publicUrl = mediaService.getPublicUrl(latest.path)
+            this.currentMedia = { ...latest, public_url: publicUrl }
+          }
+        }
+      } catch (error) {
+        console.error('Fetch Profile Media Error:', error)
+      } finally {
+        this.isFetchingMedia = false
+      }
+    },
+
     async uploadProfilePicture(userId: string, file: File) {
       this.isUploading = true
       try {
