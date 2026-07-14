@@ -3,9 +3,7 @@ import { useProfileStore } from '@/stores/profileStore'
 import { useAuthStore } from '@/stores/auth'
 import { mediaService } from '@/services/mediaService'
 import type { ProfileMediaRow } from '@/services/mediaService'
-
 type AvatarMedia = (ProfileMediaRow & { public_url?: string }) | null | undefined
-
 export function useProfileMedia() {
   const store = useProfileStore()
   const authStore = useAuthStore()

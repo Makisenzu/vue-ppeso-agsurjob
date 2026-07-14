@@ -5,29 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-
-import {
-  HoverCard,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
-
+import { useToastAlert } from '@/composables/useToastAlert'
+import { HoverCard, HoverCardTrigger, } from '@/components/ui/hover-card'
 import ProfileEdit from './ProfileEdit.vue'
-
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useMediaQuery } from '@vueuse/core'  
-const isDesktop = useMediaQuery('(min-width: 640px)')
-const Modal = computed(() => ({
-  Root: isDesktop.value ? Dialog : Drawer,
-  Trigger: isDesktop.value ? DialogTrigger : DrawerTrigger,
-  Content: isDesktop.value ? DialogContent : DrawerContent,
-  Header: isDesktop.value ? DialogHeader : DrawerHeader,
-  Title: isDesktop.value ? DialogTitle : DrawerTitle,
-  Description: isDesktop.value ? DialogDescription : DrawerDescription,
-  Footer: isDesktop.value ? DialogFooter : DrawerFooter,
-  Close: isDesktop.value ? DialogClose : DrawerClose,
-}))
-const open = ref(false)
 import {
   Dialog,
   DialogClose,
@@ -38,7 +21,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-
 import {
   Drawer,
   DrawerClose,
@@ -49,7 +31,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
-
 import {
   MapPin,
   Mail,
@@ -61,8 +42,19 @@ import {
 } from '@lucide/vue'
 
 import { useProfileMedia } from '@/composables/useProfileMedia'
-import { toast } from 'sonner'
-
+const isDesktop = useMediaQuery('(min-width: 640px)')
+const toastAlert = useToastAlert()
+const Modal = computed(() => ({
+  Root: isDesktop.value ? Dialog : Drawer,
+  Trigger: isDesktop.value ? DialogTrigger : DrawerTrigger,
+  Content: isDesktop.value ? DialogContent : DrawerContent,
+  Header: isDesktop.value ? DialogHeader : DrawerHeader,
+  Title: isDesktop.value ? DialogTitle : DrawerTitle,
+  Description: isDesktop.value ? DialogDescription : DrawerDescription,
+  Footer: isDesktop.value ? DialogFooter : DrawerFooter,
+  Close: isDesktop.value ? DialogClose : DrawerClose,
+}))
+const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 
 const props = defineProps<{
@@ -89,9 +81,9 @@ const onFileChange = async (event: Event) => {
     const file = target.files[0]
     try {
       await handleUpload(file, avatarSrc.value)
-      toast.success('Profile picture updated successfully')
+      toastAlert.success('Profile picture updated successfully')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload profile picture')
+      toastAlert.error(err.message || 'Failed to upload profile picture')
     }
   }
 }
