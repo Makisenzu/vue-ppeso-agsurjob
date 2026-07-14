@@ -22,6 +22,7 @@
 
   /* Custom */
   --button: oklch(58.862% 0.18554 139.497);
+  --buttonTwo: oklch(43.895% 0.12656 148.166);
 
   /* Surfaces */
   --background: oklch(1 0 0);
