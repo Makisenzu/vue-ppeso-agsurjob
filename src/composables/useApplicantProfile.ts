@@ -23,17 +23,20 @@ export function useApplicantProfile() {
   const socials = ref<any[]>([])
   const notifications = ref<any[]>([])
   const media = ref<any[]>([])
+  const requirements = ref<any[]>([])
 
   const hasExperiences = computed(() => experiences.value.length > 0)
   const hasSkills = computed(() => skills.value.length > 0)
   const hasSocials = computed(() => socials.value.length > 0)
   const hasNotifications = computed(() => notifications.value.length > 0)
   const hasMedia = computed(() => media.value.length > 0)
+  const hasRequirements = computed(() => requirements.value.length > 0)
 
   const displayExperiences = computed(() => experiences.value)
   const displaySkills = computed(() => skills.value.map((skill) => skill?.skill_name).filter(Boolean))
   const displayEducationLevel = computed(() => applicantData.value?.education_level || '')
   const displayCourse = computed(() => applicantData.value?.course || '')
+  const displayRequirements = computed(() => requirements.value.map((req) => req?.requirement_name).filter(Boolean))
 
   const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
   const displayName = computed(() => authStore.displayName)
@@ -67,7 +70,7 @@ export function useApplicantProfile() {
       socials.value = result.socials
       notifications.value = result.notifications
       media.value = result.media
-
+      requirements.value = result.requirements
     } catch (error) {
       console.error('Error fetching applicant data:', error)
     } finally {
@@ -111,5 +114,8 @@ export function useApplicantProfile() {
     socials,
     notifications,
     media,
+    requirements,
+    hasRequirements,
+    displayRequirements,
   }
 }

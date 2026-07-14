@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { useApplicantProfile } from '@/composables/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
-import { Check, X } from '@lucide/vue'
-import ProfileReadme from './ProfileReadme.vue'
-import ProfileExperience from './ProfileExperience.vue'
-import ProfileSkillsEducation from './ProfileSkillsEducation.vue'
-
+import { Check, X, FolderCode } from '@lucide/vue'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 
 import {
   Stepper,
@@ -18,7 +23,6 @@ import {
 } from '@/components/ui/stepper'
 
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
-import { h } from 'vue'
 
 const {
   files,
@@ -32,15 +36,11 @@ const {
   displayBio,
   displayJoinedDate,
   displayEmploymentStatus,
-  displayExperiences,
-  displaySkills,
-  displayEducationLevel,
-  displayCourse,
+  displayRequirements,
   
   is4ps,
   isPwd,
-  hasExperiences,
-  hasSkills,
+  hasRequirements,
   media,
 } = useApplicantProfile()
 </script>
@@ -127,9 +127,45 @@ const {
               </div>
             </StepperItem>
           </Stepper>
-          <div v-if="hasExperiences">
+          <Card v-if="hasRequirements" class="border-none shadow-sm">
+            <CardContent class="space-y-4 px-6 py-5">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-foreground">Uploaded Requirements</h3>
+                  <p class="text-xs text-muted-foreground mt-0.5">These are the requirements currently uploaded to your profile.</p>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit">
+                  {{ displayRequirements.length }} Uploaded
+                </span>
+              </div>
 
-          </div>
+              <ul class="grid gap-2 sm:grid-cols-2">
+                <li
+                  v-for="requirement in displayRequirements"
+                  :key="requirement"
+                  class="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <FolderCode class="size-4 text-muted-foreground" />
+                  <span class="truncate">{{ requirement }}</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Empty v-else>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FolderCode />
+              </EmptyMedia>
+            <EmptyTitle>No requirements uploaded yet</EmptyTitle>
+            <EmptyDescription>
+              Get started by uploading your required documents.
+            </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button>Upload requirements</Button>
+            </EmptyContent>
+          </Empty>
         </div>
 
         <!-- <ProfileReadme

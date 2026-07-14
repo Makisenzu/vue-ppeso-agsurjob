@@ -5,6 +5,7 @@ export type ApplicantProfileRecord = Tables<'profiles'>
 export type ApplicantRecord = Tables<'applicants'>
 export type ApplicantExperienceRecord = Tables<'applicant_experiences'>
 export type ApplicantSkillRecord = Tables<'applicant_skills'>
+export type ApplicantRequirementRecord = Tables<'applicant_requirements'>
 export type ProfileSocialRecord = Tables<'profile_socials'>
 export type ProfileNotificationRecord = Tables<'notifications'>
 export type ProfileMediaRecord = Tables<'profile_media'>
@@ -14,6 +15,7 @@ export interface ApplicantProfileResult {
   applicant: ApplicantRecord | null
   experiences: ApplicantExperienceRecord[]
   skills: ApplicantSkillRecord[]
+  requirements: ApplicantRequirementRecord[]
   socials: ProfileSocialRecord[]
   notifications: ProfileNotificationRecord[]
   media: ProfileMediaRecord[]
@@ -22,6 +24,7 @@ export interface ApplicantProfileResult {
   hasSocials: boolean
   hasNotifications: boolean
   hasMedia: boolean
+  hasRequirements: boolean
 }
 
 function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | null = null, applicant: ApplicantRecord | null = null): ApplicantProfileResult {
@@ -30,6 +33,7 @@ function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | nul
     applicant,
     experiences: [],
     skills: [],
+    requirements: [],
     socials: [],
     notifications: [],
     media: [],
@@ -38,6 +42,7 @@ function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | nul
     hasSocials: false,
     hasNotifications: false,
     hasMedia: false,
+    hasRequirements: false,
   }
 }
 
@@ -86,6 +91,16 @@ export async function hasProfileMediaEntries(profileId: string): Promise<boolean
     .from('profile_media')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
+
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function hasRequirementEntries(applicantId: number): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('applicant_requirements')
+    .select('id', { head: true, count: 'exact' })
+    .eq('applicant_id', applicantId)
 
   if (error) throw error
   return (count ?? 0) > 0
@@ -142,12 +157,18 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     .from('profile_media')
     .select('*')
     .eq('profile_id', profile.id)
+  
+  const { data: requirements } = await supabase
+    .from('applicant_requirements')
+    .select('*')
+    .eq('applicant_id', applicant.id)
 
   return {
     profile,
     applicant,
     experiences: experiences ?? [],
     skills: skills ?? [],
+    requirements: requirements ?? [],
     socials: socials ?? [],
     notifications: notifications ?? [],
     media: media ?? [],
@@ -156,6 +177,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     hasSocials: (socials?.length ?? 0) > 0,
     hasNotifications: (notifications?.length ?? 0) > 0,
     hasMedia: (media?.length ?? 0) > 0,
+    hasRequirements: (requirements?.length ?? 0) > 0,
   }
 }
 
