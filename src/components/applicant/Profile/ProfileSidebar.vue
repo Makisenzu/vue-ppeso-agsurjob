@@ -80,15 +80,15 @@ const props = defineProps<{
   media?: any[]
 }>()
 
-const { isUploading, handleUpload, getAvatarUrl } = useProfileMedia()
-
-const avatarUrl = computed(() => getAvatarUrl(props.displayName, props.media))
+const { isUploading, handleUpload, createAvatarSource } = useProfileMedia()
+const { avatarSrc } = createAvatarSource(() => props.displayName, () => props.media)
 
 const onFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
+    const file = target.files[0]
     try {
-      await handleUpload(target.files[0])
+      await handleUpload(file, avatarSrc.value)
       toast.success('Profile picture updated successfully')
     } catch (err: any) {
       toast.error(err.message || 'Failed to upload profile picture')
@@ -109,7 +109,7 @@ const profileShareUrl = computed(() => {
       <div class="w-full h-full rounded-full overflow-hidden border-[3px] border-border shadow-lg ring-4 ring-primary/5 relative">
         <Avatar class="w-full h-full rounded-none relative">
           <AvatarImage
-            :src="avatarUrl"
+            :src="avatarSrc"
             alt="Profile Picture"
             class="object-cover w-full h-full"
           />

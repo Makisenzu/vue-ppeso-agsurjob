@@ -1,8 +1,10 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, toValue, type MaybeRefOrGetter } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAuthStore } from '@/stores/auth'
 import { mediaService } from '@/services/mediaService'
 import type { ProfileMediaRow } from '@/services/mediaService'
+
+type AvatarMedia = (ProfileMediaRow & { public_url?: string }) | null | undefined
 
 export function useProfileMedia() {
   const store = useProfileStore()
@@ -11,6 +13,7 @@ export function useProfileMedia() {
 
   const isUploading = computed(() => store.isUploading)
   const profileMedia = computed(() => store.currentMedia)
+  const displayMedia = computed(() => store.previousMedia || store.currentMedia)
 
   watch(
     () => authStore.user?.id,
@@ -22,7 +25,7 @@ export function useProfileMedia() {
     { immediate: true }
   )
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, currentUrl?: string) => {
     const userId = authStore.user?.id
     if (!userId) {
       errorMsg.value = 'You must be logged in to upload a profile picture.'
@@ -32,26 +35,38 @@ export function useProfileMedia() {
     errorMsg.value = null
     
     try {
-      await store.uploadProfilePicture(userId, file)
+      const result = await store.uploadProfilePicture(userId, file, currentUrl)
+      return result
     } catch (err: any) {
       errorMsg.value = err.message || 'Failed to upload profile picture.'
       throw err
     }
   }
 
-  const getAvatarUrl = (displayName: string, initialMedia?: ProfileMediaRow[]) => {
-    // Priority 1: Store media (freshly uploaded or fetched on init)
-    if (profileMedia.value?.public_url) {
-      return profileMedia.value.public_url
+  const getAvatarUrl = (displayName: string, initialMedia?: AvatarMedia[] | AvatarMedia) => {
+    const mediaList = Array.isArray(initialMedia)
+      ? initialMedia
+      : initialMedia
+        ? [initialMedia]
+        : undefined
+
+    // Priority 1: Use display media (which keeps showing previous during upload)
+    if (displayMedia.value?.public_url) {
+      return displayMedia.value.public_url
     }
     
     // Priority 2: Media passed as a prop from the parent query
-    if (initialMedia && initialMedia.length > 0) {
-      const sortedMedia = [...initialMedia].sort((a, b) => 
+    if (mediaList && mediaList.length > 0) {
+      const sortedMedia = mediaList
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
       const latest = sortedMedia[0]
-      if (latest && latest.path) {
+      if (latest?.public_url) {
+        return latest.public_url
+      }
+      if (latest?.path) {
         return mediaService.getPublicUrl(latest.path)
       }
     }
@@ -60,11 +75,36 @@ export function useProfileMedia() {
     return `https://api.dicebear.com/7.x/initials/svg?seed=${displayName}&backgroundColor=09090b&fontFamily=Arial`
   }
 
+  const createAvatarSource = (
+    displayName: MaybeRefOrGetter<string>,
+    initialMedia?: MaybeRefOrGetter<AvatarMedia[] | AvatarMedia>
+  ) => {
+    const avatarUrl = computed(() => getAvatarUrl(toValue(displayName), toValue(initialMedia)))
+    const avatarSrc = ref(avatarUrl.value)
+
+    watch(
+      [avatarUrl, isUploading],
+      ([url, uploading]) => {
+        if (!uploading) {
+          avatarSrc.value = url
+        }
+      },
+      { immediate: true }
+    )
+
+    return {
+      avatarUrl,
+      avatarSrc,
+    }
+  }
+
   return {
     profileMedia,
+    displayMedia,
     isUploading,
     errorMsg,
     handleUpload,
-    getAvatarUrl
+    getAvatarUrl,
+    createAvatarSource
   }
 }

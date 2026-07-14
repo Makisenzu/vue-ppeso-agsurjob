@@ -30,15 +30,14 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { computed } from 'vue'
 import { useProfileMedia } from '@/composables/useProfileMedia'
 
 const route = useRoute()
 
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut, profileUsername } = useAuth()
-const { getAvatarUrl, profileMedia } = useProfileMedia()
-const avatarUrl = computed(() => getAvatarUrl(displayName.value, profileMedia.value ? [profileMedia.value] : undefined))
+const { createAvatarSource, profileMedia } = useProfileMedia()
+const { avatarSrc } = createAvatarSource(displayName, profileMedia)
 
 const activitySubItems = [
   { title: 'Job Applications', to: {name: 'application'}, icon: Inbox },
@@ -259,7 +258,7 @@ const jobHuntItems = [
                   :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
                 >
                   <Avatar class="size-8 rounded-lg shrink-0">
-                    <AvatarImage :src="avatarUrl" :alt="displayName" />
+                    <AvatarImage :src="avatarSrc" :alt="displayName" />
                     <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   
@@ -288,7 +287,7 @@ const jobHuntItems = [
               >
                 <div class="flex items-center gap-2 px-2 py-1.5 text-sm font-normal">
                   <Avatar class="size-8 rounded-lg shrink-0">
-                    <AvatarImage :src="avatarUrl" :alt="displayName" />
+                    <AvatarImage :src="avatarSrc" :alt="displayName" />
                     <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   
