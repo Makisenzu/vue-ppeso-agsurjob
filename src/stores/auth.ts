@@ -5,29 +5,40 @@ import { authService } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
+type ProfileSummary = Pick<
+  Database['public']['Tables']['profiles']['Row'],
+  | 'id'
+  | 'firstname'
+  | 'middlename'
+  | 'lastname'
+  | 'birthdate'
+  | 'region'
+  | 'province'
+  | 'geographic'
+  | 'barangay'
+  | 'contact_number'
+  | 'gender'
+  | 'status'
+  | 'is_pwd'
+  | 'is_4ps'
+  | 'role'
+  | 'username'
+>
+
+type ApplicantRow = Database['public']['Tables']['applicants']['Row']
+type EmployerRow = Database['public']['Tables']['employers']['Row']
+
 export const useAuthStore = defineStore('auth', () => {
 
   // ─── Session State ───
   const user = ref<User | null>(null)
   const session = ref<Session | null>(null)
-  const profile = ref<{
-    firstname: string | null
-    middlename: string | null
-    lastname: string | null
-    birthdate: string | null
-    region: string | null
-    province: string | null
-    geographic: string | null
-    barangay: string | null
-    contact_number: string | null
-    gender: string | null
-    status: string | null
-    is_pwd: boolean | null
-    is_4ps: boolean | null
-    role: Database["public"]["Enums"]["user_role"] | null
-    username: string | null
-  } | null>(null)
+  const profile = ref<ProfileSummary | null>(null)
+  const applicantProfile = ref<ApplicantRow | null>(null)
+  const employerProfile = ref<EmployerRow | null>(null)
+  const isHydrating = ref(false)
   const isInitialized = ref(false)
+  const isAuthListenerBound = ref(false)
   const selectedRole = ref<Database["public"]["Enums"]["user_role"] | null>(null)
 
   // ─── Signup State ───
@@ -113,31 +124,62 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function init() {
-    if (isInitialized.value) return
+  async function hydrateUserData(userId: string, force = false) {
+    const isAlreadyHydratedForUser = profile.value?.id === userId
+    if (!force && isAlreadyHydratedForUser) return
 
-    const { data: { session: currentSession } } = await supabase.auth.getSession()
+    isHydrating.value = true
+
+    try {
+      const data = await authService.fetchUserBundle(userId)
+      profile.value = data.profile
+      applicantProfile.value = data.applicant
+      employerProfile.value = data.employer
+    } catch (error) {
+      console.error('hydrateUserData error:', error)
+      profile.value = null
+      applicantProfile.value = null
+      employerProfile.value = null
+    } finally {
+      isHydrating.value = false
+    }
+  }
+
+  function clearSessionData() {
+    profile.value = null
+    applicantProfile.value = null
+    employerProfile.value = null
+  }
+
+  async function syncSessionData(currentSession: Session | null, forceHydrate = false) {
     session.value = currentSession
     user.value = currentSession?.user ?? null
 
-    if (currentSession?.user) {
-      await fetchProfile(currentSession.user.id)
+    if (!currentSession?.user) {
+      clearSessionData()
+      return
+    }
+
+    await hydrateUserData(currentSession.user.id, forceHydrate)
+  }
+
+  async function init(forceHydrate = false) {
+
+    const { data: { session: currentSession } } = await supabase.auth.getSession()
+    await syncSessionData(currentSession, forceHydrate)
+
+    if (isAuthListenerBound.value) {
+      isInitialized.value = true
+      return
     }
 
     // Listen for auth state changes (login/logout/token refresh)
     supabase.auth.onAuthStateChange(async (event, newSession) => {
-      session.value = newSession
-      user.value = newSession?.user ?? null
-
-      if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        await fetchProfile(newSession.user.id)
-      }
-
-      if (event === 'SIGNED_OUT') {
-        profile.value = null
-      }
+      const shouldForceHydrate = event === 'SIGNED_IN'
+      await syncSessionData(newSession, shouldForceHydrate)
     })
 
+    isAuthListenerBound.value = true
     isInitialized.value = true
   }
 
@@ -221,7 +263,7 @@ export const useAuthStore = defineStore('auth', () => {
         middlename: signupData.value.middlename,
         lastname: signupData.value.lastName,
         birthdate: signupData.value.birthdate,
-        gender: signupData.value.gender,
+        gender: signupData.value.gender as Database['public']['Enums']['gender_type'] | null,
         contact_number: signupData.value.contact_number,
         region: signupData.value.region,
         province: signupData.value.province,
@@ -234,12 +276,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Update the local profile state immediately so fetchProfile isn't strictly required
       profile.value = {
+        id: userId,
         role: roleToInsert,
         firstname: signupData.value.firstName,
         middlename: signupData.value.middlename,
         lastname: signupData.value.lastName,
         birthdate: signupData.value.birthdate,
-        gender: signupData.value.gender,
+        gender: signupData.value.gender as Database['public']['Enums']['gender_type'] | null,
         contact_number: signupData.value.contact_number,
         region: signupData.value.region,
         province: signupData.value.province,
@@ -265,6 +308,8 @@ export const useAuthStore = defineStore('auth', () => {
           expected_salary: applicantData.value.expected_salary ? Number(applicantData.value.expected_salary) : null,
           employment_status: applicantData.value.employment_status || null,
         })
+        applicantProfile.value = Array.isArray(insertApplicantResult) ? (insertApplicantResult[0] ?? null) : null
+        employerProfile.value = null
       } else if (roleToInsert === 'employer') {
         insertEmployerResult = await authService.insertEmployerData({
           profile_id: userId,
@@ -278,6 +323,8 @@ export const useAuthStore = defineStore('auth', () => {
           website: employerData.value.website || null,
           registration_number: employerData.value.registration_number || null,
         })
+        employerProfile.value = Array.isArray(insertEmployerResult) ? (insertEmployerResult[0] ?? null) : null
+        applicantProfile.value = null
       }
 
       return { result, insertApplicantResult, insertEmployerResult }
@@ -292,6 +339,9 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     session,
     profile,
+    applicantProfile,
+    employerProfile,
+    isHydrating,
     isInitialized,
     signupData,
     applicantData,
@@ -309,6 +359,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Actions
     init,
     fetchProfile,
+    hydrateUserData,
     updateStepOne, 
     clearSignupData,
     updateSignupFields,

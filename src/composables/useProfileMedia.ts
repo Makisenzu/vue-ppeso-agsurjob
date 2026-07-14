@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAuthStore } from '@/stores/auth'
 import { mediaService } from '@/services/mediaService'
@@ -12,12 +12,15 @@ export function useProfileMedia() {
   const isUploading = computed(() => store.isUploading)
   const profileMedia = computed(() => store.currentMedia)
 
-  onMounted(async () => {
-    const userId = authStore.user?.id
-    if (userId && !store.currentMedia) {
-      await store.fetchProfileMedia(userId)
-    }
-  })
+  watch(
+    () => authStore.user?.id,
+    async (userId) => {
+      if (userId && !store.currentMedia) {
+        await store.fetchProfileMedia(userId)
+      }
+    },
+    { immediate: true }
+  )
 
   const handleUpload = async (file: File) => {
     const userId = authStore.user?.id

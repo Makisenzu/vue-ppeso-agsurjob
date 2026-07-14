@@ -25,9 +25,12 @@ export const useProfileStore = defineStore('profile', {
             const publicUrl = mediaService.getPublicUrl(latest.path)
             this.currentMedia = { ...latest, public_url: publicUrl }
           }
+        } else {
+          this.currentMedia = null
         }
       } catch (error) {
         console.error('Fetch Profile Media Error:', error)
+        this.currentMedia = null
       } finally {
         this.isFetchingMedia = false
       }

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ChartSpline, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
-
 import {
   Sidebar,
   SidebarContent,
@@ -25,17 +24,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { Avatar, AvatarFallback} from '@/components/ui/avatar' 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar' 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { computed } from 'vue'
+import { useProfileMedia } from '@/composables/useProfileMedia'
 
 const route = useRoute()
 
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut, profileUsername } = useAuth()
+const { getAvatarUrl, profileMedia } = useProfileMedia()
+const avatarUrl = computed(() => getAvatarUrl(displayName.value, profileMedia.value ? [profileMedia.value] : undefined))
 
 const activitySubItems = [
   { title: 'Job Applications', to: {name: 'application'}, icon: Inbox },
@@ -256,6 +259,7 @@ const jobHuntItems = [
                   :class="state === 'collapsed' ? 'justify-center p-0' : 'justify-start px-2'"
                 >
                   <Avatar class="size-8 rounded-lg shrink-0">
+                    <AvatarImage :src="avatarUrl" :alt="displayName" />
                     <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   
@@ -284,6 +288,7 @@ const jobHuntItems = [
               >
                 <div class="flex items-center gap-2 px-2 py-1.5 text-sm font-normal">
                   <Avatar class="size-8 rounded-lg shrink-0">
+                    <AvatarImage :src="avatarUrl" :alt="displayName" />
                     <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
                   </Avatar>
                   

@@ -70,7 +70,7 @@ export function useLogin() {
       email: emailOrUsername.value.trim(),
       password: password.value,
     })
-    await authStore.init()
+    await authStore.init(true)
     router.push(getDashboardRoute(authStore.userRole))
   } catch (error: any) {
     loginError.value = error?.message || 'Invalid email or password.'
