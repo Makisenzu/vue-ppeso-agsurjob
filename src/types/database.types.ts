@@ -22,7 +22,6 @@ export type Database = {
           description: string | null
           filename: string | null
           id: number
-          media_type_id: number | null
           mime_type: string | null
           path: string | null
           size: number | null
@@ -35,7 +34,6 @@ export type Database = {
           description?: string | null
           filename?: string | null
           id?: number
-          media_type_id?: number | null
           mime_type?: string | null
           path?: string | null
           size?: number | null
@@ -48,7 +46,6 @@ export type Database = {
           description?: string | null
           filename?: string | null
           id?: number
-          media_type_id?: number | null
           mime_type?: string | null
           path?: string | null
           size?: number | null
@@ -60,13 +57,6 @@ export type Database = {
             columns: ["applicant_skill_id"]
             isOneToOne: false
             referencedRelation: "applicant_skills"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applicant_media_media_type_id_fkey"
-            columns: ["media_type_id"]
-            isOneToOne: false
-            referencedRelation: "media_type"
             referencedColumns: ["id"]
           },
         ]
@@ -756,24 +746,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      media_type: {
-        Row: {
-          description: string | null
-          id: number
-          type: string
-        }
-        Insert: {
-          description?: string | null
-          id?: number
-          type: string
-        }
-        Update: {
-          description?: string | null
-          id?: number
-          type?: string
-        }
-        Relationships: []
       }
       notifications: {
         Row: {
