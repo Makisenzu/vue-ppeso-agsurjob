@@ -57,8 +57,11 @@ import {
   Calendar,
   AtSign,
   Share2,
+  Upload,
 } from '@lucide/vue'
 
+import { useProfileMedia } from '@/composables/useProfileMedia'
+import { toast } from 'sonner'
 
 const containerRef = ref<HTMLElement | null>(null)
 
@@ -74,7 +77,24 @@ const props = defineProps<{
   employmentStatus: string
   is4ps: boolean
   isPwd: boolean
+  media?: any[]
 }>()
+
+const { isUploading, handleUpload, getAvatarUrl } = useProfileMedia()
+
+const avatarUrl = computed(() => getAvatarUrl(props.displayName, props.media))
+
+const onFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    try {
+      await handleUpload(target.files[0])
+      toast.success('Profile picture updated successfully')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload profile picture')
+    }
+  }
+}
 
 const profileShareUrl = computed(() => {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -85,17 +105,44 @@ const profileShareUrl = computed(() => {
 
 <template>
   <div class="flex flex-col space-y-5">
-    <div class="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-full lg:h-auto aspect-square mx-auto lg:mx-0">
-      <div class="w-full h-full rounded-full overflow-hidden border-[3px] border-border shadow-lg ring-4 ring-primary/5">
-        <Avatar class="w-full h-full rounded-none">
+    <div class="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-full lg:h-auto aspect-square mx-auto lg:mx-0 group/avatar">
+      <div class="w-full h-full rounded-full overflow-hidden border-[3px] border-border shadow-lg ring-4 ring-primary/5 relative">
+        <Avatar class="w-full h-full rounded-none relative">
           <AvatarImage
-            :src="`https://api.dicebear.com/7.x/initials/svg?seed=${props.displayName}&backgroundColor=09090b&fontFamily=Arial`"
+            :src="avatarUrl"
             alt="Profile Picture"
+            class="object-cover w-full h-full"
           />
           <AvatarFallback class="text-3xl font-semibold bg-primary text-primary-foreground">
             {{ props.userInitials }}
           </AvatarFallback>
+
+          <!-- Upload overlay wrapped inside Avatar component -->
+          <label 
+            for="avatar-upload" 
+            class="absolute inset-0 bg-black/50 hover:bg-black/70 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 cursor-pointer rounded-full z-20"
+          >
+            <div class="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white transition-all duration-200 shadow-inner">
+              <Upload class="w-6 h-6" />
+            </div>
+            <span class="text-xs text-white mt-2 font-medium tracking-wide">Upload Photo</span>
+          </label>
         </Avatar>
+
+        <input 
+          id="avatar-upload" 
+          type="file" 
+          accept="image/jpeg,image/png,image/webp" 
+          class="hidden" 
+          @change="onFileChange"
+          :disabled="isUploading"
+        />
+
+        <!-- Loading spinner over the entire container -->
+        <div v-if="isUploading" class="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-full flex flex-col items-center justify-center z-10">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="text-xs font-medium text-muted-foreground mt-2">Uploading...</span>
+        </div>
       </div>
     </div>
 
