@@ -151,6 +151,8 @@ export const useFileUploadStore = defineStore('file-upload', {
           current.state = 'error'
           current.errorMessage = message
         }
+
+        throw error
       } finally {
         scopeControllers.delete(docId)
       }

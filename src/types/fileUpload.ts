@@ -3,6 +3,7 @@ export type UploadState = 'pending' | 'uploading' | 'done' | 'error'
 export interface UploadDocumentDefinition {
   id: string
   label: string
+  requirementTemplateId?: number
   accept?: string
   allowedMimeTypes?: string[]
   maxSizeMB?: number
@@ -41,7 +42,7 @@ export type UploadExecutor = (
 ) => Promise<UploadExecutionResult | void>
 
 export interface ApplicantRequirementUploadExecutorOptions extends UploadExecutionOptions {
-  applicantId: number
+  profileId: string
   document: UploadDocumentDefinition
 }
 

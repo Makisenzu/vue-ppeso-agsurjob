@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      applicant_attachment_media: {
+      applicant_experiences: {
+        Row: {
+          company_name: string | null
+          description: string
+          end_date: string | null
+          id: number
+          job_title: string | null
+          profile_id: string | null
+          start_date: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          description: string
+          end_date?: string | null
+          id?: number
+          job_title?: string | null
+          profile_id?: string | null
+          start_date?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          description?: string
+          end_date?: string | null
+          id?: number
+          job_title?: string | null
+          profile_id?: string | null
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_experiences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_requirement_media: {
+        Row: {
+          alt_text: string | null
+          applicant_requirement_id: number | null
+          created_at: string
+          description: string | null
+          filename: string | null
+          id: number
+          mime_type: string | null
+          path: string | null
+          profiles_id: string | null
+          size: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          applicant_requirement_id?: number | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: number
+          mime_type?: string | null
+          path?: string | null
+          profiles_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          applicant_requirement_id?: number | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: number
+          mime_type?: string | null
+          path?: string | null
+          profiles_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_requirement_media_applicant_requirement_id_fkey"
+            columns: ["applicant_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "applicant_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_requirement_media_profiles_id_fkey"
+            columns: ["profiles_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_requirements: {
+        Row: {
+          created_at: string
+          id: number
+          profile_id: string | null
+          remarks: string | null
+          requirement_id: number | null
+          status: Database["public"]["Enums"]["status_type"] | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          profile_id?: string | null
+          remarks?: string | null
+          requirement_id?: number | null
+          status?: Database["public"]["Enums"]["status_type"] | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          profile_id?: string | null
+          remarks?: string | null
+          requirement_id?: number | null
+          status?: Database["public"]["Enums"]["status_type"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_requirements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_verification_requirements_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_skill_media: {
         Row: {
           alt_text: string | null
           applicant_skill_id: number | null
@@ -61,158 +198,31 @@ export type Database = {
           },
         ]
       }
-      applicant_experiences: {
-        Row: {
-          applicant_id: number | null
-          company_name: string | null
-          description: string
-          end_date: string | null
-          id: number
-          job_title: string | null
-          start_date: string | null
-        }
-        Insert: {
-          applicant_id?: number | null
-          company_name?: string | null
-          description: string
-          end_date?: string | null
-          id?: number
-          job_title?: string | null
-          start_date?: string | null
-        }
-        Update: {
-          applicant_id?: number | null
-          company_name?: string | null
-          description?: string
-          end_date?: string | null
-          id?: number
-          job_title?: string | null
-          start_date?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_experiences_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      applicant_requirement_media: {
-        Row: {
-          alt_text: string | null
-          applicant_requirement_id: number | null
-          created_at: string
-          description: string | null
-          filename: string | null
-          id: number
-          mime_type: string | null
-          path: string | null
-          size: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          alt_text?: string | null
-          applicant_requirement_id?: number | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          alt_text?: string | null
-          applicant_requirement_id?: number | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_requirement_media_applicant_requirement_id_fkey"
-            columns: ["applicant_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "applicant_requirements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      applicant_requirements: {
-        Row: {
-          applicant_id: number
-          created_at: string
-          id: number
-          remarks: string | null
-          requirement_id: number | null
-          status: Database["public"]["Enums"]["status_type"] | null
-        }
-        Insert: {
-          applicant_id: number
-          created_at?: string
-          id?: number
-          remarks?: string | null
-          requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-        }
-        Update: {
-          applicant_id?: number
-          created_at?: string
-          id?: number
-          remarks?: string | null
-          requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_verification_requirements_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applicant_verification_requirements_requirement_id_fkey"
-            columns: ["requirement_id"]
-            isOneToOne: false
-            referencedRelation: "requirement_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       applicant_skills: {
         Row: {
-          applicant_id: number
           id: number
+          profile_id: string | null
           skill_category: string
           skill_name: string
         }
         Insert: {
-          applicant_id: number
           id?: number
+          profile_id?: string | null
           skill_category: string
           skill_name: string
         }
         Update: {
-          applicant_id?: number
           id?: number
+          profile_id?: string | null
           skill_category?: string
           skill_name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "applicant_skills_applicant_id_fkey"
-            columns: ["applicant_id"]
+            foreignKeyName: "applicant_skills_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "applicants"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

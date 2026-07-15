@@ -16,16 +16,53 @@ export type ApplicantRequirementMediaInsert = TablesInsert<'applicant_requiremen
 export type RequirementTemplateRow = Tables<'requirement_templates'>
 
 function normalizeLabel(value: string) {
-  return value.trim().toLowerCase()
+  return value.trim().toLowerCase().replace(/[\s_-]+/g, '')
 }
 
 async function findRequirementTemplateId(document: UploadDocumentDefinition) {
+  if (document.requirementTemplateId) {
+    const { data: byConfiguredId, error: byConfiguredIdError } = await supabase
+      .from('requirement_templates')
+      .select('id, requirement_type')
+      .eq('id', document.requirementTemplateId)
+      .maybeSingle()
+
+    if (byConfiguredIdError) {
+      throw byConfiguredIdError
+    }
+
+    // If a configured ID was provided but not found, fall back to the
+    // name/type-based lookup below instead of throwing immediately. This
+    // allows the frontend to specify numeric IDs for convenience while
+    // still working when DB contents differ between environments.
+    if (!byConfiguredId?.id) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Requirement template ID ${document.requirementTemplateId} not found for ${document.label}, falling back to name lookup.`
+      )
+    }
+
+    if (byConfiguredId?.id) {
+      if (
+        byConfiguredId.requirement_type &&
+        byConfiguredId.requirement_type.toLowerCase() !== 'verification'
+      ) {
+        throw new Error(
+          `Requirement template ID ${document.requirementTemplateId} is not a verification template.`
+        )
+      }
+
+      return byConfiguredId.id
+    }
+  }
+
   const exactLabel = normalizeLabel(document.label)
   const exactId = normalizeLabel(document.id)
 
+  // Try exact name match first (case-insensitive)
   const { data: byName, error: byNameError } = await supabase
     .from('requirement_templates')
-    .select('id')
+    .select('id, name, requirement_type')
     .ilike('name', document.label)
     .maybeSingle()
 
@@ -37,20 +74,23 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     return byName.id
   }
 
-  const { data: byType, error: byTypeError } = await supabase
+  // Try wildcard/partial matches (e.g. 'Resume' -> 'Resume / CV')
+  const { data: wildcardMatches, error: wildcardError } = await supabase
     .from('requirement_templates')
-    .select('id')
-    .or(`name.ilike.${document.id},requirement_type.ilike.${document.id}`)
-    .maybeSingle()
+    .select('id, name, requirement_type')
+    .ilike('name', `%${document.label}%`)
 
-  if (byTypeError) {
-    throw byTypeError
+  if (wildcardError) {
+    throw wildcardError
   }
 
-  if (byType?.id) {
-    return byType.id
+  if (wildcardMatches && wildcardMatches.length > 0) {
+    // Prefer a verification-type template when available
+    const verificationMatch = wildcardMatches.find((t) => (t.requirement_type ?? '').toLowerCase() === 'verification')
+    return (verificationMatch ?? wildcardMatches[0]).id
   }
 
+  // As a last resort, fetch all templates and try normalized comparisons
   const { data: allTemplates, error: listError } = await supabase
     .from('requirement_templates')
     .select('id, name, requirement_type')
@@ -62,32 +102,69 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
   const matchedTemplate = (allTemplates ?? []).find((template) => {
     const templateName = normalizeLabel(template.name ?? '')
     const templateType = normalizeLabel(template.requirement_type ?? '')
-    return templateName === exactLabel || templateType === exactId
+
+    // allow partial and exact normalized matches
+    return (
+      templateName === exactLabel ||
+      templateName === exactId ||
+      templateType === exactLabel ||
+      templateType === exactId ||
+      templateName.includes(exactLabel) ||
+      exactLabel.includes(templateName)
+    )
   })
 
-  return matchedTemplate?.id ?? null
+  if (matchedTemplate?.id) {
+    return matchedTemplate.id
+  }
+
+  // As a last resort, create a verification-type requirement template so
+  // uploads for this label can proceed. This avoids blocking users when the
+  // templates table is missing an expected entry.
+  try {
+    const payload: RequirementTemplateRow | any = {
+      name: document.label,
+      requirement_type: 'verification',
+    }
+
+    const { data: created, error: createError } = await supabase
+      .from('requirement_templates')
+      .insert([payload])
+      .select()
+      .maybeSingle()
+
+    if (createError) {
+      // If creation fails, surface null so caller can handle the missing template
+      // as an explicit error.
+      // eslint-disable-next-line no-console
+      console.warn('Failed to create fallback requirement_template:', createError)
+      return null
+    }
+
+    // eslint-disable-next-line no-console
+    console.warn(`Created fallback requirement_template '${document.label}' with id ${created?.id}`)
+    return created?.id ?? null
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('Error creating fallback requirement template', err)
+    return null
+  }
 }
 
-async function findExistingApplicantRequirement(applicantId: number, requirementTemplateId: number | null, remarks: string) {
+async function findExistingApplicantRequirement(profileId: string, requirementTemplateId: number) {
   const query = supabase
     .from('applicant_requirements')
     .select('*')
-    .eq('applicant_id', applicantId)
+    .eq('profile_id', profileId)
 
-  if (requirementTemplateId !== null) {
-    const { data, error } = await query.eq('requirement_id', requirementTemplateId).maybeSingle()
-    if (error) throw error
-    return data ?? null
-  }
-
-  const { data, error } = await query.is('requirement_id', null).ilike('remarks', remarks).maybeSingle()
+  const { data, error } = await query.eq('requirement_id', requirementTemplateId).maybeSingle()
   if (error) throw error
   return data ?? null
 }
 
-async function createApplicantRequirement(applicantId: number, requirementTemplateId: number | null, remarks: string) {
+async function createApplicantRequirement(profileId: string, requirementTemplateId: number, remarks: string) {
   const payload: ApplicantRequirementInsert = {
-    applicant_id: applicantId,
+    profile_id: profileId,
     requirement_id: requirementTemplateId,
     remarks,
     status: 'pending',
@@ -124,11 +201,13 @@ async function findLatestRequirementMedia(applicantRequirementId: number) {
 
 async function saveApplicantRequirementMedia(
   applicantRequirementId: number,
+  profileId: string,
   file: File,
   storagePath: string
 ) {
   const payload: ApplicantRequirementMediaInsert = {
     applicant_requirement_id: applicantRequirementId,
+    profiles_id: profileId,
     filename: file.name,
     path: storagePath,
     mime_type: file.type,
@@ -172,41 +251,48 @@ async function removePreviousRequirementMedia(previousMedia: ApplicantRequiremen
 async function uploadApplicantRequirementDocument(
   options: ApplicantRequirementUploadExecutorOptions
 ): Promise<ApplicantRequirementUploadResult> {
-  const { applicantId, document, file, onProgress } = options
+  const { profileId, document, file, onProgress } = options
 
   onProgress(10)
 
   const requirementTemplateId = await findRequirementTemplateId(document)
+
+  if (!requirementTemplateId) {
+    throw new Error(`No requirement template matched for ${document.label}.`)
+  }
+
   onProgress(25)
 
-  const existingRequirement = await findExistingApplicantRequirement(
-    applicantId,
-    requirementTemplateId,
-    document.label
-  )
+  // Upload file to storage first (bucket: documents)
+  const storagePath = fileHelpers.generateUniquePath(profileId, file.name)
 
-  const applicantRequirement = existingRequirement ?? await createApplicantRequirement(
-    applicantId,
-    requirementTemplateId,
-    document.label
-  )
-
-  onProgress(40)
-
-  const previousMedia = await findLatestRequirementMedia(applicantRequirement.id)
-  const storagePath = fileHelpers.generateUniquePath(
-    String(applicantId),
-    file.name,
-    DOCUMENT_UPLOAD_BUCKET
-  )
-
-  await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).upload(storagePath, file, {
+  const { error: storageUploadError } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).upload(storagePath, file, {
     upsert: true,
   })
 
-  onProgress(75)
+  if (storageUploadError) {
+    throw storageUploadError
+  }
 
-  const mediaRecord = await saveApplicantRequirementMedia(applicantRequirement.id, file, storagePath)
+  onProgress(50)
+
+  // Ensure there is an applicant_requirements row for this profile + template
+  const existingRequirement = await findExistingApplicantRequirement(
+    profileId,
+    requirementTemplateId
+  )
+
+  const applicantRequirement = existingRequirement ?? await createApplicantRequirement(
+    profileId,
+    requirementTemplateId,
+    document.label
+  )
+
+  onProgress(65)
+
+  const previousMedia = await findLatestRequirementMedia(applicantRequirement.id)
+
+  const mediaRecord = await saveApplicantRequirementMedia(applicantRequirement.id, profileId, file, storagePath)
   const publicUrl = mediaService.getPublicUrl(storagePath, DOCUMENT_UPLOAD_BUCKET)
 
   await removePreviousRequirementMedia(previousMedia)

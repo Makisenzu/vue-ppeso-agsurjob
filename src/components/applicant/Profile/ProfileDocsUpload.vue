@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { CircleCheckIcon, Loader2Icon, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/useFileUpload'
@@ -53,16 +53,48 @@ const Modal = computed(() => ({
 
 const open = ref(false)
 const authStore = useAuthStore()
-const applicantId = computed(() => authStore.applicantProfile?.id ?? null)
+const profileId = computed(() => authStore.profile?.id ?? authStore.user?.id ?? null)
 const isSubmitting = ref(false)
 const submitError = ref('')
 
-const documents: UploadDocumentDefinition[] = [
-  { id: 'nsrp-form', label: 'NSRP Form' },
-  { id: 'application-form', label: 'Application Form' },
-  { id: 'resume', label: 'Resume' },
-  { id: 'birth-certificate', label: 'Birth Certificate' },
+import { supabase } from '@/lib/supabaseClient'
+
+const defaultDocuments: UploadDocumentDefinition[] = [
+  { id: 'nsrp-form', label: 'NSRP Form', requirementTemplateId: 2 },
+  { id: 'application-form', label: 'Application Form', requirementTemplateId: 3 },
+  { id: 'resume', label: 'Resume', requirementTemplateId: 1 },
+  { id: 'birth-certificate', label: 'Birth Certificate', requirementTemplateId: 4 },
 ]
+
+const documents = ref<UploadDocumentDefinition[]>([])
+
+async function loadVerificationTemplates() {
+  try {
+    const { data, error } = await supabase
+      .from('requirement_templates')
+      .select('id, name')
+      .eq('requirement_type', 'verification')
+
+    if (error) throw error
+
+    if (data && data.length > 0) {
+      documents.value = data.map((t: any) => ({
+        id: `template-${t.id}`,
+        label: t.name ?? `Requirement ${t.id}`,
+        requirementTemplateId: t.id,
+      }))
+    } else {
+      documents.value = defaultDocuments
+    }
+  } catch (err) {
+    // fallback to defaults on error
+    documents.value = defaultDocuments
+  }
+}
+
+onMounted(() => {
+  loadVerificationTemplates()
+})
 
 const mapAttachmentState = (state: UploadState): 'done' | 'idle' | 'uploading' | 'processing' | 'error' => {
   if (state === 'pending') {
@@ -82,10 +114,10 @@ const closeModal = () => {
 const submitDocuments = async () => {
   submitError.value = ''
 
-  const currentApplicantId = applicantId.value
+  const currentProfileId = profileId.value
 
-  if (!currentApplicantId) {
-    submitError.value = 'Applicant profile not found. Please refresh and try again.'
+  if (!currentProfileId) {
+    submitError.value = 'Profile not found. Please refresh and try again.'
     return
   }
 
@@ -93,13 +125,13 @@ const submitDocuments = async () => {
 
   try {
     const optionsByDocId = Object.fromEntries(
-      documents.map((document) => [
+      documents.value.map((document) => [
         document.id,
         {
           executor: async ({ file, signal, onProgress }: { file: File; signal?: AbortSignal; onProgress: (progress: number) => void }) =>
             applicantRequirementUploadService.uploadApplicantRequirementDocument({
               docId: document.id,
-              applicantId: currentApplicantId,
+              profileId: currentProfileId,
               document,
               file,
               signal,
@@ -175,7 +207,7 @@ const submitDocuments = async () => {
                   <span v-if="uploadedFiles[doc.id].state === 'pending'">
                     Ready to upload
                   </span>
-                  <span v-if="uploadedFiles[doc.id].state === 'uploading'">
+                  <span v-else-if="uploadedFiles[doc.id].state === 'uploading'">
                     Uploading... {{ uploadedFiles[doc.id].progress }}%
                   </span>
                   <span v-else-if="uploadedFiles[doc.id].state === 'done'">

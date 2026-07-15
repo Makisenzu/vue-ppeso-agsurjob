@@ -46,21 +46,21 @@ function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | nul
   }
 }
 
-export async function hasApplicantExperienceEntries(applicantId: number): Promise<boolean> {
+export async function hasApplicantExperienceEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
     .from('applicant_experiences')
     .select('id', { head: true, count: 'exact' })
-    .eq('applicant_id', applicantId)
+    .eq('profile_id', profileId)
 
   if (error) throw error
   return (count ?? 0) > 0
 }
 
-export async function hasApplicantSkillEntries(applicantId: number): Promise<boolean> {
+export async function hasApplicantSkillEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
     .from('applicant_skills')
     .select('id', { head: true, count: 'exact' })
-    .eq('applicant_id', applicantId)
+    .eq('profile_id', profileId)
 
   if (error) throw error
   return (count ?? 0) > 0
@@ -96,11 +96,11 @@ export async function hasProfileMediaEntries(profileId: string): Promise<boolean
   return (count ?? 0) > 0
 }
 
-export async function hasRequirementEntries(applicantId: number): Promise<boolean> {
+export async function hasRequirementEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
     .from('applicant_requirements')
     .select('id', { head: true, count: 'exact' })
-    .eq('applicant_id', applicantId)
+    .eq('profile_id', profileId)
 
   if (error) throw error
   return (count ?? 0) > 0
@@ -136,12 +136,12 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
   const { data: experiences } = await supabase
     .from('applicant_experiences')
     .select('*')
-    .eq('applicant_id', applicant.id)
+    .eq('profile_id', profile.id)
 
   const { data: skills } = await supabase
     .from('applicant_skills')
     .select('*')
-    .eq('applicant_id', applicant.id)
+    .eq('profile_id', profile.id)
 
   const { data: socials } = await supabase
     .from('profile_socials')
@@ -161,7 +161,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
   const { data: requirements } = await supabase
     .from('applicant_requirements')
     .select('*')
-    .eq('applicant_id', applicant.id)
+    .eq('profile_id', profile.id)
 
   return {
     profile,
