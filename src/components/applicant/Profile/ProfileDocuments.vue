@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { formatFileSize } from '@/helpers/uploadHelpers'
+import { formatFileSize, DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
+import { mediaService } from '@/services/mediaService'
 import {
   Attachment,
   AttachmentAction,
@@ -70,7 +71,31 @@ function getFileMeta(requirement: string) {
 
   const sizeLabel = size ? formatFileSize(Number(size)) : null
 
-  return { typeLabel, sizeLabel }
+  const path = match.path ?? null
+  const publicUrl = path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null
+
+  return { typeLabel, sizeLabel, filename, path, publicUrl }
+}
+
+function viewFile(requirement: string) {
+  const meta = getFileMeta(requirement)
+  if (meta?.publicUrl) {
+    window.open(meta.publicUrl, '_blank', 'noopener')
+  }
+}
+
+function downloadFile(requirement: string) {
+  const meta = getFileMeta(requirement)
+  if (!meta?.publicUrl) return
+
+  const a = document.createElement('a')
+  a.href = meta.publicUrl
+  a.download = meta.filename ?? ''
+  a.target = '_blank'
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 </script>
 
@@ -157,10 +182,10 @@ function getFileMeta(requirement: string) {
               </AttachmentDescription>
             </AttachmentContent>
             <AttachmentActions>
-              <AttachmentAction>
+              <AttachmentAction @click="viewFile(requirement)">
                 <Eye class="size-4 text-muted-foreground" />
               </AttachmentAction>
-              <AttachmentAction>
+              <AttachmentAction @click="downloadFile(requirement)">
                 <Download class="size-4 text-muted-foreground" />
               </AttachmentAction>
             </AttachmentActions>
