@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { authService } from '@/services/authService'
+import { authService, type UserBundleData } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
@@ -27,6 +27,70 @@ type ProfileSummary = Pick<
 
 type ApplicantRow = Database['public']['Tables']['applicants']['Row']
 type EmployerRow = Database['public']['Tables']['employers']['Row']
+type ApplicantExperienceRow = Database['public']['Tables']['applicant_experiences']['Row']
+type ApplicantSkillRow = Database['public']['Tables']['applicant_skills']['Row']
+type ApplicantRequirementRow = Database['public']['Tables']['applicant_requirements']['Row']
+type ApplicantRequirementMediaRow = Database['public']['Tables']['applicant_requirement_media']['Row']
+type ProfileMediaRow = Database['public']['Tables']['profile_media']['Row']
+
+type CachedUserBundle = UserBundleData & {
+  userId: string
+  cachedAt: string
+}
+
+const USER_BUNDLE_CACHE_PREFIX = 'vue-agsurjobs:user-bundle'
+
+function getBundleCacheKey(userId: string) {
+  return `${USER_BUNDLE_CACHE_PREFIX}:${userId}`
+}
+
+function readBundleCache(userId: string): CachedUserBundle | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.localStorage.getItem(getBundleCacheKey(userId))
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as CachedUserBundle
+    if (!parsed?.profile || parsed.userId !== userId) return null
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeBundleCache(userId: string, bundle: UserBundleData) {
+  if (typeof window === 'undefined') return
+
+  const cachedBundle: CachedUserBundle = {
+    ...bundle,
+    userId,
+    cachedAt: new Date().toISOString(),
+  }
+
+  window.localStorage.setItem(getBundleCacheKey(userId), JSON.stringify(cachedBundle))
+}
+
+function clearBundleCache(userId?: string | null) {
+  if (typeof window === 'undefined') return
+
+  if (userId) {
+    window.localStorage.removeItem(getBundleCacheKey(userId))
+    return
+  }
+
+  const keysToRemove: string[] = []
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index)
+    if (key?.startsWith(USER_BUNDLE_CACHE_PREFIX)) {
+      keysToRemove.push(key)
+    }
+  }
+
+  keysToRemove.forEach((key) => window.localStorage.removeItem(key))
+}
 
 export const useAuthStore = defineStore('auth', () => {
 
@@ -36,6 +100,12 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<ProfileSummary | null>(null)
   const applicantProfile = ref<ApplicantRow | null>(null)
   const employerProfile = ref<EmployerRow | null>(null)
+  const applicantExperiences = ref<ApplicantExperienceRow[]>([])
+  const applicantSkills = ref<ApplicantSkillRow[]>([])
+  const applicantRequirements = ref<ApplicantRequirementRow[]>([])
+  const applicantRequirementMedia = ref<ApplicantRequirementMediaRow[]>([])
+  const profileMedia = ref<ProfileMediaRow[]>([])
+  const userBundle = ref<UserBundleData | null>(null)
   const isHydrating = ref(false)
   const isInitialized = ref(false)
   const isAuthListenerBound = ref(false)
@@ -125,38 +195,84 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function hydrateUserData(userId: string, force = false) {
-    const isAlreadyHydratedForUser = profile.value?.id === userId
+    const isAlreadyHydratedForUser = profile.value?.id === userId && userBundle.value?.profile?.id === userId
     if (!force && isAlreadyHydratedForUser) return
+
+    if (!force) {
+      const cachedBundle = readBundleCache(userId)
+      if (cachedBundle) {
+        userBundle.value = {
+          profile: cachedBundle.profile,
+          applicant: cachedBundle.applicant,
+          employer: cachedBundle.employer,
+          experiences: cachedBundle.experiences ?? [],
+          skills: cachedBundle.skills ?? [],
+          requirements: cachedBundle.requirements ?? [],
+          requirementMedia: cachedBundle.requirementMedia ?? [],
+          profileMedia: cachedBundle.profileMedia ?? [],
+        }
+        profile.value = cachedBundle.profile
+        applicantProfile.value = cachedBundle.applicant
+        employerProfile.value = cachedBundle.employer
+        applicantExperiences.value = cachedBundle.experiences ?? []
+        applicantSkills.value = cachedBundle.skills ?? []
+        applicantRequirements.value = cachedBundle.requirements ?? []
+        applicantRequirementMedia.value = cachedBundle.requirementMedia ?? []
+        profileMedia.value = cachedBundle.profileMedia ?? []
+        return
+      }
+    }
 
     isHydrating.value = true
 
     try {
       const data = await authService.fetchUserBundle(userId)
+      userBundle.value = data
       profile.value = data.profile
       applicantProfile.value = data.applicant
       employerProfile.value = data.employer
+      applicantExperiences.value = data.experiences
+      applicantSkills.value = data.skills
+      applicantRequirements.value = data.requirements
+      applicantRequirementMedia.value = data.requirementMedia
+      profileMedia.value = data.profileMedia
+      writeBundleCache(userId, data)
     } catch (error) {
       console.error('hydrateUserData error:', error)
       profile.value = null
       applicantProfile.value = null
       employerProfile.value = null
+      applicantExperiences.value = []
+      applicantSkills.value = []
+      applicantRequirements.value = []
+      applicantRequirementMedia.value = []
+      profileMedia.value = []
+      userBundle.value = null
     } finally {
       isHydrating.value = false
     }
   }
 
-  function clearSessionData() {
+  function clearSessionData(userId?: string | null) {
+    clearBundleCache(userId ?? undefined)
     profile.value = null
     applicantProfile.value = null
     employerProfile.value = null
+    applicantExperiences.value = []
+    applicantSkills.value = []
+    applicantRequirements.value = []
+    applicantRequirementMedia.value = []
+    profileMedia.value = []
+    userBundle.value = null
   }
 
   async function syncSessionData(currentSession: Session | null, forceHydrate = false) {
+    const previousUserId = session.value?.user?.id ?? null
     session.value = currentSession
     user.value = currentSession?.user ?? null
 
     if (!currentSession?.user) {
-      clearSessionData()
+      clearSessionData(previousUserId)
       return
     }
 
@@ -341,6 +457,12 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     applicantProfile,
     employerProfile,
+    applicantExperiences,
+    applicantSkills,
+    applicantRequirements,
+    applicantRequirementMedia,
+    profileMedia,
+    userBundle,
     isHydrating,
     isInitialized,
     signupData,
@@ -360,6 +482,7 @@ export const useAuthStore = defineStore('auth', () => {
     init,
     fetchProfile,
     hydrateUserData,
+    clearSessionData,
     updateStepOne, 
     clearSignupData,
     updateSignupFields,

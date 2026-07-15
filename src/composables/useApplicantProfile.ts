@@ -7,6 +7,7 @@ import { fetchApplicantProfileByUsername } from '@/services/applicantProfileServ
 export function useApplicantProfile() {
   const authStore = useAuthStore()
   const route = useRoute()
+  const routeUsername = computed(() => String(route.params.username ?? '').trim())
 
   const files = ref<DocumentFile[]>([
     { name: 'NSRP Form', type: 'form', uploaded: false },
@@ -36,7 +37,12 @@ export function useApplicantProfile() {
   const displaySkills = computed(() => skills.value.map((skill) => skill?.skill_name).filter(Boolean))
   const displayEducationLevel = computed(() => applicantData.value?.education_level || '')
   const displayCourse = computed(() => applicantData.value?.course || '')
-  const displayRequirements = computed(() => requirements.value.map((req) => req?.requirement_name).filter(Boolean))
+  const displayRequirements = computed(() =>
+    requirements.value
+      .map((req) => req?.remarks || req?.requirement_id || req?.id)
+      .filter(Boolean)
+      .map((value) => String(value))
+  )
 
   const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
   const displayName = computed(() => authStore.displayName)
@@ -56,12 +62,27 @@ export function useApplicantProfile() {
   const is4ps = computed(() => fullProfileData.value?.is_4ps ?? false)
   const isPwd = computed(() => fullProfileData.value?.is_pwd ?? false)
 
+  function hydrateFromAuthStore() {
+    fullProfileData.value = authStore.profile
+    applicantData.value = authStore.applicantProfile
+    experiences.value = authStore.applicantExperiences
+    skills.value = authStore.applicantSkills
+    socials.value = []
+    notifications.value = []
+    media.value = authStore.profileMedia
+    requirements.value = authStore.applicantRequirements
+  }
+
   async function fetchApplicantProfile() {
     try {
       isLoading.value = true
 
-      const routeUsername = String(route.params.username ?? '')
-      const result = await fetchApplicantProfileByUsername(routeUsername)
+      if (routeUsername.value && routeUsername.value === authStore.username && authStore.profile) {
+        hydrateFromAuthStore()
+        return
+      }
+
+      const result = await fetchApplicantProfileByUsername(routeUsername.value)
 
       fullProfileData.value = result.profile
       applicantData.value = result.applicant

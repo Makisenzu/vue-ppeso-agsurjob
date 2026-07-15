@@ -58,13 +58,7 @@ const isSubmitting = ref(false)
 const submitError = ref('')
 
 import { supabase } from '@/lib/supabaseClient'
-
-const defaultDocuments: UploadDocumentDefinition[] = [
-  { id: 'nsrp-form', label: 'NSRP Form', requirementTemplateId: 2 },
-  { id: 'application-form', label: 'Application Form', requirementTemplateId: 3 },
-  { id: 'resume', label: 'Resume', requirementTemplateId: 1 },
-  { id: 'birth-certificate', label: 'Birth Certificate', requirementTemplateId: 4 },
-]
+import { toast } from 'sonner'
 
 const documents = ref<UploadDocumentDefinition[]>([])
 
@@ -83,12 +77,9 @@ async function loadVerificationTemplates() {
         label: t.name ?? `Requirement ${t.id}`,
         requirementTemplateId: t.id,
       }))
-    } else {
-      documents.value = defaultDocuments
     }
   } catch (err) {
-    // fallback to defaults on error
-    documents.value = defaultDocuments
+    toast.error('Failed to load verification templates. Please try again later.')
   }
 }
 
@@ -165,7 +156,7 @@ const submitDocuments = async () => {
           Upload Document
         </component>
         <component :is="Modal.Description">
-          Select a document to upload to your profile. Each upload is saved to your requirements.
+          Select a document to upload to your profile. Only PDF, DOC, and DOCX files are accepted.
         </component>
       </component>
 
