@@ -84,18 +84,27 @@ function viewFile(requirement: string) {
   }
 }
 
-function downloadFile(requirement: string) {
+async function downloadFile(requirement: string) {
   const meta = getFileMeta(requirement)
   if (!meta?.publicUrl) return
 
-  const a = document.createElement('a')
-  a.href = meta.publicUrl
-  a.download = meta.filename ?? ''
-  a.target = '_blank'
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  try {
+    const res = await fetch(meta.publicUrl)
+    if (!res.ok) throw new Error('Failed to fetch file')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = meta.filename ?? ''
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    // revoke after a short delay to ensure download started
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  } catch (err) {
+    // fallback to opening the file if fetch fails
+    if (meta.publicUrl) window.open(meta.publicUrl, '_blank', 'noopener')
+  }
 }
 </script>
 
