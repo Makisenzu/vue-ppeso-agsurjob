@@ -263,7 +263,6 @@ const submitDocuments = async () => {
 
     await submitUploads(optionsByDocId)
 
-    // Optimistically update auth store from uploadedFiles metadata so UI updates immediately
     try {
       const uploaded = uploadedFiles.value
       const toAddRequirements: any[] = []
@@ -274,7 +273,6 @@ const submitDocuments = async () => {
         if (!entry || entry.state !== 'done') continue
 
         const md: any = entry.metadata ?? {}
-        // Some executors return ids in top-level result; also check md
         const applicantRequirementId = md.applicantRequirementId ?? md.applicant_requirement_id ?? md.applicantRequirementId ?? md.applicantRequirementId ?? md.requirementTemplateId ?? null
         const mediaId = md.mediaId ?? md.media_id ?? md.mediaId ?? null
 
@@ -314,8 +312,6 @@ const submitDocuments = async () => {
       if (toAddRequirements.length) authStore.applicantRequirements = [...(authStore.applicantRequirements ?? []), ...toAddRequirements]
       if (toAddMedia.length) authStore.applicantRequirementMedia = [...(authStore.applicantRequirementMedia ?? []), ...toAddMedia]
     } catch (err) {
-      // ignore optimistic update errors
-      // eslint-disable-next-line no-console
       console.warn('Optimistic update failed after upload', err)
     }
 

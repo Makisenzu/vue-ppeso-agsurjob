@@ -99,10 +99,8 @@ async function downloadFile(requirement: string) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    // revoke after a short delay to ensure download started
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   } catch (err) {
-    // fallback to opening the file if fetch fails
     if (meta.publicUrl) window.open(meta.publicUrl, '_blank', 'noopener')
   }
 }
