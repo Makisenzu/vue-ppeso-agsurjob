@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { CircleCheckIcon, Loader2Icon, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
+import { useFileUpload } from '@/composables/useFileUpload'
+import { useAuthStore } from '@/stores/auth'
+import { applicantRequirementUploadService } from '@/services/applicantRequirementUploadService'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -34,6 +37,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
 } from '@/components/ui/attachment'
+import type { UploadDocumentDefinition, UploadState } from '@/types/fileUpload'
 
 const isDesktop = useMediaQuery('(min-width: 640px)')
 const Modal = computed(() => ({
@@ -48,106 +52,71 @@ const Modal = computed(() => ({
 }))
 
 const open = ref(false)
+const authStore = useAuthStore()
+const applicantId = computed(() => authStore.applicantProfile?.id ?? null)
+const isSubmitting = ref(false)
+const submitError = ref('')
 
-type UploadState = 'uploading' | 'done'
-
-interface UploadedDocument {
-  file: File
-  state: UploadState
-  progress: number
-  intervalId?: ReturnType<typeof setInterval>
-  timeoutId?: ReturnType<typeof setTimeout>
-}
-
-const uploadedFiles = ref<Record<string, UploadedDocument>>({})
-const inputResetKeys = ref<Record<string, number>>({})
-
-const documents = [
+const documents: UploadDocumentDefinition[] = [
   { id: 'nsrp-form', label: 'NSRP Form' },
   { id: 'application-form', label: 'Application Form' },
   { id: 'resume', label: 'Resume' },
   { id: 'birth-certificate', label: 'Birth Certificate' },
 ]
 
-const clearUpload = (docId: string, resetInput = true) => {
-  const currentUpload = uploadedFiles.value[docId]
-
-  if (currentUpload?.intervalId) {
-    clearInterval(currentUpload.intervalId)
+const mapAttachmentState = (state: UploadState): 'done' | 'idle' | 'uploading' | 'processing' | 'error' => {
+  if (state === 'pending') {
+    return 'idle'
   }
 
-  if (currentUpload?.timeoutId) {
-    clearTimeout(currentUpload.timeoutId)
-  }
-
-  delete uploadedFiles.value[docId]
-
-  if (resetInput) {
-    inputResetKeys.value[docId] = (inputResetKeys.value[docId] ?? 0) + 1
-  }
+  return state
 }
 
-const handleFileChange = (docId: string, event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
+const { uploadedFiles, inputResetKeys, handleFileChange, clearUpload, submitUploads, formatFileSize } =
+  useFileUpload('applicant-profile-documents')
 
-  if (!file) {
+const closeModal = () => {
+  open.value = false
+}
+
+const submitDocuments = async () => {
+  submitError.value = ''
+
+  const currentApplicantId = applicantId.value
+
+  if (!currentApplicantId) {
+    submitError.value = 'Applicant profile not found. Please refresh and try again.'
     return
   }
 
-  clearUpload(docId, false)
+  isSubmitting.value = true
 
-  uploadedFiles.value[docId] = {
-    file,
-    state: 'uploading',
-    progress: 0,
+  try {
+    const optionsByDocId = Object.fromEntries(
+      documents.map((document) => [
+        document.id,
+        {
+          executor: async ({ file, signal, onProgress }: { file: File; signal?: AbortSignal; onProgress: (progress: number) => void }) =>
+            applicantRequirementUploadService.uploadApplicantRequirementDocument({
+              docId: document.id,
+              applicantId: currentApplicantId,
+              document,
+              file,
+              signal,
+              onProgress,
+            }),
+        },
+      ])
+    )
+
+    await submitUploads(optionsByDocId)
+    closeModal()
+  } catch (error) {
+    submitError.value = error instanceof Error ? error.message : 'Failed to upload documents.'
+  } finally {
+    isSubmitting.value = false
   }
-
-  const intervalId = setInterval(() => {
-    const currentUpload = uploadedFiles.value[docId]
-    if (!currentUpload || currentUpload.state !== 'uploading') {
-      return
-    }
-
-    currentUpload.progress = Math.min(currentUpload.progress + 10, 90)
-  }, 180)
-
-  const timeoutId = setTimeout(() => {
-    const currentUpload = uploadedFiles.value[docId]
-    if (!currentUpload) {
-      return
-    }
-
-    currentUpload.state = 'done'
-    currentUpload.progress = 100
-
-    if (currentUpload.intervalId) {
-      clearInterval(currentUpload.intervalId)
-      currentUpload.intervalId = undefined
-    }
-  }, 1800)
-
-  uploadedFiles.value[docId].intervalId = intervalId
-  uploadedFiles.value[docId].timeoutId = timeoutId
 }
-
-const formatFileSize = (sizeInBytes: number) => {
-  if (sizeInBytes < 1024) {
-    return `${sizeInBytes} B`
-  }
-
-  if (sizeInBytes < 1024 * 1024) {
-    return `${(sizeInBytes / 1024).toFixed(2)} KB`
-  }
-
-  return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`
-}
-
-onBeforeUnmount(() => {
-  Object.keys(uploadedFiles.value).forEach((docId) => {
-    clearUpload(docId, false)
-  })
-})
 </script>
 
 <template>
@@ -164,9 +133,13 @@ onBeforeUnmount(() => {
           Upload Document
         </component>
         <component :is="Modal.Description">
-          Select a document to upload to your profile.
+          Select a document to upload to your profile. Each upload is saved to your requirements.
         </component>
       </component>
+
+      <p v-if="submitError" class="text-sm text-destructive">
+        {{ submitError }}
+      </p>
 
       <div class="space-y-4">
         <div v-for="doc in documents" :key="doc.id" class="grid w-full gap-1.5">
@@ -177,20 +150,21 @@ onBeforeUnmount(() => {
             :key="`${doc.id}-${inputResetKeys[doc.id] ?? 0}`"
             :id="doc.id"
             type="file"
-            accept=".pdf,.doc,.docx,.jpg,.png"
+            :accept="doc.accept ?? '.pdf,.doc,.docx,.jpg,.png'"
             class="w-full"
-            @change="handleFileChange(doc.id, $event)"
+            @change="handleFileChange(doc, $event)"
           />
 
           <div v-if="uploadedFiles[doc.id]" class="pt-1">
-            <Attachment :state="uploadedFiles[doc.id].state" class="w-full">
+            <Attachment :state="mapAttachmentState(uploadedFiles[doc.id].state)" class="w-full">
               <AttachmentMedia>
                 <Loader2Icon
                   v-if="uploadedFiles[doc.id].state === 'uploading'"
                   data-slot="spinner"
                   class="size-4 animate-spin"
                 />
-                <CircleCheckIcon v-else class="size-4 text-emerald-600" />
+                <CircleCheckIcon v-else-if="uploadedFiles[doc.id].state === 'done'" class="size-4 text-emerald-600" />
+                <XIcon v-else class="size-4 text-muted-foreground" />
               </AttachmentMedia>
 
               <AttachmentContent>
@@ -198,11 +172,17 @@ onBeforeUnmount(() => {
                   {{ uploadedFiles[doc.id].file.name }}
                 </AttachmentTitle>
                 <AttachmentDescription>
+                  <span v-if="uploadedFiles[doc.id].state === 'pending'">
+                    Ready to upload
+                  </span>
                   <span v-if="uploadedFiles[doc.id].state === 'uploading'">
                     Uploading... {{ uploadedFiles[doc.id].progress }}%
                   </span>
-                  <span v-else>
+                  <span v-else-if="uploadedFiles[doc.id].state === 'done'">
                     Uploaded • {{ formatFileSize(uploadedFiles[doc.id].file.size) }}
+                  </span>
+                  <span v-else>
+                    Upload failed
                   </span>
                 </AttachmentDescription>
               </AttachmentContent>
@@ -221,8 +201,8 @@ onBeforeUnmount(() => {
         :is="Modal.Footer"
         class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:space-x-0"
       >
-          <Button type="button" class="w-full bg-(--buttonTwo)">
-            Submit
+          <Button type="button" class="w-full bg-(--buttonTwo)" :disabled="isSubmitting" @click="submitDocuments">
+            {{ isSubmitting ? 'Uploading...' : 'Submit' }}
           </Button>
         <component :is="Modal.Close" as-child>
           <Button type="button" variant="outline" class="w-full">

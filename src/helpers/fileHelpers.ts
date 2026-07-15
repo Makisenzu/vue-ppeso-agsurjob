@@ -1,11 +1,12 @@
 export const fileHelpers = {
-  generateUniquePath(userId: string, filename: string) {
+  generateUniquePath(ownerId: string, filename: string, folder?: string) {
     const lastDotIndex = filename.lastIndexOf('.')
     const fileExt = lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1) : ''
     const nameWithoutExt = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename
     const cleanedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_')
     const timestamp = Date.now()
-    return `${userId}/${cleanedName}_${timestamp}.${fileExt}`
+    const safeFolder = folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : ''
+    return `${safeFolder}${ownerId}/${cleanedName}_${timestamp}.${fileExt}`
   },
   isValidImage(file: File, allowedTypes = ['image/jpeg', 'image/png', 'image/webp'], maxSizeMB = 2) {
     if (!allowedTypes.includes(file.type)) {
