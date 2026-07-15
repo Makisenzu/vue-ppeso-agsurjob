@@ -9,12 +9,12 @@ export function useApplicantProfile() {
   const route = useRoute()
   const routeUsername = computed(() => String(route.params.username ?? '').trim())
 
-  const files = ref<DocumentFile[]>([
+  const requiredFiles: DocumentFile[] = [
     { name: 'NSRP Form', type: 'form', uploaded: false },
     { name: 'Application Form', type: 'application', uploaded: false },
     { name: 'Resume', type: 'resume', uploaded: false },
     { name: 'Birth Certificate', type: 'certificate', uploaded: false },
-  ])
+  ]
 
   const isLoading = ref(true)
   const fullProfileData = ref<any>(null)
@@ -33,6 +33,47 @@ export function useApplicantProfile() {
   const hasNotifications = computed(() => notifications.value.length > 0)
   const hasMedia = computed(() => media.value.length > 0)
   const hasRequirements = computed(() => requirementMedia.value.length > 0 || requirements.value.length > 0)
+
+  function normalizeRequirement(value: string) {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+  }
+
+  function isRequirementMet(fileName: string) {
+    const normalizedFileName = normalizeRequirement(fileName)
+
+    if (!normalizedFileName) return false
+
+    const uploadedRequirementNames = requirementMedia.value
+      .map((item) => String(item?.filename ?? '').trim())
+      .filter(Boolean)
+
+    if (uploadedRequirementNames.some((name) => normalizeRequirement(name) === normalizedFileName)) {
+      return true
+    }
+
+    return requirements.value.some((item) => {
+      const requirementLabel = String(item?.filename ?? item?.remarks ?? item?.requirement_id ?? item?.id ?? '')
+      const normalizedRequirementLabel = normalizeRequirement(requirementLabel)
+
+      if (!normalizedRequirementLabel) return false
+
+      return (
+        normalizedRequirementLabel === normalizedFileName ||
+        normalizedRequirementLabel.includes(normalizedFileName) ||
+        normalizedFileName.includes(normalizedRequirementLabel)
+      )
+    })
+  }
+
+  const files = computed<DocumentFile[]>(() =>
+    requiredFiles.map((file) => ({
+      ...file,
+      uploaded: isRequirementMet(file.name),
+    }))
+  )
 
   const displayExperiences = computed(() => experiences.value)
   const displaySkills = computed(() => skills.value.map((skill) => skill?.skill_name).filter(Boolean))
