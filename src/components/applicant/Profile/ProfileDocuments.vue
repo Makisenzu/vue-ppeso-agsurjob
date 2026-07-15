@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Check, X, FolderUp } from '@lucide/vue'
+import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from '@/components/ui/attachment'
 
 import {
   Empty,
@@ -27,8 +35,6 @@ const props = defineProps<{
   requirements: string[]
   hasRequirements: boolean
 }>()
-
-const uploadedCount = computed(() => props.files.filter((file) => file.uploaded).length)
 </script>
 
 <template>
@@ -40,9 +46,6 @@ const uploadedCount = computed(() => props.files.filter((file) => file.uploaded)
           Please ensure all required documents are uploaded to verify your profile.
         </p>
       </div>
-      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit">
-        {{ uploadedCount }} / {{ files.length }} Uploaded
-      </span>
     </div>
 
     <Stepper class="flex w-full items-start gap-2 overflow-x-auto pb-2">
@@ -88,32 +91,39 @@ const uploadedCount = computed(() => props.files.filter((file) => file.uploaded)
       </StepperItem>
     </Stepper>
 
-    <Card v-if="hasRequirements" class="border-none shadow-sm">
-      <CardContent class="space-y-4 px-6 py-5">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <h3 class="text-sm font-semibold text-foreground">Uploaded Requirements</h3>
-            <p class="text-xs text-muted-foreground mt-0.5">
-              These are the requirements currently uploaded to your profile.
-            </p>
+    <div v-if="hasRequirements" class="w-full md:max-w-[50%] space-y-6">
+      <Card class="ring-0! shadow-sm">
+        <CardContent class="space-y-4 px-6 py-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-semibold text-foreground">Uploaded Requirements</h3>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                These are the requirements currently uploaded to your profile.
+              </p>
+            </div>
+            <ProfileDocsUpload />
           </div>
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit">
-            {{ requirements.length }} Uploaded
-          </span>
-        </div>
+          <Attachment v-for="requirement in requirements" :key="requirement" class="w-full">
+            <AttachmentMedia>
+              <FileText class="size-4 text-muted-foreground" />
+            </AttachmentMedia>
 
-        <ul class="grid gap-2 sm:grid-cols-2">
-          <li
-            v-for="requirement in requirements"
-            :key="requirement"
-            class="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
-          >
-            <FolderUp class="size-4 text-muted-foreground" />
-            <span class="truncate">{{ requirement }}</span>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+            <AttachmentContent>
+              <AttachmentTitle>{{ requirement }}</AttachmentTitle>
+              <AttachmentDescription>Uploaded</AttachmentDescription>
+            </AttachmentContent>
+            <AttachmentActions>
+              <AttachmentAction>
+                <Eye class="size-4 text-muted-foreground" />
+              </AttachmentAction>
+              <AttachmentAction>
+                <Download class="size-4 text-muted-foreground" />
+              </AttachmentAction>
+            </AttachmentActions>
+          </Attachment>
+        </CardContent>
+      </Card>
+    </div>
 
     <Empty v-else class="border border-border/50 shadow-sm rounded-xl overflow-hidden bg-card">
       <EmptyHeader>

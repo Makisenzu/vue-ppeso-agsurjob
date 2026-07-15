@@ -53,7 +53,6 @@ const {
       </div>
 
       <div class="lg:col-span-9 space-y-6">
-
         <div class="space-y-4">
           <ProfileDocuments
             :files="files"
