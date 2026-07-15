@@ -262,14 +262,64 @@ const submitDocuments = async () => {
     )
 
     await submitUploads(optionsByDocId)
-    toastAlert.success('Documents uploaded successfully')
+
+    // Optimistically update auth store from uploadedFiles metadata so UI updates immediately
     try {
-      await authStore.hydrateUserData(currentProfileId, true)
-    } catch (refreshErr) {
-      // Non-fatal: log and continue
+      const uploaded = uploadedFiles.value
+      const toAddRequirements: any[] = []
+      const toAddMedia: any[] = []
+
+      for (const document of documents.value) {
+        const entry = uploaded[document.id]
+        if (!entry || entry.state !== 'done') continue
+
+        const md: any = entry.metadata ?? {}
+        // Some executors return ids in top-level result; also check md
+        const applicantRequirementId = md.applicantRequirementId ?? md.applicant_requirement_id ?? md.applicantRequirementId ?? md.applicantRequirementId ?? md.requirementTemplateId ?? null
+        const mediaId = md.mediaId ?? md.media_id ?? md.mediaId ?? null
+
+        if (applicantRequirementId) {
+          const exists = (authStore.applicantRequirements ?? []).some((r: any) => r.id === applicantRequirementId)
+          if (!exists) {
+            toAddRequirements.push({
+              id: applicantRequirementId,
+              profile_id: currentProfileId,
+              requirement_id: md.requirementTemplateId ?? null,
+              remarks: document.label,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+            })
+          }
+        }
+
+        if (mediaId) {
+          const existsM = (authStore.applicantRequirementMedia ?? []).some((m: any) => m.id === mediaId)
+          if (!existsM) {
+            toAddMedia.push({
+              id: mediaId,
+              filename: md.filename ?? entry.file.name,
+              path: md.storagePath ?? md.path ?? null,
+              mime_type: md.mime_type ?? entry.file.type,
+              size: md.size ?? entry.file.size,
+              alt_text: md.filename ?? entry.file.name,
+              description: document.label,
+              applicant_requirement_id: applicantRequirementId ?? null,
+              profiles_id: currentProfileId,
+              created_at: new Date().toISOString(),
+            })
+          }
+        }
+      }
+
+      if (toAddRequirements.length) authStore.applicantRequirements = [...(authStore.applicantRequirements ?? []), ...toAddRequirements]
+      if (toAddMedia.length) authStore.applicantRequirementMedia = [...(authStore.applicantRequirementMedia ?? []), ...toAddMedia]
+    } catch (err) {
+      // ignore optimistic update errors
       // eslint-disable-next-line no-console
-      console.error('Failed to refresh user data after document upload:', refreshErr)
+      console.warn('Optimistic update failed after upload', err)
     }
+
+    toastAlert.success('Documents uploaded successfully')
     closeModal()
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : 'Failed to upload documents.'

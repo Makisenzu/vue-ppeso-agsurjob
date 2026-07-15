@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { authService, type UserBundleData } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
@@ -298,6 +298,44 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthListenerBound.value = true
     isInitialized.value = true
   }
+
+  // Persist updated user bundle to cache whenever relevant pieces change
+  watch(
+    [
+      profile,
+      applicantProfile,
+      employerProfile,
+      applicantExperiences,
+      applicantSkills,
+      applicantRequirements,
+      applicantRequirementMedia,
+      profileMedia,
+    ],
+    () => {
+      const userId = profile.value?.id ?? user.value?.id ?? null
+      if (!userId) return
+
+      try {
+        const bundle: UserBundleData = {
+          profile: profile.value ?? null,
+          applicant: applicantProfile.value ?? null,
+          employer: employerProfile.value ?? null,
+          experiences: applicantExperiences.value ?? [],
+          skills: applicantSkills.value ?? [],
+          requirements: applicantRequirements.value ?? [],
+          requirementMedia: applicantRequirementMedia.value ?? [],
+          profileMedia: profileMedia.value ?? [],
+        }
+
+        writeBundleCache(userId, bundle)
+      } catch (err) {
+        // non-fatal
+        // eslint-disable-next-line no-console
+        console.warn('Failed to write bundle cache', err)
+      }
+    },
+    { deep: true }
+  )
 
   function updateSignupFields(fields: Partial<typeof signupData.value>) {
     signupData.value = { ...signupData.value, ...fields }

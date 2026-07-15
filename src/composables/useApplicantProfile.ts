@@ -143,14 +143,24 @@ export function useApplicantProfile() {
     }
   }
 
-  // Keep local requirement media in sync when viewing own profile
   watch(
     () => authStore.applicantRequirementMedia,
     (val) => {
-      if (routeUsername.value && routeUsername.value === authStore.username) {
+      if (!routeUsername.value || routeUsername.value === authStore.username) {
         requirementMedia.value = val ?? []
       }
-    }
+    },
+    { deep: true }
+  )
+
+  watch(
+    () => authStore.applicantRequirements,
+    (val) => {
+      if (!routeUsername.value || routeUsername.value === authStore.username) {
+        requirements.value = val ?? []
+      }
+    },
+    { deep: true }
   )
 
   onMounted(async () => {
