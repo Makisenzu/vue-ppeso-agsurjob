@@ -6,6 +6,7 @@ import { useFileUpload } from '@/composables/useFileUpload'
 import { useAuthStore } from '@/stores/auth'
 import { formatFileSize as formatBytes, DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
 import { mediaService } from '@/services/mediaService'
+import { useToastAlert } from '@/composables/useToastAlert'
 import { applicantRequirementUploadService } from '@/services/applicantRequirementUploadService'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,7 +53,7 @@ const Modal = computed(() => ({
   Footer: isDesktop.value ? DialogFooter : DrawerFooter,
   Close: isDesktop.value ? DialogClose : DrawerClose,
 }))
-
+const toastAlert = useToastAlert()
 const open = ref(false)
 const authStore = useAuthStore()
 const profileId = computed(() => authStore.profile?.id ?? authStore.user?.id ?? null)
@@ -65,7 +66,6 @@ const deleteTarget = ref<UploadDocumentDefinition | null>(null)
 const deleteTargetLabel = computed(() => deleteTarget.value?.label ?? '')
 
 import { supabase } from '@/lib/supabaseClient'
-import { toast } from 'sonner'
 
 const documents = ref<UploadDocumentDefinition[]>([])
 
@@ -151,14 +151,33 @@ async function confirmDelete() {
 
   isDeleting.value = true
   submitError.value = ''
-
   try {
-    await applicantRequirementUploadService.deleteApplicantRequirementDocument({
+    const result = await applicantRequirementUploadService.deleteApplicantRequirementDocument({
       profileId: profileId.value,
       document: deleteTarget.value,
     })
+    toastAlert.success('Document deleted successfully')
 
-    await authStore.hydrateUserData(profileId.value, true)
+    if (result?.deleted && result.applicantRequirementId) {
+      try {
+        authStore.applicantRequirements = (authStore.applicantRequirements ?? []).filter(
+          (r: any) => r.id !== result.applicantRequirementId
+        )
+
+        authStore.applicantRequirementMedia = (authStore.applicantRequirementMedia ?? []).filter(
+          (m: any) => m?.applicant_requirement_id !== result.applicantRequirementId
+        )
+      } catch (e) {
+        // ignore local update errors
+      }
+    }
+
+    // Refresh the full bundle to ensure consistency
+    try {
+      await authStore.hydrateUserData(profileId.value, true)
+    } catch (refreshErr) {
+    }
+
     deleteDialogOpen.value = false
     deleteTarget.value = null
   } catch (err) {
@@ -190,7 +209,7 @@ async function loadVerificationTemplates() {
       }))
     }
   } catch (err) {
-    toast.error('Failed to load verification templates. Please try again later.')
+    toastAlert.error('Failed to load verification templates. Please try again later.')
   }
 }
 
@@ -243,13 +262,13 @@ const submitDocuments = async () => {
     )
 
     await submitUploads(optionsByDocId)
-    // Refresh the cached user bundle so new requirement media shows immediately
+    toastAlert.success('Documents uploaded successfully')
     try {
       await authStore.hydrateUserData(currentProfileId, true)
     } catch (refreshErr) {
       // Non-fatal: log and continue
       // eslint-disable-next-line no-console
-      console.warn('Failed to refresh user bundle after upload', refreshErr)
+      console.error('Failed to refresh user data after document upload:', refreshErr)
     }
     closeModal()
   } catch (error) {
