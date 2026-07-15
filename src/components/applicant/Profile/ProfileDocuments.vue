@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
+import { useAuthStore } from '@/stores/auth'
+import { formatFileSize } from '@/helpers/uploadHelpers'
 import {
   Attachment,
   AttachmentAction,
@@ -35,6 +37,41 @@ const props = defineProps<{
   requirements: string[]
   hasRequirements: boolean
 }>()
+
+const authStore = useAuthStore()
+
+function getFileMeta(requirement: string) {
+  const mediaList = authStore.applicantRequirementMedia ?? []
+
+  const match = mediaList.find((m: any) => {
+    const fn = String(m?.filename ?? '')
+    if (!fn) return false
+    if (fn === requirement) return true
+    if (requirement.includes(fn)) return true
+    if (fn.includes(requirement)) return true
+    return false
+  })
+
+  if (!match) return null
+
+  const filename = String(match.filename ?? requirement)
+  const size = match.size ?? null
+
+  let typeLabel = ''
+  if (match.mime_type) {
+    const parts = String(match.mime_type).split('/')
+    if (parts.length > 1) typeLabel = parts[1].toUpperCase()
+  }
+
+  if (!typeLabel) {
+    const lastDot = filename.lastIndexOf('.')
+    if (lastDot !== -1) typeLabel = filename.slice(lastDot + 1).toUpperCase()
+  }
+
+  const sizeLabel = size ? formatFileSize(Number(size)) : null
+
+  return { typeLabel, sizeLabel }
+}
 </script>
 
 <template>
@@ -110,7 +147,14 @@ const props = defineProps<{
 
             <AttachmentContent>
               <AttachmentTitle>{{ requirement }}</AttachmentTitle>
-              <AttachmentDescription>Uploaded</AttachmentDescription>
+              <AttachmentDescription>
+                <span v-if="getFileMeta(requirement)">
+                  {{ getFileMeta(requirement)?.typeLabel }} · {{ getFileMeta(requirement)?.sizeLabel }}
+                </span>
+                <span v-else>
+                  Uploaded
+                </span>
+              </AttachmentDescription>
             </AttachmentContent>
             <AttachmentActions>
               <AttachmentAction>

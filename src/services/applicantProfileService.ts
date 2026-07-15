@@ -6,6 +6,7 @@ export type ApplicantRecord = Tables<'applicants'>
 export type ApplicantExperienceRecord = Tables<'applicant_experiences'>
 export type ApplicantSkillRecord = Tables<'applicant_skills'>
 export type ApplicantRequirementRecord = Tables<'applicant_requirements'>
+export type ApplicantRequirementMediaRecord = Tables<'applicant_requirement_media'>
 export type ProfileSocialRecord = Tables<'profile_socials'>
 export type ProfileNotificationRecord = Tables<'notifications'>
 export type ProfileMediaRecord = Tables<'profile_media'>
@@ -16,6 +17,7 @@ export interface ApplicantProfileResult {
   experiences: ApplicantExperienceRecord[]
   skills: ApplicantSkillRecord[]
   requirements: ApplicantRequirementRecord[]
+  requirementMedia: ApplicantRequirementMediaRecord[]
   socials: ProfileSocialRecord[]
   notifications: ProfileNotificationRecord[]
   media: ProfileMediaRecord[]
@@ -34,6 +36,7 @@ function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | nul
     experiences: [],
     skills: [],
     requirements: [],
+    requirementMedia: [],
     socials: [],
     notifications: [],
     media: [],
@@ -163,12 +166,19 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
     .select('*')
     .eq('profile_id', profile.id)
 
+  const { data: requirementMedia } = await supabase
+    .from('applicant_requirement_media')
+    .select('*')
+    .eq('profiles_id', profile.id)
+    .order('created_at', { ascending: false })
+
   return {
     profile,
     applicant,
     experiences: experiences ?? [],
     skills: skills ?? [],
     requirements: requirements ?? [],
+    requirementMedia: requirementMedia ?? [],
     socials: socials ?? [],
     notifications: notifications ?? [],
     media: media ?? [],

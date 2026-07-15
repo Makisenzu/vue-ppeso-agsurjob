@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
@@ -25,21 +25,22 @@ export function useApplicantProfile() {
   const notifications = ref<any[]>([])
   const media = ref<any[]>([])
   const requirements = ref<any[]>([])
+  const requirementMedia = ref<any[]>([])
 
   const hasExperiences = computed(() => experiences.value.length > 0)
   const hasSkills = computed(() => skills.value.length > 0)
   const hasSocials = computed(() => socials.value.length > 0)
   const hasNotifications = computed(() => notifications.value.length > 0)
   const hasMedia = computed(() => media.value.length > 0)
-  const hasRequirements = computed(() => requirements.value.length > 0)
+  const hasRequirements = computed(() => requirementMedia.value.length > 0 || requirements.value.length > 0)
 
   const displayExperiences = computed(() => experiences.value)
   const displaySkills = computed(() => skills.value.map((skill) => skill?.skill_name).filter(Boolean))
   const displayEducationLevel = computed(() => applicantData.value?.education_level || '')
   const displayCourse = computed(() => applicantData.value?.course || '')
   const displayRequirements = computed(() =>
-    requirements.value
-      .map((req) => req?.remarks || req?.requirement_id || req?.id)
+    (requirementMedia.value.length > 0 ? requirementMedia.value : requirements.value)
+      .map((item) => item?.filename || item?.remarks || item?.requirement_id || item?.id)
       .filter(Boolean)
       .map((value) => String(value))
   )
@@ -71,6 +72,7 @@ export function useApplicantProfile() {
     notifications.value = []
     media.value = authStore.profileMedia
     requirements.value = authStore.applicantRequirements
+    requirementMedia.value = authStore.applicantRequirementMedia ?? []
   }
 
   async function fetchApplicantProfile() {
@@ -92,12 +94,23 @@ export function useApplicantProfile() {
       notifications.value = result.notifications
       media.value = result.media
       requirements.value = result.requirements
+      requirementMedia.value = result.requirementMedia ?? []
     } catch (error) {
       console.error('Error fetching applicant data:', error)
     } finally {
       isLoading.value = false
     }
   }
+
+  // Keep local requirement media in sync when viewing own profile
+  watch(
+    () => authStore.applicantRequirementMedia,
+    (val) => {
+      if (routeUsername.value && routeUsername.value === authStore.username) {
+        requirementMedia.value = val ?? []
+      }
+    }
+  )
 
   onMounted(async () => {
     await authStore.init()

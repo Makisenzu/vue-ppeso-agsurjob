@@ -133,6 +133,14 @@ const submitDocuments = async () => {
     )
 
     await submitUploads(optionsByDocId)
+    // Refresh the cached user bundle so new requirement media shows immediately
+    try {
+      await authStore.hydrateUserData(currentProfileId, true)
+    } catch (refreshErr) {
+      // Non-fatal: log and continue
+      // eslint-disable-next-line no-console
+      console.warn('Failed to refresh user bundle after upload', refreshErr)
+    }
     closeModal()
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : 'Failed to upload documents.'
