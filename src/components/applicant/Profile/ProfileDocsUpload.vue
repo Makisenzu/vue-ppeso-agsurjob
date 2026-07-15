@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
-import { CircleCheckIcon, Loader2Icon, XIcon } from '@lucide/vue'
+import { CircleCheckIcon, Eye, Loader2Icon, Trash2, Upload, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { useAuthStore } from '@/stores/auth'
+import { formatFileSize as formatBytes, DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
+import { mediaService } from '@/services/mediaService'
 import { applicantRequirementUploadService } from '@/services/applicantRequirementUploadService'
 import { Button } from '@/components/ui/button'
 import {
@@ -55,12 +57,121 @@ const open = ref(false)
 const authStore = useAuthStore()
 const profileId = computed(() => authStore.profile?.id ?? authStore.user?.id ?? null)
 const isSubmitting = ref(false)
+const isDeleting = ref(false)
 const submitError = ref('')
+
+const deleteDialogOpen = ref(false)
+const deleteTarget = ref<UploadDocumentDefinition | null>(null)
+const deleteTargetLabel = computed(() => deleteTarget.value?.label ?? '')
 
 import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'sonner'
 
 const documents = ref<UploadDocumentDefinition[]>([])
+
+function normalizeLabel(value: string) {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function getExistingRequirementMedia(documentLabel: string) {
+  const normalizedDocumentLabel = normalizeLabel(documentLabel)
+  if (!normalizedDocumentLabel) return null
+
+  const mediaList = authStore.applicantRequirementMedia ?? []
+  const requirementRows = authStore.applicantRequirements ?? []
+
+  const matchedRequirement = requirementRows.find((requirement: any) => {
+    const requirementLabel = String(requirement?.remarks ?? requirement?.name ?? requirement?.title ?? requirement?.id ?? '')
+    const requirementTemplate = String(requirement?.requirement_id ?? '')
+    const normalizedRequirementLabel = normalizeLabel(requirementLabel)
+    const normalizedRequirementTemplate = normalizeLabel(requirementTemplate)
+
+    return (
+      normalizedRequirementLabel === normalizedDocumentLabel ||
+      normalizedRequirementLabel.includes(normalizedDocumentLabel) ||
+      normalizedDocumentLabel.includes(normalizedRequirementLabel) ||
+      normalizedRequirementTemplate === normalizedDocumentLabel
+    )
+  })
+
+  const matchedMedia = mediaList.find((media: any) => {
+    const filename = String(media?.filename ?? '')
+    const altText = String(media?.alt_text ?? '')
+    const description = String(media?.description ?? '')
+    const normalizedFilename = normalizeLabel(filename)
+    const normalizedAltText = normalizeLabel(altText)
+    const normalizedDescription = normalizeLabel(description)
+
+    return (
+      normalizedFilename === normalizedDocumentLabel ||
+      normalizedAltText === normalizedDocumentLabel ||
+      normalizedDescription === normalizedDocumentLabel ||
+      normalizedFilename.includes(normalizedDocumentLabel) ||
+      normalizedDocumentLabel.includes(normalizedFilename)
+    )
+  })
+
+  const chosenMedia = matchedMedia ?? (matchedRequirement ? mediaList.find((media: any) => media?.applicant_requirement_id === matchedRequirement.id) : null)
+
+  if (!chosenMedia) return null
+
+  const filename = String(chosenMedia.filename ?? documentLabel)
+  const size = chosenMedia.size ?? null
+  const path = chosenMedia.path ?? null
+  const publicUrl = path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null
+
+  return {
+    filename,
+    sizeLabel: size ? formatBytes(Number(size)) : null,
+    publicUrl,
+    path,
+  }
+}
+
+function viewFile(publicUrl?: string | null) {
+  if (!publicUrl) return
+  window.open(publicUrl, '_blank', 'noopener')
+}
+
+function promptDelete(doc: UploadDocumentDefinition) {
+  deleteTarget.value = doc
+  deleteDialogOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!profileId.value || !deleteTarget.value) {
+    submitError.value = 'Profile not found. Please refresh and try again.'
+    deleteDialogOpen.value = false
+    deleteTarget.value = null
+    return
+  }
+
+  isDeleting.value = true
+  submitError.value = ''
+
+  try {
+    await applicantRequirementUploadService.deleteApplicantRequirementDocument({
+      profileId: profileId.value,
+      document: deleteTarget.value,
+    })
+
+    await authStore.hydrateUserData(profileId.value, true)
+    deleteDialogOpen.value = false
+    deleteTarget.value = null
+  } catch (err) {
+    submitError.value = err instanceof Error ? err.message : 'Failed to delete document.'
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+function cancelDelete() {
+  deleteDialogOpen.value = false
+  deleteTarget.value = null
+}
 
 async function loadVerificationTemplates() {
   try {
@@ -111,7 +222,6 @@ const submitDocuments = async () => {
     submitError.value = 'Profile not found. Please refresh and try again.'
     return
   }
-
   isSubmitting.value = true
 
   try {
@@ -177,7 +287,37 @@ const submitDocuments = async () => {
           <Label :for="doc.id" class="text-sm font-medium leading-none">
             {{ doc.label }}
           </Label>
+
+          <div v-if="getExistingRequirementMedia(doc.label)" class="pt-1">
+            <Attachment state="done" class="w-full">
+              <AttachmentMedia>
+                <CircleCheckIcon class="size-4 text-emerald-600" />
+              </AttachmentMedia>
+
+              <AttachmentContent>
+                <AttachmentTitle>
+                  {{ getExistingRequirementMedia(doc.label)?.filename }}
+                </AttachmentTitle>
+                <AttachmentDescription>
+                  <span>
+                    Uploaded • {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}
+                  </span>
+                </AttachmentDescription>
+              </AttachmentContent>
+
+              <AttachmentActions>
+                <AttachmentAction @click="viewFile(getExistingRequirementMedia(doc.label)?.publicUrl)">
+                  <Eye class="size-4" />
+                </AttachmentAction>
+                <AttachmentAction :disabled="isDeleting" @click="promptDelete(doc)">
+                  <Trash2 class="size-4" />
+                </AttachmentAction>
+              </AttachmentActions>
+            </Attachment>
+          </div>
+
           <Input
+            v-else
             :key="`${doc.id}-${inputResetKeys[doc.id] ?? 0}`"
             :id="doc.id"
             type="file"
@@ -220,12 +360,33 @@ const submitDocuments = async () => {
 
               <AttachmentActions>
                 <AttachmentAction @click="clearUpload(doc.id)">
-                  <XIcon class="size-4" />
+                  <Upload v-if="uploadedFiles[doc.id].state !== 'done'" class="size-4" />
+                  <XIcon v-else class="size-4" />
                 </AttachmentAction>
               </AttachmentActions>
             </Attachment>
           </div>
         </div>
+
+        <!-- Delete confirmation dialog -->
+        <Dialog v-model:open="deleteDialogOpen">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete uploaded document</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{{ deleteTargetLabel }}"? This will remove the requirement record and its stored file.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="destructive" :disabled="isDeleting" @click="confirmDelete">
+                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+              </Button>
+              <DialogClose as-child>
+                <Button variant="outline" @click="cancelDelete">Cancel</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <component

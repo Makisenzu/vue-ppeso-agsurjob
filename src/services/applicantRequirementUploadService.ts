@@ -229,6 +229,81 @@ async function saveApplicantRequirementMedia(
   return data as ApplicantRequirementMediaRow
 }
 
+async function deleteApplicantRequirementDocument(
+  options: Pick<ApplicantRequirementUploadExecutorOptions, 'profileId' | 'document'>
+) {
+  const { profileId, document } = options
+  const requirementTemplateId = await findRequirementTemplateId(document)
+
+  if (!requirementTemplateId) {
+    throw new Error(`No requirement template matched for ${document.label}.`)
+  }
+
+  const { data: applicantRequirement, error: requirementError } = await supabase
+    .from('applicant_requirements')
+    .select('id')
+    .eq('profile_id', profileId)
+    .eq('requirement_id', requirementTemplateId)
+    .maybeSingle()
+
+  if (requirementError) {
+    throw requirementError
+  }
+
+  if (!applicantRequirement?.id) {
+    return {
+      deleted: false,
+      applicantRequirementId: null,
+      removedMediaCount: 0,
+    }
+  }
+
+  const { data: mediaRows, error: mediaError } = await supabase
+    .from('applicant_requirement_media')
+    .select('*')
+    .eq('applicant_requirement_id', applicantRequirement.id)
+
+  if (mediaError) {
+    throw mediaError
+  }
+
+  for (const mediaRow of mediaRows ?? []) {
+    if (mediaRow.path) {
+      try {
+        await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).remove([mediaRow.path])
+      } catch {
+        // ignore storage cleanup errors
+      }
+    }
+  }
+
+  if ((mediaRows ?? []).length > 0) {
+    const { error: deleteMediaError } = await supabase
+      .from('applicant_requirement_media')
+      .delete()
+      .eq('applicant_requirement_id', applicantRequirement.id)
+
+    if (deleteMediaError) {
+      throw deleteMediaError
+    }
+  }
+
+  const { error: deleteRequirementError } = await supabase
+    .from('applicant_requirements')
+    .delete()
+    .eq('id', applicantRequirement.id)
+
+  if (deleteRequirementError) {
+    throw deleteRequirementError
+  }
+
+  return {
+    deleted: true,
+    applicantRequirementId: applicantRequirement.id,
+    removedMediaCount: (mediaRows ?? []).length,
+  }
+}
+
 async function removePreviousRequirementMedia(previousMedia: ApplicantRequirementMediaRow | null) {
   if (!previousMedia) {
     return
@@ -314,4 +389,5 @@ async function uploadApplicantRequirementDocument(
 
 export const applicantRequirementUploadService = {
   uploadApplicantRequirementDocument,
+  deleteApplicantRequirementDocument,
 }
