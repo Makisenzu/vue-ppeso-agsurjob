@@ -108,9 +108,10 @@ const getLetterKey = (wordIndex: number, letterIndex: number) => `${wordIndex}-$
 const getGlobalLetterIndex = (wordIndex: number, letterIndex: number) => {
   let globalIndex = 0;
   for (let i = 0; i < wordIndex; i++) {
-    globalIndex += words.value[i].length;
+    const w = words.value[i] ?? '';
+    globalIndex += (w.length || 0);
   }
-  return globalIndex + letterIndex;
+  return globalIndex + (letterIndex ?? 0);
 };
 
 const setLetterRef = (el: HTMLElement | null, wordIndex: number, lIdx: number) => {
