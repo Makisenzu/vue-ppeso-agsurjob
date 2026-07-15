@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Check, X, FolderUp } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
+
 import {
   Empty,
   EmptyContent,
@@ -20,6 +20,7 @@ import {
   StepperDescription,
 } from '@/components/ui/stepper'
 import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
+import ProfileDocsUpload from './ProfileDocsUpload.vue'
 
 const props = defineProps<{
   files: DocumentFile[]
@@ -107,7 +108,7 @@ const uploadedCount = computed(() => props.files.filter((file) => file.uploaded)
             :key="requirement"
             class="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
           >
-            <FolderCode class="size-4 text-muted-foreground" />
+            <FolderUp class="size-4 text-muted-foreground" />
             <span class="truncate">{{ requirement }}</span>
           </li>
         </ul>
@@ -125,7 +126,7 @@ const uploadedCount = computed(() => props.files.filter((file) => file.uploaded)
         Get started by uploading your required documents.
       </EmptyDescription>
       <EmptyContent>
-        <Button class="bg-(--buttonTwo)">Upload requirements</Button>
+        <ProfileDocsUpload/>
       </EmptyContent>
     </Empty>
   </div>
