@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { formatFileSize, DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
-import { mediaService } from '@/services/mediaService'
+import { getRequirementMediaMeta } from '@/helpers/applicantRequirementDocuments'
 import {
   Attachment,
   AttachmentAction,
@@ -42,47 +41,11 @@ const props = defineProps<{
 const authStore = useAuthStore()
 
 function getFileMeta(requirement: string) {
-  const mediaList = authStore.applicantRequirementMedia ?? []
-  const requirementRows = authStore.applicantRequirements ?? []
-
-  const normalizedRequirement = String(requirement ?? '').trim().toLowerCase()
-
-  const matchedRequirement = requirementRows.find((row: any) => {
-    const rowLabel = String(row?.remarks ?? row?.name ?? row?.title ?? row?.id ?? '').trim().toLowerCase()
-    const rowRequirementId = String(row?.requirement_id ?? '').trim().toLowerCase()
-
-    return (
-      rowLabel === normalizedRequirement ||
-      rowRequirementId === normalizedRequirement
-    )
-  })
-
-  const match = matchedRequirement
-    ? mediaList.find((m: any) => String(m?.applicant_requirement_id ?? '') === String(matchedRequirement.id))
-    : mediaList.find((m: any) => String(m?.filename ?? '').trim().toLowerCase() === normalizedRequirement)
-
-  if (!match) return null
-
-  const filename = String(match.filename ?? requirement)
-  const size = match.size ?? null
-
-  let typeLabel = ''
-  if (match.mime_type) {
-    const parts = String(match.mime_type).split('/')
-    if (parts.length > 1) typeLabel = parts[1].toUpperCase()
-  }
-
-  if (!typeLabel) {
-    const lastDot = filename.lastIndexOf('.')
-    if (lastDot !== -1) typeLabel = filename.slice(lastDot + 1).toUpperCase()
-  }
-
-  const sizeLabel = size ? formatFileSize(Number(size)) : null
-
-  const path = match.path ?? null
-  const publicUrl = path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null
-
-  return { typeLabel, sizeLabel, filename, path, publicUrl }
+  return getRequirementMediaMeta(
+    requirement,
+    authStore.applicantRequirementMedia ?? [],
+    authStore.applicantRequirements ?? []
+  )
 }
 
 function viewFile(requirement: string) {
@@ -168,7 +131,7 @@ async function downloadFile(requirement: string) {
       </StepperItem>
     </Stepper>
 
-    <div v-if="hasRequirements" class="w-full md:max-w-[50%] space-y-6">
+    <div v-if="hasRequirements" class="w-full space-y-6">
       <Card class="ring-0! shadow-sm">
         <CardContent class="space-y-4 px-6 py-5">
           <div class="flex items-center justify-between gap-3">

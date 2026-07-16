@@ -3,6 +3,10 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
 import { fetchApplicantProfileByUsername } from '@/services/applicantProfileService'
+import {
+  getRequirementDisplayLabel,
+  isRequirementUploaded,
+} from '@/helpers/applicantRequirementDocuments'
 
 export function useApplicantProfile() {
   const authStore = useAuthStore()
@@ -34,38 +38,8 @@ export function useApplicantProfile() {
   const hasMedia = computed(() => media.value.length > 0)
   const hasRequirements = computed(() => requirementMedia.value.length > 0 || requirements.value.length > 0)
 
-  function normalizeRequirement(value: string) {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim()
-  }
-
   function isRequirementMet(fileName: string) {
-    const normalizedFileName = normalizeRequirement(fileName)
-
-    if (!normalizedFileName) return false
-
-    const uploadedRequirementNames = requirementMedia.value
-      .map((item) => String(item?.filename ?? '').trim())
-      .filter(Boolean)
-
-    if (uploadedRequirementNames.some((name) => normalizeRequirement(name) === normalizedFileName)) {
-      return true
-    }
-
-    return requirements.value.some((item) => {
-      const requirementLabel = String(item?.filename ?? item?.remarks ?? item?.requirement_id ?? item?.id ?? '')
-      const normalizedRequirementLabel = normalizeRequirement(requirementLabel)
-
-      if (!normalizedRequirementLabel) return false
-
-      return (
-        normalizedRequirementLabel === normalizedFileName ||
-        normalizedRequirementLabel.includes(normalizedFileName) ||
-        normalizedFileName.includes(normalizedRequirementLabel)
-      )
-    })
+    return isRequirementUploaded(fileName, requirementMedia.value, requirements.value)
   }
 
   const files = computed<DocumentFile[]>(() =>
@@ -81,7 +55,7 @@ export function useApplicantProfile() {
   const displayCourse = computed(() => applicantData.value?.course || '')
   const displayRequirements = computed(() =>
     (requirementMedia.value.length > 0 ? requirementMedia.value : requirements.value)
-      .map((item) => item?.filename || item?.remarks || item?.requirement_id || item?.id)
+      .map((item) => getRequirementDisplayLabel(item))
       .filter(Boolean)
       .map((value) => String(value))
   )

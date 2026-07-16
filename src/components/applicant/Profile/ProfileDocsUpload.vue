@@ -4,10 +4,9 @@ import { CircleCheckIcon, Eye, Loader2Icon, Trash2, Upload, XIcon } from '@lucid
 import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { useAuthStore } from '@/stores/auth'
-import { formatFileSize as formatBytes, DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
-import { mediaService } from '@/services/mediaService'
 import { useToastAlert } from '@/composables/useToastAlert'
 import { applicantRequirementUploadService } from '@/services/applicantRequirementUploadService'
+import { getRequirementMediaMeta } from '@/helpers/applicantRequirementDocuments'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -69,69 +68,12 @@ import { supabase } from '@/lib/supabaseClient'
 
 const documents = ref<UploadDocumentDefinition[]>([])
 
-function normalizeLabel(value: string) {
-  return String(value ?? '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-}
-
 function getExistingRequirementMedia(documentLabel: string) {
-  const normalizedDocumentLabel = normalizeLabel(documentLabel)
-  if (!normalizedDocumentLabel) return null
-
-  const mediaList = authStore.applicantRequirementMedia ?? []
-  const requirementRows = authStore.applicantRequirements ?? []
-
-  const exactRequirement = requirementRows.find((requirement: any) => {
-    return String(requirement?.requirement_id ?? '') === String(documentLabel)
-  })
-
-  const requirementByTemplateId = requirementRows.find((requirement: any) => {
-    return String(requirement?.requirement_id ?? '') === String(documentLabel) || String(requirement?.requirement_id ?? '') === String((documents.value.find((doc) => doc.label === documentLabel)?.requirementTemplateId ?? ''))
-  })
-
-  const chosenRequirement = requirementByTemplateId ?? exactRequirement ?? requirementRows.find((requirement: any) => {
-    const requirementLabel = String(requirement?.remarks ?? requirement?.name ?? requirement?.title ?? requirement?.id ?? '')
-    const normalizedRequirementLabel = normalizeLabel(requirementLabel)
-
-    return normalizedRequirementLabel === normalizedDocumentLabel
-  })
-
-  const exactMedia = chosenRequirement
-    ? mediaList.find((media: any) => String(media?.applicant_requirement_id ?? '') === String(chosenRequirement.id))
-    : null
-
-  const matchedMedia = exactMedia ?? mediaList.find((media: any) => {
-    const filename = String(media?.filename ?? '')
-    const altText = String(media?.alt_text ?? '')
-    const description = String(media?.description ?? '')
-    const normalizedFilename = normalizeLabel(filename)
-    const normalizedAltText = normalizeLabel(altText)
-    const normalizedDescription = normalizeLabel(description)
-
-    return (
-      normalizedFilename === normalizedDocumentLabel ||
-      normalizedAltText === normalizedDocumentLabel ||
-      normalizedDescription === normalizedDocumentLabel
-    )
-  })
-
-  const chosenMedia = matchedMedia ?? null
-
-  if (!chosenMedia) return null
-
-  const filename = String(chosenMedia.filename ?? documentLabel)
-  const size = chosenMedia.size ?? null
-  const path = chosenMedia.path ?? null
-  const publicUrl = path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null
-
-  return {
-    filename,
-    sizeLabel: size ? formatBytes(Number(size)) : null,
-    publicUrl,
-    path,
-  }
+  return getRequirementMediaMeta(
+    documentLabel,
+    authStore.applicantRequirementMedia ?? [],
+    authStore.applicantRequirements ?? []
+  )
 }
 
 function viewFile(publicUrl?: string | null) {
