@@ -43,15 +43,23 @@ const authStore = useAuthStore()
 
 function getFileMeta(requirement: string) {
   const mediaList = authStore.applicantRequirementMedia ?? []
+  const requirementRows = authStore.applicantRequirements ?? []
 
-  const match = mediaList.find((m: any) => {
-    const fn = String(m?.filename ?? '')
-    if (!fn) return false
-    if (fn === requirement) return true
-    if (requirement.includes(fn)) return true
-    if (fn.includes(requirement)) return true
-    return false
+  const normalizedRequirement = String(requirement ?? '').trim().toLowerCase()
+
+  const matchedRequirement = requirementRows.find((row: any) => {
+    const rowLabel = String(row?.remarks ?? row?.name ?? row?.title ?? row?.id ?? '').trim().toLowerCase()
+    const rowRequirementId = String(row?.requirement_id ?? '').trim().toLowerCase()
+
+    return (
+      rowLabel === normalizedRequirement ||
+      rowRequirementId === normalizedRequirement
+    )
   })
+
+  const match = matchedRequirement
+    ? mediaList.find((m: any) => String(m?.applicant_requirement_id ?? '') === String(matchedRequirement.id))
+    : mediaList.find((m: any) => String(m?.filename ?? '').trim().toLowerCase() === normalizedRequirement)
 
   if (!match) return null
 

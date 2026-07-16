@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { authService, type UserBundleData } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
@@ -32,65 +32,6 @@ type ApplicantSkillRow = Database['public']['Tables']['applicant_skills']['Row']
 type ApplicantRequirementRow = Database['public']['Tables']['applicant_requirements']['Row']
 type ApplicantRequirementMediaRow = Database['public']['Tables']['applicant_requirement_media']['Row']
 type ProfileMediaRow = Database['public']['Tables']['profile_media']['Row']
-
-type CachedUserBundle = UserBundleData & {
-  userId: string
-  cachedAt: string
-}
-
-const USER_BUNDLE_CACHE_PREFIX = 'vue-agsurjobs:user-bundle'
-
-function getBundleCacheKey(userId: string) {
-  return `${USER_BUNDLE_CACHE_PREFIX}:${userId}`
-}
-
-function readBundleCache(userId: string): CachedUserBundle | null {
-  if (typeof window === 'undefined') return null
-
-  try {
-    const raw = window.localStorage.getItem(getBundleCacheKey(userId))
-    if (!raw) return null
-
-    const parsed = JSON.parse(raw) as CachedUserBundle
-    if (!parsed?.profile || parsed.userId !== userId) return null
-
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-function writeBundleCache(userId: string, bundle: UserBundleData) {
-  if (typeof window === 'undefined') return
-
-  const cachedBundle: CachedUserBundle = {
-    ...bundle,
-    userId,
-    cachedAt: new Date().toISOString(),
-  }
-
-  window.localStorage.setItem(getBundleCacheKey(userId), JSON.stringify(cachedBundle))
-}
-
-function clearBundleCache(userId?: string | null) {
-  if (typeof window === 'undefined') return
-
-  if (userId) {
-    window.localStorage.removeItem(getBundleCacheKey(userId))
-    return
-  }
-
-  const keysToRemove: string[] = []
-
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index)
-    if (key?.startsWith(USER_BUNDLE_CACHE_PREFIX)) {
-      keysToRemove.push(key)
-    }
-  }
-
-  keysToRemove.forEach((key) => window.localStorage.removeItem(key))
-}
 
 export const useAuthStore = defineStore('auth', () => {
 
@@ -198,31 +139,6 @@ export const useAuthStore = defineStore('auth', () => {
     const isAlreadyHydratedForUser = profile.value?.id === userId && userBundle.value?.profile?.id === userId
     if (!force && isAlreadyHydratedForUser) return
 
-    if (!force) {
-      const cachedBundle = readBundleCache(userId)
-      if (cachedBundle) {
-        userBundle.value = {
-          profile: cachedBundle.profile,
-          applicant: cachedBundle.applicant,
-          employer: cachedBundle.employer,
-          experiences: cachedBundle.experiences ?? [],
-          skills: cachedBundle.skills ?? [],
-          requirements: cachedBundle.requirements ?? [],
-          requirementMedia: cachedBundle.requirementMedia ?? [],
-          profileMedia: cachedBundle.profileMedia ?? [],
-        }
-        profile.value = cachedBundle.profile
-        applicantProfile.value = cachedBundle.applicant
-        employerProfile.value = cachedBundle.employer
-        applicantExperiences.value = cachedBundle.experiences ?? []
-        applicantSkills.value = cachedBundle.skills ?? []
-        applicantRequirements.value = cachedBundle.requirements ?? []
-        applicantRequirementMedia.value = cachedBundle.requirementMedia ?? []
-        profileMedia.value = cachedBundle.profileMedia ?? []
-        return
-      }
-    }
-
     isHydrating.value = true
 
     try {
@@ -236,7 +152,6 @@ export const useAuthStore = defineStore('auth', () => {
       applicantRequirements.value = data.requirements
       applicantRequirementMedia.value = data.requirementMedia
       profileMedia.value = data.profileMedia
-      writeBundleCache(userId, data)
     } catch (error) {
       console.error('hydrateUserData error:', error)
       profile.value = null
@@ -253,8 +168,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function clearSessionData(userId?: string | null) {
-    clearBundleCache(userId ?? undefined)
+  function clearSessionData() {
     profile.value = null
     applicantProfile.value = null
     employerProfile.value = null
@@ -267,12 +181,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function syncSessionData(currentSession: Session | null, forceHydrate = false) {
-    const previousUserId = session.value?.user?.id ?? null
     session.value = currentSession
     user.value = currentSession?.user ?? null
 
     if (!currentSession?.user) {
-      clearSessionData(previousUserId)
+      clearSessionData()
       return
     }
 
@@ -298,44 +211,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthListenerBound.value = true
     isInitialized.value = true
   }
-
-  // Persist updated user bundle to cache whenever relevant pieces change
-  watch(
-    [
-      profile,
-      applicantProfile,
-      employerProfile,
-      applicantExperiences,
-      applicantSkills,
-      applicantRequirements,
-      applicantRequirementMedia,
-      profileMedia,
-    ],
-    () => {
-      const userId = profile.value?.id ?? user.value?.id ?? null
-      if (!userId) return
-
-      try {
-        const bundle: UserBundleData = {
-          profile: profile.value ?? null,
-          applicant: applicantProfile.value ?? null,
-          employer: employerProfile.value ?? null,
-          experiences: applicantExperiences.value ?? [],
-          skills: applicantSkills.value ?? [],
-          requirements: applicantRequirements.value ?? [],
-          requirementMedia: applicantRequirementMedia.value ?? [],
-          profileMedia: profileMedia.value ?? [],
-        }
-
-        writeBundleCache(userId, bundle)
-      } catch (err) {
-        // non-fatal
-        // eslint-disable-next-line no-console
-        console.warn('Failed to write bundle cache', err)
-      }
-    },
-    { deep: true }
-  )
 
   function updateSignupFields(fields: Partial<typeof signupData.value>) {
     signupData.value = { ...signupData.value, ...fields }

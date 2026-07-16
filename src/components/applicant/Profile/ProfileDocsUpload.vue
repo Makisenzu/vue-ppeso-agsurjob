@@ -83,21 +83,26 @@ function getExistingRequirementMedia(documentLabel: string) {
   const mediaList = authStore.applicantRequirementMedia ?? []
   const requirementRows = authStore.applicantRequirements ?? []
 
-  const matchedRequirement = requirementRows.find((requirement: any) => {
-    const requirementLabel = String(requirement?.remarks ?? requirement?.name ?? requirement?.title ?? requirement?.id ?? '')
-    const requirementTemplate = String(requirement?.requirement_id ?? '')
-    const normalizedRequirementLabel = normalizeLabel(requirementLabel)
-    const normalizedRequirementTemplate = normalizeLabel(requirementTemplate)
-
-    return (
-      normalizedRequirementLabel === normalizedDocumentLabel ||
-      normalizedRequirementLabel.includes(normalizedDocumentLabel) ||
-      normalizedDocumentLabel.includes(normalizedRequirementLabel) ||
-      normalizedRequirementTemplate === normalizedDocumentLabel
-    )
+  const exactRequirement = requirementRows.find((requirement: any) => {
+    return String(requirement?.requirement_id ?? '') === String(documentLabel)
   })
 
-  const matchedMedia = mediaList.find((media: any) => {
+  const requirementByTemplateId = requirementRows.find((requirement: any) => {
+    return String(requirement?.requirement_id ?? '') === String(documentLabel) || String(requirement?.requirement_id ?? '') === String((documents.value.find((doc) => doc.label === documentLabel)?.requirementTemplateId ?? ''))
+  })
+
+  const chosenRequirement = requirementByTemplateId ?? exactRequirement ?? requirementRows.find((requirement: any) => {
+    const requirementLabel = String(requirement?.remarks ?? requirement?.name ?? requirement?.title ?? requirement?.id ?? '')
+    const normalizedRequirementLabel = normalizeLabel(requirementLabel)
+
+    return normalizedRequirementLabel === normalizedDocumentLabel
+  })
+
+  const exactMedia = chosenRequirement
+    ? mediaList.find((media: any) => String(media?.applicant_requirement_id ?? '') === String(chosenRequirement.id))
+    : null
+
+  const matchedMedia = exactMedia ?? mediaList.find((media: any) => {
     const filename = String(media?.filename ?? '')
     const altText = String(media?.alt_text ?? '')
     const description = String(media?.description ?? '')
@@ -108,13 +113,11 @@ function getExistingRequirementMedia(documentLabel: string) {
     return (
       normalizedFilename === normalizedDocumentLabel ||
       normalizedAltText === normalizedDocumentLabel ||
-      normalizedDescription === normalizedDocumentLabel ||
-      normalizedFilename.includes(normalizedDocumentLabel) ||
-      normalizedDocumentLabel.includes(normalizedFilename)
+      normalizedDescription === normalizedDocumentLabel
     )
   })
 
-  const chosenMedia = matchedMedia ?? (matchedRequirement ? mediaList.find((media: any) => media?.applicant_requirement_id === matchedRequirement.id) : null)
+  const chosenMedia = matchedMedia ?? null
 
   if (!chosenMedia) return null
 
@@ -225,7 +228,7 @@ const mapAttachmentState = (state: UploadState): 'done' | 'idle' | 'uploading' |
   return state
 }
 
-const { uploadedFiles, inputResetKeys, handleFileChange, clearUpload, submitUploads, formatFileSize } =
+const { uploadedFiles, inputResetKeys, handleFileChange, clearUpload, clearScope, submitUploads, formatFileSize } =
   useFileUpload('applicant-profile-documents')
 
 const closeModal = () => {
@@ -263,59 +266,10 @@ const submitDocuments = async () => {
 
     await submitUploads(optionsByDocId)
 
-    try {
-      const uploaded = uploadedFiles.value
-      const toAddRequirements: any[] = []
-      const toAddMedia: any[] = []
-
-      for (const document of documents.value) {
-        const entry = uploaded[document.id]
-        if (!entry || entry.state !== 'done') continue
-
-        const md: any = entry.metadata ?? {}
-        const applicantRequirementId = md.applicantRequirementId ?? md.applicant_requirement_id ?? md.applicantRequirementId ?? md.applicantRequirementId ?? md.requirementTemplateId ?? null
-        const mediaId = md.mediaId ?? md.media_id ?? md.mediaId ?? null
-
-        if (applicantRequirementId) {
-          const exists = (authStore.applicantRequirements ?? []).some((r: any) => r.id === applicantRequirementId)
-          if (!exists) {
-            toAddRequirements.push({
-              id: applicantRequirementId,
-              profile_id: currentProfileId,
-              requirement_id: md.requirementTemplateId ?? null,
-              remarks: document.label,
-              status: 'pending',
-              created_at: new Date().toISOString(),
-            })
-          }
-        }
-
-        if (mediaId) {
-          const existsM = (authStore.applicantRequirementMedia ?? []).some((m: any) => m.id === mediaId)
-          if (!existsM) {
-            toAddMedia.push({
-              id: mediaId,
-              filename: md.filename ?? entry.file.name,
-              path: md.storagePath ?? md.path ?? null,
-              mime_type: md.mime_type ?? entry.file.type,
-              size: md.size ?? entry.file.size,
-              alt_text: md.filename ?? entry.file.name,
-              description: document.label,
-              applicant_requirement_id: applicantRequirementId ?? null,
-              profiles_id: currentProfileId,
-              created_at: new Date().toISOString(),
-            })
-          }
-        }
-      }
-
-      if (toAddRequirements.length) authStore.applicantRequirements = [...(authStore.applicantRequirements ?? []), ...toAddRequirements]
-      if (toAddMedia.length) authStore.applicantRequirementMedia = [...(authStore.applicantRequirementMedia ?? []), ...toAddMedia]
-    } catch (err) {
-      console.warn('Optimistic update failed after upload', err)
-    }
+    await authStore.hydrateUserData(currentProfileId, true)
 
     toastAlert.success('Documents uploaded successfully')
+    clearScope(true)
     closeModal()
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : 'Failed to upload documents.'
