@@ -25,7 +25,6 @@ import {
   Stepper,
   StepperItem,
   StepperSeparator,
-  StepperTrigger,
   StepperTitle,
   StepperDescription,
 } from '@/components/ui/stepper'
@@ -102,19 +101,17 @@ async function downloadFile(requirement: string) {
         />
 
         <div class="flex flex-col items-center text-center">
-          <StepperTrigger as-child>
-            <div
-              class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-              :class="[
-                file.uploaded
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30'
-                  : 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30'
-              ]"
-            >
-              <Check v-if="file.uploaded" class="size-4 stroke-3" />
-              <X v-else class="size-4 stroke-3" />
-            </div>
-          </StepperTrigger>
+          <div
+            class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
+            :class="[
+              file.uploaded
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30'
+                : 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30'
+            ]"
+          >
+            <Check v-if="file.uploaded" class="size-4 stroke-3" />
+            <X v-else class="size-4 stroke-3" />
+          </div>
 
           <div class="mt-2">
             <StepperTitle class="text-xs font-semibold text-foreground truncate max-w-28">
