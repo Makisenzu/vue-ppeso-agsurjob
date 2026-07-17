@@ -54,7 +54,7 @@ const settingsSubItems = [
 ]
 
 const companyItems = [
-  { title: 'Company Profile', to: {name: 'dashboard'}, icon: Hexagon },
+  { title: 'Company Profile', to: {name: 'company-profile'}, icon: Hexagon },
   { title: 'Job Posting', to: {name: 'dashboard'}, icon: Newspaper },
   { title: 'Applicants', to: {name: 'dashboard'}, icon: FolderSearch2 },
   { title: 'Shortlisted Candidates', to: {name: 'dashboard'}, icon: Bookmark },
@@ -155,7 +155,7 @@ const companyItems = [
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink to="">
+                  <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
                   </RouterLink>

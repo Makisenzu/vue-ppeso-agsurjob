@@ -11,6 +11,11 @@ export const employerRoutes: RouteRecordRaw[] = [
         path: 'dashboard',
         name: 'employer-dashboard',
         component: () => import('@/components/employer/EmployerDashboard.vue')
+      },
+      {
+        path: 'company-profile',
+        name: 'company-profile',
+        component: () => import('@/components/employer/CompanyManagement/CompanyProfile.vue')
       }
     ]
   },

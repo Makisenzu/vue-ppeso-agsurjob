@@ -23,7 +23,6 @@ function toggleTheme() {
       <main class="flex-1 flex flex-col">
         <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200">
           <SidebarTrigger class="-ml-1 text-muted-foreground" />
-          <span class="text-sm font-semibold text-muted-foreground px-2">Employer Panel</span>
 
           <button 
             @click="toggleTheme" 
