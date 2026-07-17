@@ -45,10 +45,10 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     if (byConfiguredId?.id) {
       if (
         byConfiguredId.requirement_type &&
-        byConfiguredId.requirement_type.toLowerCase() !== 'verification'
+        byConfiguredId.requirement_type.toLowerCase() !== 'applicant_verification'
       ) {
         throw new Error(
-          `Requirement template ID ${document.requirementTemplateId} is not a verification template.`
+          `Requirement template ID ${document.requirementTemplateId} is not an applicant verification template.`
         )
       }
 
@@ -86,7 +86,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
 
   if (wildcardMatches && wildcardMatches.length > 0) {
     // Prefer a verification-type template when available
-    const verificationMatch = wildcardMatches.find((t) => (t.requirement_type ?? '').toLowerCase() === 'verification')
+    const verificationMatch = wildcardMatches.find((t) => (t.requirement_type ?? '').toLowerCase() === 'applicant_verification')
     return (verificationMatch ?? wildcardMatches[0]).id
   }
 
@@ -124,7 +124,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
   try {
     const payload: RequirementTemplateRow | any = {
       name: document.label,
-      requirement_type: 'verification',
+      requirement_type: 'applicant_verification',
     }
 
     const { data: created, error: createError } = await supabase

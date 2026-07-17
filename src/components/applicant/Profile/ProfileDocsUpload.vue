@@ -142,7 +142,7 @@ async function loadVerificationTemplates() {
     const { data, error } = await supabase
       .from('requirement_templates')
       .select('id, name')
-      .eq('requirement_type', 'verification')
+      .eq('requirement_type', 'applicant_verification')
 
     if (error) throw error
 
