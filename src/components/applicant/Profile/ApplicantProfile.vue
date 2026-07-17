@@ -3,6 +3,7 @@ import { useApplicantProfile } from '@/composables/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import ProfileDocuments from './ProfileDocuments.vue'
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
+import ProfileReadme from './ProfileReadme.vue'
 
 const {
   files,
@@ -61,7 +62,6 @@ const {
           />        
         </div>
       </div>
-
     </div>
   </div>
 </template>

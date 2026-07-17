@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import {
   Card,
-  CardContent,
 } from '@/components/ui/card'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Badge } from '@/components/ui/badge'
-import { Pencil } from '@lucide/vue'
+
 
 const props = defineProps<{
   username: string
