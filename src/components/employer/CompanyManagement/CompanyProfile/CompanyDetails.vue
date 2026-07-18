@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import type { BadgeVariants } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import CompanyMap from './CompanyMap.vue'
 
 const props = defineProps<{
   description: string
@@ -15,6 +16,9 @@ const props = defineProps<{
   verificationStatus: string
   verificationBadgeVariant: BadgeVariants['variant']
   isLoading: boolean
+  latitude: number | null
+  longitude: number | null
+  companyName: string
 }>()
 </script>
 
@@ -87,5 +91,25 @@ const props = defineProps<{
         </div>
       </CardContent>
     </Card>
+
+    <!-- Company Location -->
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-lg font-bold text-foreground">Company Location</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <template v-if="isLoading">
+          <Skeleton class="h-[320px] w-full rounded-xl" />
+        </template>
+        <template v-else>
+          <CompanyMap
+            :latitude="latitude"
+            :longitude="longitude"
+            :company-name="companyName"
+          />
+        </template>
+      </CardContent>
+    </Card>
   </div>
 </template>
+

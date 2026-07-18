@@ -12,8 +12,22 @@ import {
 import type { ToasterProps } from "vue-sonner"
 import { Toaster as Sonner } from "vue-sonner"
 import { cn } from "@/lib/utils"
+import { computed } from 'vue'
 
 const props = defineProps<ToasterProps>()
+
+const restProps = computed(() => {
+  const { toastOptions, ...rest } = props
+  return rest
+})
+
+const computedToastOptions = computed(() => ({
+  classes: {
+    toast: 'rounded-2xl',
+    ...props.toastOptions?.classes,
+  },
+  ...props.toastOptions,
+}))
 </script>
 
 <template>
@@ -30,12 +44,8 @@ const props = defineProps<ToasterProps>()
       '--gray5': 'var(--border)',
       '--gray12': 'var(--popover-foreground)',
     }"
-    :toast-options="{
-      classes: {
-        toast: 'rounded-2xl',
-      },
-    }"
-    v-bind="props"
+    v-bind="restProps"
+    :toast-options="computedToastOptions"
   >
     <template #success-icon>
       <CircleCheckIcon class="size-4" />

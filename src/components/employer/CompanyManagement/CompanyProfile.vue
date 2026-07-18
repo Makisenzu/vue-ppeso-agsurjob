@@ -7,6 +7,7 @@ import CompanyDetails from './CompanyProfile/CompanyDetails.vue'
 
 const {
   isLoading,
+  employer,
   displayCompanyName,
   displayIndustry,
   displayBusinessType,
@@ -82,6 +83,9 @@ const {
             :verification-status="displayVerificationStatus"
             :verification-badge-variant="verificationBadgeVariant"
             :is-loading="isLoading"
+            :latitude="employer?.latitude || null"
+            :longitude="employer?.longitude || null"
+            :company-name="displayCompanyName"
           />
         </div>
       </div>
