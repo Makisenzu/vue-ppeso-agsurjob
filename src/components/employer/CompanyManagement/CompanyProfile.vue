@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { useCompanyProfile } from '@/composables/useCompanyProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import CompanyHero from './CompanyProfile/CompanyHero.vue'
 import CompanySidebar from './CompanyProfile/CompanySidebar.vue'
 import CompanyDetails from './CompanyProfile/CompanyDetails.vue'
 
-const router = useRouter()
 
 const {
   isLoading,

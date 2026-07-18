@@ -19,28 +19,7 @@ const { mapContainer, shouldShowMap, fallbackType } = useCompanyMap({
 
 <template>
   <div class="w-full">
-    <!-- Map Rendering Block -->
-    <template v-if="fallbackType === 'missing-token'">
-      <!-- Fallback when Mapbox Token is missing -->
-      <div
-        class="w-full min-h-75 rounded-xl border border-dashed border-border bg-muted/10 flex flex-col items-center justify-center p-6 text-center"
-      >
-        <div class="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-3">
-          <ShieldAlertIcon class="h-5 w-5" />
-        </div>
-        <h4 class="text-sm font-semibold text-foreground">Mapbox Access Token Missing</h4>
-        <p class="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
-          Please add <code class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-amber-500">VITE_MAPBOX_ACCESS_TOKEN</code> to your local <code class="font-mono text-[10px]">.env</code> file to enable the interactive map view.
-        </p>
-        <div class="text-[11px] text-muted-foreground/80 bg-muted/30 px-3 py-2 rounded-lg border border-border/40 font-mono text-left max-w-md">
-          # Add this line to your .env file:<br />
-          VITE_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_token_here
-        </div>
-      </div>
-    </template>
-
-    <template v-else-if="fallbackType === 'missing-coordinates'">
-      <!-- Fallback when coordinates are missing or invalid -->
+    <template v-if="fallbackType === 'missing-coordinates'">
       <div
         class="w-full min-h-75 rounded-xl border border-dashed border-border bg-muted/15 flex flex-col items-center justify-center p-6 text-center"
       >

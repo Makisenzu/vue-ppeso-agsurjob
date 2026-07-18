@@ -99,7 +99,7 @@ const props = defineProps<{
       </CardHeader>
       <CardContent>
         <template v-if="isLoading">
-          <Skeleton class="h-[320px] w-full rounded-xl" />
+          <Skeleton class="h-80 w-full rounded-xl" />
         </template>
         <template v-else>
           <CompanyMap
