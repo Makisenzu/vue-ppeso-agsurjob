@@ -413,6 +413,8 @@ export type Database = {
           employee_count: number | null
           id: number
           industry: string | null
+          latitude: number | null
+          longitude: number | null
           profile_id: string | null
           registration_number: string | null
           updated_at: string | null
@@ -430,6 +432,8 @@ export type Database = {
           employee_count?: number | null
           id?: number
           industry?: string | null
+          latitude?: number | null
+          longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
           updated_at?: string | null
@@ -449,6 +453,8 @@ export type Database = {
           employee_count?: number | null
           id?: number
           industry?: string | null
+          latitude?: number | null
+          longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
           updated_at?: string | null

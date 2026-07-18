@@ -265,7 +265,7 @@ const companyItems = [
                         class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
                         :class="isVerified ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-amber-500 hover:bg-amber-500 text-black'"
                       >
-                        {{ isVerified ? 'Verified' : 'Pending' }}
+                        {{ isVerified ? 'Verified' : 'Not Verified' }}
                       </Badge>
                     </div>
                     <span class="truncate text-xs text-muted-foreground block">{{ userEmail }}</span>
