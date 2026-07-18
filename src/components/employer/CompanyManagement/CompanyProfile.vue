@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { useCompanyProfile } from '@/composables/useCompanyProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import CompanyHero from './CompanyProfile/CompanyHero.vue'
 import CompanySidebar from './CompanyProfile/CompanySidebar.vue'
 import CompanyDetails from './CompanyProfile/CompanyDetails.vue'
+
+const router = useRouter()
 
 const {
   isLoading,
@@ -28,6 +31,23 @@ const {
   ownerInitials,
   ownerEmail,
 } = useCompanyProfile()
+
+/**
+ * Handle edit profile button click
+ */
+function handleEditProfile() {
+  // TODO: Navigate to company edit page or open edit modal
+  console.log('Edit profile clicked')
+  // router.push({ name: 'company-edit' })
+}
+
+/**
+ * Handle visit website button click
+ */
+function handleVisitWebsite(website: string) {
+  const url = website.startsWith('http') ? website : `https://${website}`
+  window.open(url, '_blank')
+}
 </script>
 
 <template>
@@ -51,6 +71,8 @@ const {
         :has-website="hasWebsite"
         :created-date="displayCreatedDate"
         :is-loading="isLoading"
+        @edit-profile="handleEditProfile"
+        @visit-website="handleVisitWebsite"
       />
 
       <!-- Content columns -->

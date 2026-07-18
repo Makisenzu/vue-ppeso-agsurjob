@@ -19,6 +19,11 @@ const props = defineProps<{
   createdDate: string
   isLoading: boolean
 }>()
+
+const emit = defineEmits<{
+  'edit-profile': []
+  'visit-website': [url: string]
+}>()
 </script>
 
 <template>
@@ -82,7 +87,7 @@ const props = defineProps<{
 
           <!-- Actions -->
           <div class="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" @click="emit('edit-profile')">
               <PencilIcon class="h-3.5 w-3.5 mr-1.5" />
               Edit Profile
             </Button>
@@ -94,6 +99,7 @@ const props = defineProps<{
               :href="website.startsWith('http') ? website : `https://${website}`"
               target="_blank"
               rel="noopener noreferrer"
+              @click="emit('visit-website', website)"
             >
               <ExternalLinkIcon class="h-3.5 w-3.5 mr-1.5" />
               Visit Website
