@@ -70,43 +70,6 @@ const props = defineProps<{
 
     <Separator />
 
-    <!-- Company Owner -->
-    <CardHeader class="pb-3 pt-5">
-      <CardTitle class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Company Owner
-      </CardTitle>
-    </CardHeader>
-    <CardContent class="pb-5">
-      <template v-if="isLoading">
-        <div class="flex items-center gap-3">
-          <Skeleton class="h-10 w-10 rounded-full shrink-0" />
-          <div class="space-y-2 flex-1">
-            <Skeleton class="h-4 w-32" />
-            <Skeleton class="h-3 w-40" />
-          </div>
-        </div>
-      </template>
-      <template v-else>
-        <div class="flex items-center gap-3">
-          <Avatar class="h-10 w-10 border border-border">
-            <AvatarFallback class="text-xs font-medium bg-muted text-muted-foreground">
-              {{ ownerInitials }}
-            </AvatarFallback>
-          </Avatar>
-          <div class="min-w-0">
-            <p class="text-sm font-medium text-foreground truncate">
-              {{ ownerName }}
-            </p>
-            <p v-if="ownerEmail" class="text-xs text-muted-foreground truncate">
-              {{ ownerEmail }}
-            </p>
-          </div>
-        </div>
-      </template>
-    </CardContent>
-
-    <Separator />
-
     <!-- Quick Stats -->
     <CardHeader class="pb-3 pt-5">
       <CardTitle class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
