@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCompanyMap } from '@/composables/useCompanyMap'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { MapPinIcon, InfoIcon, ShieldAlertIcon } from '@lucide/vue'
+import { MapPinIcon, InfoIcon } from '@lucide/vue'
 
 const props = defineProps<{
   latitude: number | null
