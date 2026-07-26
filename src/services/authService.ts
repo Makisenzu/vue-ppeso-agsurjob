@@ -4,7 +4,7 @@ import type { Database } from '@/types/database.types'
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type ApplicantRow = Database['public']['Tables']['applicants']['Row']
-type EmployerRow = Database['public']['Tables']['employers']['Row']
+type EmployerRow = Database['public']['Tables']['companies']['Row']
 type ApplicantExperienceRow = Database['public']['Tables']['applicant_experiences']['Row']
 type ApplicantSkillRow = Database['public']['Tables']['applicant_skills']['Row']
 type ApplicantRequirementRow = Database['public']['Tables']['applicant_requirements']['Row']
@@ -82,7 +82,7 @@ export const authService = {
 
   async fetchEmployerByProfileId(profileId: string): Promise<EmployerRow | null> {
     const { data, error } = await supabase
-      .from('employers')
+      .from('companies')
       .select('*')
       .eq('profile_id', profileId)
       .maybeSingle()
@@ -165,7 +165,7 @@ export const authService = {
   
   async insertEmployerData(employerData: any) {
     const { data, error } = await supabase
-      .from('employers')
+      .from('companies')
       .insert(employerData)
       .select()
     if (data) {
