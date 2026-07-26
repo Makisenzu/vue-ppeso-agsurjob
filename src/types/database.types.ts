@@ -312,96 +312,7 @@ export type Database = {
           },
         ]
       }
-      employer_requirement_media: {
-        Row: {
-          alt_text: string | null
-          created_at: string
-          description: string | null
-          employer_requirement_id: number | null
-          filename: string | null
-          id: number
-          mime_type: string | null
-          path: string | null
-          size: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          alt_text?: string | null
-          created_at?: string
-          description?: string | null
-          employer_requirement_id?: number | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          alt_text?: string | null
-          created_at?: string
-          description?: string | null
-          employer_requirement_id?: number | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employer_requirement_media_employer_requirement_id_fkey"
-            columns: ["employer_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "employer_requirements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employer_requirements: {
-        Row: {
-          employer_id: number | null
-          id: number
-          remarks: string | null
-          requirement_id: number | null
-          status: Database["public"]["Enums"]["status_type"] | null
-          submitted_at: string
-        }
-        Insert: {
-          employer_id?: number | null
-          id?: number
-          remarks?: string | null
-          requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-          submitted_at?: string
-        }
-        Update: {
-          employer_id?: number | null
-          id?: number
-          remarks?: string | null
-          requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-          submitted_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employer_requirements_employer_id_fkey"
-            columns: ["employer_id"]
-            isOneToOne: false
-            referencedRelation: "employers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employer_requirements_requirement_id_fkey"
-            columns: ["requirement_id"]
-            isOneToOne: false
-            referencedRelation: "requirement_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employers: {
+      companies: {
         Row: {
           business_type: string | null
           company_address: string | null
@@ -469,6 +380,150 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          company_id: number | null
+          created_at: string | null
+          id: number
+          profile_id: string | null
+          role: Database["public"]["Enums"]["company_role_type"]
+          status: Database["public"]["Enums"]["status_type"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: number | null
+          created_at?: string | null
+          id?: number
+          profile_id?: string | null
+          role: Database["public"]["Enums"]["company_role_type"]
+          status?: Database["public"]["Enums"]["status_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: number | null
+          created_at?: string | null
+          id?: number
+          profile_id?: string | null
+          role?: Database["public"]["Enums"]["company_role_type"]
+          status?: Database["public"]["Enums"]["status_type"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_requirement_media: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          description: string | null
+          employer_requirement_id: number | null
+          filename: string | null
+          id: number
+          mime_type: string | null
+          path: string | null
+          profile_id: string | null
+          size: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          employer_requirement_id?: number | null
+          filename?: string | null
+          id?: number
+          mime_type?: string | null
+          path?: string | null
+          profile_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          employer_requirement_id?: number | null
+          filename?: string | null
+          id?: number
+          mime_type?: string | null
+          path?: string | null
+          profile_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_requirement_media_employer_requirement_id_fkey"
+            columns: ["employer_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "employer_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_requirement_media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_requirements: {
+        Row: {
+          employer_id: number | null
+          id: number
+          remarks: string | null
+          requirement_id: number | null
+          status: Database["public"]["Enums"]["status_type"] | null
+          submitted_at: string
+        }
+        Insert: {
+          employer_id?: number | null
+          id?: number
+          remarks?: string | null
+          requirement_id?: number | null
+          status?: Database["public"]["Enums"]["status_type"] | null
+          submitted_at?: string
+        }
+        Update: {
+          employer_id?: number | null
+          id?: number
+          remarks?: string | null
+          requirement_id?: number | null
+          status?: Database["public"]["Enums"]["status_type"] | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_requirements_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_requirements_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -675,7 +730,7 @@ export type Database = {
             foreignKeyName: "job_posting_employer_id_fkey"
             columns: ["employer_id"]
             isOneToOne: false
-            referencedRelation: "employers"
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1096,6 +1151,7 @@ export type Database = {
         | "offered"
         | "hired"
         | "rejected"
+      company_role_type: "owner" | "admin" | "hr" | "employee"
       gender_type: "male" | "female" | "non-binary" | "prefer_not_to_say"
       job_status_type: "draft" | "active" | "paused" | "closed"
       notification_type:
@@ -1246,6 +1302,7 @@ export const Constants = {
         "hired",
         "rejected",
       ],
+      company_role_type: ["owner", "admin", "hr", "employee"],
       gender_type: ["male", "female", "non-binary", "prefer_not_to_say"],
       job_status_type: ["draft", "active", "paused", "closed"],
       notification_type: [
