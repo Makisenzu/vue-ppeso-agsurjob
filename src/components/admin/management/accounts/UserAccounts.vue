@@ -3,7 +3,7 @@ import {
   FlexRender,
 } from '@tanstack/vue-table'
 import { createReusableTemplate } from '@vueuse/core'
-import { ChevronDown, MoreHorizontal, Eye, RefreshCw, User } from '@lucide/vue'
+import { ChevronDown, MoreHorizontal, Eye, RefreshCw, User, Plus } from '@lucide/vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
 import {
@@ -11,6 +11,7 @@ import {
   formatDateTime,
   getRoleBadgeVariant,
   getStatusBadgeVariant,
+  getStatusBadgeClass,
   formatRoleLabel,
 } from '@/helpers/admin/userAccountsHelper'
 
@@ -73,6 +74,9 @@ const {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuItem>
+          Edit Profile
+        </DropdownMenuItem>
         <DropdownMenuItem @click="copyId(profile.id)">
           Copy Profile ID
         </DropdownMenuItem>
@@ -93,14 +97,20 @@ const {
           View all user account details.
         </p>
       </div>
-      <Button variant="outline" size="sm" @click="fetchProfiles" :disabled="isLoading" class="w-fit">
-        <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-        Refresh
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button variant="outline" @click="fetchProfiles" :disabled="isLoading">
+          <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          Refresh
+        </Button>
+        <Button>
+          <Plus class="mr-2 h-4 w-4" />
+          Add new account
+        </Button>
+      </div>
     </div>
 
     <!-- Filter & Column Visibility controls -->
-    <div class="flex items-center py-4 gap-2">
+    <div class="flex items-center justify-between py-4 gap-2">
       <Input
         class="max-w-sm"
         placeholder="Filter names..."
@@ -109,7 +119,7 @@ const {
       />
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="outline" class="ml-auto">
+          <Button variant="outline">
             Columns <ChevronDown class="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -244,7 +254,10 @@ const {
             <div>
               <label class="text-xs font-semibold text-muted-foreground uppercase">Account Status</label>
               <div class="mt-1">
-                <Badge :variant="getStatusBadgeVariant(selectedProfile.status)">
+                <Badge
+                  :variant="getStatusBadgeVariant(selectedProfile.status)"
+                  :class="['capitalize', getStatusBadgeClass(selectedProfile.status)]"
+                >
                   {{ selectedProfile.status || 'N/A' }}
                 </Badge>
               </div>

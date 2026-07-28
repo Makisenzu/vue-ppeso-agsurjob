@@ -52,7 +52,7 @@ export const getStatusBadgeVariant = (
   switch (status) {
     case 'active':
     case 'approved':
-      return 'default'
+      return 'outline'
     case 'pending':
       return 'secondary'
     case 'rejected':
@@ -60,6 +60,16 @@ export const getStatusBadgeVariant = (
       return 'destructive'
     default:
       return 'outline'
+  }
+}
+
+export const getStatusBadgeClass = (status: string | null): string => {
+  switch (status) {
+    case 'active':
+    case 'approved':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800'
+    default:
+      return ''
   }
 }
 

@@ -24,6 +24,7 @@ import {
   formatDate,
   getRoleBadgeVariant,
   getStatusBadgeVariant,
+  getStatusBadgeClass,
   formatRoleLabel,
 } from '@/helpers/admin/userAccountsHelper'
 import { Button } from '@/components/ui/button'
@@ -109,8 +110,13 @@ export function useUserAccounts(actionTemplateRef?: Component) {
       header: 'Status',
       cell: ({ row }) => {
         const status = row.getValue('status') as string | null
-        return h(Badge, { variant: getStatusBadgeVariant(status), class: 'capitalize' }, () =>
-          status || 'Unknown'
+        return h(
+          Badge,
+          {
+            variant: getStatusBadgeVariant(status),
+            class: ['capitalize', getStatusBadgeClass(status)].filter(Boolean).join(' '),
+          },
+          () => status || 'Unknown'
         )
       },
     },
