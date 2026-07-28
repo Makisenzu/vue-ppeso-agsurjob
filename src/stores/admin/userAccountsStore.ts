@@ -51,10 +51,8 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
       const newProfile = await userAccountService.createProfile(payload)
       // Close sheet immediately
       closeAddAccountSheet()
-      // Prepend newly created profile into state with a brand new array reference for instant UI table update
+      // Prepend newly created profile directly into the local state array (pure AJAX-like immediate UI update)
       profiles.value = [newProfile, ...profiles.value]
-      // Re-fetch all profiles from database in background to sync state completely
-      await fetchProfiles()
     } catch (err: any) {
       errorMessage.value = err.message || 'Failed to create user account.'
       throw err
