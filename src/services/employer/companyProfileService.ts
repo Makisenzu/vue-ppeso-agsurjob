@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { CompanyProfileResult } from '@/types/companyProfile'
-import type { TablesUpdate } from '@/types/database.types'
+import type { CompanyProfileResult } from '@/types/employer/companyProfile'
+import type { TablesUpdate } from '@/types/common/database.types'
 
 /**
  * Fetches the employer record and its linked owner profile for a given

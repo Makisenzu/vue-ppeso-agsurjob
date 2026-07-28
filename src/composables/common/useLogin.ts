@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '@/services/authService'
-import { useAuthStore } from '@/stores/auth'
+import { authService } from '@/services/common/authService'
+import { useAuthStore } from '@/stores/common/auth'
 import agsurlogo from '@/assets/images/agsur.png'
 import pesologo from '@/assets/images/pesologo.png'
 

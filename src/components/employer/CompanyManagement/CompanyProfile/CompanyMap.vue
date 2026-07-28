@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCompanyMap } from '@/composables/useCompanyMap'
+import { useCompanyMap } from '@/composables/employer/useCompanyMap'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { MapPinIcon, InfoIcon } from '@lucide/vue'
 

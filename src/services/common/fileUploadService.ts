@@ -3,7 +3,7 @@ import type {
   UploadExecutionOptions,
   UploadExecutionResult,
   UploadExecutor,
-} from '@/types/fileUpload'
+} from '@/types/common/fileUpload'
 
 const delay = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {

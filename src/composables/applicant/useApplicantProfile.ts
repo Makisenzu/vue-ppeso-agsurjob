@@ -1,12 +1,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/common/auth'
 import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
-import { fetchApplicantProfileByUsername } from '@/services/applicantProfileService'
+import { fetchApplicantProfileByUsername } from '@/services/applicant/applicantProfileService'
 import {
   getRequirementDisplayLabel,
   isRequirementUploaded,
-} from '@/helpers/applicantRequirementDocuments'
+} from '@/helpers/applicant/applicantRequirementDocuments'
 
 export function useApplicantProfile() {
   const authStore = useAuthStore()

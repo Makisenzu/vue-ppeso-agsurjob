@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useToastAlert } from '@/composables/useToastAlert'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 import { HoverCard, HoverCardTrigger, } from '@/components/ui/hover-card'
 import ProfileEdit from './ProfileEdit.vue'
 import { Input } from '@/components/ui/input'
@@ -41,7 +41,7 @@ import {
   Upload,
 } from '@lucide/vue'
 
-import { useProfileMedia } from '@/composables/useProfileMedia'
+import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 const isDesktop = useMediaQuery('(min-width: 640px)')
 const toastAlert = useToastAlert()
 const Modal = computed(() => ({

@@ -1,8 +1,8 @@
 import { ref, computed, watch, toValue, type MaybeRefOrGetter } from 'vue'
-import { useProfileStore } from '@/stores/profileStore'
-import { useAuthStore } from '@/stores/auth'
-import { mediaService } from '@/services/mediaService'
-import type { ProfileMediaRow } from '@/services/mediaService'
+import { useProfileStore } from '@/stores/applicant/profileStore'
+import { useAuthStore } from '@/stores/common/auth'
+import { mediaService } from '@/services/common/mediaService'
+import type { ProfileMediaRow } from '@/services/common/mediaService'
 type AvatarMedia = (ProfileMediaRow & { public_url?: string }) | null | undefined
 export function useProfileMedia() {
   const store = useProfileStore()

@@ -1,13 +1,13 @@
 import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { fetchCompanyProfileByProfileId } from '@/services/companyProfileService'
+import { useAuthStore } from '@/stores/common/auth'
+import { fetchCompanyProfileByProfileId } from '@/services/employer/companyProfileService'
 import {
   formatVerificationStatus,
   getVerificationBadgeVariant,
   formatEmployeeCount,
   formatCompanyField,
-} from '@/helpers/companyProfileHelpers'
-import type { EmployerRecord, ProfileRecord } from '@/types/companyProfile'
+} from '@/helpers/employer/companyProfileHelpers'
+import type { EmployerRecord, ProfileRecord } from '@/types/employer/companyProfile'
 
 export function useCompanyProfile() {
   const authStore = useAuthStore()

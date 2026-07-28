@@ -1,5 +1,5 @@
-import { DOCUMENT_UPLOAD_BUCKET, formatFileSize } from '@/helpers/uploadHelpers'
-import { mediaService } from '@/services/mediaService'
+import { DOCUMENT_UPLOAD_BUCKET, formatFileSize } from '@/helpers/common/uploadHelpers'
+import { mediaService } from '@/services/common/mediaService'
 
 export interface RequirementRowLike {
   id?: string | number | null

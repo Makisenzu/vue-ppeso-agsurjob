@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
-import { formatRouteName } from '@/helpers/formatters'
+import { formatRouteName } from '@/helpers/common/formatters'
 
 const route = useRoute()
 const breadcrumbs = computed(() => {

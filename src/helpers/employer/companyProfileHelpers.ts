@@ -1,4 +1,4 @@
-import type { VerificationStatus } from '@/types/companyProfile'
+import type { VerificationStatus } from '@/types/employer/companyProfile'
 import type { BadgeVariants } from '@/components/ui/badge'
 
 /**

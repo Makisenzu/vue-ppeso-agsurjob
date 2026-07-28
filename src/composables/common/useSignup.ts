@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/common/auth'
 import { UserSearch, Building2 } from '@lucide/vue'
-import type { Role, RoleOption } from '@/types/auth'
+import type { Role, RoleOption } from '@/types/common/auth'
 export function useSignup() {
   const router = useRouter()
   const authStore = useAuthStore()

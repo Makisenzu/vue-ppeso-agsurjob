@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '@/services/authService'
-import { useAuthStore } from '@/stores/auth'
+import { authService } from '@/services/common/authService'
+import { useAuthStore } from '@/stores/common/auth'
 import { toast } from 'sonner'
 import { storeToRefs } from 'pinia'
 

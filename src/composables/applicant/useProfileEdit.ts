@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { updateApplicantProfile } from '@/services/applicantProfileService'
-import { useToastAlert } from '@/composables/useToastAlert'
+import { useAuthStore } from '@/stores/common/auth'
+import { updateApplicantProfile } from '@/services/applicant/applicantProfileService'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
 
 export function useProfileEdit() {

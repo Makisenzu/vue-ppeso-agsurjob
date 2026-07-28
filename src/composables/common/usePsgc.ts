@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/psgcHelpers'
+import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
 
 export function usePsgc() {
   // Selected values

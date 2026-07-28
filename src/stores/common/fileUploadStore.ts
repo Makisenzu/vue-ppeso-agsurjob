@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { validateUploadFile } from '@/helpers/uploadHelpers'
-import { fileUploadService } from '@/services/fileUploadService'
+import { validateUploadFile } from '@/helpers/common/uploadHelpers'
+import { fileUploadService } from '@/services/common/fileUploadService'
 import type {
   InputResetKeysMap,
   UploadDocumentOptions,
   UploadedDocument,
   UploadedFilesMap,
-} from '@/types/fileUpload'
+} from '@/types/common/fileUpload'
 
 const controllersByScope = new Map<string, Map<string, AbortController>>()
 

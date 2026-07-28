@@ -1,4 +1,4 @@
-import type { ValidateUploadFileOptions } from '@/types/fileUpload'
+import type { ValidateUploadFileOptions } from '@/types/common/fileUpload'
 
 export const DOCUMENT_UPLOAD_BUCKET = 'documents'
 

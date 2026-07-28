@@ -1,4 +1,4 @@
-import psgcApi from '@/services/psgc'
+import psgcApi from '@/services/common/psgc'
 
 export const getRegions = async () => {
   const { data } = await psgcApi.get('/regions/')

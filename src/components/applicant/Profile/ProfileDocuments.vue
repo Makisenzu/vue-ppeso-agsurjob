@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
-import { useAuthStore } from '@/stores/auth'
-import { getRequirementMediaMeta } from '@/helpers/applicantRequirementDocuments'
+import { useAuthStore } from '@/stores/common/auth'
+import { getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
 import {
   Attachment,
   AttachmentAction,

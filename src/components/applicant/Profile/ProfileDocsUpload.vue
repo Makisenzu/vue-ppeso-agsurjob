@@ -2,11 +2,11 @@
 import { computed, ref, onMounted } from 'vue'
 import { CircleCheckIcon, Eye, Loader2Icon, Trash2, Upload, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
-import { useFileUpload } from '@/composables/useFileUpload'
-import { useAuthStore } from '@/stores/auth'
-import { useToastAlert } from '@/composables/useToastAlert'
-import { applicantRequirementUploadService } from '@/services/applicantRequirementUploadService'
-import { getRequirementMediaMeta } from '@/helpers/applicantRequirementDocuments'
+import { useFileUpload } from '@/composables/common/useFileUpload'
+import { useAuthStore } from '@/stores/common/auth'
+import { useToastAlert } from '@/composables/common/useToastAlert'
+import { applicantRequirementUploadService } from '@/services/applicant/applicantRequirementUploadService'
+import { getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,7 +39,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
 } from '@/components/ui/attachment'
-import type { UploadDocumentDefinition, UploadState } from '@/types/fileUpload'
+import type { UploadDocumentDefinition, UploadState } from '@/types/common/fileUpload'
 
 const isDesktop = useMediaQuery('(min-width: 640px)')
 const Modal = computed(() => ({

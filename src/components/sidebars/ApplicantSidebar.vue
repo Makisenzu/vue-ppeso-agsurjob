@@ -29,8 +29,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRoute } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
-import { useProfileMedia } from '@/composables/useProfileMedia'
+import { useAuth } from '@/composables/common/useAuth'
+import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 
 const route = useRoute()
 

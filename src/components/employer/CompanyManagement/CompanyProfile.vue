@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCompanyProfile } from '@/composables/useCompanyProfile'
+import { useCompanyProfile } from '@/composables/employer/useCompanyProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import CompanyHero from './CompanyProfile/CompanyHero.vue'
 import CompanySidebar from './CompanyProfile/CompanySidebar.vue'

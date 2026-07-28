@@ -1,7 +1,7 @@
 import { computed, onBeforeUnmount } from 'vue'
-import { formatFileSize } from '@/helpers/uploadHelpers'
-import { useFileUploadStore } from '@/stores/fileUploadStore'
-import type { UploadDocumentDefinition, UploadDocumentOptions } from '@/types/fileUpload'
+import { formatFileSize } from '@/helpers/common/uploadHelpers'
+import { useFileUploadStore } from '@/stores/common/fileUploadStore'
+import type { UploadDocumentDefinition, UploadDocumentOptions } from '@/types/common/fileUpload'
 
 const DEFAULT_OPTIONS: Required<Pick<UseFileUploadOptions, 'cleanupOnUnmount'>> = {
   cleanupOnUnmount: true,

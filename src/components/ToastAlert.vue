@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useToastAlert } from '@/composables/useToastAlert'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { CircleCheckIcon, OctagonXIcon, InfoIcon, XIcon } from '@lucide/vue'
 import { TransitionGroup } from 'vue'

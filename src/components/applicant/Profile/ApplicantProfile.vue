@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useApplicantProfile } from '@/composables/useApplicantProfile'
+import { useApplicantProfile } from '@/composables/applicant/useApplicantProfile'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import ProfileDocuments from './ProfileDocuments.vue'
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'

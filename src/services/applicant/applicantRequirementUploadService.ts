@@ -1,13 +1,13 @@
 import { supabase } from '@/lib/supabaseClient'
-import { fileHelpers } from '@/helpers/fileHelpers'
-import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/uploadHelpers'
-import { mediaService } from '@/services/mediaService'
+import { fileHelpers } from '@/helpers/common/fileHelpers'
+import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
+import { mediaService } from '@/services/common/mediaService'
 import type {
   ApplicantRequirementUploadExecutorOptions,
   ApplicantRequirementUploadResult,
   UploadDocumentDefinition,
-} from '@/types/fileUpload'
-import type { Tables, TablesInsert } from '@/types/database.types'
+} from '@/types/common/fileUpload'
+import type { Tables, TablesInsert } from '@/types/common/database.types'
 
 export type ApplicantRequirementRow = Tables<{ schema: 'applicants' }, 'applicant_requirements'>
 export type ApplicantRequirementMediaRow = Tables<{ schema: 'applicants' }, 'applicant_requirement_media'>

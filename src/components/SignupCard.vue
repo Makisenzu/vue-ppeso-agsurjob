@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import SpotLightCard from './SpotLightCard.vue'
-import { useSignup } from '@/composables/useSignup.ts'
-import { usePsgc } from '@/composables/usePsgc.ts'
+import { useSignup } from '@/composables/common/useSignup.ts'
+import { usePsgc } from '@/composables/common/usePsgc.ts'
 import { Check, ChevronLeft } from '@lucide/vue'
 
 import {

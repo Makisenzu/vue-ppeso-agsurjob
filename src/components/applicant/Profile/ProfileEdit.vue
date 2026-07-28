@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import { Pencil, CalendarIcon, AlertCircle, CheckIcon, ChevronsUpDownIcon } from '@lucide/vue'
-import { usePsgc } from '@/composables/usePsgc'
+import { usePsgc } from '@/composables/common/usePsgc'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 import {
@@ -47,7 +47,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-import useProfileEdit from '@/composables/useProfileEdit'
+import useProfileEdit from '@/composables/applicant/useProfileEdit'
 
 const {
   selectedRegion,

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { mediaService, type ProfileMediaRow } from '@/services/mediaService'
-import { fileHelpers } from '@/helpers/fileHelpers'
+import { mediaService, type ProfileMediaRow } from '@/services/common/mediaService'
+import { fileHelpers } from '@/helpers/common/fileHelpers'
 
 export interface ProfileMediaWithUrl extends ProfileMediaRow {
   public_url: string

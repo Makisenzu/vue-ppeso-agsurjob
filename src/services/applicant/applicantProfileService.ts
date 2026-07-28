@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { Database, Tables, TablesUpdate } from '@/types/database.types'
+import type { Database, Tables, TablesUpdate } from '@/types/common/database.types'
 
 export type ApplicantProfileRecord = Tables<{ schema: 'core' }, 'profiles'>
 export type ApplicantRecord = Tables<{ schema: 'applicants' }, 'applicants'>

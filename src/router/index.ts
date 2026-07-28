@@ -4,7 +4,7 @@ import { applicantRoutes } from './routes/Applicant/applicant'
 import { employerRoutes } from './routes/Employer/employer'
 import { pesoRoutes } from './routes/Peso/peso'
 import { adminRoutes } from './routes/Admin/admin'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/common/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
