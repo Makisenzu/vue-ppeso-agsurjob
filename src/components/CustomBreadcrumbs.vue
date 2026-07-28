@@ -30,7 +30,7 @@ const breadcrumbs = computed(() => {
 </script>
 
 <template>
-  <Breadcrumb v-if="breadcrumbs.length" class="mb-2">
+  <Breadcrumb v-if="breadcrumbs.length">
     <BreadcrumbList>
       <template v-for="(crumb, index) in breadcrumbs" :key="crumb.title">
         <BreadcrumbItem>
