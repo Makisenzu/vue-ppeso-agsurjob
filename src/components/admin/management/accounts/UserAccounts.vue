@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
   FlexRender,
 } from '@tanstack/vue-table'
 import { createReusableTemplate } from '@vueuse/core'
-import { ChevronDown, MoreHorizontal, Eye, RefreshCw, User, Plus } from '@lucide/vue'
+import { ChevronDown, MoreHorizontal, Eye, RefreshCw, User, Plus, Loader2 } from '@lucide/vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
 import {
@@ -18,6 +19,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -43,6 +46,22 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { onMounted, watch } from 'vue'
+import { usePsgc } from '@/composables/common/usePsgc'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 // Reusable action dropdown template
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
@@ -54,13 +73,129 @@ const {
   table,
   columns,
   isLoading,
+  isSubmitting,
   errorMessage,
   selectedProfile,
   isDetailsOpen,
+  isAddAccountOpen,
   fetchProfiles,
   openProfileDetails,
+  openAddAccountSheet,
+  closeAddAccountSheet,
+  createAccount,
   copyId,
 } = useUserAccounts(ReuseTemplate)
+
+// Form state for creating a new user account
+const formData = ref({
+  email: '',
+  password: '',
+  firstname: '',
+  lastname: '',
+  middlename: '',
+  username: '',
+  role: 'applicant',
+  contact_number: '',
+  gender: '',
+  birthdate: '',
+  region: '',
+  province: '',
+  geographic: '',
+  barangay: '',
+  is_pwd: false,
+  is_4ps: false,
+})
+
+// PSGC cascading location service
+const {
+  regions: psgcRegions,
+  provinces: psgcProvinces,
+  cities: psgcCities,
+  barangays: psgcBarangays,
+  selectedRegion,
+  selectedProvince,
+  selectedCity,
+  selectedBarangay,
+  reset: resetPsgc,
+  initialize: initPsgc,
+} = usePsgc()
+
+onMounted(() => {
+  initPsgc()
+})
+
+// Sync PSGC selections with form state
+watch(selectedRegion, (val) => {
+  formData.value.region = val?.name ?? ''
+})
+watch(selectedProvince, (val) => {
+  formData.value.province = val?.name ?? ''
+})
+watch(selectedCity, (val) => {
+  formData.value.geographic = val?.name ?? ''
+})
+watch(selectedBarangay, (val) => {
+  formData.value.barangay = val?.name ?? ''
+})
+
+const onRegionChange = (code: string) => {
+  const region = psgcRegions.value.find((r: any) => r.code === code)
+  if (region) selectedRegion.value = region
+}
+
+const onProvinceChange = (code: string) => {
+  const province = psgcProvinces.value.find((p: any) => p.code === code)
+  if (province) selectedProvince.value = province
+}
+
+const onCityChange = (code: string) => {
+  const city = psgcCities.value.find((c: any) => c.code === code)
+  if (city) selectedCity.value = city
+}
+
+const onBarangayChange = (code: string) => {
+  const barangay = psgcBarangays.value.find((b: any) => b.code === code)
+  if (barangay) selectedBarangay.value = barangay
+}
+
+const resetForm = () => {
+  formData.value = {
+    email: '',
+    password: '',
+    firstname: '',
+    lastname: '',
+    middlename: '',
+    username: '',
+    role: 'applicant',
+    contact_number: '',
+    gender: '',
+    birthdate: '',
+    region: '',
+    province: '',
+    geographic: '',
+    barangay: '',
+    is_pwd: false,
+    is_4ps: false,
+  }
+  resetPsgc()
+}
+
+const handleOpenAddSheet = () => {
+  resetForm()
+  openAddAccountSheet()
+}
+
+const handleCreateAccount = async () => {
+  if (!formData.value.email || !formData.value.password || !formData.value.firstname || !formData.value.lastname || !formData.value.username || !formData.value.role) {
+    return
+  }
+  try {
+    await createAccount(formData.value)
+    resetForm()
+  } catch {
+    // Error is already set in store/composable
+  }
+}
 </script>
 
 <template>
@@ -130,7 +265,10 @@ const {
           <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
           Refresh
         </Button>
-        <Button class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700">
+        <Button
+          class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+          @click="handleOpenAddSheet"
+        >
           <Plus class="mr-2 h-4 w-4" />
           Add new account
         </Button>
@@ -343,5 +481,198 @@ const {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- Add New Account Side Sheet -->
+    <Sheet :open="isAddAccountOpen" @update:open="isAddAccountOpen = $event">
+      <SheetContent class="sm:max-w-lg flex flex-col h-full p-0">
+        <SheetHeader class="px-6 pt-6 pb-2 shrink-0">
+          <SheetTitle class="flex items-center gap-2">
+            Add New Account
+          </SheetTitle>
+          <SheetDescription>
+            Fill out the information below to create a new profile account record.
+          </SheetDescription>
+        </SheetHeader>
+
+        <form @submit.prevent="handleCreateAccount" class="contents">
+          <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <!-- Account Credentials -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label for="add-email">Email Address <span class="text-destructive">*</span></Label>
+                <Input id="add-email" type="email" v-model="formData.email" placeholder="user@example.com" required />
+              </div>
+              <div class="space-y-2">
+                <Label for="add-password">Password <span class="text-destructive">*</span></Label>
+                <Input id="add-password" type="password" v-model="formData.password" placeholder="••••••••" required />
+              </div>
+            </div>
+
+            <!-- Names Grid -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label for="add-firstname">First Name <span class="text-destructive">*</span></Label>
+                <Input id="add-firstname" v-model="formData.firstname" placeholder="First name" required />
+              </div>
+              <div class="space-y-2">
+                <Label for="add-lastname">Last Name <span class="text-destructive">*</span></Label>
+                <Input id="add-lastname" v-model="formData.lastname" placeholder="Last name" required />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label for="add-middlename">Middle Name</Label>
+                <Input id="add-middlename" v-model="formData.middlename" placeholder="Middle name" />
+              </div>
+              <div class="space-y-2">
+                <Label for="add-username">Username <span class="text-destructive">*</span></Label>
+                <Input id="add-username" v-model="formData.username" placeholder="Username" required />
+              </div>
+            </div>
+
+            <!-- Role & Contact -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label for="add-role">System Role <span class="text-destructive">*</span></Label>
+                <Select v-model="formData.role">
+                  <SelectTrigger id="add-role" class="w-full">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="applicant">Applicant</SelectItem>
+                    <SelectItem value="company_owner">Company Owner</SelectItem>
+                    <SelectItem value="company_member">Company Member</SelectItem>
+                    <SelectItem value="municipal_peso">Municipal PESO</SelectItem>
+                    <SelectItem value="provincial_peso">Provincial PESO</SelectItem>
+                    <SelectItem value="dole">DOLE</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-2">
+                <Label for="add-contact">Contact Number</Label>
+                <Input id="add-contact" v-model="formData.contact_number" placeholder="09xxxxxxxxx" />
+              </div>
+            </div>
+
+            <!-- Gender & Birthdate -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label for="add-gender">Gender</Label>
+                <Select v-model="formData.gender">
+                  <SelectTrigger id="add-gender" class="w-full">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="woman">Woman</SelectItem>
+                    <SelectItem value="man">Man</SelectItem>
+                    <SelectItem value="non_binary">Non-binary</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                    <SelectItem value="different_identity">Different identity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-2">
+                <Label for="add-birthdate">Birthdate</Label>
+                <Input id="add-birthdate" type="date" v-model="formData.birthdate" />
+              </div>
+            </div>
+
+            <!-- Location Section -->
+            <div class="space-y-3 pt-1">
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location / Address</p>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <Label for="add-region">Region</Label>
+                  <Select :model-value="selectedRegion?.code ? String(selectedRegion.code) : undefined" @update:model-value="(val) => onRegionChange(String(val))">
+                    <SelectTrigger id="add-region" class="w-full">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="r in psgcRegions" :key="r.code" :value="String(r.code)">
+                        {{ r.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="space-y-2">
+                  <Label for="add-province">Province</Label>
+                  <Select :model-value="selectedProvince?.code ? String(selectedProvince.code) : undefined" @update:model-value="(val) => onProvinceChange(String(val))" :disabled="!selectedRegion">
+                    <SelectTrigger id="add-province" class="w-full">
+                      <SelectValue placeholder="Select province" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="p in psgcProvinces" :key="p.code" :value="String(p.code)">
+                        {{ p.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="space-y-2">
+                  <Label for="add-geographic">City / Municipality</Label>
+                  <Select :model-value="selectedCity?.code ? String(selectedCity.code) : undefined" @update:model-value="(val) => onCityChange(String(val))" :disabled="!selectedProvince">
+                    <SelectTrigger id="add-geographic" class="w-full">
+                      <SelectValue placeholder="Select city/municipality" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="c in psgcCities" :key="c.code" :value="String(c.code)">
+                        {{ c.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="space-y-2">
+                  <Label for="add-barangay">Barangay</Label>
+                  <Select :model-value="selectedBarangay?.code ? String(selectedBarangay.code) : undefined" @update:model-value="(val) => onBarangayChange(String(val))" :disabled="!selectedCity">
+                    <SelectTrigger id="add-barangay" class="w-full">
+                      <SelectValue placeholder="Select barangay" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="b in psgcBarangays" :key="b.code" :value="String(b.code)">
+                        {{ b.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Special Category -->
+            <div class="space-y-3 pt-1">
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Special Category</p>
+              <div class="flex items-center gap-6">
+                <div class="flex items-center space-x-2">
+                  <Checkbox id="add-is_pwd" :checked="formData.is_pwd" @update:checked="formData.is_pwd = !!$event" />
+                  <Label for="add-is_pwd" class="text-sm font-normal cursor-pointer">Person with Disability (PWD)</Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <Checkbox id="add-is_4ps" :checked="formData.is_4ps" @update:checked="formData.is_4ps = !!$event" />
+                  <Label for="add-is_4ps" class="text-sm font-normal cursor-pointer">4Ps Beneficiary</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sticky Footer -->
+          <div class="flex justify-end gap-3 border-t border-border px-6 py-4 bg-transparent shrink-0">
+            <Button type="button" variant="outline" @click="closeAddAccountSheet" :disabled="isSubmitting">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              :disabled="isSubmitting"
+            >
+              <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
+              {{ isSubmitting ? 'Creating...' : 'Create Account' }}
+            </Button>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
   </div>
 </template>

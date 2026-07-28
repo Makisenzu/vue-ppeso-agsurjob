@@ -33,8 +33,24 @@ import { Badge } from '@/components/ui/badge'
 
 export function useUserAccounts(actionTemplateRef?: Component) {
   const store = useUserAccountsStore()
-  const { profiles, isLoading, errorMessage, selectedProfile, isDetailsOpen } = storeToRefs(store)
-  const { fetchProfiles, openProfileDetails, closeProfileDetails, copyId } = store
+  const {
+    profiles,
+    isLoading,
+    isSubmitting,
+    errorMessage,
+    selectedProfile,
+    isDetailsOpen,
+    isAddAccountOpen,
+  } = storeToRefs(store)
+  const {
+    fetchProfiles,
+    openProfileDetails,
+    closeProfileDetails,
+    openAddAccountSheet,
+    closeAddAccountSheet,
+    createAccount,
+    copyId,
+  } = store
 
   const sorting = ref<SortingState>([])
   const columnFilters = ref<ColumnFiltersState>([])
@@ -226,12 +242,17 @@ export function useUserAccounts(actionTemplateRef?: Component) {
     columns,
     profiles,
     isLoading,
+    isSubmitting,
     errorMessage,
     selectedProfile,
     isDetailsOpen,
+    isAddAccountOpen,
     fetchProfiles,
     openProfileDetails,
     closeProfileDetails,
+    openAddAccountSheet,
+    closeAddAccountSheet,
+    createAccount,
     copyId,
   }
 }

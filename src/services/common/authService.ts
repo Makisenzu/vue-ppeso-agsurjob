@@ -153,7 +153,7 @@ export const authService = {
     const { data, error } = await supabase
       .schema('core')
       .from('profiles')
-      .insert(profileData)
+      .upsert(profileData, { onConflict: 'id' })
       .select()
     if (error) {
       throw new Error(error.message || 'Failed to insert profile data')
