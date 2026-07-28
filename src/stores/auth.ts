@@ -176,6 +176,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function init(forceHydrate = false) {
+    if (isInitialized.value && !forceHydrate) {
+      return
+    }
 
     const { data: { session: currentSession } } = await supabase.auth.getSession()
     await syncSessionData(currentSession, forceHydrate)
@@ -185,8 +188,17 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
-    // Listen for auth state changes (login/logout/token refresh)
+    // Listen for auth state changes (login/logout/user update)
+    // Ignore TOKEN_REFRESHED (fires on tab re-focus) and INITIAL_SESSION
+    // to prevent unnecessary re-renders when alt-tabbing.
     supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        // Silently update the session token without re-hydrating user data
+        session.value = newSession
+        user.value = newSession?.user ?? null
+        return
+      }
+
       const shouldForceHydrate = event === 'SIGNED_IN'
       await syncSessionData(newSession, shouldForceHydrate)
     })

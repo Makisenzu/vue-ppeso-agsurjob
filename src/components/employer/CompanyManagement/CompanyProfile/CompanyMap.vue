@@ -9,12 +9,14 @@ const props = defineProps<{
   companyName: string
 }>()
 
-const { mapContainer, shouldShowMap, fallbackType } = useCompanyMap({
+const { mapContainer, shouldShowMap: _shouldShowMap, fallbackType } = useCompanyMap({
   latitude: props.latitude,
   longitude: props.longitude,
   companyName: props.companyName,
 })
 
+// mapContainer is used as a template ref via :ref binding
+defineExpose({ mapContainer })
 </script>
 
 <template>

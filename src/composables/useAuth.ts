@@ -29,8 +29,9 @@ export function useAuth() {
     isInitialized = computed(() => true)
   }
 
-  // Show skeleton while store hasn't loaded yet
-  const isLoading = computed(() => !isInitialized.value || isHydrating.value)
+  // Show skeleton only until the initial auth bootstrap completes.
+  // Background token refreshes should not remount the shell.
+  const isLoading = computed(() => !isInitialized.value)
   const profileUsername = computed(() => username.value || '')
 
   const redirectToLogin = async () => {
