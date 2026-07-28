@@ -97,44 +97,44 @@ const {
           View all user account details.
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" @click="fetchProfiles" :disabled="isLoading">
-          <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-          Refresh
-        </Button>
-        <Button>
-          <Plus class="mr-2 h-4 w-4" />
-          Add new account
-        </Button>
-      </div>
     </div>
 
     <!-- Filter & Column Visibility controls -->
-    <div class="flex items-center justify-between py-4 gap-2">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-4">
       <Input
         class="max-w-sm"
         placeholder="Filter names..."
         :model-value="(table.getColumn('firstname')?.getFilterValue() as string) ?? ''"
         @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
       />
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="outline">
-            Columns <ChevronDown class="ml-2 h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuCheckboxItem
-            v-for="column in table.getAllColumns().filter((col) => col.getCanHide())"
-            :key="column.id"
-            class="capitalize"
-            :model-value="column.getIsVisible()"
-            @update:model-value="(value) => column.toggleVisibility(!!value)"
-          >
-            {{ column.id }}
-          </DropdownMenuCheckboxItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div class="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="outline">
+              Columns <ChevronDown class="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              v-for="column in table.getAllColumns().filter((col) => col.getCanHide())"
+              :key="column.id"
+              class="capitalize"
+              :model-value="column.getIsVisible()"
+              @update:model-value="(value) => column.toggleVisibility(!!value)"
+            >
+              {{ column.id }}
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button variant="outline" @click="fetchProfiles" :disabled="isLoading">
+          <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          Refresh
+        </Button>
+        <Button class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700">
+          <Plus class="mr-2 h-4 w-4" />
+          Add new account
+        </Button>
+      </div>
     </div>
 
     <div v-if="errorMessage" class="p-4 text-center text-destructive rounded border border-destructive/20 bg-destructive/10">
