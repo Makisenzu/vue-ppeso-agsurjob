@@ -9,8 +9,8 @@ function normalizeStoragePath(filePath: string) {
     .replace(/\/+/g, '/')
 }
 
-export type ProfileMediaInsert = TablesInsert<'profile_media'>
-export type ProfileMediaRow = Tables<'profile_media'>
+export type ProfileMediaInsert = TablesInsert<{ schema: 'core' }, 'profile_media'>
+export type ProfileMediaRow = Tables<{ schema: 'core' }, 'profile_media'>
 
 export const mediaService = {
   async uploadToStorage(file: File, filePath: string, bucket = BUCKET_NAME) {
@@ -38,6 +38,7 @@ export const mediaService = {
 
   async saveMediaRecord(mediaData: ProfileMediaInsert) {
     const { data, error } = await supabase
+      .schema('core')
       .from('profile_media')
       .insert([mediaData])
       .select()
@@ -49,6 +50,7 @@ export const mediaService = {
 
   async fetchMediaByProfileId(profileId: string): Promise<ProfileMediaRow[]> {
     const { data, error } = await supabase
+      .schema('core')
       .from('profile_media')
       .select('*')
       .eq('profile_id', profileId)

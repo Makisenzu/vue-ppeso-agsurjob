@@ -132,7 +132,7 @@ export function useProfileEdit() {
         username: formData.value.username.trim(),
         birthdate: formData.value.birthdate || null,
         contact_number: formData.value.contact_number.trim() || null,
-        gender: (formData.value?.gender as 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null) ?? null,
+        gender: (formData.value?.gender as any) ?? null,
         is_pwd: formData.value.is_pwd || null,
         is_4ps: formData.value.is_4ps || null,
         region: location?.region ?? null,

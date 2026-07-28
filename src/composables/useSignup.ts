@@ -41,8 +41,8 @@ export function useSignup() {
 
   // ─── Role selection ───
   const selectedRole = computed({
-    get: () => authStore.selectedRole as Role | null,
-    set: (role: Role | null) => {
+    get: () => authStore.selectedRole as any,
+    set: (role: any) => {
       authStore.selectedRole = role
     },
   })
@@ -116,7 +116,7 @@ export function useSignup() {
     isSubmitting.value = true
     submitError.value = ''
     try {
-      authStore.signupData.role = selectedRole.value as Role
+      authStore.signupData.role = selectedRole.value as any
       await authStore.submitSignup()
       router.push('/login')
     } catch (error: any) {

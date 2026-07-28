@@ -12,7 +12,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  public: {
+  applicants: {
     Tables: {
       applicant_experiences: {
         Row: {
@@ -28,7 +28,7 @@ export type Database = {
           company_name?: string | null
           description: string
           end_date?: string | null
-          id?: number
+          id?: never
           job_title?: string | null
           profile_id?: string | null
           start_date?: string | null
@@ -37,20 +37,12 @@ export type Database = {
           company_name?: string | null
           description?: string
           end_date?: string | null
-          id?: number
+          id?: never
           job_title?: string | null
           profile_id?: string | null
           start_date?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_experiences_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       applicant_requirement_media: {
         Row: {
@@ -72,7 +64,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           profiles_id?: string | null
@@ -85,7 +77,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           profiles_id?: string | null
@@ -98,13 +90,6 @@ export type Database = {
             columns: ["applicant_requirement_id"]
             isOneToOne: false
             referencedRelation: "applicant_requirements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applicant_requirement_media_profiles_id_fkey"
-            columns: ["profiles_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -120,7 +105,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          id?: number
+          id?: never
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
@@ -128,28 +113,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          id?: number
+          id?: never
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_requirements_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applicant_verification_requirements_requirement_id_fkey"
-            columns: ["requirement_id"]
-            isOneToOne: false
-            referencedRelation: "requirement_templates"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       applicant_skill_media: {
         Row: {
@@ -170,7 +140,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           size?: number | null
@@ -182,7 +152,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           size?: number | null
@@ -206,26 +176,18 @@ export type Database = {
           skill_name: string
         }
         Insert: {
-          id?: number
+          id?: never
           profile_id?: string | null
           skill_category: string
           skill_name: string
         }
         Update: {
-          id?: number
+          id?: never
           profile_id?: string | null
           skill_category?: string
           skill_name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "applicant_skills_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       applicants: {
         Row: {
@@ -247,7 +209,7 @@ export type Database = {
           education_level?: string | null
           employment_status?: string | null
           expected_salary?: number | null
-          id?: number
+          id?: never
           preferred_job?: string | null
           preferred_location?: string | null
           profile_id?: string | null
@@ -260,23 +222,31 @@ export type Database = {
           education_level?: string | null
           employment_status?: string | null
           expected_salary?: number | null
-          id?: number
+          id?: never
           preferred_job?: string | null
           preferred_location?: string | null
           profile_id?: string | null
           updated_at?: string | null
           years_experience?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "applicants_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  core: {
+    Tables: {
       biometrics: {
         Row: {
           biometric_type: string | null
@@ -289,7 +259,7 @@ export type Database = {
         Insert: {
           biometric_type?: string | null
           face_embedding?: string | null
-          id?: number
+          id?: never
           registered_at?: string
           updated_at?: string | null
           user_id?: string | null
@@ -297,7 +267,7 @@ export type Database = {
         Update: {
           biometric_type?: string | null
           face_embedding?: string | null
-          id?: number
+          id?: never
           registered_at?: string
           updated_at?: string | null
           user_id?: string | null
@@ -312,6 +282,193 @@ export type Database = {
           },
         ]
       }
+      profile_media: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          description: string | null
+          filename: string | null
+          id: number
+          mime_type: string | null
+          path: string | null
+          profile_id: string | null
+          size: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: never
+          mime_type?: string | null
+          path?: string | null
+          profile_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: never
+          mime_type?: string | null
+          path?: string | null
+          profile_id?: string | null
+          size?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_socials: {
+        Row: {
+          created_at: string
+          id: number
+          profile_id: string | null
+          social_link: string | null
+          social_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          profile_id?: string | null
+          social_link?: string | null
+          social_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          profile_id?: string | null
+          social_link?: string | null
+          social_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_socials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          barangay: string | null
+          birthdate: string | null
+          contact_number: string | null
+          created_at: string
+          firstname: string | null
+          gender: Database["core"]["Enums"]["gender_type"] | null
+          geographic: string | null
+          id: string
+          is_4ps: boolean | null
+          is_pwd: boolean | null
+          last_login: string | null
+          lastname: string | null
+          middlename: string | null
+          province: string | null
+          region: string | null
+          role: Database["core"]["Enums"]["user_role"] | null
+          status: Database["core"]["Enums"]["status_type"] | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          barangay?: string | null
+          birthdate?: string | null
+          contact_number?: string | null
+          created_at?: string
+          firstname?: string | null
+          gender?: Database["core"]["Enums"]["gender_type"] | null
+          geographic?: string | null
+          id?: string
+          is_4ps?: boolean | null
+          is_pwd?: boolean | null
+          last_login?: string | null
+          lastname?: string | null
+          middlename?: string | null
+          province?: string | null
+          region?: string | null
+          role?: Database["core"]["Enums"]["user_role"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          barangay?: string | null
+          birthdate?: string | null
+          contact_number?: string | null
+          created_at?: string
+          firstname?: string | null
+          gender?: Database["core"]["Enums"]["gender_type"] | null
+          geographic?: string | null
+          id?: string
+          is_4ps?: boolean | null
+          is_pwd?: boolean | null
+          last_login?: string | null
+          lastname?: string | null
+          middlename?: string | null
+          province?: string | null
+          region?: string | null
+          role?: Database["core"]["Enums"]["user_role"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      gender_type:
+        | "woman"
+        | "man"
+        | "cisgender_woman"
+        | "cisgender_man"
+        | "transgender_woman"
+        | "transgender_man"
+        | "non_binary"
+        | "genderqueer"
+        | "genderfluid"
+        | "agender"
+        | "two_spirit"
+        | "intersex"
+        | "different_identity"
+        | "prefer_not_to_say"
+      status_type: "pending" | "approved" | "rejected" | "active" | "inactive"
+      user_role:
+        | "admin"
+        | "applicant"
+        | "company_owner"
+        | "company_member"
+        | "provincial_peso"
+        | "municipal_peso"
+        | "dole"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  employers: {
+    Tables: {
       companies: {
         Row: {
           business_type: string | null
@@ -341,7 +498,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           employee_count?: number | null
-          id?: number
+          id?: never
           industry?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -362,7 +519,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           employee_count?: number | null
-          id?: number
+          id?: never
           industry?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -374,15 +531,7 @@ export type Database = {
             | null
           website?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "employers_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       company_members: {
         Row: {
@@ -390,25 +539,25 @@ export type Database = {
           created_at: string | null
           id: number
           profile_id: string | null
-          role: Database["public"]["Enums"]["company_role_type"]
+          role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["status_type"] | null
           updated_at: string | null
         }
         Insert: {
           company_id?: number | null
           created_at?: string | null
-          id?: number
+          id?: never
           profile_id?: string | null
-          role: Database["public"]["Enums"]["company_role_type"]
+          role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Update: {
           company_id?: number | null
           created_at?: string | null
-          id?: number
+          id?: never
           profile_id?: string | null
-          role?: Database["public"]["Enums"]["company_role_type"]
+          role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
@@ -418,13 +567,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -449,7 +591,7 @@ export type Database = {
           description?: string | null
           employer_requirement_id?: number | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           profile_id?: string | null
@@ -462,7 +604,7 @@ export type Database = {
           description?: string | null
           employer_requirement_id?: number | null
           filename?: string | null
-          id?: number
+          id?: never
           mime_type?: string | null
           path?: string | null
           profile_id?: string | null
@@ -475,13 +617,6 @@ export type Database = {
             columns: ["employer_requirement_id"]
             isOneToOne: false
             referencedRelation: "employer_requirements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employer_requirement_media_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -497,7 +632,7 @@ export type Database = {
         }
         Insert: {
           employer_id?: number | null
-          id?: number
+          id?: never
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
@@ -505,7 +640,7 @@ export type Database = {
         }
         Update: {
           employer_id?: number | null
-          id?: number
+          id?: never
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
@@ -519,15 +654,24 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "employer_requirements_requirement_id_fkey"
-            columns: ["requirement_id"]
-            isOneToOne: false
-            referencedRelation: "requirement_templates"
-            referencedColumns: ["id"]
-          },
         ]
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  jobs: {
+    Tables: {
       job_application_attachments: {
         Row: {
           alt_text: string | null
@@ -546,7 +690,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           job_application_id?: number | null
           mime_type?: string | null
           path?: string | null
@@ -558,7 +702,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           job_application_id?: number | null
           mime_type?: string | null
           path?: string | null
@@ -580,7 +724,7 @@ export type Database = {
           applicant_id: number | null
           created_at: string
           current_stage:
-            | Database["public"]["Enums"]["application_stage_type"]
+            | Database["jobs"]["Enums"]["application_stage_type"]
             | null
           id: number
           job_posting_id: number | null
@@ -591,9 +735,9 @@ export type Database = {
           applicant_id?: number | null
           created_at?: string
           current_stage?:
-            | Database["public"]["Enums"]["application_stage_type"]
+            | Database["jobs"]["Enums"]["application_stage_type"]
             | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
@@ -602,29 +746,14 @@ export type Database = {
           applicant_id?: number | null
           created_at?: string
           current_stage?:
-            | Database["public"]["Enums"]["application_stage_type"]
+            | Database["jobs"]["Enums"]["application_stage_type"]
             | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "job_applications_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_applications_job_posting_id_fkey"
-            columns: ["job_posting_id"]
-            isOneToOne: false
-            referencedRelation: "job_posting"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       job_interview_schedules: {
         Row: {
@@ -642,7 +771,7 @@ export type Database = {
           created_at?: string
           duration_minute?: number | null
           employer_notes?: string | null
-          id?: number
+          id?: never
           job_application_id?: number | null
           meeting_link?: string | null
           scheduled_time?: string | null
@@ -653,7 +782,7 @@ export type Database = {
           created_at?: string
           duration_minute?: number | null
           employer_notes?: string | null
-          id?: number
+          id?: never
           job_application_id?: number | null
           meeting_link?: string | null
           scheduled_time?: string | null
@@ -670,6 +799,65 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          applicant_id: number | null
+          created_at: string
+          feedback_remarks: string | null
+          id: number
+          job_posting_id: number | null
+          outcome: Database["jobs"]["Enums"]["referral_outcome_type"] | null
+          referral_letter: string | null
+          referred_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id?: number | null
+          created_at?: string
+          feedback_remarks?: string | null
+          id?: never
+          job_posting_id?: number | null
+          outcome?: Database["jobs"]["Enums"]["referral_outcome_type"] | null
+          referral_letter?: string | null
+          referred_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: number | null
+          created_at?: string
+          feedback_remarks?: string | null
+          id?: never
+          job_posting_id?: number | null
+          outcome?: Database["jobs"]["Enums"]["referral_outcome_type"] | null
+          referral_letter?: string | null
+          referred_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      application_stage_type:
+        | "applied"
+        | "screening"
+        | "interview"
+        | "offered"
+        | "hired"
+        | "rejected"
+      referral_outcome_type: "pending_feedback" | "accepted" | "rejected"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
       job_posting: {
         Row: {
           application_deadline: string | null
@@ -695,7 +883,7 @@ export type Database = {
           education_required?: string | null
           employer_id?: number | null
           experience_required?: string | null
-          id?: number
+          id?: never
           job_description?: string | null
           job_title?: string | null
           job_type?: string | null
@@ -713,7 +901,7 @@ export type Database = {
           education_required?: string | null
           employer_id?: number | null
           experience_required?: string | null
-          id?: number
+          id?: never
           job_description?: string | null
           job_title?: string | null
           job_type?: string | null
@@ -725,15 +913,7 @@ export type Database = {
           vacancies?: number | null
           work_setup?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "job_posting_employer_id_fkey"
-            columns: ["employer_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       job_posting_media: {
         Row: {
@@ -753,7 +933,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           mime_type?: string | null
           path?: string | null
@@ -765,7 +945,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           filename?: string | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           mime_type?: string | null
           path?: string | null
@@ -791,13 +971,13 @@ export type Database = {
         }
         Insert: {
           additional_requirement?: string | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           requirement_id?: number | null
         }
         Update: {
           additional_requirement?: string | null
-          id?: number
+          id?: never
           job_posting_id?: number | null
           requirement_id?: number | null
         }
@@ -814,250 +994,6 @@ export type Database = {
             columns: ["requirement_id"]
             isOneToOne: false
             referencedRelation: "requirement_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          id: number
-          is_read: boolean | null
-          message: string | null
-          recipient_id: string | null
-          title: string | null
-          type: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          is_read?: boolean | null
-          message?: string | null
-          recipient_id?: string | null
-          title?: string | null
-          type?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          is_read?: boolean | null
-          message?: string | null
-          recipient_id?: string | null
-          title?: string | null
-          type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profile_media: {
-        Row: {
-          alt_text: string | null
-          created_at: string
-          description: string | null
-          filename: string | null
-          id: number
-          mime_type: string | null
-          path: string | null
-          profile_id: string | null
-          size: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          alt_text?: string | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          profile_id?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          alt_text?: string | null
-          created_at?: string
-          description?: string | null
-          filename?: string | null
-          id?: number
-          mime_type?: string | null
-          path?: string | null
-          profile_id?: string | null
-          size?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_media_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profile_socials: {
-        Row: {
-          created_at: string
-          id: number
-          profile_id: string | null
-          social_link: string | null
-          social_name: string | null
-          updated_At: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          profile_id?: string | null
-          social_link?: string | null
-          social_name?: string | null
-          updated_At?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          profile_id?: string | null
-          social_link?: string | null
-          social_name?: string | null
-          updated_At?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_socials_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          barangay: string | null
-          birthdate: string | null
-          contact_number: string | null
-          created_at: string
-          firstname: string | null
-          gender: Database["public"]["Enums"]["gender_type"] | null
-          geographic: string | null
-          id: string
-          is_4ps: boolean | null
-          is_pwd: boolean | null
-          last_login: string | null
-          lastname: string | null
-          middlename: string | null
-          province: string | null
-          region: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          status: Database["public"]["Enums"]["status_type"] | null
-          updated_at: string | null
-          username: string | null
-        }
-        Insert: {
-          barangay?: string | null
-          birthdate?: string | null
-          contact_number?: string | null
-          created_at?: string
-          firstname?: string | null
-          gender?: Database["public"]["Enums"]["gender_type"] | null
-          geographic?: string | null
-          id?: string
-          is_4ps?: boolean | null
-          is_pwd?: boolean | null
-          last_login?: string | null
-          lastname?: string | null
-          middlename?: string | null
-          province?: string | null
-          region?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Update: {
-          barangay?: string | null
-          birthdate?: string | null
-          contact_number?: string | null
-          created_at?: string
-          firstname?: string | null
-          gender?: Database["public"]["Enums"]["gender_type"] | null
-          geographic?: string | null
-          id?: string
-          is_4ps?: boolean | null
-          is_pwd?: boolean | null
-          last_login?: string | null
-          lastname?: string | null
-          middlename?: string | null
-          province?: string | null
-          region?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          status?: Database["public"]["Enums"]["status_type"] | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
-      referrals: {
-        Row: {
-          applicant_id: number | null
-          created_at: string
-          feedback_remarks: string | null
-          id: number
-          job_posting_id: number | null
-          outcome: Database["public"]["Enums"]["referral_outcome_type"] | null
-          referral_letter: string | null
-          referred_by: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          applicant_id?: number | null
-          created_at?: string
-          feedback_remarks?: string | null
-          id?: number
-          job_posting_id?: number | null
-          outcome?: Database["public"]["Enums"]["referral_outcome_type"] | null
-          referral_letter?: string | null
-          referred_by?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          applicant_id?: number | null
-          created_at?: string
-          feedback_remarks?: string | null
-          id?: number
-          job_posting_id?: number | null
-          outcome?: Database["public"]["Enums"]["referral_outcome_type"] | null
-          referral_letter?: string | null
-          referred_by?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "referrals_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "applicants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referrals_job_posting_id_fkey"
-            columns: ["job_posting_id"]
-            isOneToOne: false
-            referencedRelation: "job_posting"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referrals_referred_by_fkey"
-            columns: ["referred_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1088,50 +1024,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      system_audit_logs: {
-        Row: {
-          action: string | null
-          created_at: string
-          id: number
-          ip_address: string | null
-          new_values: string[] | null
-          old_values: string[] | null
-          record_id: string | null
-          table_name: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action?: string | null
-          created_at?: string
-          id?: number
-          ip_address?: string | null
-          new_values?: string[] | null
-          old_values?: string[] | null
-          record_id?: string | null
-          table_name?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string | null
-          created_at?: string
-          id?: number
-          ip_address?: string | null
-          new_values?: string[] | null
-          old_values?: string[] | null
-          record_id?: string | null
-          table_name?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "system_audit_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
@@ -1167,6 +1059,88 @@ export type Database = {
         | "no_show"
       status_type: "pending" | "approved" | "rejected" | "active" | "closed"
       user_role: "applicant" | "employer" | "peso_staff" | "admin"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  system: {
+    Tables: {
+      notifications: {
+        Row: {
+          created_at: string
+          id: number
+          is_read: boolean | null
+          message: string | null
+          recipient_id: string | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          is_read?: boolean | null
+          message?: string | null
+          recipient_id?: string | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          is_read?: boolean | null
+          message?: string | null
+          recipient_id?: string | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      system_audit_logs: {
+        Row: {
+          action: string | null
+          created_at: string
+          id: number
+          ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          id?: never
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          id?: never
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1292,6 +1266,55 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  applicants: {
+    Enums: {},
+  },
+  core: {
+    Enums: {
+      gender_type: [
+        "woman",
+        "man",
+        "cisgender_woman",
+        "cisgender_man",
+        "transgender_woman",
+        "transgender_man",
+        "non_binary",
+        "genderqueer",
+        "genderfluid",
+        "agender",
+        "two_spirit",
+        "intersex",
+        "different_identity",
+        "prefer_not_to_say",
+      ],
+      status_type: ["pending", "approved", "rejected", "active", "inactive"],
+      user_role: [
+        "admin",
+        "applicant",
+        "company_owner",
+        "company_member",
+        "provincial_peso",
+        "municipal_peso",
+        "dole",
+      ],
+    },
+  },
+  employers: {
+    Enums: {},
+  },
+  jobs: {
+    Enums: {
+      application_stage_type: [
+        "applied",
+        "screening",
+        "interview",
+        "offered",
+        "hired",
+        "rejected",
+      ],
+      referral_outcome_type: ["pending_feedback", "accepted", "rejected"],
+    },
+  },
   public: {
     Enums: {
       application_stage_type: [
@@ -1321,5 +1344,8 @@ export const Constants = {
       status_type: ["pending", "approved", "rejected", "active", "closed"],
       user_role: ["applicant", "employer", "peso_staff", "admin"],
     },
+  },
+  system: {
+    Enums: {},
   },
 } as const

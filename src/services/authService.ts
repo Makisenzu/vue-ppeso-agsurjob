@@ -2,15 +2,20 @@ import { supabase } from "@/lib/supabaseClient"
 import type { SignInWithPasswordCredentials, SignUpWithPasswordCredentials } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row']
-type ApplicantRow = Database['public']['Tables']['applicants']['Row']
-type EmployerRow = Database['public']['Tables']['companies']['Row']
-type ApplicantExperienceRow = Database['public']['Tables']['applicant_experiences']['Row']
-type ApplicantSkillRow = Database['public']['Tables']['applicant_skills']['Row']
-type ApplicantRequirementRow = Database['public']['Tables']['applicant_requirements']['Row']
-type ApplicantRequirementMediaRow = Database['public']['Tables']['applicant_requirement_media']['Row']
-type ProfileMediaRow = Database['public']['Tables']['profile_media']['Row']
-type ProfileSummary = Pick<
+export type ProfileRow = Database['core']['Tables']['profiles']['Row']
+export type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
+export type ApplicantRow = Database['applicants']['Tables']['applicants']['Row']
+export type ApplicantInsert = Database['applicants']['Tables']['applicants']['Insert']
+export type EmployerRow = Database['employers']['Tables']['companies']['Row']
+export type EmployerInsert = Database['employers']['Tables']['companies']['Insert']
+export type ApplicantExperienceRow = Database['applicants']['Tables']['applicant_experiences']['Row']
+export type ApplicantSkillRow = Database['applicants']['Tables']['applicant_skills']['Row']
+export type ApplicantRequirementRow = Database['applicants']['Tables']['applicant_requirements']['Row']
+export type ApplicantRequirementMediaRow = Database['applicants']['Tables']['applicant_requirement_media']['Row']
+export type ProfileMediaRow = Database['core']['Tables']['profile_media']['Row']
+export type RequirementTemplateRow = Database['public']['Tables']['requirement_templates']['Row']
+
+export type ProfileSummary = Pick<
   ProfileRow,
   | 'id'
   | 'firstname'
@@ -53,12 +58,14 @@ export const authService = {
     if (error) throw error
   },
 
-  async fetchProfile(userId: string) {
-    const {data, error } = await supabase
-    .from('profiles')
-    .select('id, firstname, middlename, lastname, birthdate, contact_number, gender, status, is_pwd, is_4ps, role, username, region, province, geographic, barangay')
-    .eq('id', userId)
-    .single()
+  async fetchProfile(userId: string): Promise<ProfileSummary> {
+    const { data, error } = await supabase
+      .schema('core')
+      .from('profiles')
+      .select('id, firstname, middlename, lastname, birthdate, contact_number, gender, status, is_pwd, is_4ps, role, username, region, province, geographic, barangay')
+      .eq('id', userId)
+      .single()
+
     if (data) {
       return data
     } else {
@@ -68,6 +75,7 @@ export const authService = {
 
   async fetchApplicantByProfileId(profileId: string): Promise<ApplicantRow | null> {
     const { data, error } = await supabase
+      .schema('applicants')
       .from('applicants')
       .select('*')
       .eq('profile_id', profileId)
@@ -82,6 +90,7 @@ export const authService = {
 
   async fetchEmployerByProfileId(profileId: string): Promise<EmployerRow | null> {
     const { data, error } = await supabase
+      .schema('employers')
       .from('companies')
       .select('*')
       .eq('profile_id', profileId)
@@ -100,12 +109,12 @@ export const authService = {
     const [applicantResult, employerResult, experiencesResult, skillsResult, requirementsResult, requirementMediaResult, profileMediaResult] =
       await Promise.all([
         profile.role === 'applicant' ? this.fetchApplicantByProfileId(userId) : Promise.resolve(null),
-        profile.role === 'employer' ? this.fetchEmployerByProfileId(userId) : Promise.resolve(null),
-        supabase.from('applicant_experiences').select('*').eq('profile_id', userId),
-        supabase.from('applicant_skills').select('*').eq('profile_id', userId),
-        supabase.from('applicant_requirements').select('*').eq('profile_id', userId),
-        supabase.from('applicant_requirement_media').select('*').eq('profiles_id', userId),
-        supabase.from('profile_media').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
+        profile.role === 'company_owner' || profile.role === 'company_member' ? this.fetchEmployerByProfileId(userId) : Promise.resolve(null),
+        supabase.schema('applicants').from('applicant_experiences').select('*').eq('profile_id', userId),
+        supabase.schema('applicants').from('applicant_skills').select('*').eq('profile_id', userId),
+        supabase.schema('applicants').from('applicant_requirements').select('*').eq('profile_id', userId),
+        supabase.schema('applicants').from('applicant_requirement_media').select('*').eq('profiles_id', userId),
+        supabase.schema('core').from('profile_media').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
       ])
 
     if (experiencesResult.error) {
@@ -140,8 +149,9 @@ export const authService = {
     }
   },
 
-  async insertProfileData(profileData: any) {
+  async insertProfileData(profileData: ProfileInsert) {
     const { data, error } = await supabase
+      .schema('core')
       .from('profiles')
       .insert(profileData)
       .select()
@@ -151,8 +161,9 @@ export const authService = {
     return data
   },
 
-  async insertApplicantData(applicantData: any) {
+  async insertApplicantData(applicantData: ApplicantInsert) {
     const { data, error } = await supabase
+      .schema('applicants')
       .from('applicants')
       .insert(applicantData)
       .select()
@@ -163,8 +174,9 @@ export const authService = {
     }
   },
   
-  async insertEmployerData(employerData: any) {
+  async insertEmployerData(employerData: EmployerInsert) {
     const { data, error } = await supabase
+      .schema('employers')
       .from('companies')
       .insert(employerData)
       .select()
@@ -190,8 +202,10 @@ export const authService = {
     if (error) throw error
     return data
   },
-  async fetchSubmittedRequirements(profileId: string): Promise<any[]> {
+
+  async fetchSubmittedRequirements(profileId: string): Promise<ApplicantRequirementRow[]> {
     const { data, error } = await supabase
+      .schema('applicants')
       .from('applicant_requirements')
       .select('*')
       .eq('profile_id', profileId)
@@ -200,8 +214,10 @@ export const authService = {
     }
     return data || []
   },
-  async loadVerificationTemplates(): Promise<any[]> {
+
+  async loadVerificationTemplates(): Promise<RequirementTemplateRow[]> {
     const { data, error } = await supabase
+      .schema('public')
       .from('requirement_templates')
       .select('*')
       .eq('requirement_type', 'applicant_verification')

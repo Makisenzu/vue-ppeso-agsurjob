@@ -10,7 +10,8 @@ export async function fetchCompanyProfileByProfileId(
   profileId: string,
 ): Promise<CompanyProfileResult> {
   const { data: employer, error: employerError } = await supabase
-    .from('employers')
+    .schema('employers')
+    .from('companies')
     .select('*')
     .eq('profile_id', profileId)
     .maybeSingle()
@@ -18,6 +19,7 @@ export async function fetchCompanyProfileByProfileId(
   if (employerError) throw employerError
 
   const { data: ownerProfile, error: profileError } = await supabase
+    .schema('core')
     .from('profiles')
     .select('*')
     .eq('id', profileId)
@@ -37,10 +39,11 @@ export async function fetchCompanyProfileByProfileId(
  */
 export async function updateCompanyProfile(
   employerId: number,
-  updates: Partial<TablesUpdate<'employers'>>,
+  updates: Partial<TablesUpdate<{ schema: 'employers' }, 'companies'>>,
 ): Promise<void> {
   const { error } = await supabase
-    .from('employers')
+    .schema('employers')
+    .from('companies')
     .update(updates)
     .eq('id', employerId)
     .select()

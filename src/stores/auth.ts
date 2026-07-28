@@ -5,33 +5,16 @@ import { authService, type UserBundleData } from '@/services/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
-type ProfileSummary = Pick<
-  Database['public']['Tables']['profiles']['Row'],
-  | 'id'
-  | 'firstname'
-  | 'middlename'
-  | 'lastname'
-  | 'birthdate'
-  | 'region'
-  | 'province'
-  | 'geographic'
-  | 'barangay'
-  | 'contact_number'
-  | 'gender'
-  | 'status'
-  | 'is_pwd'
-  | 'is_4ps'
-  | 'role'
-  | 'username'
->
-
-type ApplicantRow = Database['public']['Tables']['applicants']['Row']
-type EmployerRow = Database['public']['Tables']['employers']['Row']
-type ApplicantExperienceRow = Database['public']['Tables']['applicant_experiences']['Row']
-type ApplicantSkillRow = Database['public']['Tables']['applicant_skills']['Row']
-type ApplicantRequirementRow = Database['public']['Tables']['applicant_requirements']['Row']
-type ApplicantRequirementMediaRow = Database['public']['Tables']['applicant_requirement_media']['Row']
-type ProfileMediaRow = Database['public']['Tables']['profile_media']['Row']
+import type {
+  ProfileSummary,
+  ApplicantRow,
+  EmployerRow,
+  ApplicantExperienceRow,
+  ApplicantSkillRow,
+  ApplicantRequirementRow,
+  ApplicantRequirementMediaRow,
+  ProfileMediaRow
+} from '@/services/authService'
 
 export const useAuthStore = defineStore('auth', () => {
 
@@ -50,11 +33,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isHydrating = ref(false)
   const isInitialized = ref(false)
   const isAuthListenerBound = ref(false)
-  const selectedRole = ref<Database["public"]["Enums"]["user_role"] | null>(null)
+  const selectedRole = ref<Database["core"]["Enums"]["user_role"] | null>(null)
 
   // ─── Signup State ───
   const signupData = ref({
-    role: '' as Database["public"]["Enums"]["user_role"],
+    role: '' as Database["core"]["Enums"]["user_role"],
     firstName: '',
     middlename: '',
     lastName: '',
@@ -94,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
     company_description: '',
     website: '',
     registration_number: '',
-    verification_status: '' as Database["public"]["Enums"]["status_type"],
+    verification_status: '' as Database["core"]["Enums"]["status_type"],
   })
 
   // ─── Computed ───
@@ -233,7 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearSignupData() {
     signupData.value = {
-        role: '' as Database["public"]["Enums"]["user_role"],
+        role: '' as any,
         firstName: '',
         middlename: '',
         lastName: '',
@@ -278,6 +261,8 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       const roleToInsert = signupData.value.role || selectedRole.value
+      const profileRole: Database['core']['Enums']['user_role'] =
+        roleToInsert === ('employer' as any) ? 'company_owner' : (roleToInsert as Database['core']['Enums']['user_role'])
       const userId = result.user?.id
 
       if (!userId) {
@@ -287,12 +272,12 @@ export const useAuthStore = defineStore('auth', () => {
       // 1. Manually insert the user's profile data first
       await authService.insertProfileData({
         id: userId,
-        role: roleToInsert,
+        role: profileRole,
         firstname: signupData.value.firstName,
         middlename: signupData.value.middlename,
         lastname: signupData.value.lastName,
         birthdate: signupData.value.birthdate,
-        gender: signupData.value.gender as Database['public']['Enums']['gender_type'] | null,
+        gender: signupData.value.gender as Database['core']['Enums']['gender_type'] | null,
         contact_number: signupData.value.contact_number,
         region: signupData.value.region,
         province: signupData.value.province,
@@ -306,12 +291,12 @@ export const useAuthStore = defineStore('auth', () => {
       // Update the local profile state immediately so fetchProfile isn't strictly required
       profile.value = {
         id: userId,
-        role: roleToInsert,
+        role: profileRole,
         firstname: signupData.value.firstName,
         middlename: signupData.value.middlename,
         lastname: signupData.value.lastName,
         birthdate: signupData.value.birthdate,
-        gender: signupData.value.gender as Database['public']['Enums']['gender_type'] | null,
+        gender: signupData.value.gender as Database['core']['Enums']['gender_type'] | null,
         contact_number: signupData.value.contact_number,
         region: signupData.value.region,
         province: signupData.value.province,
@@ -339,7 +324,7 @@ export const useAuthStore = defineStore('auth', () => {
         })
         applicantProfile.value = Array.isArray(insertApplicantResult) ? (insertApplicantResult[0] ?? null) : null
         employerProfile.value = null
-      } else if (roleToInsert === 'employer') {
+      } else if (roleToInsert === ('employer' as any) || roleToInsert === 'company_owner' || roleToInsert === 'company_member') {
         insertEmployerResult = await authService.insertEmployerData({
           profile_id: userId,
           company_name: employerData.value.company_name || null,

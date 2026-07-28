@@ -1,15 +1,15 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { Tables, TablesUpdate } from '@/types/database.types'
+import type { Database, Tables, TablesUpdate } from '@/types/database.types'
 
-export type ApplicantProfileRecord = Tables<'profiles'>
-export type ApplicantRecord = Tables<'applicants'>
-export type ApplicantExperienceRecord = Tables<'applicant_experiences'>
-export type ApplicantSkillRecord = Tables<'applicant_skills'>
-export type ApplicantRequirementRecord = Tables<'applicant_requirements'>
-export type ApplicantRequirementMediaRecord = Tables<'applicant_requirement_media'>
-export type ProfileSocialRecord = Tables<'profile_socials'>
-export type ProfileNotificationRecord = Tables<'notifications'>
-export type ProfileMediaRecord = Tables<'profile_media'>
+export type ApplicantProfileRecord = Tables<{ schema: 'core' }, 'profiles'>
+export type ApplicantRecord = Tables<{ schema: 'applicants' }, 'applicants'>
+export type ApplicantExperienceRecord = Tables<{ schema: 'applicants' }, 'applicant_experiences'>
+export type ApplicantSkillRecord = Tables<{ schema: 'applicants' }, 'applicant_skills'>
+export type ApplicantRequirementRecord = Tables<{ schema: 'applicants' }, 'applicant_requirements'>
+export type ApplicantRequirementMediaRecord = Tables<{ schema: 'applicants' }, 'applicant_requirement_media'>
+export type ProfileSocialRecord = Tables<{ schema: 'core' }, 'profile_socials'>
+export type ProfileNotificationRecord = Tables<{ schema: 'system' }, 'notifications'>
+export type ProfileMediaRecord = Tables<{ schema: 'core' }, 'profile_media'>
 
 export interface ApplicantProfileResult {
   profile: ApplicantProfileRecord | null
@@ -51,6 +51,7 @@ function createEmptyApplicantProfileResult(profile: ApplicantProfileRecord | nul
 
 export async function hasApplicantExperienceEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('applicants')
     .from('applicant_experiences')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
@@ -61,6 +62,7 @@ export async function hasApplicantExperienceEntries(profileId: string): Promise<
 
 export async function hasApplicantSkillEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('applicants')
     .from('applicant_skills')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
@@ -71,6 +73,7 @@ export async function hasApplicantSkillEntries(profileId: string): Promise<boole
 
 export async function hasProfileSocialEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('core')
     .from('profile_socials')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
@@ -81,6 +84,7 @@ export async function hasProfileSocialEntries(profileId: string): Promise<boolea
 
 export async function hasProfileNotificationEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('system')
     .from('notifications')
     .select('id', { head: true, count: 'exact' })
     .eq('recipient_id', profileId)
@@ -91,6 +95,7 @@ export async function hasProfileNotificationEntries(profileId: string): Promise<
 
 export async function hasProfileMediaEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('core')
     .from('profile_media')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
@@ -101,6 +106,7 @@ export async function hasProfileMediaEntries(profileId: string): Promise<boolean
 
 export async function hasRequirementEntries(profileId: string): Promise<boolean> {
   const { count, error } = await supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .select('id', { head: true, count: 'exact' })
     .eq('profile_id', profileId)
@@ -117,6 +123,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
   }
 
   const { data: profile } = await supabase
+    .schema('core')
     .from('profiles')
     .select('*')
     .eq('username', routeUsername)
@@ -127,6 +134,7 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
   }
 
   const { data: applicant } = await supabase
+    .schema('applicants')
     .from('applicants')
     .select('*')
     .eq('profile_id', profile.id)
@@ -137,36 +145,43 @@ export async function fetchApplicantProfileByUsername(username: string): Promise
   }
 
   const { data: experiences } = await supabase
+    .schema('applicants')
     .from('applicant_experiences')
     .select('*')
     .eq('profile_id', profile.id)
 
   const { data: skills } = await supabase
+    .schema('applicants')
     .from('applicant_skills')
     .select('*')
     .eq('profile_id', profile.id)
 
   const { data: socials } = await supabase
+    .schema('core')
     .from('profile_socials')
     .select('*')
     .eq('profile_id', profile.id)
 
   const { data: notifications } = await supabase
+    .schema('system')
     .from('notifications')
     .select('*')
     .eq('recipient_id', profile.id)
   
   const { data: media } = await supabase
+    .schema('core')
     .from('profile_media')
     .select('*')
     .eq('profile_id', profile.id)
   
   const { data: requirements } = await supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .select('*')
     .eq('profile_id', profile.id)
 
   const { data: requirementMedia } = await supabase
+    .schema('applicants')
     .from('applicant_requirement_media')
     .select('*')
     .eq('profiles_id', profile.id)
@@ -198,17 +213,17 @@ export interface UpdateProfileInput {
   username?: string
   birthdate?: string | null
   contact_number?: string | null
-  gender?: 'male' | 'female' | 'non-binary' | 'prefer_not_to_say' | null
+  gender?: Database['core']['Enums']['gender_type'] | null
   is_pwd?: boolean | null
-  is_4ps?: boolean | null,
-  region?: string | null,
-  province?: string | null,
-  geographic?: string | null,
-  barangay?: string | null,
+  is_4ps?: boolean | null
+  region?: string | null
+  province?: string | null
+  geographic?: string | null
+  barangay?: string | null
 }
 
 export async function updateApplicantProfile(userId: string, updates: UpdateProfileInput): Promise<void> {
-  const payload: Partial<TablesUpdate<'profiles'>> = {}
+  const payload: Partial<TablesUpdate<{ schema: 'core' }, 'profiles'>> = {}
 
   if (updates.firstname !== undefined) payload.firstname = updates.firstname
   if (updates.middlename !== undefined) payload.middlename = updates.middlename
@@ -225,6 +240,7 @@ export async function updateApplicantProfile(userId: string, updates: UpdateProf
   if (updates.barangay !== undefined) payload.barangay = updates.barangay
 
   const { error } = await supabase
+    .schema('core')
     .from('profiles')
     .update(payload)
     .eq('id', userId)

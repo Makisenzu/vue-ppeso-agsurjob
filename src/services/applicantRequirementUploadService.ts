@@ -9,11 +9,11 @@ import type {
 } from '@/types/fileUpload'
 import type { Tables, TablesInsert } from '@/types/database.types'
 
-export type ApplicantRequirementRow = Tables<'applicant_requirements'>
-export type ApplicantRequirementMediaRow = Tables<'applicant_requirement_media'>
-export type ApplicantRequirementInsert = TablesInsert<'applicant_requirements'>
-export type ApplicantRequirementMediaInsert = TablesInsert<'applicant_requirement_media'>
-export type RequirementTemplateRow = Tables<'requirement_templates'>
+export type ApplicantRequirementRow = Tables<{ schema: 'applicants' }, 'applicant_requirements'>
+export type ApplicantRequirementMediaRow = Tables<{ schema: 'applicants' }, 'applicant_requirement_media'>
+export type ApplicantRequirementInsert = TablesInsert<{ schema: 'applicants' }, 'applicant_requirements'>
+export type ApplicantRequirementMediaInsert = TablesInsert<{ schema: 'applicants' }, 'applicant_requirement_media'>
+export type RequirementTemplateRow = Tables<{ schema: 'public' }, 'requirement_templates'>
 
 function normalizeLabel(value: string) {
   return value.trim().toLowerCase().replace(/[\s_-]+/g, '')
@@ -22,6 +22,7 @@ function normalizeLabel(value: string) {
 async function findRequirementTemplateId(document: UploadDocumentDefinition) {
   if (document.requirementTemplateId) {
     const { data: byConfiguredId, error: byConfiguredIdError } = await supabase
+      .schema('public')
       .from('requirement_templates')
       .select('id, requirement_type')
       .eq('id', document.requirementTemplateId)
@@ -31,10 +32,6 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
       throw byConfiguredIdError
     }
 
-    // If a configured ID was provided but not found, fall back to the
-    // name/type-based lookup below instead of throwing immediately. This
-    // allows the frontend to specify numeric IDs for convenience while
-    // still working when DB contents differ between environments.
     if (!byConfiguredId?.id) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -61,6 +58,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
 
   // Try exact name match first (case-insensitive)
   const { data: byName, error: byNameError } = await supabase
+    .schema('public')
     .from('requirement_templates')
     .select('id, name, requirement_type')
     .ilike('name', document.label)
@@ -76,6 +74,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
 
   // Try wildcard/partial matches (e.g. 'Resume' -> 'Resume / CV')
   const { data: wildcardMatches, error: wildcardError } = await supabase
+    .schema('public')
     .from('requirement_templates')
     .select('id, name, requirement_type')
     .ilike('name', `%${document.label}%`)
@@ -92,6 +91,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
 
   // As a last resort, fetch all templates and try normalized comparisons
   const { data: allTemplates, error: listError } = await supabase
+    .schema('public')
     .from('requirement_templates')
     .select('id, name, requirement_type')
 
@@ -119,23 +119,21 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
   }
 
   // As a last resort, create a verification-type requirement template so
-  // uploads for this label can proceed. This avoids blocking users when the
-  // templates table is missing an expected entry.
+  // uploads for this label can proceed.
   try {
-    const payload: RequirementTemplateRow | any = {
+    const payload = {
       name: document.label,
       requirement_type: 'applicant_verification',
     }
 
     const { data: created, error: createError } = await supabase
+      .schema('public')
       .from('requirement_templates')
       .insert([payload])
       .select()
       .maybeSingle()
 
     if (createError) {
-      // If creation fails, surface null so caller can handle the missing template
-      // as an explicit error.
       // eslint-disable-next-line no-console
       console.warn('Failed to create fallback requirement_template:', createError)
       return null
@@ -153,6 +151,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
 
 async function findExistingApplicantRequirement(profileId: string, requirementTemplateId: number) {
   const query = supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .select('*')
     .eq('profile_id', profileId)
@@ -171,6 +170,7 @@ async function createApplicantRequirement(profileId: string, requirementTemplate
   }
 
   const { data, error } = await supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .insert([payload])
     .select()
@@ -185,6 +185,7 @@ async function createApplicantRequirement(profileId: string, requirementTemplate
 
 async function findLatestRequirementMedia(applicantRequirementId: number) {
   const { data, error } = await supabase
+    .schema('applicants')
     .from('applicant_requirement_media')
     .select('*')
     .eq('applicant_requirement_id', applicantRequirementId)
@@ -217,6 +218,7 @@ async function saveApplicantRequirementMedia(
   }
 
   const { data, error } = await supabase
+    .schema('applicants')
     .from('applicant_requirement_media')
     .insert([payload])
     .select()
@@ -240,6 +242,7 @@ async function deleteApplicantRequirementDocument(
   }
 
   const { data: applicantRequirement, error: requirementError } = await supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .select('id')
     .eq('profile_id', profileId)
@@ -259,6 +262,7 @@ async function deleteApplicantRequirementDocument(
   }
 
   const { data: mediaRows, error: mediaError } = await supabase
+    .schema('applicants')
     .from('applicant_requirement_media')
     .select('*')
     .eq('applicant_requirement_id', applicantRequirement.id)
@@ -279,6 +283,7 @@ async function deleteApplicantRequirementDocument(
 
   if ((mediaRows ?? []).length > 0) {
     const { error: deleteMediaError } = await supabase
+      .schema('applicants')
       .from('applicant_requirement_media')
       .delete()
       .eq('applicant_requirement_id', applicantRequirement.id)
@@ -289,6 +294,7 @@ async function deleteApplicantRequirementDocument(
   }
 
   const { error: deleteRequirementError } = await supabase
+    .schema('applicants')
     .from('applicant_requirements')
     .delete()
     .eq('id', applicantRequirement.id)
@@ -318,6 +324,7 @@ async function removePreviousRequirementMedia(previousMedia: ApplicantRequiremen
   }
 
   await supabase
+    .schema('applicants')
     .from('applicant_requirement_media')
     .delete()
     .eq('id', previousMedia.id)
