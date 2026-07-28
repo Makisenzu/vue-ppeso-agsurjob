@@ -38,26 +38,26 @@ const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
 const activitySubItems = [
-  { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
-  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
-  { title: 'Offers', to: {name: 'dashboard'}, icon: Mail },
+  { title: 'Job Ng', to: {name: 'admin-dashboard'}, icon: Inbox },
+  { title: 'Interviews', to: {name: 'admin-dashboard'}, icon: Phone },
+  { title: 'Chats', to: {name: 'admin-dashboard'}, icon: MessageCircle },
+  { title: 'Offers', to: {name: 'admin-dashboard'}, icon: Mail },
 ]
 const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
+  { title: 'Help Center & FAQ', to: {name: 'admin-dashboard'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'admin-dashboard'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'admin-dashboard'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'admin-dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
+  { title: 'Profile Settings', to: {name: 'admin-dashboard'}, icon:  UserRoundCog },
+  { title: 'Account Security', to: {name: 'admin-dashboard'}, icon: Settings },
+  { title: 'Notification Preferences', to: {name: 'admin-dashboard'}, icon: Bell },
 ]
-const jobHuntItems = [
-  { title: 'Find Jobs', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Saved Jobs', to: {name: 'dashboard'}, icon: Bookmark },
-  { title: 'Companies', to: {name: 'dashboard'}, icon: Building },
+const managementItems = [
+  { title: 'Accounts', to: {name: 'admin-dashboard'}, icon: Search },
+  { title: 'Saved Jobs', to: {name: 'admin-dashboard'}, icon: Bookmark },
+  { title: 'Companies', to: {name: 'admin-dashboard'}, icon: Building },
 ]
 </script>
 
@@ -135,8 +135,8 @@ const jobHuntItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
-                  <RouterLink :to="{ name: 'dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'admin-dashboard'">
+                  <RouterLink :to="{ name: 'admin-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
@@ -150,10 +150,10 @@ const jobHuntItems = [
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />
-          <SidebarGroupLabel>Job Search</SidebarGroupLabel>
+          <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
+              <SidebarMenuItem v-for="item in managementItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
                   <RouterLink to="">
                     <component :is="item.icon" />
