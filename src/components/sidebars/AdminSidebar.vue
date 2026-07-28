@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+import { Mail, Home, Inbox, Search, Settings2, ChevronUp, Lock, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, Bell, FolderKanban, MessageCircle, Star, Settings, Keyboard} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -37,27 +37,25 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
-const activitySubItems = [
-  { title: 'Job Ng', to: {name: 'admin-dashboard'}, icon: Inbox },
-  { title: 'Interviews', to: {name: 'admin-dashboard'}, icon: Phone },
-  { title: 'Chats', to: {name: 'admin-dashboard'}, icon: MessageCircle },
-  { title: 'Offers', to: {name: 'admin-dashboard'}, icon: Mail },
+const auditLogItems = [
+  { title: 'System Activity', to: {name: 'admin-dashboard'}, icon: Inbox },
+  { title: 'User Access', to: {name: 'admin-dashboard'}, icon: Phone },
+  { title: 'Data Modifications', to: {name: 'admin-dashboard'}, icon: MessageCircle },
 ]
-const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'admin-dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'admin-dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'admin-dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'admin-dashboard'}, icon: Star },
-]
-const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'admin-dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'admin-dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'admin-dashboard'}, icon: Bell },
+const platformSettingItems = [
+  { title: 'Security & Auth', to: {name: 'admin-dashboard'}, icon: Search },
+  { title: 'Documents & Upload', to: {name: 'admin-dashboard'}, icon: Mail },
+  { title: 'Maintenance & Alerts', to: {name: 'admin-dashboard'}, icon: Phone },
+  { title: 'PSGC Geographic Data', to: {name: 'admin-dashboard'}, icon: Star },
+  { title: 'General Setting', to: {name: 'admin-dashboard'}, icon: Settings },
 ]
 const managementItems = [
-  { title: 'Accounts', to: {name: 'admin-dashboard'}, icon: Search },
-  { title: 'Saved Jobs', to: {name: 'admin-dashboard'}, icon: Bookmark },
-  { title: 'Companies', to: {name: 'admin-dashboard'}, icon: Building },
+  { title: 'Accounts', to: {name: 'admin-dashboard'}, icon: ShieldUser },
+  { title: 'Directory', to: {name: 'admin-dashboard'}, icon: BookOpenCheck },
+  { title: 'Roles and Permission', to: {name: 'admin-dashboard'}, icon: Lock },
+  { title: 'Document Templates', to: {name: 'admin-dashboard'}, icon: FileText },
+  { title: 'Company Overview', to: {name: 'admin-dashboard'}, icon: FolderKanban },
+  { title: 'Posting Moderation', to: {name: 'admin-dashboard'}, icon: Keyboard },
 ]
 </script>
 
@@ -163,21 +161,21 @@ const managementItems = [
               </SidebarMenuItem>
 
               <div class="my-1 h-px bg-sidebar-border" />
-              <SidebarGroupLabel>Others</SidebarGroupLabel>
+              <SidebarGroupLabel>Security</SidebarGroupLabel>
               
               <SidebarMenuItem>
                 <Collapsible as-child default-close class="group/collapsible">
                   <div>
                     <CollapsibleTrigger as-child>
                       <SidebarMenuButton :tooltip="'My Activities'">
-                        <Zap />
-                        <span>My Activities</span>
+                        <SquareTerminal />
+                        <span>Audit Logs</span>
                         <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
+                        <SidebarMenuSubItem v-for="subItem in auditLogItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
                             <RouterLink to="">
                               <span>{{ subItem.title }}</span>
@@ -195,14 +193,14 @@ const managementItems = [
                   <div>
                     <CollapsibleTrigger as-child>
                       <SidebarMenuButton :tooltip="'Support'">
-                        <UserRound />
-                        <span>Support</span>
+                        <Settings2 />
+                        <span>Settings</span>
                         <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
+                        <SidebarMenuSubItem v-for="subItem in platformSettingItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
                             <RouterLink to="">
                               <span>{{ subItem.title }}</span>
@@ -215,30 +213,6 @@ const managementItems = [
                 </Collapsible>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Collapsible as-child default-close class="group/collapsible">
-                  <div>
-                    <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'Settings'">
-                        <Settings2 />
-                        <span>Settings</span>
-                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
-                              <span>{{ subItem.title }}</span>
-                            </RouterLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
