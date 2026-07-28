@@ -17,7 +17,9 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     isLoading.value = true
     errorMessage.value = null
     try {
-      profiles.value = await userAccountService.fetchAllProfiles()
+      const fetched = await userAccountService.fetchAllProfiles()
+      // Re-assign with a new array reference so Vue/Tanstack Table reactivity updates instantly
+      profiles.value = [...fetched]
     } catch (err: any) {
       errorMessage.value = err.message || 'Failed to load user account profiles.'
     } finally {
@@ -47,8 +49,12 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     errorMessage.value = null
     try {
       const newProfile = await userAccountService.createProfile(payload)
-      profiles.value.unshift(newProfile)
+      // Close sheet immediately
       closeAddAccountSheet()
+      // Prepend newly created profile into state with a brand new array reference for instant UI table update
+      profiles.value = [newProfile, ...profiles.value]
+      // Re-fetch all profiles from database in background to sync state completely
+      await fetchProfiles()
     } catch (err: any) {
       errorMessage.value = err.message || 'Failed to create user account.'
       throw err

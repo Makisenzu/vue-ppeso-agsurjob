@@ -1,6 +1,10 @@
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/common/database.types'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
 
 type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 
@@ -20,8 +24,18 @@ export const userAccountService = {
   },
 
   async createProfile(payload: CreateAccountPayload): Promise<ProfileRow> {
-    // 1. Create account in auth table (supabase.auth)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Use a separate Supabase client instance with persistSession disabled
+    // so signUp does not change or overwrite the currently logged in admin session.
+    const tempClient = createClient<Database>(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
+
+    // 1. Create account in auth table using isolated client
+    const { data: authData, error: authError } = await tempClient.auth.signUp({
       email: payload.email,
       password: payload.password,
       options: {
