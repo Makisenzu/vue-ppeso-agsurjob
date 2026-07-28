@@ -50,7 +50,7 @@ const platformSettingItems = [
   { title: 'General Setting', to: {name: 'admin-dashboard'}, icon: Settings },
 ]
 const managementItems = [
-  { title: 'Accounts', to: {name: 'admin-dashboard'}, icon: ShieldUser },
+  { title: 'Accounts', to: {name: 'accounts'}, icon: ShieldUser },
   { title: 'Directory', to: {name: 'admin-dashboard'}, icon: BookOpenCheck },
   { title: 'Roles and Permission', to: {name: 'admin-dashboard'}, icon: Lock },
   { title: 'Document Templates', to: {name: 'admin-dashboard'}, icon: FileText },
@@ -127,7 +127,7 @@ const managementItems = [
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
-              <SidebarMenuButton as-child :tooltip="'Home'">
+              <SidebarMenuButton as-child :tooltip="'Home'" :is-active="route.name === 'admin-home'">
                   <RouterLink :to="{ name: 'login' }">
                     <Home />
                     <span>Home</span>
@@ -139,7 +139,7 @@ const managementItems = [
                     <span>Dashboard</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'">
+              <SidebarMenuButton as-child :tooltip="'Notification'" :is-active="route.name === 'admin-notification'">
                   <RouterLink to="#">
                     <Bell />
                     <span>Notification</span>
@@ -152,8 +152,8 @@ const managementItems = [
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem v-for="item in managementItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink to="">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
+                  <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
                   </RouterLink>
@@ -177,7 +177,7 @@ const managementItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in auditLogItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>
@@ -202,7 +202,7 @@ const managementItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in platformSettingItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>

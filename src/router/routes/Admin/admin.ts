@@ -1,6 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
-import AdminDashboard from '@/components/admin/AdminDashboard.vue'
 
 export const adminRoutes: RouteRecordRaw[] = [
   {
@@ -11,8 +10,14 @@ export const adminRoutes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'admin-dashboard',
-        component: AdminDashboard
-      }
-    ]
+        component: () => import('@/components/admin/AdminDashboard.vue'),
+      },
+      {
+        path: 'accounts',
+        name: 'accounts',
+        component: () => import('@/components/admin/management/accounts/UserAccounts.vue'),
+        meta: { breadcrumb: 'User Accounts' },
+      },
+    ],
   },
 ]
