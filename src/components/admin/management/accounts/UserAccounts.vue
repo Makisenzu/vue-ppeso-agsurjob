@@ -3,6 +3,6 @@
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-3xl font-bold">User Management</h1>
+    <h1 class="text-3xl font-bold">Account Management</h1>
   </div>
 </template>
