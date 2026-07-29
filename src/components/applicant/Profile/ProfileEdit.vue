@@ -185,9 +185,9 @@ onMounted(() => {
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="non-binary">Non-binary</SelectItem>
+                <SelectItem value="man">Man</SelectItem>
+                <SelectItem value="woman">Woman</SelectItem>
+                <SelectItem value="non_binary">Non-binary</SelectItem>
                 <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
               </SelectContent>
             </Select>

@@ -223,9 +223,9 @@ function onBarangayChange(code: any) {
                   <Label for="gender">Gender</Label>
                   <NativeSelect id="gender" v-model="signupData.gender" class="w-full!">
                     <NativeSelectOption value="" disabled>Select gender</NativeSelectOption>
-                    <NativeSelectOption value="male">Male</NativeSelectOption>
-                    <NativeSelectOption value="female">Female</NativeSelectOption>
-                    <NativeSelectOption value="non-binary">Non-binary</NativeSelectOption>
+                    <NativeSelectOption value="man">Man</NativeSelectOption>
+                    <NativeSelectOption value="woman">Woman</NativeSelectOption>
+                    <NativeSelectOption value="non_binary">Non-binary</NativeSelectOption>
                     <NativeSelectOption value="prefer_not_to_say">Prefer not to say</NativeSelectOption>
                   </NativeSelect>
                 </div>

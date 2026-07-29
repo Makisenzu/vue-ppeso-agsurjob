@@ -7,6 +7,7 @@ import { createReusableTemplate } from '@vueuse/core'
 import { ChevronDown, MoreHorizontal,RefreshCw,Plus, Loader2 } from '@lucide/vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
+import type { CreateAccountPayload } from '@/types/admin/userAccounts'
 import {
   formatDate,
   formatDateTime,
@@ -92,7 +93,7 @@ const {
 } = useUserAccounts(ReuseTemplate)
 
 // Form state for creating a new user account
-const formData = ref({
+const formData = ref<CreateAccountPayload>({
   email: '',
   password: '',
   firstname: '',
@@ -101,7 +102,7 @@ const formData = ref({
   username: '',
   role: 'applicant',
   contact_number: '',
-  gender: '',
+  gender: undefined,
   birthdate: '',
   region: '',
   province: '',
@@ -191,7 +192,7 @@ const resetForm = () => {
     username: '',
     role: 'applicant',
     contact_number: '',
-    gender: '',
+    gender: undefined,
     birthdate: '',
     region: '',
     province: '',

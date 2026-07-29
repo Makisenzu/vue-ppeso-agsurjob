@@ -149,7 +149,7 @@ export const authService = {
     }
   },
 
-  async insertProfileData(profileData: ProfileInsert) {
+  async insertProfileData(profileData: ProfileInsert): Promise<ProfileRow[]> {
     const { data, error } = await supabase
       .schema('core')
       .from('profiles')
@@ -158,30 +158,30 @@ export const authService = {
     if (error) {
       throw new Error(error.message || 'Failed to insert profile data')
     }
-    return data
+    return data as ProfileRow[]
   },
 
-  async insertApplicantData(applicantData: ApplicantInsert) {
+  async insertApplicantData(applicantData: ApplicantInsert): Promise<ApplicantRow[]> {
     const { data, error } = await supabase
       .schema('applicants')
       .from('applicants')
       .insert(applicantData)
       .select()
     if (data) {
-      return data
+      return data as ApplicantRow[]
     } else {
       throw new Error(error?.message || 'Failed to insert applicant data')
     }
   },
   
-  async insertEmployerData(employerData: EmployerInsert) {
+  async insertEmployerData(employerData: EmployerInsert): Promise<EmployerRow[]> {
     const { data, error } = await supabase
       .schema('employers')
       .from('companies')
       .insert(employerData)
       .select()
     if (data) {
-      return data
+      return data as EmployerRow[]
     } else {
       throw new Error(error?.message || 'Failed to insert employer data')
     }

@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Loader2,
   Building2,
-  User,
   Globe,
   MapPin,
   Briefcase,
@@ -162,21 +161,6 @@ const handleUpdateStatus = async () => {
           @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
         />
 
-        <!-- Category Filter -->
-        <Select
-          :model-value="(table.getColumn('category')?.getFilterValue() as string) ?? 'all'"
-          @update:model-value="(val) => table.getColumn('category')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="applicant">Applicants</SelectItem>
-            <SelectItem value="company">Companies</SelectItem>
-          </SelectContent>
-        </Select>
-
         <!-- Submitted Files Filter -->
         <Select
           :model-value="(table.getColumn('hasDocuments')?.getFilterValue() as string) ?? 'all'"
@@ -325,7 +309,6 @@ const handleUpdateStatus = async () => {
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <Building2 v-if="selectedRecord?.category === 'company'" class="h-5 w-5 text-emerald-600" />
-            <User v-else class="h-5 w-5 text-blue-600" />
             <span>{{ selectedRecord?.category === 'company' ? 'Company & Account Details' : 'Applicant Account Details' }}</span>
           </DialogTitle>
           <DialogDescription>
@@ -530,7 +513,7 @@ const handleUpdateStatus = async () => {
           <!-- Applicant Details Section (If Applicant Account) -->
           <div v-if="selectedRecord.category === 'applicant'" class="space-y-3">
             <h3 class="text-sm font-semibold border-b pb-1 flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
-              <User class="h-4 w-4" /> Applicant Qualification & Details
+              Applicant Qualification & Details
             </h3>
             <div v-if="selectedRecord.applicantDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>

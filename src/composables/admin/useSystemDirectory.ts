@@ -115,22 +115,6 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
       },
     },
     {
-      accessorKey: 'category',
-      header: 'Category',
-      cell: ({ row }) => {
-        const category = row.getValue('category') as 'applicant' | 'company'
-        const label = category === 'company' ? 'Company' : 'Applicant'
-        return h(
-          Badge,
-          {
-            variant: getCategoryBadgeVariant(category),
-            class: ['capitalize', getCategoryBadgeClass(category)].filter(Boolean).join(' '),
-          },
-          () => label
-        )
-      },
-    },
-    {
       accessorKey: 'email',
       header: ({ column }) => {
         return h(

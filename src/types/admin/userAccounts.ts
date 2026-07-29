@@ -11,9 +11,9 @@ export interface CreateAccountPayload {
   lastname: string
   middlename?: string
   username: string
-  role: string
+  role: Database['core']['Enums']['user_role']
   contact_number?: string
-  gender?: string
+  gender?: Database['core']['Enums']['gender_type']
   birthdate?: string
   region?: string
   province?: string
