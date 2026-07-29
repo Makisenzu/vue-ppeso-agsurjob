@@ -15,8 +15,13 @@ export const adminRoutes: RouteRecordRaw[] = [
       {
         path: 'accounts',
         name: 'accounts',
-        component: () => import('@/components/admin/management/accounts/UserAccounts.vue'),
+        component: () => import('@/components/admin/management/accounts/AuthorizedAccounts.vue'),
         meta: { breadcrumb: 'User Accounts' },
+      },
+      {
+        path: 'directory',
+        name: 'directory',
+        component: () => import('@/components/admin/management/directory/SystemDirectory.vue'),
       },
     ],
   },

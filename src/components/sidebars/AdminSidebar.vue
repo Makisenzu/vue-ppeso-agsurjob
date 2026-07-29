@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Home, Inbox, Search, Settings2, ChevronUp, Lock, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, Bell, FolderKanban, MessageCircle, Star, Settings, Keyboard} from '@lucide/vue'
+import { Mail, Inbox, Search, Settings2, ChevronUp, Lock, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, Bell, FolderKanban, MessageCircle, Star, Settings, Keyboard} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -51,7 +51,7 @@ const platformSettingItems = [
 ]
 const managementItems = [
   { title: 'Accounts', to: {name: 'accounts'}, icon: ShieldUser },
-  { title: 'Directory', to: {name: 'admin-dashboard'}, icon: BookOpenCheck },
+  { title: 'Directory', to: {name: 'directory'}, icon: BookOpenCheck },
   { title: 'Roles and Permission', to: {name: 'admin-dashboard'}, icon: Lock },
   { title: 'Document Templates', to: {name: 'admin-dashboard'}, icon: FileText },
   { title: 'Company Overview', to: {name: 'admin-dashboard'}, icon: FolderKanban },
@@ -127,12 +127,6 @@ const managementItems = [
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
-              <SidebarMenuButton as-child :tooltip="'Home'" :is-active="route.name === 'admin-home'">
-                  <RouterLink :to="{ name: 'login' }">
-                    <Home />
-                    <span>Home</span>
-                  </RouterLink>
-              </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'admin-dashboard'">
                   <RouterLink :to="{ name: 'admin-dashboard' }">
                     <LayoutDashboard />
