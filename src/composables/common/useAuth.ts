@@ -9,7 +9,7 @@ export function useAuth() {
   const router = useRouter()
   const authStore = useAuthStore()
 
-  let displayName; let userInitials; let userEmail; let isVerified; let username; let isHydrating; let isInitialized;
+  let displayName; let userInitials; let userEmail; let isVerified; let username; let isInitialized;
   try {
     const refs = storeToRefs(authStore)
     displayName = refs.displayName
@@ -17,7 +17,6 @@ export function useAuth() {
     userEmail = refs.userEmail
     isVerified = refs.isVerified
     username = refs.username
-    isHydrating = refs.isHydrating
     isInitialized = refs.isInitialized
   } catch (err) {
     displayName = computed(() => 'User')
@@ -25,7 +24,6 @@ export function useAuth() {
     userEmail = computed(() => '')
     isVerified = computed(() => false)
     username = computed(() => '')
-    isHydrating = computed(() => false)
     isInitialized = computed(() => true)
   }
 

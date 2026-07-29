@@ -10,7 +10,7 @@ type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 
 export const userAccountService = {
   async fetchAllProfiles(): Promise<ProfileRow[]> {
-    const { data, error } = await supabase
+    const { data: profiles, error } = await supabase
       .schema('core')
       .from('profiles')
       .select('*')
@@ -20,7 +20,29 @@ export const userAccountService = {
       throw new Error(error.message || 'Failed to fetch profiles')
     }
 
-    return data || []
+    if (!profiles || profiles.length === 0) {
+      return []
+    }
+
+    // Fetch all user emails via a SECURITY DEFINER database function
+    // that reads from auth.users (not accessible directly from the client).
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user_emails')
+      if (emailRows && Array.isArray(emailRows)) {
+        const emailMap = new Map<string, string>(
+          emailRows.map((row: { id: string; email: string }) => [row.id, row.email]),
+        )
+        return profiles.map((p) => ({
+          ...p,
+          email: emailMap.get(p.id) ?? null,
+        })) as ProfileRow[]
+      }
+    } catch {
+      // RPC not available – fall through gracefully
+    }
+
+    return profiles.map((p) => ({ ...p, email: null as string | null })) as ProfileRow[]
   },
 
   async createProfile(payload: CreateAccountPayload): Promise<ProfileRow> {
@@ -103,10 +125,10 @@ export const userAccountService = {
       if (fetchError || !fetchedData) {
         throw new Error(fetchError?.message || 'Failed to retrieve profile record')
       }
-      return fetchedData
+      return { ...fetchedData, email: payload.email }
     }
 
-    return data
+    return { ...data, email: payload.email }
   },
 }
 

@@ -379,6 +379,10 @@ const handleCreateAccount = async () => {
               </p>
             </div>
             <div>
+              <label class="text-xs font-semibold text-muted-foreground uppercase">Email Address</label>
+              <p class="font-medium text-base font-mono">{{ selectedProfile.email || 'N/A' }}</p>
+            </div>
+            <div>
               <label class="text-xs font-semibold text-muted-foreground uppercase">Username</label>
               <p class="font-medium text-base">@{{ selectedProfile.username || 'N/A' }}</p>
             </div>

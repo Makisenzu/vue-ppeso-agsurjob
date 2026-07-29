@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useMapboxMap } from './useMapboxMap'
+import { useMapboxMap } from '@/composables/common/useMapboxMap'
 
 interface UseCompanyMapOptions {
   latitude: number | null

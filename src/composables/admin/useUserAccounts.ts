@@ -96,7 +96,8 @@ export function useUserAccounts(actionTemplateRef?: Component) {
         const fullName = `${p.firstname || ''} ${p.middlename ? p.middlename + ' ' : ''}${p.lastname || ''}`.trim()
         return h('div', { class: 'font-medium' }, fullName || 'N/A')
       },
-    },{
+    },
+    {
       accessorKey: 'email',
       header: ({ column }) => {
         return h(
@@ -109,9 +110,8 @@ export function useUserAccounts(actionTemplateRef?: Component) {
         )
       },
       cell: ({ row }) => {
-        const p = row.original
-        const fullName = `${p.firstname || ''} ${p.middlename ? p.middlename + ' ' : ''}${p.lastname || ''}`.trim()
-        return h('div', { class: 'font-medium' }, fullName || 'N/A')
+        const email = row.original.email
+        return h('div', { class: 'lowercase text-muted-foreground font-mono text-xs' }, email || 'N/A')
       },
     },
     {
