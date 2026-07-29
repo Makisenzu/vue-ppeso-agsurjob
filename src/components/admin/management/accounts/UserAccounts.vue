@@ -225,10 +225,10 @@ const handleCreateAccount = async () => {
     </DropdownMenu>
   </DefineTemplate>
 
-  <div class="w-full space-y-4">
+  <div class="w-full min-w-0 space-y-4">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Account Management</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Account Management</h1>
         <p class="text-sm text-muted-foreground">
           View all user account details.
         </p>
@@ -238,7 +238,7 @@ const handleCreateAccount = async () => {
     <!-- Filter & Column Visibility controls -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-4">
       <Input
-        class="max-w-sm"
+        class="w-full sm:max-w-sm"
         placeholder="Filter names..."
         :model-value="(table.getColumn('firstname')?.getFilterValue() as string) ?? ''"
         @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
@@ -247,7 +247,7 @@ const handleCreateAccount = async () => {
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="outline">
-              Columns <ChevronDown class="ml-2 h-4 w-4" />
+              <span class="hidden sm:inline">Columns</span> <ChevronDown class="sm:ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -263,15 +263,15 @@ const handleCreateAccount = async () => {
           </DropdownMenuContent>
         </DropdownMenu>
         <Button variant="outline" @click="fetchProfiles" :disabled="isLoading">
-          <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-          Refresh
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline ml-2">Refresh</span>
         </Button>
         <Button
           class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
           @click="handleOpenAddSheet"
         >
-          <Plus class="mr-2 h-4 w-4" />
-          Add new account
+          <Plus class="h-4 w-4" />
+          <span class="hidden sm:inline ml-2">Add new account</span>
         </Button>
       </div>
     </div>
@@ -281,7 +281,7 @@ const handleCreateAccount = async () => {
     </div>
 
     <!-- Data Table -->
-    <div class="rounded-md border">
+    <div class="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
@@ -331,12 +331,12 @@ const handleCreateAccount = async () => {
     </div>
 
     <!-- Pagination & Selection Footer -->
-    <div class="flex items-center justify-end space-x-2 py-4">
-      <div class="flex-1 text-sm text-muted-foreground">
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end sm:space-x-2 py-4">
+      <div class="flex-1 text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
         {{ table.getFilteredSelectedRowModel().rows.length }} of
         {{ table.getFilteredRowModel().rows.length }} row(s) selected.
       </div>
-      <div class="space-x-2">
+      <div class="flex justify-center sm:justify-end space-x-2">
         <Button
           variant="outline"
           size="sm"
@@ -358,7 +358,7 @@ const handleCreateAccount = async () => {
 
     <!-- Details Modal -->
     <Dialog :open="isDetailsOpen" @update:open="isDetailsOpen = $event">
-      <DialogContent class="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent class="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <User class="h-5 w-5 text-primary" />
@@ -505,7 +505,7 @@ const handleCreateAccount = async () => {
         <form @submit.prevent="handleCreateAccount" class="contents">
           <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             <!-- Account Credentials -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-email">Email Address <span class="text-destructive">*</span></Label>
                 <Input id="add-email" type="email" v-model="formData.email" placeholder="user@example.com" required />
@@ -517,7 +517,7 @@ const handleCreateAccount = async () => {
             </div>
 
             <!-- Names Grid -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-firstname">First Name <span class="text-destructive">*</span></Label>
                 <Input id="add-firstname" v-model="formData.firstname" placeholder="First name" required />
@@ -528,7 +528,7 @@ const handleCreateAccount = async () => {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-middlename">Middle Name</Label>
                 <Input id="add-middlename" v-model="formData.middlename" placeholder="Middle name" />
@@ -540,7 +540,7 @@ const handleCreateAccount = async () => {
             </div>
 
             <!-- Role & Contact -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-role">System Role <span class="text-destructive">*</span></Label>
                 <Select v-model="formData.role">
@@ -565,7 +565,7 @@ const handleCreateAccount = async () => {
             </div>
 
             <!-- Gender & Birthdate -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-gender">Gender</Label>
                 <Select v-model="formData.gender">
@@ -590,7 +590,7 @@ const handleCreateAccount = async () => {
             <!-- Location Section -->
             <div class="space-y-3 pt-1">
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location / Address</p>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label for="add-region">Region</Label>
                   <Select :model-value="selectedRegion?.code ? String(selectedRegion.code) : undefined" @update:model-value="(val) => onRegionChange(String(val))">
@@ -652,7 +652,7 @@ const handleCreateAccount = async () => {
             <!-- Special Category -->
             <div class="space-y-3 pt-1">
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Special Category</p>
-              <div class="flex items-center gap-6">
+              <div class="flex flex-wrap items-center gap-4 sm:gap-6">
                 <div class="flex items-center space-x-2">
                   <Checkbox id="add-is_pwd" :checked="formData.is_pwd" @update:checked="formData.is_pwd = !!$event" />
                   <Label for="add-is_pwd" class="text-sm font-normal cursor-pointer">Person with Disability (PWD)</Label>
