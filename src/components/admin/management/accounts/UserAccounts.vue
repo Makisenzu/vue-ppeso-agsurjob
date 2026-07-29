@@ -4,7 +4,7 @@ import {
   FlexRender,
 } from '@tanstack/vue-table'
 import { createReusableTemplate } from '@vueuse/core'
-import { ChevronDown, MoreHorizontal, Eye, RefreshCw, User, Plus, Loader2 } from '@lucide/vue'
+import { ChevronDown, MoreHorizontal,RefreshCw,Plus, Loader2 } from '@lucide/vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
 import {
@@ -240,8 +240,7 @@ const handleCreateAccount = async () => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem @select="(e: Event) => { e.preventDefault(); openProfileDetails(profile) }">
-          <Eye class="mr-2 h-4 w-4" />
-          View full details
+          View details
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -424,7 +423,6 @@ const handleCreateAccount = async () => {
       <DialogContent class="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
-            <User class="h-5 w-5 text-primary" />
             Profile Account Details
           </DialogTitle>
           <DialogDescription>
@@ -434,41 +432,44 @@ const handleCreateAccount = async () => {
 
         <div v-if="selectedProfile" class="space-y-6 py-2">
           <!-- Overview Section -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/40 border">
-            <div>
-              <label class="text-xs font-semibold text-muted-foreground uppercase">Full Name</label>
-              <p class="font-medium text-base">
-                {{ selectedProfile.firstname || '-' }} {{ selectedProfile.middlename || '' }} {{ selectedProfile.lastname || '-' }}
-              </p>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-muted-foreground uppercase">Email Address</label>
-              <p class="font-medium text-base font-mono">{{ selectedProfile.email || 'N/A' }}</p>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-muted-foreground uppercase">Username</label>
-              <p class="font-medium text-base">@{{ selectedProfile.username || 'N/A' }}</p>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-muted-foreground uppercase">System Role</label>
-              <div class="mt-1">
-                <Badge
-                  :variant="getRoleBadgeVariant(selectedProfile.role)"
-                  :class="['capitalize', getRoleBadgeClass(selectedProfile.role)]"
-                >
-                  {{ formatRoleLabel(selectedProfile.role) }}
-                </Badge>
+          <div class="space-y-3">
+            <h3 class="text-sm font-semibold border-b pb-1">Overview / Account Summary</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-muted-foreground">Full Name:</span>
+                <span class="ml-2 font-medium">
+                  {{ selectedProfile.firstname || '-' }} {{ selectedProfile.middlename || '' }} {{ selectedProfile.lastname || '-' }}
+                </span>
               </div>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-muted-foreground uppercase">Account Status</label>
-              <div class="mt-1">
-                <Badge
-                  :variant="getStatusBadgeVariant(selectedProfile.status)"
-                  :class="['capitalize', getStatusBadgeClass(selectedProfile.status)]"
-                >
-                  {{ selectedProfile.status || 'N/A' }}
-                </Badge>
+              <div>
+                <span class="text-muted-foreground">Email Address:</span>
+                <span class="ml-2 font-medium font-mono">{{ selectedProfile.email || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-muted-foreground">Username:</span>
+                <span class="ml-2 font-medium">@{{ selectedProfile.username || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-muted-foreground">System Role:</span>
+                <span class="ml-2 inline-flex items-center">
+                  <Badge
+                    :variant="getRoleBadgeVariant(selectedProfile.role)"
+                    :class="['capitalize', getRoleBadgeClass(selectedProfile.role)]"
+                  >
+                    {{ formatRoleLabel(selectedProfile.role) }}
+                  </Badge>
+                </span>
+              </div>
+              <div>
+                <span class="text-muted-foreground">Account Status:</span>
+                <span class="ml-2 inline-flex items-center">
+                  <Badge
+                    :variant="getStatusBadgeVariant(selectedProfile.status)"
+                    :class="['capitalize', getStatusBadgeClass(selectedProfile.status)]"
+                  >
+                    {{ selectedProfile.status || 'N/A' }}
+                  </Badge>
+                </span>
               </div>
             </div>
           </div>

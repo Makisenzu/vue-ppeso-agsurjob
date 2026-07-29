@@ -2,8 +2,11 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 import { userAccountService } from '@/services/admin/userAccountService'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 
 export const useUserAccountsStore = defineStore('userAccounts', () => {
+  const toastAlert = useToastAlert()
+
   const profiles = ref<ProfileRow[]>([])
   const isLoading = ref<boolean>(false)
   const isSubmitting = ref<boolean>(false)
@@ -22,7 +25,9 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
       // Re-assign with a new array reference so Vue/Tanstack Table reactivity updates instantly
       profiles.value = [...fetched]
     } catch (err: any) {
-      errorMessage.value = err.message || 'Failed to load user account profiles.'
+      const msg = err.message || 'Failed to load user account profiles.'
+      errorMessage.value = msg
+      toastAlert.error('Error Loading Profiles', msg)
     } finally {
       isLoading.value = false
     }
@@ -71,8 +76,11 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
         }
       }
       closeEditStatusModal()
+      toastAlert.success('Account Status Updated', `Status successfully changed to ${newStatus}.`)
     } catch (err: any) {
-      errorMessage.value = err.message || 'Failed to update account status.'
+      const msg = err.message || 'Failed to update account status.'
+      errorMessage.value = msg
+      toastAlert.error('Update Failed', msg)
       throw err
     } finally {
       isSubmitting.value = false
@@ -88,8 +96,11 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
       closeAddAccountSheet()
       // Prepend newly created profile directly into the local state array (pure AJAX-like immediate UI update)
       profiles.value = [newProfile, ...profiles.value]
+      toastAlert.success('Account Created', `Account for ${payload.firstname} ${payload.lastname} created successfully.`)
     } catch (err: any) {
-      errorMessage.value = err.message || 'Failed to create user account.'
+      const msg = err.message || 'Failed to create user account.'
+      errorMessage.value = msg
+      toastAlert.error('Creation Failed', msg)
       throw err
     } finally {
       isSubmitting.value = false
@@ -98,6 +109,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   const copyId = (id: string) => {
     navigator.clipboard.writeText(id)
+    toastAlert.info('Copied to Clipboard', 'User ID copied to clipboard.')
   }
 
   return {
