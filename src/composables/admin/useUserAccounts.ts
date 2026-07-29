@@ -175,34 +175,6 @@ export function useUserAccounts(actionTemplateRef?: Component) {
       cell: ({ row }) => h('div', { class: 'text-sm' }, row.getValue('barangay') || 'N/A'),
     },
     {
-      accessorKey: 'is_pwd',
-      header: 'PWD',
-      cell: ({ row }) => {
-        const isPwd = row.getValue('is_pwd')
-        return isPwd
-          ? h(
-              Badge,
-              { variant: 'outline', class: 'text-[10px] bg-blue-50 text-blue-700 border-blue-200' },
-              () => 'Yes'
-            )
-          : '-'
-      },
-    },
-    {
-      accessorKey: 'is_4ps',
-      header: '4Ps',
-      cell: ({ row }) => {
-        const is4ps = row.getValue('is_4ps')
-        return is4ps
-          ? h(
-              Badge,
-              { variant: 'outline', class: 'text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200' },
-              () => 'Yes'
-            )
-          : '-'
-      },
-    },
-    {
       accessorKey: 'created_at',
       header: 'Created At',
       cell: ({ row }) =>

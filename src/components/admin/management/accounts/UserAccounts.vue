@@ -237,12 +237,53 @@ const handleCreateAccount = async () => {
 
     <!-- Filter & Column Visibility controls -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-4">
-      <Input
-        class="w-full sm:max-w-sm"
-        placeholder="Filter names..."
-        :model-value="(table.getColumn('firstname')?.getFilterValue() as string) ?? ''"
-        @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
-      />
+      <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto flex-1 max-w-2xl">
+        <Input
+          class="w-full sm:max-w-xs"
+          placeholder="Filter names..."
+          :model-value="(table.getColumn('firstname')?.getFilterValue() as string) ?? ''"
+          @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
+        />
+
+        <!-- Role Filter -->
+        <Select
+          :model-value="(table.getColumn('role')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => table.getColumn('role')?.setFilterValue(val === 'all' ? undefined : val)"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Filter by Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="applicant">Applicant</SelectItem>
+            <SelectItem value="company_owner">Company Owner</SelectItem>
+            <SelectItem value="company_member">Company Member</SelectItem>
+            <SelectItem value="provincial_peso">Provincial PESO</SelectItem>
+            <SelectItem value="municipal_peso">Municipal PESO</SelectItem>
+            <SelectItem value="dole">DOLE</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <!-- Status Filter -->
+        <Select
+          :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div class="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
