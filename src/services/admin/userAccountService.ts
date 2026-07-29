@@ -130,5 +130,36 @@ export const userAccountService = {
 
     return { ...data, email: payload.email }
   },
+
+  async updateProfileStatus(profileId: string, status: string): Promise<ProfileRow> {
+    const { data, error } = await supabase
+      .schema('core')
+      .from('profiles')
+      .update({ status: status as Database['core']['Enums']['status_type'], updated_at: new Date().toISOString() })
+      .eq('id', profileId)
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(error.message || 'Failed to update account status')
+    }
+
+    if (!data) {
+      // Fallback fetch if update did not return row representation (e.g. due to RLS select policy)
+      const { data: fetched, error: fetchErr } = await supabase
+        .schema('core')
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .maybeSingle()
+
+      if (fetchErr || !fetched) {
+        throw new Error(fetchErr?.message || 'Profile status updated, but unable to re-fetch record')
+      }
+      return fetched as ProfileRow
+    }
+
+    return data as ProfileRow
+  },
 }
 

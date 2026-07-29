@@ -31,4 +31,5 @@ export interface UserAccountState {
   selectedProfile: ProfileRow | null
   isDetailsOpen: boolean
   isAddAccountOpen: boolean
+  isEditStatusOpen: boolean
 }

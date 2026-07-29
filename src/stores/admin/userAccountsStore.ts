@@ -12,6 +12,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   const selectedProfile = ref<ProfileRow | null>(null)
   const isDetailsOpen = ref<boolean>(false)
   const isAddAccountOpen = ref<boolean>(false)
+  const isEditStatusOpen = ref<boolean>(false)
 
   const fetchProfiles = async () => {
     isLoading.value = true
@@ -44,6 +45,40 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     isAddAccountOpen.value = false
   }
 
+  const openEditStatusModal = (profile: ProfileRow) => {
+    selectedProfile.value = profile
+    isEditStatusOpen.value = true
+  }
+
+  const closeEditStatusModal = () => {
+    isEditStatusOpen.value = false
+  }
+
+  const updateAccountStatus = async (profileId: string, newStatus: string) => {
+    isSubmitting.value = true
+    errorMessage.value = null
+    try {
+      const updated = await userAccountService.updateProfileStatus(profileId, newStatus)
+      // Update local state reactive array with a fresh array reference so Vue & TanStack Table update instantly
+      profiles.value = profiles.value.map((p) =>
+        p.id === profileId ? { ...p, ...updated, status: updated.status } : p
+      )
+      if (selectedProfile.value?.id === profileId) {
+        selectedProfile.value = {
+          ...selectedProfile.value,
+          ...updated,
+          status: updated.status,
+        }
+      }
+      closeEditStatusModal()
+    } catch (err: any) {
+      errorMessage.value = err.message || 'Failed to update account status.'
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const createAccount = async (payload: CreateAccountPayload) => {
     isSubmitting.value = true
     errorMessage.value = null
@@ -73,11 +108,15 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     selectedProfile,
     isDetailsOpen,
     isAddAccountOpen,
+    isEditStatusOpen,
     fetchProfiles,
     openProfileDetails,
     closeProfileDetails,
     openAddAccountSheet,
     closeAddAccountSheet,
+    openEditStatusModal,
+    closeEditStatusModal,
+    updateAccountStatus,
     createAccount,
     copyId,
   }

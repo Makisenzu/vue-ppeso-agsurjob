@@ -79,10 +79,14 @@ const {
   selectedProfile,
   isDetailsOpen,
   isAddAccountOpen,
+  isEditStatusOpen,
   fetchProfiles,
   openProfileDetails,
   openAddAccountSheet,
   closeAddAccountSheet,
+  openEditStatusModal,
+  closeEditStatusModal,
+  updateAccountStatus,
   createAccount,
   copyId,
 } = useUserAccounts(ReuseTemplate)
@@ -106,6 +110,24 @@ const formData = ref({
   is_pwd: false,
   is_4ps: false,
 })
+
+// Edit status state
+const selectedStatus = ref<string>('active')
+
+watch(selectedProfile, (newVal) => {
+  if (newVal) {
+    selectedStatus.value = newVal.status || 'pending'
+  }
+})
+
+const handleUpdateStatus = async () => {
+  if (!selectedProfile.value) return
+  try {
+    await updateAccountStatus(selectedProfile.value.id, selectedStatus.value)
+  } catch {
+    // Error handled in store
+  }
+}
 
 // PSGC cascading location service
 const {
@@ -210,14 +232,14 @@ const handleCreateAccount = async () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem>
-          Edit Profile
+        <DropdownMenuItem @select="(e: Event) => { e.preventDefault(); openEditStatusModal(profile) }">
+          Edit Status
         </DropdownMenuItem>
-        <DropdownMenuItem @click="copyId(profile.id)">
+        <DropdownMenuItem @select="copyId(profile.id)">
           Copy Profile ID
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem @click="openProfileDetails(profile)">
+        <DropdownMenuItem @select="(e: Event) => { e.preventDefault(); openProfileDetails(profile) }">
           <Eye class="mr-2 h-4 w-4" />
           View full details
         </DropdownMenuItem>
@@ -528,6 +550,73 @@ const handleCreateAccount = async () => {
         <DialogFooter>
           <Button variant="outline" @click="isDetailsOpen = false">Close</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Edit Status Modal -->
+    <Dialog :open="isEditStatusOpen" @update:open="isEditStatusOpen = $event">
+      <DialogContent class="max-w-[95vw] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            Edit Account Status
+          </DialogTitle>
+          <DialogDescription>
+            Update the system account status for this user.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form @submit.prevent="handleUpdateStatus" class="space-y-4 py-2">
+          <div v-if="selectedProfile" class="space-y-4">
+            <div>
+              <Label class="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
+              <p class="font-medium text-base mt-0.5">
+                {{ selectedProfile.firstname || '-' }} {{ selectedProfile.middlename || '' }} {{ selectedProfile.lastname || '-' }}
+              </p>
+            </div>
+
+            <div>
+              <Label class="text-xs font-semibold text-muted-foreground uppercase">Current Status</Label>
+              <div class="mt-1">
+                <Badge
+                  :variant="getStatusBadgeVariant(selectedProfile.status)"
+                  :class="['capitalize', getStatusBadgeClass(selectedProfile.status)]"
+                >
+                  {{ selectedProfile.status || 'N/A' }}
+                </Badge>
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <Label for="edit-status-select">New Account Status <span class="text-destructive">*</span></Label>
+              <Select v-model="selectedStatus">
+                <SelectTrigger id="edit-status-select" class="w-full">
+                  <SelectValue placeholder="Select new status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter class="pt-4">
+            <Button type="button" variant="outline" @click="closeEditStatusModal" :disabled="isSubmitting">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              :disabled="isSubmitting"
+            >
+              <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
+              {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
 
