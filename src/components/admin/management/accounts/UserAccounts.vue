@@ -11,6 +11,7 @@ import {
   formatDate,
   formatDateTime,
   getRoleBadgeVariant,
+  getRoleBadgeClass,
   getStatusBadgeVariant,
   getStatusBadgeClass,
   formatRoleLabel,
@@ -384,7 +385,10 @@ const handleCreateAccount = async () => {
             <div>
               <label class="text-xs font-semibold text-muted-foreground uppercase">System Role</label>
               <div class="mt-1">
-                <Badge :variant="getRoleBadgeVariant(selectedProfile.role)">
+                <Badge
+                  :variant="getRoleBadgeVariant(selectedProfile.role)"
+                  :class="['capitalize', getRoleBadgeClass(selectedProfile.role)]"
+                >
                   {{ formatRoleLabel(selectedProfile.role) }}
                 </Badge>
               </div>

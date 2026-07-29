@@ -23,6 +23,7 @@ import type { ProfileRow } from '@/types/admin/userAccounts'
 import {
   formatDate,
   getRoleBadgeVariant,
+  getRoleBadgeClass,
   getStatusBadgeVariant,
   getStatusBadgeClass,
   formatRoleLabel,
@@ -95,6 +96,23 @@ export function useUserAccounts(actionTemplateRef?: Component) {
         const fullName = `${p.firstname || ''} ${p.middlename ? p.middlename + ' ' : ''}${p.lastname || ''}`.trim()
         return h('div', { class: 'font-medium' }, fullName || 'N/A')
       },
+    },{
+      accessorKey: 'email',
+      header: ({ column }) => {
+        return h(
+          Button,
+          {
+            variant: 'ghost',
+            onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+          },
+          () => ['Email', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })]
+        )
+      },
+      cell: ({ row }) => {
+        const p = row.original
+        const fullName = `${p.firstname || ''} ${p.middlename ? p.middlename + ' ' : ''}${p.lastname || ''}`.trim()
+        return h('div', { class: 'font-medium' }, fullName || 'N/A')
+      },
     },
     {
       accessorKey: 'username',
@@ -116,8 +134,13 @@ export function useUserAccounts(actionTemplateRef?: Component) {
       header: 'Role',
       cell: ({ row }) => {
         const role = row.getValue('role') as string | null
-        return h(Badge, { variant: getRoleBadgeVariant(role), class: 'capitalize' }, () =>
-          formatRoleLabel(role)
+        return h(
+          Badge,
+          {
+            variant: getRoleBadgeVariant(role),
+            class: ['capitalize', getRoleBadgeClass(role)].filter(Boolean).join(' '),
+          },
+          () => formatRoleLabel(role)
         )
       },
     },
