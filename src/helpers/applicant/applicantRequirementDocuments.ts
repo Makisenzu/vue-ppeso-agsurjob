@@ -86,13 +86,13 @@ export function getRequirementMediaMeta(
 
   const resolvedRequirement = matchedRequirement ?? matchedRequirementByMedia
 
-  if (!matchedMedia) return null
+  if (!matchedMedia && !resolvedRequirement) return null
 
-  const filename = String(matchedMedia.filename ?? requirement)
-  const size = matchedMedia.size ?? null
+  const filename = String(matchedMedia?.filename ?? requirement)
+  const size = matchedMedia?.size ?? null
 
   let typeLabel = ''
-  if (matchedMedia.mime_type) {
+  if (matchedMedia?.mime_type) {
     const parts = String(matchedMedia.mime_type).split('/')
     if (parts.length > 1) typeLabel = parts[1].toUpperCase()
   }
@@ -102,7 +102,7 @@ export function getRequirementMediaMeta(
     if (lastDot !== -1) typeLabel = filename.slice(lastDot + 1).toUpperCase()
   }
 
-  const path = matchedMedia.path ?? null
+  const path = matchedMedia?.path ?? null
 
   return {
     filename,

@@ -52,6 +52,41 @@ function getRequirementAttachmentStateFor(requirement: string) {
   return getRequirementAttachmentState(meta?.status, meta ? 'done' : 'idle')
 }
 
+function getDocumentState(file: DocumentFile) {
+  const state = getRequirementAttachmentStateFor(file.name)
+
+  switch (state) {
+    case 'done':
+      return {
+        label: 'Approved',
+        circleClass: 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30',
+        separatorClass: 'bg-emerald-500',
+        textClass: 'text-emerald-600 dark:text-emerald-400',
+      }
+    case 'processing':
+      return {
+        label: 'Pending',
+        circleClass: 'border-amber-500 bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-500/30',
+        separatorClass: 'bg-amber-500',
+        textClass: 'text-amber-600 dark:text-amber-400',
+      }
+    case 'error':
+      return {
+        label: 'Rejected',
+        circleClass: 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30',
+        separatorClass: 'bg-red-500',
+        textClass: 'text-red-600 dark:text-red-400',
+      }
+    default:
+      return {
+        label: 'Pending',
+        circleClass: 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30',
+        separatorClass: 'bg-muted',
+        textClass: 'text-red-600 dark:text-red-400',
+      }
+  }
+}
+
 function viewFile(requirement: string) {
   const meta = getFileMeta(requirement)
   if (meta?.publicUrl) {
@@ -102,19 +137,15 @@ async function downloadFile(requirement: string) {
         <StepperSeparator
           v-if="index !== files.length - 1"
           class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 hidden sm:block h-0.5 shrink-0 rounded-full transition-colors duration-300"
-          :class="file.uploaded ? 'bg-emerald-500' : 'bg-muted'"
+          :class="getDocumentState(file).separatorClass"
         />
 
         <div class="flex flex-col items-center text-center">
           <div
             class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-            :class="[
-              file.uploaded
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30'
-                : 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30'
-            ]"
+            :class="[getDocumentState(file).circleClass]"
           >
-            <Check v-if="file.uploaded" class="size-4 stroke-3" />
+            <Check v-if="getRequirementAttachmentStateFor(file.name) === 'done'" class="size-4 stroke-3" />
             <X v-else class="size-4 stroke-3" />
           </div>
 
@@ -124,9 +155,9 @@ async function downloadFile(requirement: string) {
             </StepperTitle>
             <StepperDescription
               class="text-[10px] mt-0.5 font-medium"
-              :class="file.uploaded ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
+              :class="getDocumentState(file).textClass"
             >
-              {{ file.uploaded ? 'Uploaded' : 'Pending' }}
+              {{ getDocumentState(file).label }}
             </StepperDescription>
           </div>
         </div>
