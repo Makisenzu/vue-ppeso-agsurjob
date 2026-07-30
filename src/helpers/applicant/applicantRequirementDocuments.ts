@@ -7,6 +7,7 @@ export interface RequirementRowLike {
   remarks?: string | null
   name?: string | null
   title?: string | null
+  status?: string | null
 }
 
 export interface RequirementMediaLike {
@@ -25,6 +26,7 @@ export interface RequirementFileMeta {
   sizeLabel: string | null
   path: string | null
   publicUrl: string | null
+  status: string | null
 }
 
 export interface RequirementDisplaySource {
@@ -33,6 +35,8 @@ export interface RequirementDisplaySource {
   requirement_id?: string | number | null
   id?: string | number | null
 }
+
+export type RequirementAttachmentState = 'done' | 'idle' | 'uploading' | 'processing' | 'error'
 
 export function normalizeRequirementLabel(value: unknown) {
   return String(value ?? '')
@@ -76,6 +80,12 @@ export function getRequirementMediaMeta(
         )
       })
 
+  const matchedRequirementByMedia = matchedMedia
+    ? requirementRows.find((row) => String(row.id) === String(matchedMedia.applicant_requirement_id))
+    : undefined
+
+  const resolvedRequirement = matchedRequirement ?? matchedRequirementByMedia
+
   if (!matchedMedia) return null
 
   const filename = String(matchedMedia.filename ?? requirement)
@@ -100,6 +110,7 @@ export function getRequirementMediaMeta(
     sizeLabel: size ? formatFileSize(Number(size)) : null,
     path,
     publicUrl: path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null,
+    status: resolvedRequirement?.status ?? null,
   }
 }
 
@@ -113,4 +124,29 @@ export function isRequirementUploaded(
 
 export function getRequirementDisplayLabel(item: RequirementDisplaySource) {
   return String(item?.filename ?? item?.remarks ?? item?.requirement_id ?? item?.id ?? '')
+}
+
+export function getRequirementAttachmentState(
+  status: string | null | undefined,
+  fallback: RequirementAttachmentState = 'idle'
+): RequirementAttachmentState {
+  const normalizedStatus = String(status ?? '').trim().toLowerCase()
+
+  if (!normalizedStatus) {
+    return fallback
+  }
+
+  if (['approved', 'verified', 'completed', 'accepted', 'success', 'done', 'active'].includes(normalizedStatus)) {
+    return 'done'
+  }
+
+  if (['pending', 'review', 'under_review', 'submitted', 'in_progress', 'processing'].includes(normalizedStatus)) {
+    return 'processing'
+  }
+
+  if (['rejected', 'denied', 'failed', 'invalid', 'incomplete', 'declined'].includes(normalizedStatus)) {
+    return 'error'
+  }
+
+  return fallback
 }

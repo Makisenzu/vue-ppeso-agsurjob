@@ -6,7 +6,7 @@ import { useFileUpload } from '@/composables/common/useFileUpload'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantRequirementUploadService } from '@/services/applicant/applicantRequirementUploadService'
-import { getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
+import { getRequirementAttachmentState, getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -67,13 +67,15 @@ const deleteTargetLabel = computed(() => deleteTarget.value?.label ?? '')
 import { supabase } from '@/lib/supabaseClient'
 import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
 
-const documents = ref<UploadDocumentDefinition[]>([
-  {
-    id: 'supporting-document',
-    label: 'Supporting Document',
-    accept: '.pdf,.doc,.docx,.jpg,.png',
-  },
-])
+const documents = ref<UploadDocumentDefinition[]>(
+  [
+    {
+      id: 'supporting-document',
+      label: 'Supporting Document',
+      accept: '.pdf,.doc,.docx,.jpg,.png',
+    },
+  ]
+)
 
 function getExistingRequirementMedia(documentLabel: string) {
   return getRequirementMediaMeta(
@@ -81,6 +83,11 @@ function getExistingRequirementMedia(documentLabel: string) {
     authStore.applicantRequirementMedia ?? [],
     authStore.applicantRequirements ?? []
   )
+}
+
+function getExistingRequirementAttachmentState(documentLabel: string) {
+  const existingRequirement = getExistingRequirementMedia(documentLabel)
+  return getRequirementAttachmentState(existingRequirement?.status, existingRequirement ? 'done' : 'idle')
 }
 
 function viewFile(publicUrl?: string | null) {
@@ -261,7 +268,7 @@ const submitDocuments = async () => {
           </Label>
 
           <div v-if="getExistingRequirementMedia(doc.label)" class="pt-1">
-            <Attachment state="done" class="w-full">
+            <Attachment :state="getExistingRequirementAttachmentState(doc.label)" class="w-full">
               <AttachmentMedia>
                 <CircleCheckIcon class="size-4 text-emerald-600" />
               </AttachmentMedia>

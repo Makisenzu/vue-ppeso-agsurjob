@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
 import { useAuthStore } from '@/stores/common/auth'
-import { getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
+import { getRequirementAttachmentState, getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
 import {
   Attachment,
   AttachmentAction,
@@ -45,6 +45,11 @@ function getFileMeta(requirement: string) {
     authStore.applicantRequirementMedia ?? [],
     authStore.applicantRequirements ?? []
   )
+}
+
+function getRequirementAttachmentStateFor(requirement: string) {
+  const meta = getFileMeta(requirement)
+  return getRequirementAttachmentState(meta?.status, meta ? 'done' : 'idle')
 }
 
 function viewFile(requirement: string) {
@@ -140,7 +145,7 @@ async function downloadFile(requirement: string) {
             </div>
             <ProfileDocsUpload />
           </div>
-          <Attachment v-for="requirement in requirements" :key="requirement" class="w-full">
+          <Attachment v-for="requirement in requirements" :key="requirement" class="w-full" :state="getRequirementAttachmentStateFor(requirement)">
             <AttachmentMedia>
               <FileText class="size-4 text-muted-foreground" />
             </AttachmentMedia>
