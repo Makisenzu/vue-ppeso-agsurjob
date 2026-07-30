@@ -65,8 +65,15 @@ const deleteTarget = ref<UploadDocumentDefinition | null>(null)
 const deleteTargetLabel = computed(() => deleteTarget.value?.label ?? '')
 
 import { supabase } from '@/lib/supabaseClient'
+import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
 
-const documents = ref<UploadDocumentDefinition[]>([])
+const documents = ref<UploadDocumentDefinition[]>([
+  {
+    id: 'supporting-document',
+    label: 'Supporting Document',
+    accept: '.pdf,.doc,.docx,.jpg,.png',
+  },
+])
 
 function getExistingRequirementMedia(documentLabel: string) {
   return getRequirementMediaMeta(
@@ -142,19 +149,19 @@ async function loadVerificationTemplates() {
     const { data, error } = await supabase
       .from('requirement_templates')
       .select('id, name')
-      .eq('requirement_type', 'applicant_verification')
+      .in('requirement_type', LEGACY_APPLICANT_REQUIREMENT_TYPES)
 
     if (error) throw error
 
-    if (data && data.length > 0) {
-      documents.value = data.map((t: any) => ({
-        id: `template-${t.id}`,
-        label: t.name ?? `Requirement ${t.id}`,
-        requirementTemplateId: t.id,
-      }))
-    }
+    documents.value = (data ?? []).map((t: any) => ({
+      id: `template-${t.id}`,
+      label: t.name ?? `Requirement ${t.id}`,
+      requirementTemplateId: t.id,
+      accept: '.pdf,.doc,.docx,.jpg,.png',
+    }))
   } catch (err) {
-    toastAlert.error('Failed to load verification templates. Please try again later.')
+    documents.value = []
+    toastAlert.error('Failed to load requirement templates. Please try again later.')
   }
 }
 
@@ -229,8 +236,8 @@ const submitDocuments = async () => {
       </Button>
     </component>
 
-    <component :is="Modal.Content" class="sm:max-w-md">
-      <component :is="Modal.Header">
+    <component :is="Modal.Content" class="sm:max-w-md max-h-[90vh] flex flex-col">
+      <component :is="Modal.Header" class="shrink-0">
         <component :is="Modal.Title">
           Upload Document
         </component>
@@ -239,11 +246,15 @@ const submitDocuments = async () => {
         </component>
       </component>
 
-      <p v-if="submitError" class="text-sm text-destructive">
-        {{ submitError }}
-      </p>
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <p v-if="submitError" class="text-sm text-destructive">
+          {{ submitError }}
+        </p>
 
-      <div class="space-y-4">
+        <div v-if="documents.length === 0" class="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+          No applicant requirement templates are available yet.
+        </div>
+
         <div v-for="doc in documents" :key="doc.id" class="grid w-full gap-1.5">
           <Label :for="doc.id" class="text-sm font-medium leading-none">
             {{ doc.label }}
@@ -350,13 +361,10 @@ const submitDocuments = async () => {
         </Dialog>
       </div>
 
-      <component
-        :is="Modal.Footer"
-        class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:space-x-0"
-      >
-          <Button type="button" class="w-full bg-(--buttonTwo)" :disabled="isSubmitting" @click="submitDocuments">
-            {{ isSubmitting ? 'Uploading...' : 'Submit' }}
-          </Button>
+      <component :is="Modal.Footer" class="grid grid-cols-1 gap-2 sm:grid-cols-2 shrink-0 border-t">
+        <Button type="button" class="w-full bg-(--buttonTwo)" :disabled="isSubmitting" @click="submitDocuments">
+          {{ isSubmitting ? 'Uploading...' : 'Submit' }}
+        </Button>
         <component :is="Modal.Close" as-child>
           <Button type="button" variant="outline" class="w-full">
             Cancel

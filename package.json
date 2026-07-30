@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "types:gen": "npx supabase gen types typescript --project-id otixooaxfcvjgrlaxihj --schema public --schema core --schema employers --schema applicants --schema jobs --schema system > src/types/database.types.ts"
   },
   "dependencies": {
     "@lucide/vue": "^1.27.0",

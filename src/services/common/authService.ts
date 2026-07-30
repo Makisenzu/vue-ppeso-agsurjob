@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient"
 import type { SignInWithPasswordCredentials, SignUpWithPasswordCredentials } from '@supabase/supabase-js'
 import type { Database } from '@/types/common/database.types'
+import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
 
 export type ProfileRow = Database['core']['Tables']['profiles']['Row']
 export type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
@@ -220,9 +221,9 @@ export const authService = {
       .schema('public')
       .from('requirement_templates')
       .select('*')
-      .eq('requirement_type', 'applicant_verification')
+      .in('requirement_type', LEGACY_APPLICANT_REQUIREMENT_TYPES)
     if (error) {
-      throw new Error(error.message || 'Failed to fetch verification templates')
+      throw new Error(error.message || 'Failed to fetch requirement templates')
     }
     return data || []
   },

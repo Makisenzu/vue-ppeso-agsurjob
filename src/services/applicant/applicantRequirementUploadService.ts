@@ -8,6 +8,11 @@ import type {
   UploadDocumentDefinition,
 } from '@/types/common/fileUpload'
 import type { Tables, TablesInsert } from '@/types/common/database.types'
+import {
+  APPLICANT_REQUIREMENT_TYPE,
+  getApplicantRequirementTypeCandidates,
+  normalizeRequirementTypeValue,
+} from '@/helpers/applicant/applicantRequirementTypes'
 
 export type ApplicantRequirementRow = Tables<{ schema: 'applicants' }, 'applicant_requirements'>
 export type ApplicantRequirementMediaRow = Tables<{ schema: 'applicants' }, 'applicant_requirement_media'>
@@ -15,11 +20,24 @@ export type ApplicantRequirementInsert = TablesInsert<{ schema: 'applicants' }, 
 export type ApplicantRequirementMediaInsert = TablesInsert<{ schema: 'applicants' }, 'applicant_requirement_media'>
 export type RequirementTemplateRow = Tables<{ schema: 'public' }, 'requirement_templates'>
 
+function isAllowedRequirementType(templateRequirementType: string | null | undefined, requirementTypeCandidates: string[]) {
+  if (!templateRequirementType) {
+    return true
+  }
+
+  const normalizedTemplateType = normalizeRequirementTypeValue(templateRequirementType)
+  return requirementTypeCandidates.some(
+    (candidate) => normalizeRequirementTypeValue(candidate) === normalizedTemplateType
+  )
+}
+
 function normalizeLabel(value: string) {
   return value.trim().toLowerCase().replace(/[\s_-]+/g, '')
 }
 
 async function findRequirementTemplateId(document: UploadDocumentDefinition) {
+  const requirementTypeCandidates = getApplicantRequirementTypeCandidates(APPLICANT_REQUIREMENT_TYPE)
+
   if (document.requirementTemplateId) {
     const { data: byConfiguredId, error: byConfiguredIdError } = await supabase
       .schema('public')
@@ -42,10 +60,10 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     if (byConfiguredId?.id) {
       if (
         byConfiguredId.requirement_type &&
-        byConfiguredId.requirement_type.toLowerCase() !== 'applicant_verification'
+        !isAllowedRequirementType(byConfiguredId.requirement_type, requirementTypeCandidates)
       ) {
         throw new Error(
-          `Requirement template ID ${document.requirementTemplateId} is not an applicant verification template.`
+          `Requirement template ID ${document.requirementTemplateId} is not an applicant requirement template.`
         )
       }
 
@@ -68,7 +86,7 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     throw byNameError
   }
 
-  if (byName?.id) {
+  if (byName?.id && isAllowedRequirementType(byName.requirement_type, requirementTypeCandidates)) {
     return byName.id
   }
 
@@ -84,9 +102,11 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
   }
 
   if (wildcardMatches && wildcardMatches.length > 0) {
-    // Prefer a verification-type template when available
-    const verificationMatch = wildcardMatches.find((t) => (t.requirement_type ?? '').toLowerCase() === 'applicant_verification')
-    return (verificationMatch ?? wildcardMatches[0]).id
+    // Prefer a requirement-type template when available
+    const requirementMatch = wildcardMatches.find((t) =>
+      isAllowedRequirementType(t.requirement_type, requirementTypeCandidates)
+    )
+    return (requirementMatch ?? wildcardMatches[0]).id
   }
 
   // As a last resort, fetch all templates and try normalized comparisons
@@ -103,14 +123,17 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     const templateName = normalizeLabel(template.name ?? '')
     const templateType = normalizeLabel(template.requirement_type ?? '')
 
+    const isApplicantTemplate = isAllowedRequirementType(template.requirement_type, requirementTypeCandidates)
+
     // allow partial and exact normalized matches
     return (
-      templateName === exactLabel ||
-      templateName === exactId ||
-      templateType === exactLabel ||
-      templateType === exactId ||
-      templateName.includes(exactLabel) ||
-      exactLabel.includes(templateName)
+      isApplicantTemplate &&
+      (templateName === exactLabel ||
+        templateName === exactId ||
+        templateType === exactLabel ||
+        templateType === exactId ||
+        templateName.includes(exactLabel) ||
+        exactLabel.includes(templateName))
     )
   })
 
@@ -118,12 +141,12 @@ async function findRequirementTemplateId(document: UploadDocumentDefinition) {
     return matchedTemplate.id
   }
 
-  // As a last resort, create a verification-type requirement template so
+  // As a last resort, create a requirement-type requirement template so
   // uploads for this label can proceed.
   try {
     const payload = {
       name: document.label,
-      requirement_type: 'applicant_verification',
+      requirement_type: APPLICANT_REQUIREMENT_TYPE,
     }
 
     const { data: created, error: createError } = await supabase
