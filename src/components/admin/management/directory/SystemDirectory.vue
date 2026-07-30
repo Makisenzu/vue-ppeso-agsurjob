@@ -9,16 +9,13 @@ import {
   Loader2,
   Building2,
   Globe,
-  MapPin,
-  Briefcase,
-  GraduationCap,
-  DollarSign,
   FileText,
   ExternalLink,
   FolderOpen,
 } from '@lucide/vue'
 
 import { useSystemDirectory } from '@/composables/admin/useSystemDirectory'
+import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
 import {
   formatDate,
   formatDateTime,
@@ -71,6 +68,7 @@ import {
 } from '@/components/ui/select'
 
 import type { DirectoryProfileRow } from '@/types/admin/systemDirectory'
+import type { SubmittedDocument } from '@/types/admin/systemDirectory'
 
 // Reusable action dropdown template
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
@@ -110,6 +108,15 @@ const handleUpdateStatus = async () => {
     await updateAccountStatus(selectedRecord.value.id, selectedStatus.value)
   } catch {
     // Error handled in store
+  }
+}
+
+const viewSubmittedFile = async (doc: SubmittedDocument) => {
+  const resolvedUrl = await systemDirectoryService.getDocumentViewUrl(doc.path)
+  const finalUrl = resolvedUrl || doc.publicUrl
+
+  if (finalUrl) {
+    window.open(finalUrl, '_blank', 'noopener')
   }
 }
 </script>
@@ -388,9 +395,6 @@ const handleUpdateStatus = async () => {
                     <p v-if="doc.filename" class="text-xs font-mono text-muted-foreground truncate">
                       File: {{ doc.filename }} <span v-if="doc.size">({{ formatFileSize(doc.size) }})</span>
                     </p>
-                    <p v-if="doc.remarks" class="text-xs text-muted-foreground italic">
-                      Remarks: {{ doc.remarks }}
-                    </p>
                     <p v-if="doc.created_at" class="text-xs text-muted-foreground">
                       Submitted: {{ formatDate(doc.created_at) }}
                     </p>
@@ -405,16 +409,15 @@ const handleUpdateStatus = async () => {
                     {{ doc.status || 'submitted' }}
                   </Badge>
 
-                  <a
-                    v-if="doc.publicUrl"
-                    :href="doc.publicUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    v-if="doc.path || doc.publicUrl"
+                    type="button"
+                    @click="viewSubmittedFile(doc)"
                     class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors"
                   >
                     <span>View File</span>
                     <ExternalLink class="h-3 w-3" />
-                  </a>
+                  </button>
                   <span v-else class="text-xs text-muted-foreground italic">File unavailable</span>
                 </div>
               </div>
@@ -507,7 +510,7 @@ const handleUpdateStatus = async () => {
             <div v-if="selectedRecord.applicantDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <span class="text-muted-foreground flex items-center gap-1">
-                  <GraduationCap class="h-3.5 w-3.5" /> Education Level:
+                  Education Level:
                 </span>
                 <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.education_level || 'N/A' }}</span>
               </div>
@@ -517,7 +520,7 @@ const handleUpdateStatus = async () => {
               </div>
               <div>
                 <span class="text-muted-foreground flex items-center gap-1">
-                  <Briefcase class="h-3.5 w-3.5" /> Employment Status:
+                  Employment Status:
                 </span>
                 <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.employment_status || 'N/A' }}</span>
               </div>
@@ -527,19 +530,19 @@ const handleUpdateStatus = async () => {
               </div>
               <div>
                 <span class="text-muted-foreground flex items-center gap-1">
-                  <DollarSign class="h-3.5 w-3.5" /> Expected Salary:
+                  Expected Salary:
                 </span>
                 <span class="ml-2 font-medium">{{ formatCurrency(selectedRecord.applicantDetails.expected_salary) }}</span>
               </div>
               <div>
                 <span class="text-muted-foreground flex items-center gap-1">
-                  <Briefcase class="h-3.5 w-3.5" /> Preferred Job Title:
+                  Preferred Job Title:
                 </span>
                 <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.preferred_job || 'N/A' }}</span>
               </div>
               <div class="sm:col-span-2">
                 <span class="text-muted-foreground flex items-center gap-1">
-                  <MapPin class="h-3.5 w-3.5" /> Preferred Location:
+                  Preferred Location:
                 </span>
                 <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.preferred_location || 'N/A' }}</span>
               </div>

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { mediaService } from '@/services/common/mediaService'
+import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import type { Database } from '@/types/common/database.types'
 import type {
   DirectoryProfileRow,
@@ -8,7 +9,108 @@ import type {
   SubmittedDocument,
 } from '@/types/admin/systemDirectory'
 
+function normalizeStoragePath(filePath: string) {
+  return decodeURIComponent(filePath)
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\/+/g, '/')
+}
+
+function collectPathCandidates(filePath: string, buckets: string[]) {
+  const candidates = new Set<string>()
+
+  const addCandidate = (value: string | null | undefined) => {
+    if (!value) {
+      return
+    }
+
+    const normalized = normalizeStoragePath(value)
+    if (!normalized) {
+      return
+    }
+
+    candidates.add(normalized)
+
+    for (const bucket of buckets) {
+      if (normalized.startsWith(`${bucket}/`)) {
+        candidates.add(normalized.slice(bucket.length + 1))
+      }
+
+      if (normalized.startsWith(`public/${bucket}/`)) {
+        candidates.add(normalized.slice(`public/${bucket}/`.length))
+      }
+
+      if (normalized.startsWith(`sign/${bucket}/`)) {
+        candidates.add(normalized.slice(`sign/${bucket}/`.length))
+      }
+
+      if (normalized.startsWith(`storage/v1/object/public/${bucket}/`)) {
+        candidates.add(normalized.slice(`storage/v1/object/public/${bucket}/`.length))
+      }
+
+      if (normalized.startsWith(`storage/v1/object/sign/${bucket}/`)) {
+        candidates.add(normalized.slice(`storage/v1/object/sign/${bucket}/`.length))
+      }
+    }
+  }
+
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    try {
+      const parsed = new URL(filePath)
+      addCandidate(parsed.pathname)
+
+      const objectPathMatch = parsed.pathname.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
+      if (objectPathMatch && objectPathMatch[2]) {
+        addCandidate(objectPathMatch[2])
+      }
+    } catch {
+      addCandidate(filePath)
+    }
+  } else {
+    addCandidate(filePath)
+  }
+
+  return Array.from(candidates)
+}
+
+async function resolveDocumentViewUrl(filePath: string): Promise<string | null> {
+  if (!filePath) {
+    return null
+  }
+  const candidateBuckets = [DOCUMENT_UPLOAD_BUCKET, 'media']
+  const candidatePaths = collectPathCandidates(filePath, candidateBuckets)
+
+  for (const bucket of candidateBuckets) {
+    for (const pathCandidate of candidatePaths) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(pathCandidate, 60 * 60)
+
+      if (!error && data?.signedUrl) {
+        return data.signedUrl
+      }
+    }
+  }
+
+  for (const bucket of candidateBuckets) {
+    for (const pathCandidate of candidatePaths) {
+      const publicUrl = mediaService.getPublicUrl(pathCandidate, bucket)
+      if (publicUrl) {
+        return publicUrl
+      }
+    }
+  }
+
+  return null
+}
+
 export const systemDirectoryService = {
+  async getDocumentViewUrl(filePath: string | null | undefined): Promise<string | null> {
+    if (!filePath) {
+      return null
+    }
+    return resolveDocumentViewUrl(filePath)
+  },
+
   async fetchAllDirectoryRecords(): Promise<DirectoryProfileRow[]> {
     // 1. Fetch profiles for applicants and companies
     const { data: profiles, error: profileErr } = await supabase
@@ -129,7 +231,7 @@ export const systemDirectoryService = {
         const reqByIdMap = new Map<number, any>(appReqs?.map((r) => [r.id, r]) ?? [])
 
         if (appMedia) {
-          appMedia.forEach((m) => {
+          for (const m of appMedia) {
             const profileId = m.profiles_id
             const reqRow = m.applicant_requirement_id ? reqByIdMap.get(m.applicant_requirement_id) : null
             const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
@@ -137,7 +239,7 @@ export const systemDirectoryService = {
 
             if (profileId) {
               const currentDocs = applicantDocsMap.get(profileId) || []
-              const publicUrl = m.path ? mediaService.getPublicUrl(m.path, 'media') : null
+              const publicUrl = m.path ? await resolveDocumentViewUrl(m.path) : null
 
               currentDocs.push({
                 id: m.id,
@@ -153,7 +255,7 @@ export const systemDirectoryService = {
               })
               applicantDocsMap.set(profileId, currentDocs)
             }
-          })
+          }
         }
       }
     } catch {
@@ -178,13 +280,13 @@ export const systemDirectoryService = {
         const reqByIdMap = new Map<number, any>(empReqs?.map((r) => [r.id, r]) ?? [])
 
         if (empMedia) {
-          empMedia.forEach((m) => {
+          for (const m of empMedia) {
             const reqRow = m.employer_requirement_id ? reqByIdMap.get(m.employer_requirement_id) : null
             const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
             const docName = reqTemplateName || m.description || m.filename || 'Company Requirement'
             const companyId = reqRow?.employer_id
             const profileId = m.profile_id
-            const publicUrl = m.path ? mediaService.getPublicUrl(m.path, 'media') : null
+            const publicUrl = m.path ? await resolveDocumentViewUrl(m.path) : null
 
             const docItem: SubmittedDocument = {
               id: m.id,
@@ -209,7 +311,7 @@ export const systemDirectoryService = {
               list.push(docItem)
               employerProfileDocsMap.set(profileId, list)
             }
-          })
+          }
         }
       }
     } catch {
