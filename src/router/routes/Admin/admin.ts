@@ -23,6 +23,11 @@ export const adminRoutes: RouteRecordRaw[] = [
         name: 'directory',
         component: () => import('@/components/admin/management/directory/SystemDirectory.vue'),
       },
+      {
+        path: 'document-templates',
+        name: 'document-templates',
+        component: () => import('@/components/admin/document/DocumentTemplates.vue'),
+      },
     ],
   },
 ]

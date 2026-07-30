@@ -53,7 +53,7 @@ const managementItems = [
   { title: 'Accounts', to: {name: 'accounts'}, icon: ShieldUser },
   { title: 'Directory', to: {name: 'directory'}, icon: BookOpenCheck },
   { title: 'Roles and Permission', to: {name: 'admin-dashboard'}, icon: Lock },
-  { title: 'Document Templates', to: {name: 'admin-dashboard'}, icon: FileText },
+  { title: 'Document Templates', to: {name: 'document-templates'}, icon: FileText },
   { title: 'Company Overview', to: {name: 'admin-dashboard'}, icon: FolderKanban },
   { title: 'Posting Moderation', to: {name: 'admin-dashboard'}, icon: Keyboard },
 ]
