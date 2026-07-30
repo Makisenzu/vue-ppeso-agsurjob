@@ -12,11 +12,21 @@ import {
   FileText,
   FolderOpen,
   Eye,
-  SquarePen
+  SquarePen,
+  Download
 } from '@lucide/vue'
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from '@/components/ui/attachment'
+import { getRequirementAttachmentState } from '@/helpers/applicant/applicantRequirementDocuments'
 
 import { useSystemDirectory } from '@/composables/admin/useSystemDirectory'
-import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
 import {
   formatDate,
   formatDateTime,
@@ -69,7 +79,6 @@ import {
 } from '@/components/ui/select'
 
 import type { DirectoryProfileRow } from '@/types/admin/systemDirectory'
-import type { SubmittedDocument } from '@/types/admin/systemDirectory'
 
 // Reusable action dropdown template
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
@@ -98,6 +107,8 @@ const {
   closeEditDocumentStatusModal,
   updateDocumentStatus,
   copyId,
+  viewSubmittedFile,
+  downloadSubmittedFile,
 } = useSystemDirectory(ReuseTemplate)
 
 // Edit status state
@@ -191,15 +202,6 @@ const handleUpdateDocumentStatus = async () => {
     await updateDocumentStatus(selectedRecord.value.id, selectedDocument.value.id, selectedDocStatus.value, isApplicantDoc)
   } catch {
     // Error handled in store
-  }
-}
-
-const viewSubmittedFile = async (doc: SubmittedDocument) => {
-  const resolvedUrl = await systemDirectoryService.getDocumentViewUrl(doc.path)
-  const finalUrl = resolvedUrl || doc.publicUrl
-
-  if (finalUrl) {
-    window.open(finalUrl, '_blank', 'noopener')
   }
 }
 </script>
@@ -524,53 +526,59 @@ const viewSubmittedFile = async (doc: SubmittedDocument) => {
           <div class="space-y-3">
             <h3 class="text-sm font-semibold border-b pb-1">Submitted Files & Documents</h3>
             <div v-if="selectedRecord.documents && selectedRecord.documents.length > 0" class="space-y-2">
-              <div
+              <Attachment
                 v-for="doc in selectedRecord.documents"
                 :key="doc.id"
-                class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors gap-2 text-sm"
+                class="w-full"
+                :state="getRequirementAttachmentState(doc.status)"
               >
-                <div class="flex items-start gap-3 min-w-0">
-                  <div class="p-2 rounded bg-muted text-foreground shrink-0 mt-0.5">
-                    <FileText class="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div class="min-w-0 space-y-0.5">
-                    <p class="font-semibold text-foreground truncate">{{ doc.name }}</p>
-                    <p v-if="doc.filename" class="text-xs font-mono text-muted-foreground truncate">
-                      File: {{ doc.filename }} <span v-if="doc.size">({{ formatFileSize(doc.size) }})</span>
-                    </p>
-                    <p v-if="doc.created_at" class="text-xs text-muted-foreground">
-                      Submitted: {{ formatDate(doc.created_at) }}
-                    </p>
-                  </div>
-                </div>
+                <AttachmentMedia>
+                  <FileText class="size-4 text-muted-foreground" />
+                </AttachmentMedia>
 
-                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <AttachmentContent>
+                  <AttachmentTitle>{{ doc.name }}</AttachmentTitle>
+                  <AttachmentDescription>
+                    <span v-if="doc.filename">
+                      {{ doc.filename }} <template v-if="doc.size">· {{ formatFileSize(doc.size) }}</template>
+                    </span>
+                    <span v-else>Submitted</span>
+                    <span v-if="doc.created_at" class="hidden sm:inline"> · {{ formatDate(doc.created_at) }}</span>
+                  </AttachmentDescription>
+                </AttachmentContent>
+
+                <AttachmentActions>
                   <Badge
                     :variant="getStatusBadgeVariant(doc.status)"
-                    :class="['capitalize text-xs', getStatusBadgeClass(doc.status)]"
+                    :class="['capitalize text-xs mr-1', getStatusBadgeClass(doc.status)]"
                   >
                     {{ doc.status || 'submitted' }}
                   </Badge>
 
-                  <button
-                    type="button"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  <AttachmentAction
+                    title="Review / Edit Document Status"
                     @click="openEditDocumentStatusModal(selectedRecord!, doc)"
                   >
-                    <SquarePen class="h-4 w-4" />
-                  </button>
+                    <SquarePen class="size-4 text-muted-foreground hover:text-foreground" />
+                  </AttachmentAction>
 
-                  <button
+                  <AttachmentAction
                     v-if="doc.path || doc.publicUrl"
-                    type="button"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    title="View Document"
                     @click="viewSubmittedFile(doc)"
                   >
-                    <Eye class="h-4 w-4" />
-                  </button>
-                  <span v-else class="text-xs text-muted-foreground italic">File unavailable</span>
-                </div>
-              </div>
+                    <Eye class="size-4 text-muted-foreground hover:text-foreground" />
+                  </AttachmentAction>
+
+                  <AttachmentAction
+                    v-if="doc.path || doc.publicUrl"
+                    title="Download Document"
+                    @click="downloadSubmittedFile(doc)"
+                  >
+                    <Download class="size-4 text-muted-foreground hover:text-foreground" />
+                  </AttachmentAction>
+                </AttachmentActions>
+              </Attachment>
             </div>
 
             <div v-else class="flex flex-col items-center justify-center p-6 rounded-lg border border-dashed text-center bg-muted/20">

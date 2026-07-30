@@ -305,5 +305,7 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
     closeEditDocumentStatusModal,
     updateDocumentStatus,
     copyId,
+    viewSubmittedFile: store.viewSubmittedFile,
+    downloadSubmittedFile: store.downloadSubmittedFile,
   }
 }

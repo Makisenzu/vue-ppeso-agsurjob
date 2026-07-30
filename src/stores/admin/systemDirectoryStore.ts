@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { DirectoryProfileRow } from '@/types/admin/systemDirectory'
-import type { SubmittedDocument } from '@/types/admin/systemDirectory'
+import type { DirectoryProfileRow, SubmittedDocument } from '@/types/admin/systemDirectory'
 import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
@@ -57,9 +56,13 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     errorMessage.value = null
     try {
       const updated = await systemDirectoryService.updateAccountStatus(profileId, newStatus)
+
+      // 1. Immutable array update for TanStack Table
       records.value = records.value.map((r) =>
         r.id === profileId ? { ...r, status: updated.status, updated_at: updated.updated_at } : r
       )
+
+      // 2. Keep open details modal synchronized
       if (selectedRecord.value?.id === profileId) {
         selectedRecord.value = {
           ...selectedRecord.value,
@@ -67,6 +70,7 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
           updated_at: updated.updated_at,
         }
       }
+
       closeEditStatusModal()
       toastAlert.success('Account Status Updated', `Status changed to ${newStatus}.`)
     } catch (err: any) {
@@ -95,28 +99,59 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     selectedDocument.value = null
   }
 
-  const updateDocumentStatus = async (profileId: string, documentId: number, newStatus: string, isApplicantDoc: boolean) => {
+  const updateDocumentStatus = async (
+    profileId: string,
+    documentId: number,
+    newStatus: string,
+    isApplicantDoc: boolean
+  ) => {
     isSubmitting.value = true
     errorMessage.value = null
     try {
       await systemDirectoryService.updateDocumentStatus(documentId, newStatus, isApplicantDoc)
 
-      // Update local state
-      const recordIndex = records.value.findIndex((r) => r.id === profileId)
-      if (recordIndex !== -1) {
-        const record = records.value[recordIndex]
-        if (record.documents) {
-          const docIndex = record.documents.findIndex((d) => d.id === documentId)
-          if (docIndex !== -1) {
-            record.documents[docIndex].status = newStatus
-            records.value[recordIndex] = { ...record }
+      // 1. Deep-update main records array (Triggers main table re-render)
+      records.value = records.value.map((record) => {
+        if (record.id !== profileId) return record
+
+        const updatedDocs = (record.documents || []).map((doc) => {
+          if (doc.id === documentId) {
+            return { ...doc, status: newStatus }
           }
+          return doc
+        })
+
+        return {
+          ...record,
+          documents: updatedDocs,
+        }
+      })
+
+      // 2. Synchronize active selectedRecord (Triggers Details Modal re-render)
+      if (selectedRecord.value && selectedRecord.value.id === profileId) {
+        const updatedSelectedDocs = (selectedRecord.value.documents || []).map((doc) => {
+          if (doc.id === documentId) {
+            return { ...doc, status: newStatus }
+          }
+          return doc
+        })
+
+        selectedRecord.value = {
+          ...selectedRecord.value,
+          documents: updatedSelectedDocs,
         }
       }
 
-      if (selectedRecord.value?.id === profileId && selectedDocument.value?.id === documentId) {
-        selectedDocument.value.status = newStatus
+      // 3. Synchronize active selectedDocument
+      if (selectedDocument.value && selectedDocument.value.id === documentId) {
+        selectedDocument.value = {
+          ...selectedDocument.value,
+          status: newStatus,
+        }
       }
+
+      // 4. Refetch records in background to ensure all calculated statuses (e.g. account profile status or company verification status) are synced with DB
+      fetchRecords()
 
       closeEditDocumentStatusModal()
       toastAlert.success('Document Status Updated', `File status changed to ${newStatus}.`)
@@ -128,6 +163,14 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     } finally {
       isSubmitting.value = false
     }
+  }
+
+  const viewSubmittedFile = (doc: SubmittedDocument) => {
+    return systemDirectoryService.viewSubmittedFile(doc)
+  }
+
+  const downloadSubmittedFile = (doc: SubmittedDocument) => {
+    return systemDirectoryService.downloadSubmittedFile(doc)
   }
 
   return {
@@ -150,5 +193,7 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     closeEditDocumentStatusModal,
     updateDocumentStatus,
     copyId,
+    viewSubmittedFile,
+    downloadSubmittedFile,
   }
 })

@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
 import { mediaService } from '@/services/common/mediaService'
-import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import type { Database } from '@/types/common/database.types'
 import type {
   DirectoryProfileRow,
@@ -19,110 +18,52 @@ function normalizeRequirementStatus(status: string): Database['public']['Enums']
     : (status as Database['public']['Enums']['status_type'])
 }
 
-function normalizeStoragePath(filePath: string) {
-  return decodeURIComponent(filePath)
-    .replace(/^\/+|\/+$/g, '')
-    .replace(/\/+/g, '/')
-}
+export const systemDirectoryService = {
+  // Fast, instant URL generator for initial table rendering
+  getQuickPublicUrl(filePath: string | null | undefined): string | null {
+    if (!filePath) return null
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath
+    return mediaService.getPublicUrl(filePath, 'documents') || mediaService.getPublicUrl(filePath, 'media') || null
+  },
 
-function collectPathCandidates(filePath: string, buckets: string[]) {
-  const candidates = new Set<string>()
+  // On-demand resolver for when viewing/opening actual files
+  async getDocumentViewUrl(filePath: string | null | undefined): Promise<string | null> {
+    if (!filePath) return null
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath
 
-  const addCandidate = (value: string | null | undefined) => {
-    if (!value) {
-      return
-    }
+    const cleanPath = filePath.replace(/^(documents|media)\//, '').replace(/^\/+/, '')
 
-    const normalized = normalizeStoragePath(value)
-    if (!normalized) {
-      return
-    }
-
-    candidates.add(normalized)
-
-    for (const bucket of buckets) {
-      if (normalized.startsWith(`${bucket}/`)) {
-        candidates.add(normalized.slice(bucket.length + 1))
-      }
-
-      if (normalized.startsWith(`public/${bucket}/`)) {
-        candidates.add(normalized.slice(`public/${bucket}/`.length))
-      }
-
-      if (normalized.startsWith(`sign/${bucket}/`)) {
-        candidates.add(normalized.slice(`sign/${bucket}/`.length))
-      }
-
-      if (normalized.startsWith(`storage/v1/object/public/${bucket}/`)) {
-        candidates.add(normalized.slice(`storage/v1/object/public/${bucket}/`.length))
-      }
-
-      if (normalized.startsWith(`storage/v1/object/sign/${bucket}/`)) {
-        candidates.add(normalized.slice(`storage/v1/object/sign/${bucket}/`.length))
-      }
-    }
-  }
-
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    // 1. Try 'documents' bucket signed URL first
     try {
-      const parsed = new URL(filePath)
-      addCandidate(parsed.pathname)
-
-      const objectPathMatch = parsed.pathname.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
-      if (objectPathMatch && objectPathMatch[2]) {
-        addCandidate(objectPathMatch[2])
-      }
-    } catch {
-      addCandidate(filePath)
-    }
-  } else {
-    addCandidate(filePath)
-  }
-
-  return Array.from(candidates)
-}
-
-async function resolveDocumentViewUrl(filePath: string): Promise<string | null> {
-  if (!filePath) {
-    return null
-  }
-  const candidateBuckets = [DOCUMENT_UPLOAD_BUCKET, 'media']
-  const candidatePaths = collectPathCandidates(filePath, candidateBuckets)
-
-  for (const bucket of candidateBuckets) {
-    for (const pathCandidate of candidatePaths) {
       const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(pathCandidate, 60 * 60)
+        .from('documents')
+        .createSignedUrl(cleanPath, 3600)
 
       if (!error && data?.signedUrl) {
         return data.signedUrl
       }
+    } catch {
+      // Fallback
     }
-  }
 
-  for (const bucket of candidateBuckets) {
-    for (const pathCandidate of candidatePaths) {
-      const publicUrl = mediaService.getPublicUrl(pathCandidate, bucket)
-      if (publicUrl) {
-        return publicUrl
+    // 2. Try 'media' bucket signed URL next
+    try {
+      const { data, error } = await supabase.storage
+        .from('media')
+        .createSignedUrl(cleanPath, 3600)
+
+      if (!error && data?.signedUrl) {
+        return data.signedUrl
       }
+    } catch {
+      // Fallback
     }
-  }
 
-  return null
-}
-
-export const systemDirectoryService = {
-  async getDocumentViewUrl(filePath: string | null | undefined): Promise<string | null> {
-    if (!filePath) {
-      return null
-    }
-    return resolveDocumentViewUrl(filePath)
+    return mediaService.getPublicUrl(filePath, 'documents') || mediaService.getPublicUrl(filePath, 'media')
   },
 
   async fetchAllDirectoryRecords(): Promise<DirectoryProfileRow[]> {
-    // 1. Fetch profiles for applicants and companies
+    // 1. Fetch core profile records
     const { data: profiles, error: profileErr } = await supabase
       .schema('core')
       .from('profiles')
@@ -138,197 +79,152 @@ export const systemDirectoryService = {
       return []
     }
 
-    // 2. Fetch email map from get_user_emails RPC
-    let emailMap = new Map<string, string>()
-    try {
+    const profileIds = profiles.map((p) => p.id)
+
+    // 2. PARALLEL FETCH (Run all related table queries concurrently!)
+    const [
+      emailRes,
+      templatesRes,
+      companiesRes,
+      membersRes,
+      applicantsRes,
+      appReqsRes,
+      appMediaRes,
+      empReqsRes,
+      empMediaRes,
+    ] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user_emails')
-      if (emailRows && Array.isArray(emailRows)) {
-        emailMap = new Map<string, string>(
-          emailRows.map((row: { id: string; email: string }) => [row.id, row.email])
-        )
-      }
-    } catch {
-      // RPC error fallback
+      Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('public').from('requirement_templates').select('id, name')).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('employers').from('companies').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('employers').from('company_members').select('profile_id, company_id').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('applicants').from('applicants').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('applicants').from('applicant_requirements').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+    ])
+
+    // Build Maps synchronously in JS memory
+    const emailMap = new Map<string, string>()
+    if (emailRes.data && Array.isArray(emailRes.data)) {
+      emailRes.data.forEach((row: { id: string; email: string }) => {
+        if (row?.id && row?.email) emailMap.set(row.id, row.email)
+      })
     }
 
-    // 3. Fetch requirement templates
     const templateMap = new Map<number, string>()
-    try {
-      const { data: templates } = await supabase
-        .schema('public')
-        .from('requirement_templates')
-        .select('id, name')
-
-      if (templates) {
-        templates.forEach((t) => {
-          if (t.id && t.name) templateMap.set(t.id, t.name)
-        })
-      }
-    } catch {
-      // Templates fetch fallback
+    if (templatesRes.data) {
+      templatesRes.data.forEach((t) => {
+        if (t?.id != null && t?.name) {
+          templateMap.set(t.id, t.name)
+        }
+      })
     }
 
-    // 4. Fetch linked companies from employers.companies
     const companyMap = new Map<string, CompanyRow>()
     const companyByIdMap = new Map<number, CompanyRow>()
-    try {
-      const { data: companiesData } = await supabase
-        .schema('employers')
-        .from('companies')
-        .select('*')
-
-      if (companiesData && companiesData.length > 0) {
-        companiesData.forEach((c) => {
-          companyByIdMap.set(c.id, c as CompanyRow)
-          if (c.profile_id) {
-            companyMap.set(c.profile_id, c as CompanyRow)
-          }
-        })
-      }
-
-      // Check company_members to link members to company
-      const { data: membersData } = await supabase
-        .schema('employers')
-        .from('company_members')
-        .select('profile_id, company_id')
-
-      if (membersData && membersData.length > 0) {
-        membersData.forEach((m) => {
-          if (m.profile_id && m.company_id && !companyMap.has(m.profile_id)) {
-            const comp = companyByIdMap.get(m.company_id)
-            if (comp) companyMap.set(m.profile_id, comp)
-          }
-        })
-      }
-    } catch {
-      // Employers fetch fallback
+    if (companiesRes.data) {
+      companiesRes.data.forEach((c: any) => {
+        companyByIdMap.set(c.id, c as CompanyRow)
+        if (c.profile_id) companyMap.set(c.profile_id, c as CompanyRow)
+      })
     }
 
-    // 5. Fetch linked applicant profiles from applicants.applicants
-    const applicantMap = new Map<string, ApplicantRow>()
-    try {
-      const { data: applicantsData } = await supabase
-        .schema('applicants')
-        .from('applicants')
-        .select('*')
-
-      if (applicantsData && applicantsData.length > 0) {
-        applicantsData.forEach((a) => {
-          if (a.profile_id) {
-            applicantMap.set(a.profile_id, a as ApplicantRow)
-          }
-        })
-      }
-    } catch {
-      // Applicants fetch fallback
-    }
-
-    // 6. Fetch applicant requirements & requirement media
-    const applicantDocsMap = new Map<string, SubmittedDocument[]>()
-    try {
-      const { data: appReqs } = await supabase
-        .schema('applicants')
-        .from('applicant_requirements')
-        .select('*')
-
-      const { data: appMedia } = await supabase
-        .schema('applicants')
-        .from('applicant_requirement_media')
-        .select('*')
-
-      if (appReqs || appMedia) {
-        const reqByIdMap = new Map<number, any>(appReqs?.map((r) => [r.id, r]) ?? [])
-
-        if (appMedia) {
-          for (const m of appMedia) {
-            const profileId = m.profiles_id
-            const reqRow = m.applicant_requirement_id ? reqByIdMap.get(m.applicant_requirement_id) : null
-            const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
-            const docName = reqTemplateName || m.description || m.filename || 'Applicant Document'
-
-            if (profileId) {
-              const currentDocs = applicantDocsMap.get(profileId) || []
-              const publicUrl = m.path ? await resolveDocumentViewUrl(m.path) : null
-
-              currentDocs.push({
-                id: m.id,
-                name: docName,
-                filename: m.filename,
-                mime_type: m.mime_type,
-                size: m.size,
-                path: m.path,
-                publicUrl,
-                status: reqRow?.status || 'submitted',
-                remarks: m.description || reqRow?.remarks || null,
-                created_at: m.created_at,
-              })
-              applicantDocsMap.set(profileId, currentDocs)
-            }
-          }
+    if (membersRes.data) {
+      membersRes.data.forEach((m: any) => {
+        if (m.profile_id && m.company_id && !companyMap.has(m.profile_id)) {
+          const comp = companyByIdMap.get(m.company_id)
+          if (comp) companyMap.set(m.profile_id, comp)
         }
-      }
-    } catch {
-      // Applicant requirements fetch fallback
+      })
     }
 
-    // 7. Fetch employer requirements & requirement media
+    const applicantMap = new Map<string, ApplicantRow>()
+    if (applicantsRes.data) {
+      applicantsRes.data.forEach((a: any) => {
+        if (a.profile_id) applicantMap.set(a.profile_id, a as ApplicantRow)
+      })
+    }
+
+    // Process Applicant Documents SYNCHRONOUSLY (Zero await inside loops!)
+    const applicantDocsMap = new Map<string, SubmittedDocument[]>()
+    const appReqs = appReqsRes.data || []
+    const appMedia = appMediaRes.data || []
+    if (appReqs.length > 0 || appMedia.length > 0) {
+      const reqByIdMap = new Map<number, any>(appReqs.map((r: any) => [r.id, r]))
+
+      appMedia.forEach((m: any) => {
+        const profileId = m.profiles_id
+        const reqRow = m.applicant_requirement_id ? reqByIdMap.get(m.applicant_requirement_id) : null
+        const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
+        const docName = reqTemplateName || m.description || m.filename || 'Applicant Document'
+
+        if (profileId) {
+          const currentDocs = applicantDocsMap.get(profileId) || []
+          // Fast synchronous URL calculation:
+          const publicUrl = this.getQuickPublicUrl(m.path)
+
+          currentDocs.push({
+            id: m.id,
+            name: docName,
+            filename: m.filename,
+            mime_type: m.mime_type,
+            size: m.size,
+            path: m.path,
+            publicUrl,
+            status: reqRow?.status || 'submitted',
+            remarks: m.description || reqRow?.remarks || null,
+            created_at: m.created_at,
+          })
+          applicantDocsMap.set(profileId, currentDocs)
+        }
+      })
+    }
+
+    // Process Employer Documents SYNCHRONOUSLY
     const employerDocsMap = new Map<number, SubmittedDocument[]>()
     const employerProfileDocsMap = new Map<string, SubmittedDocument[]>()
-    try {
-      const { data: empReqs } = await supabase
-        .schema('employers')
-        .from('employer_requirements')
-        .select('*')
+    const empReqs = empReqsRes.data || []
+    const empMedia = empMediaRes.data || []
+    if (empReqs.length > 0 || empMedia.length > 0) {
+      const reqByIdMap = new Map<number, any>(empReqs.map((r: any) => [r.id, r]))
 
-      const { data: empMedia } = await supabase
-        .schema('employers')
-        .from('employer_requirement_media')
-        .select('*')
+      empMedia.forEach((m: any) => {
+        const reqRow = m.employer_requirement_id ? reqByIdMap.get(m.employer_requirement_id) : null
+        const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
+        const docName = reqTemplateName || m.description || m.filename || 'Company Requirement'
+        const companyId = reqRow?.employer_id
+        const profileId = m.profile_id
+        const publicUrl = this.getQuickPublicUrl(m.path)
 
-      if (empReqs || empMedia) {
-        const reqByIdMap = new Map<number, any>(empReqs?.map((r) => [r.id, r]) ?? [])
-
-        if (empMedia) {
-          for (const m of empMedia) {
-            const reqRow = m.employer_requirement_id ? reqByIdMap.get(m.employer_requirement_id) : null
-            const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
-            const docName = reqTemplateName || m.description || m.filename || 'Company Requirement'
-            const companyId = reqRow?.employer_id
-            const profileId = m.profile_id
-            const publicUrl = m.path ? await resolveDocumentViewUrl(m.path) : null
-
-            const docItem: SubmittedDocument = {
-              id: m.id,
-              name: docName,
-              filename: m.filename,
-              mime_type: m.mime_type,
-              size: m.size,
-              path: m.path,
-              publicUrl,
-              status: reqRow?.status || 'submitted',
-              remarks: m.description || reqRow?.remarks || null,
-              created_at: m.created_at,
-            }
-
-            if (companyId) {
-              const list = employerDocsMap.get(companyId) || []
-              list.push(docItem)
-              employerDocsMap.set(companyId, list)
-            }
-            if (profileId) {
-              const list = employerProfileDocsMap.get(profileId) || []
-              list.push(docItem)
-              employerProfileDocsMap.set(profileId, list)
-            }
-          }
+        const docItem: SubmittedDocument = {
+          id: m.id,
+          name: docName,
+          filename: m.filename,
+          mime_type: m.mime_type,
+          size: m.size,
+          path: m.path,
+          publicUrl,
+          status: reqRow?.status || 'submitted',
+          remarks: m.description || reqRow?.remarks || null,
+          created_at: m.created_at,
         }
-      }
-    } catch {
-      // Employer requirements fetch fallback
+
+        if (companyId) {
+          const list = employerDocsMap.get(companyId) || []
+          list.push(docItem)
+          employerDocsMap.set(companyId, list)
+        }
+        if (profileId) {
+          const list = employerProfileDocsMap.get(profileId) || []
+          list.push(docItem)
+          employerProfileDocsMap.set(profileId, list)
+        }
+      })
     }
 
-    // 8. Assemble combined records
+    // Assemble final records
     return profiles.map((p) => {
       const isCompanyRole = p.role === 'company_owner' || p.role === 'company_member'
       const category = isCompanyRole ? 'company' : 'applicant'
@@ -394,7 +290,6 @@ export const systemDirectoryService = {
     const normalizedStatus = normalizeRequirementStatus(newStatus)
 
     if (isApplicantDoc) {
-      // Update applicant requirement media
       const { data: docData, error: docError } = await supabase
         .schema('applicants')
         .from('applicant_requirement_media')
@@ -402,30 +297,18 @@ export const systemDirectoryService = {
         .eq('id', documentId)
         .single()
 
-      if (docError || !docData) {
-        throw new Error(docError?.message || 'Document not found')
+      if (docError || !docData?.applicant_requirement_id) {
+        throw new Error(docError?.message || 'Document or requirement link not found')
       }
 
-      const requirementId = docData.applicant_requirement_id
-
-      if (!requirementId) {
-        throw new Error('No linked requirement found for this document')
-      }
-
-      // Update the linked requirement status
       const { error: updateError } = await supabase
         .schema('applicants')
         .from('applicant_requirements')
-        .update({
-          status: normalizedStatus,
-        })
-        .eq('id', requirementId)
+        .update({ status: normalizedStatus })
+        .eq('id', docData.applicant_requirement_id)
 
-      if (updateError) {
-        throw new Error(updateError.message || 'Failed to update document status')
-      }
+      if (updateError) throw new Error(updateError.message || 'Failed to update document status')
     } else {
-      // Update employer requirement media
       const { data: docData, error: docError } = await supabase
         .schema('employers')
         .from('employer_requirement_media')
@@ -433,28 +316,48 @@ export const systemDirectoryService = {
         .eq('id', documentId)
         .single()
 
-      if (docError || !docData) {
-        throw new Error(docError?.message || 'Document not found')
+      if (docError || !docData?.employer_requirement_id) {
+        throw new Error(docError?.message || 'Document or requirement link not found')
       }
 
-      const requirementId = docData.employer_requirement_id
-
-      if (!requirementId) {
-        throw new Error('No linked requirement found for this document')
-      }
-
-      // Update the linked requirement status
       const { error: updateError } = await supabase
         .schema('employers')
         .from('employer_requirements')
-        .update({
-          status: normalizedStatus,
-        })
-        .eq('id', requirementId)
+        .update({ status: normalizedStatus })
+        .eq('id', docData.employer_requirement_id)
 
-      if (updateError) {
-        throw new Error(updateError.message || 'Failed to update document status')
-      }
+      if (updateError) throw new Error(updateError.message || 'Failed to update document status')
+    }
+  },
+
+  async viewSubmittedFile(doc: SubmittedDocument): Promise<void> {
+    const resolvedUrl = await this.getDocumentViewUrl(doc.path)
+    const finalUrl = resolvedUrl || doc.publicUrl
+
+    if (finalUrl) {
+      window.open(finalUrl, '_blank', 'noopener')
+    }
+  },
+
+  async downloadSubmittedFile(doc: SubmittedDocument): Promise<void> {
+    const resolvedUrl = await this.getDocumentViewUrl(doc.path)
+    const finalUrl = resolvedUrl || doc.publicUrl
+    if (!finalUrl) return
+
+    try {
+      const res = await fetch(finalUrl)
+      if (!res.ok) throw new Error('Failed to fetch file')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.filename || doc.name || 'document'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch {
+      window.open(finalUrl, '_blank', 'noopener')
     }
   },
 }
