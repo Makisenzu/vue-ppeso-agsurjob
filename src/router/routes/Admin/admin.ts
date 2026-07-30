@@ -26,7 +26,7 @@ export const adminRoutes: RouteRecordRaw[] = [
       {
         path: 'document-templates',
         name: 'document-templates',
-        component: () => import('@/components/admin/document/DocumentTemplates.vue'),
+        component: () => import('@/components/admin/management/document/DocumentTemplates.vue'),
       },
     ],
   },
