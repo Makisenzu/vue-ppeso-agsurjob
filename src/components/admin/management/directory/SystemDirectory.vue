@@ -14,7 +14,6 @@ import {
   GraduationCap,
   DollarSign,
   FileText,
-  FileCheck,
   ExternalLink,
   FolderOpen,
 } from '@lucide/vue'
@@ -305,27 +304,25 @@ const handleUpdateStatus = async () => {
 
     <!-- Record Details & Documents Modal -->
     <Dialog :open="isDetailsOpen" @update:open="isDetailsOpen = $event">
-      <DialogContent class="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent class="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <Building2 v-if="selectedRecord?.category === 'company'" class="h-5 w-5 text-emerald-600" />
             <span>{{ selectedRecord?.category === 'company' ? 'Company & Account Details' : 'Applicant Account Details' }}</span>
           </DialogTitle>
           <DialogDescription>
-            Master record and submitted requirements for {{ selectedRecord?.companyDetails?.company_name || selectedRecord?.firstname + ' ' + selectedRecord?.lastname }}
+            Detailed view of directory record and submitted requirements for {{ selectedRecord?.companyDetails?.company_name || selectedRecord?.firstname + ' ' + selectedRecord?.lastname }}
           </DialogDescription>
         </DialogHeader>
 
         <div v-if="selectedRecord" class="space-y-6 py-2">
-          <!-- Overview / Summary -->
+          <!-- Overview / Account Summary -->
           <div class="space-y-3">
-            <h3 class="text-sm font-semibold border-b pb-1">
-              Overview & Account Summary
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/40 p-3.5 rounded-lg border">
+            <h3 class="text-sm font-semibold border-b pb-1">Overview / Account Summary</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <span class="text-muted-foreground">Category:</span>
-                <span class="ml-2">
+                <span class="ml-2 inline-flex items-center">
                   <Badge
                     :variant="getCategoryBadgeVariant(selectedRecord.category)"
                     :class="['capitalize', getCategoryBadgeClass(selectedRecord.category)]"
@@ -336,7 +333,7 @@ const handleUpdateStatus = async () => {
               </div>
               <div>
                 <span class="text-muted-foreground">System Role:</span>
-                <span class="ml-2">
+                <span class="ml-2 inline-flex items-center">
                   <Badge
                     :variant="getRoleBadgeVariant(selectedRecord.role)"
                     :class="['capitalize', getRoleBadgeClass(selectedRecord.role)]"
@@ -361,7 +358,7 @@ const handleUpdateStatus = async () => {
               </div>
               <div>
                 <span class="text-muted-foreground">Account Status:</span>
-                <span class="ml-2">
+                <span class="ml-2 inline-flex items-center">
                   <Badge
                     :variant="getStatusBadgeVariant(selectedRecord.status)"
                     :class="['capitalize', getStatusBadgeClass(selectedRecord.status)]"
@@ -373,17 +370,9 @@ const handleUpdateStatus = async () => {
             </div>
           </div>
 
-          <!-- Submitted Files & Documents Section -->
+          <!-- Submitted Files & Documents -->
           <div class="space-y-3">
-            <div class="flex items-center justify-between border-b pb-1">
-              <h3 class="text-sm font-semibold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                <FileCheck class="h-4 w-4" /> Submitted Files & Required Documents
-              </h3>
-              <Badge variant="outline" class="text-xs">
-                {{ selectedRecord.documentCount }} Submitted File(s)
-              </Badge>
-            </div>
-
+            <h3 class="text-sm font-semibold border-b pb-1">Submitted Files & Documents</h3>
             <div v-if="selectedRecord.documents && selectedRecord.documents.length > 0" class="space-y-2">
               <div
                 v-for="doc in selectedRecord.documents"
