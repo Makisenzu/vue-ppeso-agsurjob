@@ -10,8 +10,9 @@ import {
   Building2,
   Globe,
   FileText,
-  ExternalLink,
   FolderOpen,
+  Eye,
+  SquarePen
 } from '@lucide/vue'
 
 import { useSystemDirectory } from '@/composables/admin/useSystemDirectory'
@@ -85,11 +86,16 @@ const {
   selectedRecord,
   isDetailsOpen,
   isEditStatusOpen,
+  isEditDocStatusOpen,
+  selectedDocument,
   fetchRecords,
   openRecordDetails,
   openEditStatusModal,
   closeEditStatusModal,
   updateAccountStatus,
+  openEditDocumentStatusModal,
+  closeEditDocumentStatusModal,
+  updateDocumentStatus,
   copyId,
 } = useSystemDirectory(ReuseTemplate)
 
@@ -102,10 +108,29 @@ watch(selectedRecord, (newVal) => {
   }
 })
 
+// Edit document status state
+const selectedDocStatus = ref<string>('submitted')
+
+watch(selectedDocument, (newVal) => {
+  if (newVal) {
+    selectedDocStatus.value = newVal.status || 'submitted'
+  }
+})
+
 const handleUpdateStatus = async () => {
   if (!selectedRecord.value) return
   try {
     await updateAccountStatus(selectedRecord.value.id, selectedStatus.value)
+  } catch {
+    // Error handled in store
+  }
+}
+
+const handleUpdateDocumentStatus = async () => {
+  if (!selectedRecord.value || !selectedDocument.value) return
+  const isApplicantDoc = selectedRecord.value.category === 'applicant'
+  try {
+    await updateDocumentStatus(selectedRecord.value.id, selectedDocument.value.id, selectedDocStatus.value, isApplicantDoc)
   } catch {
     // Error handled in store
   }
@@ -410,13 +435,20 @@ const viewSubmittedFile = async (doc: SubmittedDocument) => {
                   </Badge>
 
                   <button
+                    type="button"
+                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    @click="openEditDocumentStatusModal(selectedRecord!, doc)"
+                  >
+                    <SquarePen class="h-4 w-4" />
+                  </button>
+
+                  <button
                     v-if="doc.path || doc.publicUrl"
                     type="button"
+                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     @click="viewSubmittedFile(doc)"
-                    class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors"
                   >
-                    <span>View File</span>
-                    <ExternalLink class="h-3 w-3" />
+                    <Eye class="h-4 w-4" />
                   </button>
                   <span v-else class="text-xs text-muted-foreground italic">File unavailable</span>
                 </div>
@@ -689,6 +721,76 @@ const viewSubmittedFile = async (doc: SubmittedDocument) => {
             <Button
               type="submit"
               class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              :disabled="isSubmitting"
+            >
+              <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
+              {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Edit Document Status Modal -->
+    <Dialog :open="isEditDocStatusOpen" @update:open="isEditDocStatusOpen = $event">
+      <DialogContent class="max-w-[95vw] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <FileText class="h-5 w-5 text-blue-600" />
+            Edit Document Status
+          </DialogTitle>
+          <DialogDescription>
+            Update status for {{ selectedDocument?.name || selectedDocument?.filename }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form @submit.prevent="handleUpdateDocumentStatus" class="space-y-4 py-2">
+          <div v-if="selectedDocument && selectedRecord" class="space-y-4">
+            <div>
+              <Label class="text-xs font-semibold text-muted-foreground uppercase">Document Name</Label>
+              <p class="font-medium text-base mt-0.5">{{ selectedDocument.name || selectedDocument.filename || 'N/A' }}</p>
+            </div>
+
+            <div>
+              <Label class="text-xs font-semibold text-muted-foreground uppercase">File Name</Label>
+              <p class="font-medium text-sm font-mono mt-0.5">{{ selectedDocument.filename || 'N/A' }}</p>
+            </div>
+
+            <div>
+              <Label class="text-xs font-semibold text-muted-foreground uppercase">Current Status</Label>
+              <div class="mt-1">
+                <Badge
+                  :variant="getStatusBadgeVariant(selectedDocument.status)"
+                  :class="['capitalize', getStatusBadgeClass(selectedDocument.status)]"
+                >
+                  {{ selectedDocument.status || 'submitted' }}
+                </Badge>
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <Label for="edit-doc-status-select">New Document Status <span class="text-destructive">*</span></Label>
+              <Select v-model="selectedDocStatus">
+                <SelectTrigger id="edit-doc-status-select" class="w-full">
+                  <SelectValue placeholder="Select new status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="pending">Pending Review</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter class="pt-4">
+            <Button type="button" variant="outline" @click="closeEditDocumentStatusModal" :disabled="isSubmitting">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              class="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
               :disabled="isSubmitting"
             >
               <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />

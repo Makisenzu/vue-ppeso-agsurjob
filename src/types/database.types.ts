@@ -102,22 +102,25 @@ export type Database = {
           remarks: string | null
           requirement_id: number | null
           status: Database["public"]["Enums"]["status_type"] | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
-          id?: never
+          id?: number
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
-          id?: never
+          id?: number
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
+          updated_at?: string | null
         }
         Relationships: []
       }

@@ -9,6 +9,16 @@ import type {
   SubmittedDocument,
 } from '@/types/admin/systemDirectory'
 
+function normalizeProfileStatus(status: string): Database['core']['Enums']['status_type'] {
+  return status as Database['core']['Enums']['status_type']
+}
+
+function normalizeRequirementStatus(status: string): Database['public']['Enums']['status_type'] {
+  return status === 'inactive'
+    ? 'closed'
+    : (status as Database['public']['Enums']['status_type'])
+}
+
 function normalizeStoragePath(filePath: string) {
   return decodeURIComponent(filePath)
     .replace(/^\/+|\/+$/g, '')
@@ -353,10 +363,12 @@ export const systemDirectoryService = {
   },
 
   async updateAccountStatus(profileId: string, status: string): Promise<DirectoryProfileRow> {
+    const normalizedStatus = normalizeProfileStatus(status)
+
     const { data, error } = await supabase
       .schema('core')
       .from('profiles')
-      .update({ status: status as Database['core']['Enums']['status_type'], updated_at: new Date().toISOString() })
+      .update({ status: normalizedStatus, updated_at: new Date().toISOString() })
       .eq('id', profileId)
       .select()
       .single()
@@ -372,5 +384,77 @@ export const systemDirectoryService = {
       ...data,
       category,
     } as DirectoryProfileRow
+  },
+
+  async updateDocumentStatus(
+    documentId: number,
+    newStatus: string,
+    isApplicantDoc: boolean
+  ): Promise<void> {
+    const normalizedStatus = normalizeRequirementStatus(newStatus)
+
+    if (isApplicantDoc) {
+      // Update applicant requirement media
+      const { data: docData, error: docError } = await supabase
+        .schema('applicants')
+        .from('applicant_requirement_media')
+        .select('applicant_requirement_id')
+        .eq('id', documentId)
+        .single()
+
+      if (docError || !docData) {
+        throw new Error(docError?.message || 'Document not found')
+      }
+
+      const requirementId = docData.applicant_requirement_id
+
+      if (!requirementId) {
+        throw new Error('No linked requirement found for this document')
+      }
+
+      // Update the linked requirement status
+      const { error: updateError } = await supabase
+        .schema('applicants')
+        .from('applicant_requirements')
+        .update({
+          status: normalizedStatus,
+        })
+        .eq('id', requirementId)
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update document status')
+      }
+    } else {
+      // Update employer requirement media
+      const { data: docData, error: docError } = await supabase
+        .schema('employers')
+        .from('employer_requirement_media')
+        .select('employer_requirement_id')
+        .eq('id', documentId)
+        .single()
+
+      if (docError || !docData) {
+        throw new Error(docError?.message || 'Document not found')
+      }
+
+      const requirementId = docData.employer_requirement_id
+
+      if (!requirementId) {
+        throw new Error('No linked requirement found for this document')
+      }
+
+      // Update the linked requirement status
+      const { error: updateError } = await supabase
+        .schema('employers')
+        .from('employer_requirements')
+        .update({
+          status: normalizedStatus,
+        })
+        .eq('id', requirementId)
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update document status')
+      }
+    }
   },
 }
