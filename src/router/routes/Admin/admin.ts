@@ -20,14 +20,21 @@ export const adminRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'directory',
-        name: 'directory',
-        component: () => import('@/components/admin/management/directory/SystemDirectory.vue'),
-      },
-      {
-        path: 'directory/:id',
-        name: 'directory-details',
-        component: () => import('@/components/admin/management/directory/InformationSection.vue'),
-        meta: { breadcrumb: 'Profile & Documents' },
+        meta: { breadcrumb: 'Directory', breadcrumbTo: { name: 'directory' } },
+        children: [
+          {
+            path: '',
+            name: 'directory',
+            component: () => import('@/components/admin/management/directory/SystemDirectory.vue'),
+            meta: { breadcrumb: false },
+          },
+          {
+            path: ':id',
+            name: 'directory-details',
+            component: () => import('@/components/admin/management/directory/InformationSection.vue'),
+            meta: { breadcrumb: 'Details' },
+          },
+        ],
       },
       {
         path: 'document-templates',

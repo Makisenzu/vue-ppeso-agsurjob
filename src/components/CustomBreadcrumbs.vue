@@ -15,16 +15,23 @@ import { formatRouteName } from '@/helpers/common/formatters'
 const route = useRoute()
 const breadcrumbs = computed(() => {
   return route.matched
-    .filter(r => r.name && r.meta?.breadcrumb !== false)
+    .filter(r => {
+      if (r.meta?.breadcrumb === false) return false
+      // Include if route has a name OR has an explicit breadcrumb string
+      return r.name || typeof r.meta?.breadcrumb === 'string'
+    })
     .map((r) => {
-      const title = typeof r.meta?.title === 'string' 
+      const title = typeof r.meta?.breadcrumb === 'string'
+        ? r.meta.breadcrumb
+        : typeof r.meta?.title === 'string' 
         ? r.meta.title 
         : formatRouteName(String(r.name))
 
-      return {
-        title,
-        to: r.path === '/app' ? { name: 'dashboard' } : { name: r.name }
-      }
+      const to = r.meta?.breadcrumbTo
+        ? r.meta.breadcrumbTo
+        : r.path === '/app' ? { name: 'dashboard' } : { name: r.name }
+
+      return { title, to }
     })
 })
 </script>
