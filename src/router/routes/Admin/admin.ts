@@ -24,6 +24,12 @@ export const adminRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/admin/management/directory/SystemDirectory.vue'),
       },
       {
+        path: 'directory/:id',
+        name: 'directory-details',
+        component: () => import('@/components/admin/management/directory/InformationSection.vue'),
+        meta: { breadcrumb: 'Profile & Documents' },
+      },
+      {
         path: 'document-templates',
         name: 'document-templates',
         component: () => import('@/components/admin/management/document/DocumentTemplates.vue'),

@@ -20,6 +20,7 @@ export interface SubmittedDocument {
 
 export type DirectoryProfileRow = Database['core']['Tables']['profiles']['Row'] & {
   email?: string | null
+  avatarUrl?: string | null
   category: DirectoryCategory
   companyDetails?: CompanyRow | null
   applicantDetails?: ApplicantRow | null

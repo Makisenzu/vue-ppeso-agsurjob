@@ -92,6 +92,7 @@ export const systemDirectoryService = {
       appMediaRes,
       empReqsRes,
       empMediaRes,
+      profileMediaRes,
     ] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
@@ -103,6 +104,7 @@ export const systemDirectoryService = {
       Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
       Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
       Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+      Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
     ])
 
     // Build Maps synchronously in JS memory
@@ -224,12 +226,23 @@ export const systemDirectoryService = {
       })
     }
 
+    const profileMediaMap = new Map<string, string>()
+    if (profileMediaRes.data && Array.isArray(profileMediaRes.data)) {
+      profileMediaRes.data.forEach((pm: any) => {
+        if (pm?.profile_id && !profileMediaMap.has(pm.profile_id)) {
+          const url = pm.public_url || (pm.path ? mediaService.getPublicUrl(pm.path, 'media') : null)
+          if (url) profileMediaMap.set(pm.profile_id, url)
+        }
+      })
+    }
+
     // Assemble final records
     return profiles.map((p) => {
       const isCompanyRole = p.role === 'company_owner' || p.role === 'company_member'
       const category = isCompanyRole ? 'company' : 'applicant'
       const company = companyMap.get(p.id) ?? null
       const applicant = applicantMap.get(p.id) ?? null
+      const avatarUrl = profileMediaMap.get(p.id) ?? null
 
       let documents: SubmittedDocument[] = []
 
@@ -248,6 +261,7 @@ export const systemDirectoryService = {
       return {
         ...p,
         email: emailMap.get(p.id) ?? null,
+        avatarUrl,
         category,
         companyDetails: company,
         applicantDetails: applicant,

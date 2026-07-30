@@ -1,4 +1,5 @@
 import { ref, onMounted, h, type Component } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import type {
   ColumnDef,
@@ -33,6 +34,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 
 export function useSystemDirectory(actionTemplateRef?: Component) {
+  const router = useRouter()
   const store = useSystemDirectoryStore()
   const {
     records,
@@ -283,6 +285,11 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
     fetchRecords()
   })
 
+  const handleOpenRecordDetails = (record: DirectoryProfileRow) => {
+    openRecordDetails(record)
+    router.push({ name: 'directory-details', params: { id: record.id } })
+  }
+
   return {
     table,
     columns,
@@ -296,7 +303,7 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
     isEditDocStatusOpen,
     selectedDocument,
     fetchRecords,
-    openRecordDetails,
+    openRecordDetails: handleOpenRecordDetails,
     closeRecordDetails,
     openEditStatusModal,
     closeEditStatusModal,
