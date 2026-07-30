@@ -736,7 +736,6 @@ const viewSubmittedFile = async (doc: SubmittedDocument) => {
       <DialogContent class="max-w-[95vw] sm:max-w-md">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
-            <FileText class="h-5 w-5 text-blue-600" />
             Edit Document Status
           </DialogTitle>
           <DialogDescription>
