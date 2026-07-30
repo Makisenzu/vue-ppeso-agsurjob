@@ -15,7 +15,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ArrowUpDown, Building2, User, FileCheck, FileX } from '@lucide/vue'
+import { ArrowUpDown, FileCheck, FileX } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { useSystemDirectoryStore } from '@/stores/admin/systemDirectoryStore'
@@ -26,8 +26,6 @@ import {
   getRoleBadgeClass,
   getStatusBadgeVariant,
   getStatusBadgeClass,
-  getCategoryBadgeVariant,
-  getCategoryBadgeClass,
   formatRoleLabel,
 } from '@/helpers/admin/systemDirectoryHelper'
 import { Button } from '@/components/ui/button'
@@ -101,7 +99,6 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
         if (p.category === 'company' && companyName) {
           return h('div', { class: 'space-y-0.5' }, [
             h('div', { class: 'font-semibold text-foreground flex items-center gap-1.5' }, [
-              h(Building2, { class: 'h-3.5 w-3.5 text-emerald-600 shrink-0' }),
               companyName,
             ]),
             h('div', { class: 'text-xs text-muted-foreground' }, `Contact Person: ${fullName || 'N/A'}`),
@@ -109,7 +106,6 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
         }
 
         return h('div', { class: 'flex items-center gap-1.5 font-medium' }, [
-          h(User, { class: 'h-3.5 w-3.5 text-blue-600 shrink-0' }),
           fullName || 'N/A',
         ])
       },
