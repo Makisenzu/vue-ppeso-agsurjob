@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { FlexRender } from '@tanstack/vue-table'
 import { createReusableTemplate } from '@vueuse/core'
 import {
@@ -80,6 +80,7 @@ const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
 const {
   table,
   columns,
+  records,
   isLoading,
   isSubmitting,
   errorMessage,
@@ -107,6 +108,63 @@ watch(selectedRecord, (newVal) => {
     selectedStatus.value = newVal.status || 'pending'
   }
 })
+
+const getColumnFilterValue = (columnId: string) => {
+  const value = table.getColumn(columnId)?.getFilterValue()
+  return typeof value === 'string' ? value : 'all'
+}
+
+const setColumnFilter = (columnId: string, value: unknown) => {
+  const normalizedValue = value === 'all' || value == null ? undefined : typeof value === 'string' ? value : String(value)
+  table.getColumn(columnId)?.setFilterValue(normalizedValue)
+}
+
+const setHierarchyFilter = (columnId: string, value: unknown, childColumnIds: string[]) => {
+  setColumnFilter(columnId, value)
+  childColumnIds.forEach((childColumnId) => setColumnFilter(childColumnId, 'all'))
+}
+
+const createLocationOptions = (
+  valueGetter: (record: DirectoryProfileRow) => string | null | undefined,
+  parentFilters: Array<{ columnId: string; getter: (record: DirectoryProfileRow) => string | null | undefined }> = []
+) =>
+  computed(() => {
+    const filteredRecords = records.value.filter((record) => {
+      return parentFilters.every(({ columnId, getter }) => {
+        const selectedValue = getColumnFilterValue(columnId)
+        return selectedValue === 'all' || getter(record) === selectedValue
+      })
+    })
+
+    return Array.from(
+      new Set(
+        filteredRecords
+          .map((record) => valueGetter(record)?.trim())
+          .filter((value): value is string => Boolean(value))
+      )
+    ).sort((first, second) => first.localeCompare(second))
+  })
+
+const regionOptions = createLocationOptions((record) => record.region)
+const provinceOptions = createLocationOptions(
+  (record) => record.province,
+  [{ columnId: 'region', getter: (record) => record.region }]
+)
+const cityOptions = createLocationOptions(
+  (record) => record.geographic,
+  [
+    { columnId: 'region', getter: (record) => record.region },
+    { columnId: 'province', getter: (record) => record.province },
+  ]
+)
+const barangayOptions = createLocationOptions(
+  (record) => record.barangay,
+  [
+    { columnId: 'region', getter: (record) => record.region },
+    { columnId: 'province', getter: (record) => record.province },
+    { columnId: 'geographic', getter: (record) => record.geographic },
+  ]
+)
 
 // Edit document status state
 const selectedDocStatus = ref<string>('submitted')
@@ -191,6 +249,66 @@ const viewSubmittedFile = async (doc: SubmittedDocument) => {
           :model-value="(table.getColumn('firstname')?.getFilterValue() as string) ?? ''"
           @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
         />
+
+        <Select
+          :model-value="(table.getColumn('region')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => setHierarchyFilter('region', val ?? 'all', ['province', 'geographic', 'barangay'])"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Region" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Regions</SelectItem>
+            <SelectItem v-for="region in regionOptions" :key="region" :value="region">
+              {{ region }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="(table.getColumn('province')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => setHierarchyFilter('province', val ?? 'all', ['geographic', 'barangay'])"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Province" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Provinces</SelectItem>
+            <SelectItem v-for="province in provinceOptions" :key="province" :value="province">
+              {{ province }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="(table.getColumn('geographic')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => setHierarchyFilter('geographic', val ?? 'all', ['barangay'])"
+        >
+          <SelectTrigger class="w-full sm:w-48">
+            <SelectValue placeholder="City / Municipality" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Cities / Municipalities</SelectItem>
+            <SelectItem v-for="city in cityOptions" :key="city" :value="city">
+              {{ city }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="(table.getColumn('barangay')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => setColumnFilter('barangay', val ?? 'all')"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Barangay" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Barangays</SelectItem>
+            <SelectItem v-for="barangay in barangayOptions" :key="barangay" :value="barangay">
+              {{ barangay }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
         <!-- Submitted Files Filter -->
         <Select

@@ -60,7 +60,11 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
 
   const sorting = ref<SortingState>([])
   const columnFilters = ref<ColumnFiltersState>([])
-  const columnVisibility = ref<VisibilityState>({})
+  const columnVisibility = ref<VisibilityState>({
+    region: false,
+    geographic: true,
+    barangay: true,
+  })
   const rowSelection = ref({})
   const expanded = ref<ExpandedState>({})
 
@@ -194,13 +198,32 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
       cell: ({ row }) => h('div', { class: 'text-sm' }, row.getValue('contact_number') || 'N/A'),
     },
     {
-      accessorKey: 'province',
-      header: 'Location',
-      cell: ({ row }) => {
-        const p = row.original
-        const loc = p.province || p.companyDetails?.company_address || p.geographic || 'N/A'
-        return h('div', { class: 'text-sm truncate max-w-[150px]' }, loc)
-      },
+      accessorKey: 'region',
+      header: 'Region',
+      filterFn: 'equalsString',
+      cell: ({ row }) => h('div', { class: 'text-sm truncate max-w-[150px]' }, row.getValue('region') || 'N/A'),
+    },
+    // {
+    //   accessorKey: 'province',
+    //   header: 'Location',
+    //   filterFn: 'equalsString',
+    //   cell: ({ row }) => {
+    //     const p = row.original
+    //     const loc = p.province || p.companyDetails?.company_address || p.geographic || 'N/A'
+    //     return h('div', { class: 'text-sm truncate max-w-[150px]' }, loc)
+    //   },
+    // },
+    {
+      accessorKey: 'geographic',
+      header: 'City / Municipality',
+      filterFn: 'equalsString',
+      cell: ({ row }) => h('div', { class: 'text-sm truncate max-w-[150px]' }, row.getValue('geographic') || 'N/A'),
+    },
+    {
+      accessorKey: 'barangay',
+      header: 'Barangay',
+      filterFn: 'equalsString',
+      cell: ({ row }) => h('div', { class: 'text-sm truncate max-w-[150px]' }, row.getValue('barangay') || 'N/A'),
     },
     {
       accessorKey: 'created_at',
