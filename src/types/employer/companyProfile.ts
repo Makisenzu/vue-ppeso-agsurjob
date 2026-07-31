@@ -1,4 +1,4 @@
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 
 /** Row type for the `companies` table in employers schema. */
 export type EmployerRecord = Database['employers']['Tables']['companies']['Row']

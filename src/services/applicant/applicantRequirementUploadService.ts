@@ -7,7 +7,7 @@ import type {
   ApplicantRequirementUploadResult,
   UploadDocumentDefinition,
 } from '@/types/common/fileUpload'
-import type { Tables, TablesInsert } from '@/types/common/database.types'
+import type { Tables, TablesInsert } from '@/types/database.types'
 import {
   APPLICANT_REQUIREMENT_TYPE,
   getApplicantRequirementTypeCandidates,

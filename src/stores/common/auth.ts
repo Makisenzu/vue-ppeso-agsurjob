@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { authService, type UserBundleData } from '@/services/common/authService'
 import type { User, Session } from '@supabase/supabase-js'
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 
 import type {
   ProfileSummary,

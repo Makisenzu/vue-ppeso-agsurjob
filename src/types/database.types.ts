@@ -283,6 +283,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "biometrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "system_directory_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profile_media: {
@@ -330,6 +337,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profile_media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "system_directory_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profile_socials: {
@@ -363,6 +377,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_socials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "system_directory_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -435,7 +456,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      system_directory_profiles: {
+        Row: {
+          applicant_id: number | null
+          birthdate: string | null
+          category: string | null
+          company_contact: string | null
+          company_email: string | null
+          company_id: number | null
+          company_name: string | null
+          contact_number: string | null
+          course: string | null
+          created_at: string | null
+          documents: Json | null
+          education_level: string | null
+          employment_status: string | null
+          expected_salary: number | null
+          firstname: string | null
+          gender: Database["core"]["Enums"]["gender_type"] | null
+          id: string | null
+          industry: string | null
+          lastname: string | null
+          middlename: string | null
+          preferred_job: string | null
+          preferred_location: string | null
+          registration_number: string | null
+          role: Database["core"]["Enums"]["user_role"] | null
+          status: Database["core"]["Enums"]["status_type"] | null
+          updated_at: string | null
+          website: string | null
+          years_experience: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_emails: {
@@ -867,6 +920,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: number
+          is_active: boolean | null
+          mime_type: string | null
+          target_role: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: number
+          is_active?: boolean | null
+          mime_type?: string | null
+          target_role?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: number
+          is_active?: boolean | null
+          mime_type?: string | null
+          target_role?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       job_posting: {
         Row: {
           application_deadline: string | null

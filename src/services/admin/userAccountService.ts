@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string

@@ -1,4 +1,4 @@
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 
 export type DirectoryCategory = 'applicant' | 'company'
 

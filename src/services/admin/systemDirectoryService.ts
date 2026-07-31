@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { mediaService } from '@/services/common/mediaService'
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 import type {
   DirectoryProfileRow,
   CompanyRow,

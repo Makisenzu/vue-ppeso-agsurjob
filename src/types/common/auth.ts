@@ -1,4 +1,4 @@
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 
 export type UserRole = Database['core']['Enums']['user_role']
 export type GenderType = Database['core']['Enums']['gender_type']

@@ -1,4 +1,4 @@
-import type { Database } from '@/types/common/database.types'
+import type { Database } from '@/types/database.types'
 
 export type ProfileRow = Database['core']['Tables']['profiles']['Row'] & {
   email?: string | null

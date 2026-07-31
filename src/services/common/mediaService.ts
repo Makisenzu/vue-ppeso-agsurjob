@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient"
-import type { TablesInsert, Tables } from "@/types/common/database.types"
+import type { TablesInsert, Tables } from "@/types/database.types"
 
 const BUCKET_NAME = 'media'
 
