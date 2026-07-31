@@ -9,7 +9,6 @@ import {
   Search,
   RefreshCw,
   Loader2,
-  CheckCircle2,
 } from '@lucide/vue'
 
 import { useDocumentTemplates } from '@/composables/admin/useDocumentTemplates'
@@ -56,8 +55,6 @@ const {
   filteredTemplates,
   isLoading,
   isSubmitting,
-  errorMessage,
-  successMessage,
   searchQuery,
   selectedCategory,
   selectedTargetRole,
@@ -99,16 +96,6 @@ const {
           Upload and manage downloadable document templates for applicants, employers, and system users.
         </p>
       </div>
-    </div>
-
-    <!-- Alert Notifications -->
-    <div v-if="errorMessage" class="flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-      <span>{{ errorMessage }}</span>
-    </div>
-
-    <div v-if="successMessage" class="flex items-center gap-2 rounded-md bg-emerald-500/15 p-3 text-sm text-emerald-600 dark:text-emerald-400">
-      <CheckCircle2 class="h-4 w-4 shrink-0" />
-      <span>{{ successMessage }}</span>
     </div>
 
     <!-- Filters & Toolbar -->
