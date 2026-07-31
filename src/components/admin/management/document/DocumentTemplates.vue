@@ -66,6 +66,7 @@ const {
   deletingTemplate,
   isDraggingOverPage,
   isDraggingOverModal,
+  isFiltered,
   formTitle,
   formDescription,
   formCategory,
@@ -132,7 +133,7 @@ const {
       <div>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Document Templates</h1>
         <p class="text-sm text-muted-foreground">
-          Drag and Drop a file anywhere on this page to upload a new template for applicants, employers, and system users.
+          Upload and manage downloadable document templates for applicants, employers, and system users.
         </p>
       </div>
     </div>
@@ -188,9 +189,23 @@ const {
       </div>
     </div>
 
-    <!-- Standalone Empty Component -->
-    <div v-if="!isLoading && filteredTemplates.length === 0" class="rounded-md border bg-card p-8">
-      <Empty class="border-0 shadow-none">
+    <!-- Standalone Empty / Search Results Component -->
+    <div v-if="!isLoading && filteredTemplates.length === 0">
+      <!-- Case A: No results due to search or filters -->
+      <Empty v-if="isFiltered" class="border-0 shadow-none">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Search class="h-6 w-6 text-muted-foreground" />
+          </EmptyMedia>
+          <EmptyTitle>No matching templates found</EmptyTitle>
+          <EmptyDescription>
+            No document templates matched your search query or filters. Try adjusting your search criteria or clear the filters.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+
+      <!-- Case B: System has zero templates -->
+      <Empty v-else class="border-0 shadow-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <FileText class="h-6 w-6 text-muted-foreground" />

@@ -44,6 +44,14 @@ export function useDocumentTemplates() {
     { value: 'admin', label: 'Admins' },
   ]
 
+  const isFiltered = computed(() => {
+    return (
+      searchQuery.value.trim() !== '' ||
+      selectedCategory.value !== 'all' ||
+      selectedTargetRole.value !== 'all'
+    )
+  })
+
   const filteredTemplates = computed(() => {
     return templates.value.filter((tmpl) => {
       const matchesSearch =
@@ -256,6 +264,7 @@ export function useDocumentTemplates() {
     deletingTemplate,
     isDraggingOverPage,
     isDraggingOverModal,
+    isFiltered,
     formTitle,
     formDescription,
     formCategory,
