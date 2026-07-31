@@ -19,9 +19,13 @@ export function useDocumentTemplates() {
   const editingTemplate = ref<DocumentTemplateRow | null>(null)
   const deletingTemplate = ref<DocumentTemplateRow | null>(null)
 
-  // Drag & drop state
-  const isDraggingOverEmpty = ref(false)
+  // Drag & Drop State
+  const isDraggingOverPage = ref(false)
   const isDraggingOverModal = ref(false)
+
+  // Counters to track nested DOM elements during drag events cleanly
+  let pageDragCounter = 0
+  let modalDragCounter = 0
 
   // Form state
   const formTitle = ref<string>('')
@@ -57,16 +61,13 @@ export function useDocumentTemplates() {
     })
   })
 
-  // Updated: Accept optional initial file when opening the modal
   function openCreateModal(initialFile: File | null = null) {
     editingTemplate.value = null
-    formTitle.value = initialFile ? initialFile.name.replace(/\.[^/.]+$/, "") : ''
+    formTitle.value = initialFile ? initialFile.name.replace(/\.[^/.]+$/, '') : ''
     formDescription.value = ''
     formCategory.value = 'General'
     formTargetRole.value = 'all'
     formIsActive.value = true
-    
-    // Explicitly retain or clear selected file
     selectedFile.value = initialFile
 
     if (fileInputRef.value) fileInputRef.value.value = ''
@@ -95,36 +96,74 @@ export function useDocumentTemplates() {
     if (target.files && target.files.length > 0) {
       selectedFile.value = target.files[0]
       if (!formTitle.value) {
-        formTitle.value = target.files[0].name.replace(/\.[^/.]+$/, "")
+        formTitle.value = target.files[0].name.replace(/\.[^/.]+$/, '')
       }
     }
   }
 
-  const handleDragOver = (e: DragEvent) => {
+  // Counter-based Page Drag & Drop Handlers
+  const handlePageDragEnter = (e: DragEvent) => {
     e.preventDefault()
+    pageDragCounter++
+    if (e.dataTransfer?.types?.includes('Files')) {
+      isDraggingOverPage.value = true
+    }
   }
 
-  // Updated: Pass dropped file directly to openCreateModal
-  const handleEmptyDrop = (e: DragEvent) => {
+  const handlePageDragLeave = (e: DragEvent) => {
     e.preventDefault()
-    isDraggingOverEmpty.value = false
+    pageDragCounter--
+    if (pageDragCounter <= 0) {
+      pageDragCounter = 0
+      isDraggingOverPage.value = false
+    }
+  }
+
+  const handlePageDragOver = (e: DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  const handlePageDrop = (e: DragEvent) => {
+    e.preventDefault()
+    pageDragCounter = 0
+    isDraggingOverPage.value = false
 
     const files = e.dataTransfer?.files
     if (files && files.length > 0) {
-      const droppedFile = files[0]
-      openCreateModal(droppedFile)
+      openCreateModal(files[0])
+    }
+  }
+
+  // Counter-based Modal Drag & Drop Handlers
+  const handleModalDragEnter = (e: DragEvent) => {
+    e.preventDefault()
+    modalDragCounter++
+    isDraggingOverModal.value = true
+  }
+
+  const handleModalDragLeave = (e: DragEvent) => {
+    e.preventDefault()
+    modalDragCounter--
+    if (modalDragCounter <= 0) {
+      modalDragCounter = 0
+      isDraggingOverModal.value = false
     }
   }
 
   const handleModalDrop = (e: DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    modalDragCounter = 0
     isDraggingOverModal.value = false
 
     const files = e.dataTransfer?.files
     if (files && files.length > 0) {
       selectedFile.value = files[0]
       if (!formTitle.value) {
-        formTitle.value = files[0].name.replace(/\.[^/.]+$/, "")
+        formTitle.value = files[0].name.replace(/\.[^/.]+$/, '')
       }
     }
   }
@@ -215,7 +254,7 @@ export function useDocumentTemplates() {
     isDeleteModalOpen,
     editingTemplate,
     deletingTemplate,
-    isDraggingOverEmpty,
+    isDraggingOverPage,
     isDraggingOverModal,
     formTitle,
     formDescription,
@@ -229,8 +268,12 @@ export function useDocumentTemplates() {
     openEditModal,
     openDeleteModal,
     handleFileChange,
-    handleDragOver,
-    handleEmptyDrop,
+    handlePageDragEnter,
+    handlePageDragLeave,
+    handlePageDragOver,
+    handlePageDrop,
+    handleModalDragEnter,
+    handleModalDragLeave,
     handleModalDrop,
     handleSaveTemplate,
     handleDeleteTemplate,

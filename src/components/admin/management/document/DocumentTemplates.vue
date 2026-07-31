@@ -64,7 +64,7 @@ const {
   isDeleteModalOpen,
   editingTemplate,
   deletingTemplate,
-  isDraggingOverEmpty,
+  isDraggingOverPage,
   isDraggingOverModal,
   formTitle,
   formDescription,
@@ -78,8 +78,12 @@ const {
   openEditModal,
   openDeleteModal,
   handleFileChange,
-  handleDragOver,
-  handleEmptyDrop,
+  handlePageDragEnter,
+  handlePageDragLeave,
+  handlePageDragOver,
+  handlePageDrop,
+  handleModalDragEnter,
+  handleModalDragLeave,
   handleModalDrop,
   handleSaveTemplate,
   handleDeleteTemplate,
@@ -92,13 +96,43 @@ const {
 </script>
 
 <template>
-  <div class="w-full min-w-0 space-y-6">
+  <!-- Main View Container: Captures full page drag & drop -->
+  <div 
+    class="relative w-full min-w-0 space-y-6 min-h-[80vh] transition-colors duration-200 rounded-xl p-2"
+    @dragenter="handlePageDragEnter"
+    @dragleave="handlePageDragLeave"
+    @dragover="handlePageDragOver"
+    @drop="handlePageDrop"
+  >
+    <!-- Full Screen Drag & Drop Overlay Indicator -->
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div 
+        v-if="isDraggingOverPage" 
+        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/85 backdrop-blur-md rounded-xl border-2 border-dashed border-primary"
+      >
+        <div class="flex flex-col items-center gap-3 p-6 text-center animate-bounce">
+          <div class="p-4 rounded-full bg-primary/10 text-primary">
+            <Upload class="h-10 w-10" />
+          </div>
+          <h3 class="text-xl font-bold tracking-tight">Drop file to upload template</h3>
+          <p class="text-sm text-muted-foreground">Release your file anywhere to start creating a document template.</p>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Document Templates</h1>
         <p class="text-sm text-muted-foreground">
-          Upload and manage downloadable document templates for applicants, employers, and system users.
+          Drag and Drop a file anywhere on this page to upload a new template for applicants, employers, and system users.
         </p>
       </div>
     </div>
@@ -154,39 +188,20 @@ const {
       </div>
     </div>
 
-    <!-- Standalone Empty Component (Hoverable & Droppable) -->
-    <div 
-      v-if="!isLoading && filteredTemplates.length === 0" 
-      class="relative rounded-lg border-2 border-dashed p-8 transition-all duration-200 cursor-pointer"
-      :class="[
-        isDraggingOverEmpty 
-          ? 'border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.005]' 
-          : 'border-border bg-card hover:border-primary/50 hover:bg-muted/30'
-      ]"
-      @dragover="handleDragOver"
-      @dragenter.prevent="isDraggingOverEmpty = true"
-      @dragleave.prevent="isDraggingOverEmpty = false"
-      @drop="handleEmptyDrop"
-      @click="() => openCreateModal()"
-    >
-      <Empty class="border-0 shadow-none pointer-events-none">
+    <!-- Standalone Empty Component -->
+    <div v-if="!isLoading && filteredTemplates.length === 0" class="rounded-md border bg-card p-8">
+      <Empty class="border-0 shadow-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <Upload v-if="isDraggingOverEmpty" class="h-6 w-6 text-primary animate-bounce" />
-            <FileText v-else class="h-6 w-6 text-muted-foreground" />
+            <FileText class="h-6 w-6 text-muted-foreground" />
           </EmptyMedia>
-          <EmptyTitle>
-            {{ isDraggingOverEmpty ? 'Drop file to start upload' : 'No document templates available' }}
-          </EmptyTitle>
+          <EmptyTitle>No document templates available</EmptyTitle>
           <EmptyDescription>
-            {{ isDraggingOverEmpty 
-                ? 'Release your file here to attach it directly to a new template.' 
-                : 'Drag and drop a file here or click to open the template creation form.' 
-            }}
+            Drag and drop a file anywhere on this page, or click below to upload a template.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent class="mt-4 flex justify-center">
-          <Button @click.stop="() => openCreateModal()">
+          <Button @click="() => openCreateModal()">
             <Plus class="mr-2 h-4 w-4" />
             Upload Template
           </Button>
@@ -221,9 +236,7 @@ const {
 
           <TableRow v-for="tmpl in filteredTemplates" :key="tmpl.id">
             <TableCell class="font-medium">
-              <div class="flex items-center gap-2">
-                <span class="font-semibold">{{ tmpl.title }}</span>
-              </div>
+              <span class="font-semibold">{{ tmpl.title }}</span>
             </TableCell>
             <TableCell>
               <span v-if="tmpl.description" class="text-xs text-muted-foreground line-clamp-2 max-w-48">
@@ -238,7 +251,6 @@ const {
               {{ tmpl.target_role || 'All Users' }}
             </TableCell>
             
-            <!-- Compact File Cell -->
             <TableCell>
               <div v-if="tmpl.file_name" class="space-y-0.5 max-w-50">
                 <div class="text-xs font-medium text-foreground truncate" :title="tmpl.file_name">
@@ -369,7 +381,7 @@ const {
             />
           </div>
 
-          <!-- File Upload Zone inside Dialog -->
+          <!-- Modal File Drop Area -->
           <div class="space-y-2">
             <Label for="file">
               Template File {{ editingTemplate ? '(Optional — replaces current)' : '' }}
@@ -383,9 +395,9 @@ const {
                   ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
                   : 'border-border hover:bg-muted/50 hover:border-muted-foreground/40'
               ]"
-              @dragover="handleDragOver"
-              @dragenter.prevent="isDraggingOverModal = true"
-              @dragleave.prevent="isDraggingOverModal = false"
+              @dragenter="handleModalDragEnter"
+              @dragleave="handleModalDragLeave"
+              @dragover="handlePageDragOver"
               @drop="handleModalDrop"
               @click="fileInputRef?.click()"
             >
