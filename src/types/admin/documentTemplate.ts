@@ -1,8 +1,8 @@
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database.types'
 
-export type DocumentTemplateRow = Tables<{ schema: 'public' }, 'document_templates'>
-export type DocumentTemplateInsert = TablesInsert<{ schema: 'public' }, 'document_templates'>
-export type DocumentTemplateUpdate = TablesUpdate<{ schema: 'public' }, 'document_templates'>
+export type DocumentTemplateRow = Tables<'document_templates'>
+export type DocumentTemplateInsert = TablesInsert<'document_templates'>
+export type DocumentTemplateUpdate = TablesUpdate<'document_templates'>
 
 export interface DocumentTemplateFormState {
   title: string

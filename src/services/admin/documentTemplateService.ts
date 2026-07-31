@@ -11,7 +11,6 @@ export const DOCUMENT_TEMPLATE_BUCKET = 'templates'
 
 export async function fetchDocumentTemplates(): Promise<DocumentTemplateRow[]> {
     const { data, error } = await supabase
-        .schema('public')
         .from('document_templates')
         .select('*')
         .order('created_at', { ascending: false })
@@ -22,7 +21,6 @@ export async function fetchDocumentTemplates(): Promise<DocumentTemplateRow[]> {
 
 export async function fetchDocumentTemplateById(id: number): Promise<DocumentTemplateRow | null> {
     const { data, error } = await supabase
-        .schema('public')
         .from('document_templates')
         .select('*')
         .eq('id', id)
@@ -100,7 +98,6 @@ export async function createDocumentTemplate(
     }
 
     const { data, error } = await supabase
-        .schema('public')
         .from('document_templates')
         .insert(insertPayload)
         .select('*')
@@ -145,7 +142,6 @@ export async function updateDocumentTemplate(
     }
 
     const { data, error } = await supabase
-        .schema('public')
         .from('document_templates')
         .update(updatePayload)
         .eq('id', id)
@@ -177,7 +173,6 @@ export async function deleteDocumentTemplate(id: number, filePath?: string | nul
     }
 
     const { error } = await supabase
-        .schema('public')
         .from('document_templates')
         .delete()
         .eq('id', id)

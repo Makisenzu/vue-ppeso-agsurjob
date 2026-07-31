@@ -15,6 +15,7 @@ import {
 import { useDocumentTemplates } from '@/composables/admin/useDocumentTemplates'
 
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +43,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 
 const {
   filteredTemplates,
@@ -58,10 +67,12 @@ const {
   isDeleteModalOpen,
   editingTemplate,
   deletingTemplate,
+
   formTitle,
   formDescription,
   formCategory,
   formTargetRole,
+  formIsActive,
   selectedFile,
   fileInputRef,
   loadTemplates,
@@ -88,21 +99,10 @@ const {
           Upload and manage downloadable document templates for applicants, employers, and system users.
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" @click="loadTemplates" :disabled="isLoading">
-          <RefreshCw :class="['mr-2 h-4 w-4', isLoading ? 'animate-spin' : '']" />
-          Refresh
-        </Button>
-        <Button size="sm" @click="openCreateModal">
-          <Plus class="mr-2 h-4 w-4" />
-          Upload Template
-        </Button>
-      </div>
     </div>
 
     <!-- Alert Notifications -->
     <div v-if="errorMessage" class="flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-      
       <span>{{ errorMessage }}</span>
     </div>
 
@@ -111,22 +111,22 @@ const {
       <span>{{ successMessage }}</span>
     </div>
 
-    <!-- Filters & Search -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="relative w-full sm:w-72">
-        <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Search templates or files..."
-          class="pl-8"
-        />
-      </div>
+    <!-- Filters & Toolbar -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-4">
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto flex-1 max-w-4xl">
+        <div class="relative w-full sm:w-72">
+          <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search templates or files..."
+            class="pl-8"
+          />
+        </div>
 
-      <div class="flex flex-wrap items-center gap-2">
         <!-- Category Filter -->
         <Select v-model="selectedCategory">
-          <SelectTrigger class="w-37.5">
+          <SelectTrigger class="w-full sm:w-40">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -139,7 +139,7 @@ const {
 
         <!-- Role Filter -->
         <Select v-model="selectedTargetRole">
-          <SelectTrigger class="w-37.5">
+          <SelectTrigger class="w-full sm:w-40">
             <SelectValue placeholder="Target Role" />
           </SelectTrigger>
           <SelectContent>
@@ -149,25 +149,58 @@ const {
           </SelectContent>
         </Select>
       </div>
+
+      <div class="flex items-center gap-2">
+        <Button variant="outline" @click="loadTemplates" :disabled="isLoading">
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline ml-2">Refresh</span>
+        </Button>
+        <Button @click="openCreateModal">
+          <Plus class="h-4 w-4" />
+          <span class="hidden sm:inline ml-2">Upload Template</span>
+        </Button>
+      </div>
+    </div>
+
+    <!-- Standalone Empty Component when no templates available -->
+    <div v-if="!isLoading && filteredTemplates.length === 0" class="rounded-md border bg-card p-8">
+      <Empty class="border-0 shadow-none">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileText class="h-6 w-6 text-muted-foreground" />
+          </EmptyMedia>
+          <EmptyTitle>No document templates available</EmptyTitle>
+          <EmptyDescription>
+            There are currently no document templates matching your criteria. Upload a new template to get started.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent class="mt-4 flex justify-center">
+          <Button @click="openCreateModal">
+            <Plus class="mr-2 h-4 w-4" />
+            Upload Template
+          </Button>
+        </EmptyContent>
+      </Empty>
     </div>
 
     <!-- Templates Table -->
-    <div class="rounded-md border bg-card">
+    <div v-else class="rounded-md border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Template Title</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>Description</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Target Role</TableHead>
             <TableHead>File</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Uploaded</TableHead>
+            <TableHead>Created At</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="isLoading">
-            <TableCell colspan="7" class="h-32 text-center">
+            <TableCell colspan="8" class="h-32 text-center">
               <div class="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 class="h-5 w-5 animate-spin" />
                 <span>Loading document templates...</span>
@@ -175,23 +208,18 @@ const {
             </TableCell>
           </TableRow>
 
-          <TableRow v-else-if="filteredTemplates.length === 0">
-            <TableCell colspan="7" class="h-32 text-center text-muted-foreground">
-              No document templates found.
-            </TableCell>
-          </TableRow>
-
           <TableRow v-for="tmpl in filteredTemplates" :key="tmpl.id">
             <TableCell class="font-medium">
               <div class="flex items-center gap-2">
                 <FileText class="h-4 w-4 text-primary shrink-0" />
-                <div>
-                  <div class="font-semibold">{{ tmpl.title }}</div>
-                  <div v-if="tmpl.description" class="text-xs text-muted-foreground line-clamp-1">
-                    {{ tmpl.description }}
-                  </div>
-                </div>
+                <span class="font-semibold">{{ tmpl.title }}</span>
               </div>
+            </TableCell>
+            <TableCell>
+              <span v-if="tmpl.description" class="text-xs text-muted-foreground line-clamp-2 max-w-48">
+                {{ tmpl.description }}
+              </span>
+              <span v-else class="text-xs text-muted-foreground italic">—</span>
             </TableCell>
             <TableCell>
               <Badge variant="outline">{{ tmpl.category || 'General' }}</Badge>
@@ -201,8 +229,8 @@ const {
             </TableCell>
             <TableCell>
               <div v-if="tmpl.file_name" class="text-xs">
-                <div class="font-mono text-xs truncate max-w-37.5">{{ tmpl.file_name }}</div>
-                <div class="text-muted-foreground">{{ formatBytes(tmpl.file_size) }}</div>
+                <div class="font-mono truncate max-w-36">{{ tmpl.file_name }}</div>
+                <div class="text-muted-foreground">{{ formatBytes(tmpl.file_size) }} · {{ tmpl.mime_type?.split('/').pop() || '—' }}</div>
               </div>
               <span v-else class="text-xs text-muted-foreground italic">No file</span>
             </TableCell>
@@ -213,7 +241,7 @@ const {
                 </Badge>
               </button>
             </TableCell>
-            <TableCell class="text-xs text-muted-foreground">
+            <TableCell class="text-xs text-muted-foreground whitespace-nowrap">
               {{ formatDate(tmpl.created_at) }}
             </TableCell>
             <TableCell class="text-right">
@@ -253,7 +281,7 @@ const {
 
     <!-- Create / Edit Dialog -->
     <Dialog :open="isFormModalOpen" @update:open="isFormModalOpen = $event">
-      <DialogContent class="sm:max-w-37.5">
+      <DialogContent class="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{{ editingTemplate ? 'Edit Template' : 'Upload Document Template' }}</DialogTitle>
           <DialogDescription>
@@ -262,16 +290,19 @@ const {
         </DialogHeader>
 
         <form @submit.prevent="handleSaveTemplate" class="space-y-4 py-2">
+          <!-- title -->
           <div class="space-y-2">
-            <Label for="title">Title *</Label>
+            <Label for="title">Title <span class="text-destructive">*</span></Label>
             <Input id="title" v-model="formTitle" placeholder="e.g., Standard Application Form" required />
           </div>
 
+          <!-- description -->
           <div class="space-y-2">
             <Label for="description">Description</Label>
             <Textarea id="description" v-model="formDescription" placeholder="Brief description of when to use this template..." rows="3" />
           </div>
 
+          <!-- category + target_role -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="category">Category</Label>
@@ -302,8 +333,24 @@ const {
             </div>
           </div>
 
+          <!-- is_active -->
+          <div class="flex items-center justify-between rounded-lg border p-3">
+            <div class="space-y-0.5">
+              <Label for="is_active" class="cursor-pointer">Active Status</Label>
+              <p class="text-xs text-muted-foreground">
+                When active, this template will be visible and available for download.
+              </p>
+            </div>
+            <Switch
+              id="is_active"
+              :checked="formIsActive"
+              @update:checked="formIsActive = $event"
+            />
+          </div>
+
+          <!-- file upload -->
           <div class="space-y-2">
-            <Label for="file">Template File {{ editingTemplate ? '(Optional if replacing)' : '*' }}</Label>
+            <Label for="file">Template File {{ editingTemplate ? '(Optional — replaces current)' : '' }}<span v-if="!editingTemplate" class="text-destructive"> *</span></Label>
             <div class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors" @click="fileInputRef?.click()">
               <input
                 ref="fileInputRef"
@@ -318,10 +365,10 @@ const {
                 {{ selectedFile.name }} ({{ formatBytes(selectedFile.size) }})
               </div>
               <div v-else-if="editingTemplate?.file_name" class="text-sm text-muted-foreground">
-                Current: <span class="font-medium text-foreground">{{ editingTemplate.file_name }}</span> (Click to replace)
+                Current: <span class="font-medium text-foreground">{{ editingTemplate.file_name }}</span> · Click to replace
               </div>
               <div v-else class="text-sm text-muted-foreground">
-                Click to browse or drop file here (PDF, DOCX, PNG, JPG)
+                Click to browse or drop file here (PDF, DOC, DOCX, PNG, JPG)
               </div>
             </div>
           </div>
@@ -339,7 +386,7 @@ const {
 
     <!-- Delete Confirmation Dialog -->
     <Dialog :open="isDeleteModalOpen" @update:open="isDeleteModalOpen = $event">
-      <DialogContent class="sm:max-w-37.5">
+      <DialogContent class="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Template</DialogTitle>
           <DialogDescription>
