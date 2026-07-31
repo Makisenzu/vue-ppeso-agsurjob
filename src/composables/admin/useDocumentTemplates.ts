@@ -19,6 +19,10 @@ export function useDocumentTemplates() {
   const editingTemplate = ref<DocumentTemplateRow | null>(null)
   const deletingTemplate = ref<DocumentTemplateRow | null>(null)
 
+  // Drag & drop state
+  const isDraggingOverEmpty = ref(false)
+  const isDraggingOverModal = ref(false)
+
   // Form state
   const formTitle = ref<string>('')
   const formDescription = ref<string>('')
@@ -53,14 +57,18 @@ export function useDocumentTemplates() {
     })
   })
 
-  function openCreateModal() {
+  // Updated: Accept optional initial file when opening the modal
+  function openCreateModal(initialFile: File | null = null) {
     editingTemplate.value = null
-    formTitle.value = ''
+    formTitle.value = initialFile ? initialFile.name.replace(/\.[^/.]+$/, "") : ''
     formDescription.value = ''
     formCategory.value = 'General'
     formTargetRole.value = 'all'
     formIsActive.value = true
-    selectedFile.value = null
+    
+    // Explicitly retain or clear selected file
+    selectedFile.value = initialFile
+
     if (fileInputRef.value) fileInputRef.value.value = ''
     isFormModalOpen.value = true
   }
@@ -86,17 +94,44 @@ export function useDocumentTemplates() {
     const target = event.target as HTMLInputElement
     if (target.files && target.files.length > 0) {
       selectedFile.value = target.files[0]
+      if (!formTitle.value) {
+        formTitle.value = target.files[0].name.replace(/\.[^/.]+$/, "")
+      }
+    }
+  }
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault()
+  }
+
+  // Updated: Pass dropped file directly to openCreateModal
+  const handleEmptyDrop = (e: DragEvent) => {
+    e.preventDefault()
+    isDraggingOverEmpty.value = false
+
+    const files = e.dataTransfer?.files
+    if (files && files.length > 0) {
+      const droppedFile = files[0]
+      openCreateModal(droppedFile)
+    }
+  }
+
+  const handleModalDrop = (e: DragEvent) => {
+    e.preventDefault()
+    isDraggingOverModal.value = false
+
+    const files = e.dataTransfer?.files
+    if (files && files.length > 0) {
+      selectedFile.value = files[0]
+      if (!formTitle.value) {
+        formTitle.value = files[0].name.replace(/\.[^/.]+$/, "")
+      }
     }
   }
 
   async function handleSaveTemplate() {
-    if (!formTitle.value.trim()) {
-      return
-    }
-
-    if (!editingTemplate.value && !selectedFile.value) {
-      return
-    }
+    if (!formTitle.value.trim()) return
+    if (!editingTemplate.value && !selectedFile.value) return
 
     const payload = {
       title: formTitle.value.trim(),
@@ -130,6 +165,17 @@ export function useDocumentTemplates() {
       isDeleteModalOpen.value = false
       deletingTemplate.value = null
     }
+  }
+
+  function getFileExtension(tmpl: { mime_type?: string | null; file_name?: string | null }) {
+    if (tmpl.file_name?.includes('.')) {
+      return tmpl.file_name.split('.').pop()?.toUpperCase() || ''
+    }
+    if (!tmpl.mime_type) return ''
+    const sub = tmpl.mime_type.split('/').pop() || ''
+    if (sub.includes('spreadsheetml') || sub.includes('excel')) return 'XLSX'
+    if (sub.includes('wordprocessingml') || sub.includes('word')) return 'DOCX'
+    return sub.toUpperCase()
   }
 
   function formatBytes(bytes?: number | null): string {
@@ -169,6 +215,8 @@ export function useDocumentTemplates() {
     isDeleteModalOpen,
     editingTemplate,
     deletingTemplate,
+    isDraggingOverEmpty,
+    isDraggingOverModal,
     formTitle,
     formDescription,
     formCategory,
@@ -181,8 +229,12 @@ export function useDocumentTemplates() {
     openEditModal,
     openDeleteModal,
     handleFileChange,
+    handleDragOver,
+    handleEmptyDrop,
+    handleModalDrop,
     handleSaveTemplate,
     handleDeleteTemplate,
+    getFileExtension,
     toggleStatus,
     downloadTemplate,
     formatBytes,

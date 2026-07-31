@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
   ArrowLeft,
-  Building2,
   FileText,
   FolderOpen,
   Eye,
@@ -138,7 +137,6 @@ const handleUpdateDocumentStatus = async () => {
       </Button>
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Building2 v-if="selectedRecord?.category === 'company'" class="h-6 w-6 text-emerald-600" />
           <span>{{ selectedRecord?.category === 'company' ? 'Company & Account Details' : 'Applicant Account Details' }}</span>
         </h1>
         <p class="text-sm text-muted-foreground">
@@ -308,8 +306,8 @@ const handleUpdateDocumentStatus = async () => {
 
       <!-- Company Details Section (If Company Account) -->
       <div v-if="selectedRecord.category === 'company'" class="space-y-3">
-        <h3 class="text-sm font-semibold border-b pb-1 flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-          <Building2 class="h-4 w-4" /> Company Profile Details
+        <h3 class="text-sm font-semibold border-b pb-1 flex items-center gap-1.5 text-black-700 dark:text-black-400">
+          Company Profile Details
         </h3>
         <div v-if="selectedRecord.companyDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>

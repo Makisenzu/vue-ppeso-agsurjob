@@ -64,7 +64,8 @@ const {
   isDeleteModalOpen,
   editingTemplate,
   deletingTemplate,
-
+  isDraggingOverEmpty,
+  isDraggingOverModal,
   formTitle,
   formDescription,
   formCategory,
@@ -77,8 +78,12 @@ const {
   openEditModal,
   openDeleteModal,
   handleFileChange,
+  handleDragOver,
+  handleEmptyDrop,
+  handleModalDrop,
   handleSaveTemplate,
   handleDeleteTemplate,
+  getFileExtension,
   toggleStatus,
   downloadTemplate,
   formatBytes,
@@ -142,27 +147,46 @@ const {
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
           <span class="hidden sm:inline ml-2">Refresh</span>
         </Button>
-        <Button @click="openCreateModal">
+        <Button @click="() => openCreateModal()">
           <Plus class="h-4 w-4" />
           <span class="hidden sm:inline ml-2">Upload Template</span>
         </Button>
       </div>
     </div>
 
-    <!-- Standalone Empty Component when no templates available -->
-    <div v-if="!isLoading && filteredTemplates.length === 0" class="rounded-md border bg-card p-8">
-      <Empty class="border-0 shadow-none">
+    <!-- Standalone Empty Component (Hoverable & Droppable) -->
+    <div 
+      v-if="!isLoading && filteredTemplates.length === 0" 
+      class="relative rounded-lg border-2 border-dashed p-8 transition-all duration-200 cursor-pointer"
+      :class="[
+        isDraggingOverEmpty 
+          ? 'border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.005]' 
+          : 'border-border bg-card hover:border-primary/50 hover:bg-muted/30'
+      ]"
+      @dragover="handleDragOver"
+      @dragenter.prevent="isDraggingOverEmpty = true"
+      @dragleave.prevent="isDraggingOverEmpty = false"
+      @drop="handleEmptyDrop"
+      @click="() => openCreateModal()"
+    >
+      <Empty class="border-0 shadow-none pointer-events-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <FileText class="h-6 w-6 text-muted-foreground" />
+            <Upload v-if="isDraggingOverEmpty" class="h-6 w-6 text-primary animate-bounce" />
+            <FileText v-else class="h-6 w-6 text-muted-foreground" />
           </EmptyMedia>
-          <EmptyTitle>No document templates available</EmptyTitle>
+          <EmptyTitle>
+            {{ isDraggingOverEmpty ? 'Drop file to start upload' : 'No document templates available' }}
+          </EmptyTitle>
           <EmptyDescription>
-            There are currently no document templates matching your criteria. Upload a new template to get started.
+            {{ isDraggingOverEmpty 
+                ? 'Release your file here to attach it directly to a new template.' 
+                : 'Drag and drop a file here or click to open the template creation form.' 
+            }}
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent class="mt-4 flex justify-center">
-          <Button @click="openCreateModal">
+          <Button @click.stop="() => openCreateModal()">
             <Plus class="mr-2 h-4 w-4" />
             Upload Template
           </Button>
@@ -198,7 +222,6 @@ const {
           <TableRow v-for="tmpl in filteredTemplates" :key="tmpl.id">
             <TableCell class="font-medium">
               <div class="flex items-center gap-2">
-                <FileText class="h-4 w-4 text-primary shrink-0" />
                 <span class="font-semibold">{{ tmpl.title }}</span>
               </div>
             </TableCell>
@@ -214,13 +237,24 @@ const {
             <TableCell class="capitalize">
               {{ tmpl.target_role || 'All Users' }}
             </TableCell>
+            
+            <!-- Compact File Cell -->
             <TableCell>
-              <div v-if="tmpl.file_name" class="text-xs">
-                <div class="font-mono truncate max-w-36">{{ tmpl.file_name }}</div>
-                <div class="text-muted-foreground">{{ formatBytes(tmpl.file_size) }} · {{ tmpl.mime_type?.split('/').pop() || '—' }}</div>
+              <div v-if="tmpl.file_name" class="space-y-0.5 max-w-50">
+                <div class="text-xs font-medium text-foreground truncate" :title="tmpl.file_name">
+                  {{ tmpl.file_name }}
+                </div>
+                <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span>{{ formatBytes(tmpl.file_size) }}</span>
+                  <span>•</span>
+                  <Badge variant="outline" class="px-1 py-0 text-[10px] font-mono uppercase h-4 leading-none">
+                    {{ getFileExtension(tmpl) }}
+                  </Badge>
+                </div>
               </div>
               <span v-else class="text-xs text-muted-foreground italic">No file</span>
             </TableCell>
+
             <TableCell>
               <button @click="toggleStatus(tmpl)" class="cursor-pointer">
                 <Badge :variant="tmpl.is_active ? 'default' : 'secondary'">
@@ -277,19 +311,19 @@ const {
         </DialogHeader>
 
         <form @submit.prevent="handleSaveTemplate" class="space-y-4 py-2">
-          <!-- title -->
+          <!-- Title -->
           <div class="space-y-2">
             <Label for="title">Title <span class="text-destructive">*</span></Label>
             <Input id="title" v-model="formTitle" placeholder="e.g., Standard Application Form" required />
           </div>
 
-          <!-- description -->
+          <!-- Description -->
           <div class="space-y-2">
             <Label for="description">Description</Label>
             <Textarea id="description" v-model="formDescription" placeholder="Brief description of when to use this template..." rows="3" />
           </div>
 
-          <!-- category + target_role -->
+          <!-- Category + Target Role -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="category">Category</Label>
@@ -320,7 +354,7 @@ const {
             </div>
           </div>
 
-          <!-- is_active -->
+          <!-- Active Status -->
           <div class="flex items-center justify-between rounded-lg border p-3">
             <div class="space-y-0.5">
               <Label for="is_active" class="cursor-pointer">Active Status</Label>
@@ -335,27 +369,49 @@ const {
             />
           </div>
 
-          <!-- file upload -->
+          <!-- File Upload Zone inside Dialog -->
           <div class="space-y-2">
-            <Label for="file">Template File {{ editingTemplate ? '(Optional — replaces current)' : '' }}<span v-if="!editingTemplate" class="text-destructive"> *</span></Label>
-            <div class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors" @click="fileInputRef?.click()">
+            <Label for="file">
+              Template File {{ editingTemplate ? '(Optional — replaces current)' : '' }}
+              <span v-if="!editingTemplate" class="text-destructive"> *</span>
+            </Label>
+            
+            <div 
+              class="border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all duration-150"
+              :class="[
+                isDraggingOverModal
+                  ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                  : 'border-border hover:bg-muted/50 hover:border-muted-foreground/40'
+              ]"
+              @dragover="handleDragOver"
+              @dragenter.prevent="isDraggingOverModal = true"
+              @dragleave.prevent="isDraggingOverModal = false"
+              @drop="handleModalDrop"
+              @click="fileInputRef?.click()"
+            >
               <input
                 ref="fileInputRef"
                 id="file"
                 type="file"
                 class="hidden"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx"
                 @change="handleFileChange"
               />
-              <Upload class="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+
+              <Upload 
+                class="mx-auto h-8 w-8 mb-2 transition-transform duration-200"
+                :class="isDraggingOverModal ? 'text-primary scale-110' : 'text-muted-foreground'" 
+              />
+
               <div v-if="selectedFile" class="text-sm font-medium text-primary">
                 {{ selectedFile.name }} ({{ formatBytes(selectedFile.size) }})
               </div>
               <div v-else-if="editingTemplate?.file_name" class="text-sm text-muted-foreground">
-                Current: <span class="font-medium text-foreground">{{ editingTemplate.file_name }}</span> · Click to replace
+                Current: <span class="font-medium text-foreground">{{ editingTemplate.file_name }}</span> · Click or drop to replace
               </div>
               <div v-else class="text-sm text-muted-foreground">
-                Click to browse or drop file here (PDF, DOC, DOCX, PNG, JPG)
+                <span class="font-semibold text-foreground">Click to browse</span> or drag & drop file here
+                <p class="text-xs text-muted-foreground mt-1">Supported: PDF, DOC, DOCX, XLSX, PNG, JPG</p>
               </div>
             </div>
           </div>
