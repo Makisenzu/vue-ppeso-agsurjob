@@ -51,6 +51,11 @@ export const adminRoutes: RouteRecordRaw[] = [
         name: 'posting',
         component: () => import('@/components/admin/management/posting/PostingModeration.vue'),
       },
+      {
+        path: 'geographic-data',
+        name: 'geographic-data',
+        component: () => import('@/components/admin/management/geographic/GeographicData.vue'),
+      },
     ],
   },
 ]
