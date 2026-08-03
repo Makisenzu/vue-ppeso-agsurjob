@@ -11,7 +11,9 @@ import {
   updateDocumentTemplate,
   deleteDocumentTemplate,
   getDocumentTemplateFileUrl,
+  DOCUMENT_TEMPLATE_CACHE_KEY,
 } from '@/services/admin/documentTemplateService'
+import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
 export const useDocumentTemplateStore = defineStore('documentTemplate', () => {
@@ -24,8 +26,15 @@ export const useDocumentTemplateStore = defineStore('documentTemplate', () => {
   const successMessage = ref<string | null>(null)
 
   const loadTemplates = async () => {
-    isLoading.value = true
     errorMessage.value = null
+
+    const cachedTemplates = getPersistentCacheValue<DocumentTemplateRow[]>(DOCUMENT_TEMPLATE_CACHE_KEY)
+    if (cachedTemplates !== null) {
+      templates.value = cachedTemplates
+    }
+
+    isLoading.value = cachedTemplates === null
+
     try {
       templates.value = await fetchDocumentTemplates()
     } catch (err: any) {

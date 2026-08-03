@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mediaService } from '@/services/common/mediaService'
 import type { Database } from '@/types/database.types'
 import type {
@@ -17,6 +18,9 @@ function normalizeRequirementStatus(status: string): Database['public']['Enums']
     ? 'closed'
     : (status as Database['public']['Enums']['status_type'])
 }
+
+const SYSTEM_DIRECTORY_CACHE_KEY = 'admin:system-directory:records'
+const SYSTEM_DIRECTORY_CACHE_TTL_MS = 1000 * 60 * 15
 
 export const systemDirectoryService = {
   // Fast, instant URL generator for initial table rendering
@@ -63,111 +67,145 @@ export const systemDirectoryService = {
   },
 
   async fetchAllDirectoryRecords(): Promise<DirectoryProfileRow[]> {
-    // 1. Fetch core profile records
-    const { data: profiles, error: profileErr } = await supabase
-      .schema('core')
-      .from('profiles')
-      .select('*')
-      .in('role', ['applicant', 'company_owner', 'company_member'])
-      .order('created_at', { ascending: false })
+    return getOrSetPersistentCache(SYSTEM_DIRECTORY_CACHE_KEY, SYSTEM_DIRECTORY_CACHE_TTL_MS, async () => {
+      // 1. Fetch core profile records
+      const { data: profiles, error: profileErr } = await supabase
+        .schema('core')
+        .from('profiles')
+        .select('*')
+        .in('role', ['applicant', 'company_owner', 'company_member'])
+        .order('created_at', { ascending: false })
 
-    if (profileErr) {
-      throw new Error(profileErr.message || 'Failed to fetch directory profiles')
-    }
+      if (profileErr) {
+        throw new Error(profileErr.message || 'Failed to fetch directory profiles')
+      }
 
-    if (!profiles || profiles.length === 0) {
-      return []
-    }
+      if (!profiles || profiles.length === 0) {
+        return []
+      }
 
-    const profileIds = profiles.map((p) => p.id)
+      const profileIds = profiles.map((p) => p.id)
 
-    // 2. PARALLEL FETCH (Run all related table queries concurrently!)
-    const [
-      emailRes,
-      templatesRes,
-      companiesRes,
-      membersRes,
-      applicantsRes,
-      appReqsRes,
-      appMediaRes,
-      empReqsRes,
-      empMediaRes,
-      profileMediaRes,
-    ] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('public').from('requirement_templates').select('id, name')).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('employers').from('companies').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('employers').from('company_members').select('profile_id, company_id').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('applicants').from('applicants').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('applicants').from('applicant_requirements').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-      Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
-    ])
+      // 2. PARALLEL FETCH (Run all related table queries concurrently!)
+      const [
+        emailRes,
+        templatesRes,
+        companiesRes,
+        membersRes,
+        applicantsRes,
+        appReqsRes,
+        appMediaRes,
+        empReqsRes,
+        empMediaRes,
+        profileMediaRes,
+      ] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('public').from('requirement_templates').select('id, name')).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('employers').from('companies').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('employers').from('company_members').select('profile_id, company_id').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('applicants').from('applicants').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('applicants').from('applicant_requirements').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
+      ])
 
-    // Build Maps synchronously in JS memory
-    const emailMap = new Map<string, string>()
-    if (emailRes.data && Array.isArray(emailRes.data)) {
-      emailRes.data.forEach((row: { id: string; email: string }) => {
-        if (row?.id && row?.email) emailMap.set(row.id, row.email)
-      })
-    }
+      // Build Maps synchronously in JS memory
+      const emailMap = new Map<string, string>()
+      if (emailRes.data && Array.isArray(emailRes.data)) {
+        emailRes.data.forEach((row: { id: string; email: string }) => {
+          if (row?.id && row?.email) emailMap.set(row.id, row.email)
+        })
+      }
 
-    const templateMap = new Map<number, string>()
-    if (templatesRes.data) {
-      templatesRes.data.forEach((t) => {
-        if (t?.id != null && t?.name) {
-          templateMap.set(t.id, t.name)
-        }
-      })
-    }
+      const templateMap = new Map<number, string>()
+      if (templatesRes.data) {
+        templatesRes.data.forEach((t) => {
+          if (t?.id != null && t?.name) {
+            templateMap.set(t.id, t.name)
+          }
+        })
+      }
 
-    const companyMap = new Map<string, CompanyRow>()
-    const companyByIdMap = new Map<number, CompanyRow>()
-    if (companiesRes.data) {
-      companiesRes.data.forEach((c: any) => {
-        companyByIdMap.set(c.id, c as CompanyRow)
-        if (c.profile_id) companyMap.set(c.profile_id, c as CompanyRow)
-      })
-    }
+      const companyMap = new Map<string, CompanyRow>()
+      const companyByIdMap = new Map<number, CompanyRow>()
+      if (companiesRes.data) {
+        companiesRes.data.forEach((c: any) => {
+          companyByIdMap.set(c.id, c as CompanyRow)
+          if (c.profile_id) companyMap.set(c.profile_id, c as CompanyRow)
+        })
+      }
 
-    if (membersRes.data) {
-      membersRes.data.forEach((m: any) => {
-        if (m.profile_id && m.company_id && !companyMap.has(m.profile_id)) {
-          const comp = companyByIdMap.get(m.company_id)
-          if (comp) companyMap.set(m.profile_id, comp)
-        }
-      })
-    }
+      if (membersRes.data) {
+        membersRes.data.forEach((m: any) => {
+          if (m.profile_id && m.company_id && !companyMap.has(m.profile_id)) {
+            const comp = companyByIdMap.get(m.company_id)
+            if (comp) companyMap.set(m.profile_id, comp)
+          }
+        })
+      }
 
-    const applicantMap = new Map<string, ApplicantRow>()
-    if (applicantsRes.data) {
-      applicantsRes.data.forEach((a: any) => {
-        if (a.profile_id) applicantMap.set(a.profile_id, a as ApplicantRow)
-      })
-    }
+      const applicantMap = new Map<string, ApplicantRow>()
+      if (applicantsRes.data) {
+        applicantsRes.data.forEach((a: any) => {
+          if (a.profile_id) applicantMap.set(a.profile_id, a as ApplicantRow)
+        })
+      }
 
-    // Process Applicant Documents SYNCHRONOUSLY (Zero await inside loops!)
-    const applicantDocsMap = new Map<string, SubmittedDocument[]>()
-    const appReqs = appReqsRes.data || []
-    const appMedia = appMediaRes.data || []
-    if (appReqs.length > 0 || appMedia.length > 0) {
-      const reqByIdMap = new Map<number, any>(appReqs.map((r: any) => [r.id, r]))
+      // Process Applicant Documents SYNCHRONOUSLY (Zero await inside loops!)
+      const applicantDocsMap = new Map<string, SubmittedDocument[]>()
+      const appReqs = appReqsRes.data || []
+      const appMedia = appMediaRes.data || []
+      if (appReqs.length > 0 || appMedia.length > 0) {
+        const reqByIdMap = new Map<number, any>(appReqs.map((r: any) => [r.id, r]))
 
-      appMedia.forEach((m: any) => {
-        const profileId = m.profiles_id
-        const reqRow = m.applicant_requirement_id ? reqByIdMap.get(m.applicant_requirement_id) : null
-        const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
-        const docName = reqTemplateName || m.description || m.filename || 'Applicant Document'
+        appMedia.forEach((m: any) => {
+          const profileId = m.profiles_id
+          const reqRow = m.applicant_requirement_id ? reqByIdMap.get(m.applicant_requirement_id) : null
+          const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
+          const docName = reqTemplateName || m.description || m.filename || 'Applicant Document'
 
-        if (profileId) {
-          const currentDocs = applicantDocsMap.get(profileId) || []
-          // Fast synchronous URL calculation:
+          if (profileId) {
+            const currentDocs = applicantDocsMap.get(profileId) || []
+            // Fast synchronous URL calculation:
+            const publicUrl = this.getQuickPublicUrl(m.path)
+
+            currentDocs.push({
+              id: m.id,
+              name: docName,
+              filename: m.filename,
+              mime_type: m.mime_type,
+              size: m.size,
+              path: m.path,
+              publicUrl,
+              status: reqRow?.status || 'submitted',
+              remarks: m.description || reqRow?.remarks || null,
+              created_at: m.created_at,
+            })
+            applicantDocsMap.set(profileId, currentDocs)
+          }
+        })
+      }
+
+      // Process Employer Documents SYNCHRONOUSLY
+      const employerDocsMap = new Map<number, SubmittedDocument[]>()
+      const employerProfileDocsMap = new Map<string, SubmittedDocument[]>()
+      const empReqs = empReqsRes.data || []
+      const empMedia = empMediaRes.data || []
+      if (empReqs.length > 0 || empMedia.length > 0) {
+        const reqByIdMap = new Map<number, any>(empReqs.map((r: any) => [r.id, r]))
+
+        empMedia.forEach((m: any) => {
+          const reqRow = m.employer_requirement_id ? reqByIdMap.get(m.employer_requirement_id) : null
+          const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
+          const docName = reqTemplateName || m.description || m.filename || 'Company Requirement'
+          const companyId = reqRow?.employer_id
+          const profileId = m.profile_id
           const publicUrl = this.getQuickPublicUrl(m.path)
 
-          currentDocs.push({
+          const docItem: SubmittedDocument = {
             id: m.id,
             name: docName,
             filename: m.filename,
@@ -178,97 +216,65 @@ export const systemDirectoryService = {
             status: reqRow?.status || 'submitted',
             remarks: m.description || reqRow?.remarks || null,
             created_at: m.created_at,
-          })
-          applicantDocsMap.set(profileId, currentDocs)
-        }
-      })
-    }
+          }
 
-    // Process Employer Documents SYNCHRONOUSLY
-    const employerDocsMap = new Map<number, SubmittedDocument[]>()
-    const employerProfileDocsMap = new Map<string, SubmittedDocument[]>()
-    const empReqs = empReqsRes.data || []
-    const empMedia = empMediaRes.data || []
-    if (empReqs.length > 0 || empMedia.length > 0) {
-      const reqByIdMap = new Map<number, any>(empReqs.map((r: any) => [r.id, r]))
-
-      empMedia.forEach((m: any) => {
-        const reqRow = m.employer_requirement_id ? reqByIdMap.get(m.employer_requirement_id) : null
-        const reqTemplateName = reqRow?.requirement_id ? templateMap.get(reqRow.requirement_id) : null
-        const docName = reqTemplateName || m.description || m.filename || 'Company Requirement'
-        const companyId = reqRow?.employer_id
-        const profileId = m.profile_id
-        const publicUrl = this.getQuickPublicUrl(m.path)
-
-        const docItem: SubmittedDocument = {
-          id: m.id,
-          name: docName,
-          filename: m.filename,
-          mime_type: m.mime_type,
-          size: m.size,
-          path: m.path,
-          publicUrl,
-          status: reqRow?.status || 'submitted',
-          remarks: m.description || reqRow?.remarks || null,
-          created_at: m.created_at,
-        }
-
-        if (companyId) {
-          const list = employerDocsMap.get(companyId) || []
-          list.push(docItem)
-          employerDocsMap.set(companyId, list)
-        }
-        if (profileId) {
-          const list = employerProfileDocsMap.get(profileId) || []
-          list.push(docItem)
-          employerProfileDocsMap.set(profileId, list)
-        }
-      })
-    }
-
-    const profileMediaMap = new Map<string, string>()
-    if (profileMediaRes.data && Array.isArray(profileMediaRes.data)) {
-      profileMediaRes.data.forEach((pm: any) => {
-        if (pm?.profile_id && !profileMediaMap.has(pm.profile_id)) {
-          const url = pm.public_url || (pm.path ? mediaService.getPublicUrl(pm.path, 'media') : null)
-          if (url) profileMediaMap.set(pm.profile_id, url)
-        }
-      })
-    }
-
-    // Assemble final records
-    return profiles.map((p) => {
-      const isCompanyRole = p.role === 'company_owner' || p.role === 'company_member'
-      const category = isCompanyRole ? 'company' : 'applicant'
-      const company = companyMap.get(p.id) ?? null
-      const applicant = applicantMap.get(p.id) ?? null
-      const avatarUrl = profileMediaMap.get(p.id) ?? null
-
-      let documents: SubmittedDocument[] = []
-
-      if (category === 'company') {
-        if (company?.id && employerDocsMap.has(company.id)) {
-          documents = employerDocsMap.get(company.id)!
-        } else if (employerProfileDocsMap.has(p.id)) {
-          documents = employerProfileDocsMap.get(p.id)!
-        }
-      } else {
-        if (applicantDocsMap.has(p.id)) {
-          documents = applicantDocsMap.get(p.id)!
-        }
+          if (companyId) {
+            const list = employerDocsMap.get(companyId) || []
+            list.push(docItem)
+            employerDocsMap.set(companyId, list)
+          }
+          if (profileId) {
+            const list = employerProfileDocsMap.get(profileId) || []
+            list.push(docItem)
+            employerProfileDocsMap.set(profileId, list)
+          }
+        })
       }
 
-      return {
-        ...p,
-        email: emailMap.get(p.id) ?? null,
-        avatarUrl,
-        category,
-        companyDetails: company,
-        applicantDetails: applicant,
-        documents,
-        documentCount: documents.length,
-        hasDocuments: documents.length > 0,
-      } as DirectoryProfileRow
+      const profileMediaMap = new Map<string, string>()
+      if (profileMediaRes.data && Array.isArray(profileMediaRes.data)) {
+        profileMediaRes.data.forEach((pm: any) => {
+          if (pm?.profile_id && !profileMediaMap.has(pm.profile_id)) {
+            const url = pm.public_url || (pm.path ? mediaService.getPublicUrl(pm.path, 'media') : null)
+            if (url) profileMediaMap.set(pm.profile_id, url)
+          }
+        })
+      }
+
+      // Assemble final records
+      return profiles.map((p) => {
+        const isCompanyRole = p.role === 'company_owner' || p.role === 'company_member'
+        const category = isCompanyRole ? 'company' : 'applicant'
+        const company = companyMap.get(p.id) ?? null
+        const applicant = applicantMap.get(p.id) ?? null
+        const avatarUrl = profileMediaMap.get(p.id) ?? null
+
+        let documents: SubmittedDocument[] = []
+
+        if (category === 'company') {
+          if (company?.id && employerDocsMap.has(company.id)) {
+            documents = employerDocsMap.get(company.id)!
+          } else if (employerProfileDocsMap.has(p.id)) {
+            documents = employerProfileDocsMap.get(p.id)!
+          }
+        } else {
+          if (applicantDocsMap.has(p.id)) {
+            documents = applicantDocsMap.get(p.id)!
+          }
+        }
+
+        return {
+          ...p,
+          email: emailMap.get(p.id) ?? null,
+          avatarUrl,
+          category,
+          companyDetails: company,
+          applicantDetails: applicant,
+          documents,
+          documentCount: documents.length,
+          hasDocuments: documents.length > 0,
+        } as DirectoryProfileRow
+      })
     })
   },
 
@@ -286,6 +292,8 @@ export const systemDirectoryService = {
     if (error || !data) {
       throw new Error(error?.message || 'Failed to update account status')
     }
+
+    removePersistentCacheValue(SYSTEM_DIRECTORY_CACHE_KEY)
 
     const isCompanyRole = data.role === 'company_owner' || data.role === 'company_member'
     const category = isCompanyRole ? 'company' : 'applicant'
@@ -342,6 +350,8 @@ export const systemDirectoryService = {
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')
     }
+
+    removePersistentCacheValue(SYSTEM_DIRECTORY_CACHE_KEY)
   },
 
   async viewSubmittedFile(doc: SubmittedDocument): Promise<void> {

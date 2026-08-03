@@ -1,74 +1,79 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type { Database } from '@/types/database.types'
 import { mediaService } from '@/services/common/mediaService'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
+const USER_ACCOUNTS_CACHE_KEY = 'admin:user-accounts:profiles'
+const USER_ACCOUNTS_CACHE_TTL_MS = 1000 * 60 * 15
 
 type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 
 export const userAccountService = {
   async fetchAllProfiles(): Promise<ProfileRow[]> {
-    const { data: profiles, error } = await supabase
-      .schema('core')
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+    return getOrSetPersistentCache(USER_ACCOUNTS_CACHE_KEY, USER_ACCOUNTS_CACHE_TTL_MS, async () => {
+      const { data: profiles, error } = await supabase
+        .schema('core')
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(error.message || 'Failed to fetch profiles')
-    }
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch profiles')
+      }
 
-    if (!profiles || profiles.length === 0) {
-      return []
-    }
+      if (!profiles || profiles.length === 0) {
+        return []
+      }
 
-    const profileIds = profiles.map((profile) => profile.id)
-    const { data: mediaRows } = await supabase
-      .schema('core')
-      .from('profile_media')
-      .select('*')
-      .in('profile_id', profileIds)
-      .order('created_at', { ascending: false })
+      const profileIds = profiles.map((profile) => profile.id)
+      const { data: mediaRows } = await supabase
+        .schema('core')
+        .from('profile_media')
+        .select('*')
+        .in('profile_id', profileIds)
+        .order('created_at', { ascending: false })
 
-    const avatarMap = new Map<string, string>()
-    if (mediaRows && Array.isArray(mediaRows)) {
-      for (const media of mediaRows) {
-        if (!media?.profile_id || avatarMap.has(media.profile_id)) continue
-        const avatarSource = media as typeof media & { public_url?: string | null }
-        const avatarUrl = avatarSource.public_url || (media.path ? mediaService.getPublicUrl(media.path) : null)
-        if (avatarUrl) {
-          avatarMap.set(media.profile_id, avatarUrl)
+      const avatarMap = new Map<string, string>()
+      if (mediaRows && Array.isArray(mediaRows)) {
+        for (const media of mediaRows) {
+          if (!media?.profile_id || avatarMap.has(media.profile_id)) continue
+          const avatarSource = media as typeof media & { public_url?: string | null }
+          const avatarUrl = avatarSource.public_url || (media.path ? mediaService.getPublicUrl(media.path) : null)
+          if (avatarUrl) {
+            avatarMap.set(media.profile_id, avatarUrl)
+          }
         }
       }
-    }
 
-    // Fetch all user emails via a SECURITY DEFINER database function
-    // that reads from auth.users (not accessible directly from the client).
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user_emails')
-      if (emailRows && Array.isArray(emailRows)) {
-        const emailMap = new Map<string, string>(
-          emailRows.map((row: { id: string; email: string }) => [row.id, row.email]),
-        )
-        return profiles.map((p) => ({
-          ...p,
-          email: emailMap.get(p.id) ?? null,
-          avatarUrl: avatarMap.get(p.id) ?? null,
-        })) as ProfileRow[]
+      // Fetch all user emails via a SECURITY DEFINER database function
+      // that reads from auth.users (not accessible directly from the client).
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user_emails')
+        if (emailRows && Array.isArray(emailRows)) {
+          const emailMap = new Map<string, string>(
+            emailRows.map((row: { id: string; email: string }) => [row.id, row.email]),
+          )
+          return profiles.map((p) => ({
+            ...p,
+            email: emailMap.get(p.id) ?? null,
+            avatarUrl: avatarMap.get(p.id) ?? null,
+          })) as ProfileRow[]
+        }
+      } catch {
+        // RPC not available – fall through gracefully
       }
-    } catch {
-      // RPC not available – fall through gracefully
-    }
 
-    return profiles.map((p) => ({
-      ...p,
-      email: null as string | null,
-      avatarUrl: avatarMap.get(p.id) ?? null,
-    })) as ProfileRow[]
+      return profiles.map((p) => ({
+        ...p,
+        email: null as string | null,
+        avatarUrl: avatarMap.get(p.id) ?? null,
+      })) as ProfileRow[]
+    })
   },
 
   async createProfile(payload: CreateAccountPayload): Promise<ProfileRow> {
@@ -151,8 +156,13 @@ export const userAccountService = {
       if (fetchError || !fetchedData) {
         throw new Error(fetchError?.message || 'Failed to retrieve profile record')
       }
+
+      removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
+
       return { ...fetchedData, email: payload.email }
     }
+
+    removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
 
     return { ...data, email: payload.email }
   },
@@ -182,8 +192,13 @@ export const userAccountService = {
       if (fetchErr || !fetched) {
         throw new Error(fetchErr?.message || 'Profile status updated, but unable to re-fetch record')
       }
+
+      removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
+
       return fetched as ProfileRow
     }
+
+    removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
 
     return data as ProfileRow
   },

@@ -2,7 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 import { userAccountService } from '@/services/admin/userAccountService'
+import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+
+const USER_ACCOUNTS_CACHE_KEY = 'admin:user-accounts:profiles'
 
 export const useUserAccountsStore = defineStore('userAccounts', () => {
   const toastAlert = useToastAlert()
@@ -18,8 +21,15 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   const isEditStatusOpen = ref<boolean>(false)
 
   const fetchProfiles = async () => {
-    isLoading.value = true
     errorMessage.value = null
+
+    const cachedProfiles = getPersistentCacheValue<ProfileRow[]>(USER_ACCOUNTS_CACHE_KEY)
+    if (cachedProfiles !== null) {
+      profiles.value = cachedProfiles
+    }
+
+    isLoading.value = cachedProfiles === null
+
     try {
       const fetched = await userAccountService.fetchAllProfiles()
       // Re-assign with a new array reference so Vue/Tanstack Table reactivity updates instantly
@@ -68,6 +78,9 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
       profiles.value = profiles.value.map((p) =>
         p.id === profileId ? { ...p, ...updated, status: updated.status } : p
       )
+
+      // Invalidate cached list so revisit/load stays fresh after mutation
+      // (service also removes the cache key after successful writes)
       if (selectedProfile.value?.id === profileId) {
         selectedProfile.value = {
           ...selectedProfile.value,

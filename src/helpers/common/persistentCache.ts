@@ -33,6 +33,16 @@ export function getPersistentCacheValue<T>(key: string) {
 	return readCacheEntry<T>(key)
 }
 
+export function removePersistentCacheValue(key: string) {
+	if (!canUseLocalStorage()) return
+
+	try {
+		window.localStorage.removeItem(key)
+	} catch {
+		// Ignore storage failures.
+	}
+}
+
 function writeCacheEntry<T>(key: string, value: T, ttlMs: number) {
 	if (!canUseLocalStorage()) return
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   FlexRender,
 } from '@tanstack/vue-table'
@@ -74,6 +74,7 @@ const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
 const {
   table,
   columns,
+  profiles,
   isLoading,
   isSubmitting,
   errorMessage,
@@ -91,6 +92,8 @@ const {
   createAccount,
   copyId,
 } = useUserAccounts(ReuseTemplate)
+
+const showLoadingRow = computed(() => isLoading.value && profiles.value.length === 0)
 
 // Form state for creating a new user account
 const formData = ref<CreateAccountPayload>({
@@ -358,7 +361,7 @@ const handleCreateAccount = async () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <template v-if="isLoading">
+          <template v-if="showLoadingRow">
             <TableRow>
               <TableCell :colspan="columns.length" class="h-24 text-center">
                 <div class="flex items-center justify-center gap-2">

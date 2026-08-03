@@ -82,6 +82,8 @@ const {
   copyId,
 } = useSystemDirectory(ReuseTemplate)
 
+const showLoadingRow = computed(() => isLoading.value && records.value.length === 0)
+
 // Edit status state
 const selectedStatus = ref<string>('active')
 
@@ -364,7 +366,7 @@ const handleUpdateDocumentStatus = async () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <template v-if="isLoading">
+          <template v-if="showLoadingRow">
             <TableRow>
               <TableCell :colspan="columns.length" class="h-24 text-center">
                 <div class="flex items-center justify-center gap-2">

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type {
   DocumentTemplateRow,
   DocumentTemplateInsert,
@@ -8,15 +9,19 @@ import type {
 export type { DocumentTemplateRow, DocumentTemplateInsert, DocumentTemplateUpdate }
 
 export const DOCUMENT_TEMPLATE_BUCKET = 'templates'
+export const DOCUMENT_TEMPLATE_CACHE_KEY = 'document-templates:list'
+const DOCUMENT_TEMPLATE_CACHE_TTL_MS = 1000 * 60 * 60 * 12
 
 export async function fetchDocumentTemplates(): Promise<DocumentTemplateRow[]> {
-  const { data, error } = await supabase
-    .from('document_templates')
-    .select('*')
-    .order('created_at', { ascending: false })
+  return getOrSetPersistentCache(DOCUMENT_TEMPLATE_CACHE_KEY, DOCUMENT_TEMPLATE_CACHE_TTL_MS, async () => {
+    const { data, error } = await supabase
+      .from('document_templates')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data ?? []
+    if (error) throw error
+    return data ?? []
+  })
 }
 
 export async function fetchDocumentTemplateById(id: number): Promise<DocumentTemplateRow | null> {
@@ -101,6 +106,9 @@ export async function createDocumentTemplate(
     throw error
   }
 
+
+  removePersistentCacheValue(DOCUMENT_TEMPLATE_CACHE_KEY)
+
   return data
 }
 
@@ -146,6 +154,9 @@ export async function updateDocumentTemplate(
     await removeTemplateFile(oldFilePath)
   }
 
+
+  removePersistentCacheValue(DOCUMENT_TEMPLATE_CACHE_KEY)
+
   return data
 }
 
@@ -160,6 +171,9 @@ export async function deleteDocumentTemplate(id: number, filePath?: string | nul
     .eq('id', id)
 
   if (error) throw error
+
+
+  removePersistentCacheValue(DOCUMENT_TEMPLATE_CACHE_KEY)
 }
 
 export async function getDocumentTemplateFileUrl(filePath: string): Promise<string> {
