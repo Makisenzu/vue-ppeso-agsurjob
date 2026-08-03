@@ -1,11 +1,25 @@
-import { ref, shallowRef, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, shallowRef, onMounted, onBeforeUnmount, watch, computed, unref, type MaybeRef, type Ref } from 'vue'
 import mapboxgl from 'mapbox-gl'
+import {
+  createMapMarkerElement,
+  createMapPopupHtml,
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAPBOX_STYLE,
+  hasValidCoordinates,
+  resolveCoordinates,
+  resolveMapboxStyle,
+  resolveMapboxToken,
+  type MapCoordinates,
+} from '@/helpers/common/mapboxHelpers'
 
 interface UseMapboxMapOptions {
-  latitude: number | null
-  longitude: number | null
-  label?: string
-  zoom?: number
+  mapContainer?: Ref<HTMLDivElement | null>
+  latitude: MaybeRef<number | null>
+  longitude: MaybeRef<number | null>
+  label?: MaybeRef<string>
+  zoom?: MaybeRef<number>
+  style?: MaybeRef<string | null | undefined>
+  defaultCenter?: MapCoordinates
 }
 
 /**
@@ -13,88 +27,88 @@ interface UseMapboxMapOptions {
  * Handles map setup, markers, popups, and coordinate validation.
  */
 export function useMapboxMap(options: UseMapboxMapOptions) {
-  const { latitude, longitude, label = '', zoom = 14 } = options
-
-  const mapContainer = ref<HTMLDivElement | null>(null)
+  const internalMapContainer = ref<HTMLDivElement | null>(null)
+  const mapContainer = options.mapContainer ?? internalMapContainer
   const map = shallowRef<mapboxgl.Map | null>(null)
   const marker = shallowRef<mapboxgl.Marker | null>(null)
 
-  // Check for Mapbox Access Token
-  const mapboxToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '').trim()
+  const mapboxToken = resolveMapboxToken()
+  const mapStyle = computed(() => resolveMapboxStyle(unref(options.style) ?? DEFAULT_MAPBOX_STYLE))
+  const label = computed(() => unref(options.label) ?? '')
+  const zoom = computed(() => unref(options.zoom) ?? 14)
+  const defaultCenter = computed(() => options.defaultCenter ?? DEFAULT_MAP_CENTER)
+  const appliedStyle = ref(mapStyle.value)
 
-  // Validate coordinates
-  const hasCoordinates = computed(() => {
-    if (latitude === null || longitude === null) return false
-    const lat = Number(latitude)
-    const lng = Number(longitude)
-    return (
-      !isNaN(lat) &&
-      !isNaN(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180 &&
-      !(lat === 0 && lng === 0)
-    )
-  })
+  const latitude = computed(() => unref(options.latitude))
+  const longitude = computed(() => unref(options.longitude))
+
+  const hasCoordinates = computed(() => hasValidCoordinates(latitude.value, longitude.value))
+  const canRenderMap = computed(() => Boolean(mapboxToken))
 
   function initializeMap() {
-    if (!mapContainer.value || !hasCoordinates.value || !mapboxToken) return
+    if (!mapContainer.value || !mapboxToken) return
 
     mapboxgl.accessToken = mapboxToken
-
-    const lng = Number(longitude)
-    const lat = Number(latitude)
+    const center = hasCoordinates.value
+      ? resolveCoordinates(latitude.value, longitude.value)
+      : defaultCenter.value
 
     try {
       map.value = new mapboxgl.Map({
         container: mapContainer.value,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [lng, lat],
-        zoom,
+        style: mapStyle.value,
+        center: [center.longitude, center.latitude],
+        zoom: hasCoordinates.value ? zoom.value : Math.max(zoom.value - 2, 5),
         cooperativeGestures: true,
       })
 
       map.value.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+      appliedStyle.value = mapStyle.value
 
-      // Create custom marker element
-      const el = document.createElement('div')
-      el.className = 'custom-map-marker'
-      el.innerHTML = `
-        <div class="relative flex items-center justify-center h-10 w-10">
-          <span class="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-primary/40 opacity-75"></span>
-          <div class="relative flex items-center justify-center rounded-full h-6 w-6 bg-primary border-2 border-white shadow-xl">
-            <div class="h-2 w-2 rounded-full bg-white"></div>
-          </div>
-        </div>
-      `
+      if (hasCoordinates.value) {
+        const popup = new mapboxgl.Popup({ offset: 15, closeButton: false }).setHTML(
+          createMapPopupHtml(label.value)
+        )
 
-      // Add popup on click
-      const popup = new mapboxgl.Popup({ offset: 15, closeButton: false }).setHTML(
-        `<div class="p-1 font-sans"><p class="text-xs font-semibold text-foreground">${label}</p></div>`
-      )
-
-      marker.value = new mapboxgl.Marker({ element: el })
-        .setLngLat([lng, lat])
-        .setPopup(popup)
-        .addTo(map.value)
+        marker.value = new mapboxgl.Marker({ element: createMapMarkerElement() })
+          .setLngLat([center.longitude, center.latitude])
+          .setPopup(popup)
+          .addTo(map.value)
+      }
     } catch (error) {
       console.error('Error initializing Mapbox map:', error)
     }
   }
 
-  // Watch for coordinate updates
   watch(
-    () => [latitude, longitude],
+    () => [latitude.value, longitude.value, label.value, zoom.value, mapStyle.value],
     () => {
       if (map.value) {
+        if (mapStyle.value !== appliedStyle.value) {
+          appliedStyle.value = mapStyle.value
+          map.value.setStyle(mapStyle.value)
+        }
+
         if (hasCoordinates.value) {
-          const lng = Number(longitude)
-          const lat = Number(latitude)
-          map.value.setCenter([lng, lat])
-          if (marker.value) {
-            marker.value.setLngLat([lng, lat])
+          const center = resolveCoordinates(latitude.value, longitude.value, defaultCenter.value)
+          map.value.setCenter([center.longitude, center.latitude])
+          map.value.setZoom(zoom.value)
+          marker.value?.setLngLat([center.longitude, center.latitude])
+          if (!marker.value) {
+            const popup = new mapboxgl.Popup({ offset: 15, closeButton: false }).setHTML(
+              createMapPopupHtml(label.value)
+            )
+
+            marker.value = new mapboxgl.Marker({ element: createMapMarkerElement() })
+              .setLngLat([center.longitude, center.latitude])
+              .setPopup(popup)
+              .addTo(map.value)
           }
+        } else {
+          map.value.setCenter([defaultCenter.value.longitude, defaultCenter.value.latitude])
+          map.value.setZoom(Math.max(zoom.value - 2, 5))
+          marker.value?.remove()
+          marker.value = null
         }
       } else {
         initializeMap()
@@ -116,5 +130,6 @@ export function useMapboxMap(options: UseMapboxMapOptions) {
     mapContainer,
     mapboxToken,
     hasCoordinates,
+    canRenderMap,
   }
 }
