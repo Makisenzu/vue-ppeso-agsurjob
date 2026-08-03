@@ -7,7 +7,6 @@ import {
   Edit,
   Plus,
   Search,
-  RefreshCw,
   Loader2,
 } from '@lucide/vue'
 
@@ -74,7 +73,6 @@ const {
   formIsActive,
   selectedFile,
   fileInputRef,
-  loadTemplates,
   openCreateModal,
   openEditModal,
   openDeleteModal,
@@ -177,16 +175,10 @@ const {
         </Select>
       </div>
 
-      <div class="flex items-center gap-2">
-        <Button variant="outline" @click="loadTemplates" :disabled="isLoading">
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-          <span class="hidden sm:inline ml-2">Refresh</span>
-        </Button>
-        <Button @click="() => openCreateModal()">
-          <Plus class="h-4 w-4" />
-          <span class="hidden sm:inline ml-2">Upload Template</span>
-        </Button>
-      </div>
+      <Button @click="() => openCreateModal()">
+        <Plus class="h-4 w-4" />
+        <span class="hidden sm:inline ml-2">Upload Template</span>
+      </Button>
     </div>
 
     <!-- Standalone Empty / Search Results Component -->
@@ -240,15 +232,6 @@ const {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-if="isLoading">
-            <TableCell colspan="8" class="h-32 text-center">
-              <div class="flex items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 class="h-5 w-5 animate-spin" />
-                <span>Loading document templates...</span>
-              </div>
-            </TableCell>
-          </TableRow>
-
           <TableRow v-for="tmpl in filteredTemplates" :key="tmpl.id">
             <TableCell class="font-medium">
               <span class="font-semibold">{{ tmpl.title }}</span>
