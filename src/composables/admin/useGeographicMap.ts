@@ -1,19 +1,17 @@
 import { computed, createApp, h, nextTick, onBeforeUnmount, onMounted, ref, unref, watch, type MaybeRef, type Ref } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useSystemDirectoryStore } from '@/stores/admin/systemDirectoryStore'
+import { userAccountService } from '@/services/admin/userAccountService'
 import {
 	DEFAULT_MAP_CENTER,
 	DEFAULT_MAPBOX_STYLE,
-	hasValidCoordinates,
-	resolveCoordinates,
 	resolveMapboxToken,
 	resolveMapboxStyle,
 	buildLocationQuery,
 	geocodeMapboxLocation,
 	type MapCoordinates,
 } from '@/helpers/common/mapboxHelpers'
-import type { DirectoryProfileRow } from '@/types/admin/systemDirectory'
+import type { ProfileRow } from '@/types/admin/userAccounts'
 
 interface UseGeographicMapOptions {
 	mapContainer?: Ref<HTMLDivElement | null>
@@ -44,7 +42,7 @@ function normalizeText(value?: string | null) {
 	return value?.trim().toLowerCase() ?? ''
 }
 
-function getDisplayName(record: DirectoryProfileRow) {
+function getDisplayName(record: ProfileRow) {
 	return [record.firstname, record.middlename, record.lastname].filter(Boolean).join(' ').trim() || record.username || 'User'
 }
 
@@ -57,12 +55,45 @@ function getInitials(displayName: string) {
 		.join('') || 'U'
 }
 
+function hashText(value: string) {
+	let hash = 0
+	for (let index = 0; index < value.length; index += 1) {
+		hash = (hash << 5) - hash + value.charCodeAt(index)
+		hash |= 0
+	}
+	return Math.abs(hash)
+}
+
+function createFallbackCoordinates(record: ProfileRow, index: number): MapCoordinates {
+	const hash = hashText(`${record.id}:${record.firstname ?? ''}:${record.lastname ?? ''}:${index}`)
+	const angle = (hash % 360) * (Math.PI / 180)
+	const distance = 0.18 + ((hash % 700) / 700) * 0.22
+
+	return {
+		latitude: DEFAULT_MAP_CENTER.latitude + Math.sin(angle) * distance,
+		longitude: DEFAULT_MAP_CENTER.longitude + Math.cos(angle) * distance,
+	}
+}
+
+function offsetDuplicateCoordinates(coordinates: MapCoordinates, occurrence: number) {
+	if (occurrence <= 0) return coordinates
+
+	const angle = occurrence * 2.399963229728653
+	const distance = 0.012 * occurrence
+
+	return {
+		latitude: coordinates.latitude + Math.sin(angle) * distance,
+		longitude: coordinates.longitude + Math.cos(angle) * distance,
+	}
+}
+
 export function useGeographicMap(options: UseGeographicMapOptions = {}) {
-	const store = useSystemDirectoryStore()
 	const internalMapContainer = ref<HTMLDivElement | null>(null)
 	const mapContainer = options.mapContainer ?? internalMapContainer
 	const map = ref<mapboxgl.Map | null>(null)
 	const markerEntries = ref<DirectoryMarkerEntry[]>([])
+	const records = ref<ProfileRow[]>([])
+	const isRecordsLoading = ref(false)
 	const mapboxToken = resolveMapboxToken()
 	const mapStyle = computed(() => resolveMapboxStyle(unref(options.style) ?? DEFAULT_MAPBOX_STYLE))
 	const defaultCenter = computed(() => options.defaultCenter ?? DEFAULT_MAP_CENTER)
@@ -76,8 +107,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	// When true, the map was just created and we should preserve
 	// the initial center/zoom rather than auto-fitting to markers.
 	const initialLoad = ref(true)
-
-	const records = computed(() => store.records.filter((record) => record.status !== 'inactive'))
 	const municipalities = computed(() => {
 		const seen = new Map<string, { name: string; count: number }>()
 		for (const record of records.value) {
@@ -133,23 +162,14 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		markerEntries.value = []
 	}
 
-	function getRecordCoordinateKey(record: DirectoryProfileRow) {
-		return `${record.id}:${record.category}:${record.geographic ?? ''}:${record.barangay ?? ''}:${record.province ?? ''}:${record.region ?? ''}`
+	function getRecordCoordinateKey(record: ProfileRow) {
+		return `${record.id}:${record.role ?? ''}:${record.status ?? ''}:${record.geographic ?? ''}:${record.barangay ?? ''}:${record.province ?? ''}:${record.region ?? ''}`
 	}
 
-	async function resolveRecordCoordinates(record: DirectoryProfileRow) {
+	async function resolveRecordCoordinates(record: ProfileRow) {
 		const cacheKey = getRecordCoordinateKey(record)
 		if (coordinateCache.has(cacheKey)) {
 			return coordinateCache.get(cacheKey) ?? null
-		}
-
-		const companyCoordinates = record.companyDetails?.latitude != null && record.companyDetails?.longitude != null
-			? resolveCoordinates(record.companyDetails.latitude, record.companyDetails.longitude)
-			: null
-
-		if (companyCoordinates && hasValidCoordinates(companyCoordinates.latitude, companyCoordinates.longitude)) {
-			coordinateCache.set(cacheKey, companyCoordinates)
-			return companyCoordinates
 		}
 
 		const query = buildLocationQuery([
@@ -179,10 +199,9 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		return null
 	}
 
-	function buildAvatarMarker(record: DirectoryProfileRow, coordinates: MapCoordinates): DirectoryMarkerEntry {
+	function buildAvatarMarker(record: ProfileRow, coordinates: MapCoordinates): DirectoryMarkerEntry {
 		const displayName = getDisplayName(record)
 		const initials = getInitials(displayName)
-		const avatarUrl = record.avatarUrl ?? ''
 		const mountPoint = document.createElement('div')
 		mountPoint.className = 'pointer-events-auto'
 
@@ -193,7 +212,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 					{ class: 'size-11 border-2 border-white shadow-lg shadow-black/20 ring-1 ring-black/10' },
 					{
 						default: () => [
-							h(AvatarImage, { src: avatarUrl, alt: displayName }),
+								h(AvatarImage, { src: '', alt: displayName }),
 							h(AvatarFallback, null, { default: () => initials }),
 						],
 					}
@@ -267,7 +286,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 
 			const visibleRecords = filteredRecords.value
 			const resolvedEntries: Array<{
-				record: DirectoryProfileRow
+				record: ProfileRow
 				coordinates: MapCoordinates | null
 			}> = await Promise.all(
 				visibleRecords.map(async (record) => ({
@@ -277,10 +296,15 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			)
 
 			const markerCoordinates: MapCoordinates[] = []
+			const coordinateUsage = new Map<string, number>()
 			for (const entry of resolvedEntries) {
-				if (!entry.coordinates) continue
-				markerCoordinates.push(entry.coordinates)
-				const markerEntry: DirectoryMarkerEntry = buildAvatarMarker(entry.record, entry.coordinates)
+				const baseCoordinates = entry.coordinates ?? createFallbackCoordinates(entry.record, markerCoordinates.length)
+				const coordinateKey = `${baseCoordinates.latitude.toFixed(5)}:${baseCoordinates.longitude.toFixed(5)}`
+				const occurrence = coordinateUsage.get(coordinateKey) ?? 0
+				coordinateUsage.set(coordinateKey, occurrence + 1)
+				const finalCoordinates = offsetDuplicateCoordinates(baseCoordinates, occurrence)
+				markerCoordinates.push(finalCoordinates)
+				const markerEntry: DirectoryMarkerEntry = buildAvatarMarker(entry.record, finalCoordinates)
 				markerEntries.value.push(markerEntry)
 			}
 
@@ -330,6 +354,19 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		})
 	}
 
+	async function loadAllProfiles() {
+		isRecordsLoading.value = true
+		try {
+			records.value = await userAccountService.fetchAllProfiles()
+		} catch (error) {
+			console.error('Failed to load profiles for geographic map:', error)
+			geoError.value = 'Unable to load users for the geographic map.'
+			records.value = []
+		} finally {
+			isRecordsLoading.value = false
+		}
+	}
+
 	watch(
 		() => [mapContainer.value, mapboxToken, mapStyle.value],
 		() => {
@@ -370,9 +407,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	})
 
 	onMounted(async () => {
-		if (store.records.length === 0 && !store.isLoading) {
-			await store.fetchRecords()
-		}
+		await loadAllProfiles()
 		await nextTick()
 		initializeMap()
 	})
@@ -395,7 +430,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		totalUsers,
 		selectedLocationLabel,
 		hasLocation,
-		isLoading: computed(() => store.isLoading || isGeocoding.value),
+		isLoading: computed(() => isRecordsLoading.value || isGeocoding.value),
 		geoError,
 	}
 }
