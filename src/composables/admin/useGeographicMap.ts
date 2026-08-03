@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { userAccountService } from '@/services/admin/userAccountService'
 import { getAllProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
+import { getOrSetPersistentCache, getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import {
 	DEFAULT_MAP_CENTER,
 	DEFAULT_MAPBOX_STYLE,
@@ -13,6 +14,10 @@ import {
 	type MapCoordinates,
 } from '@/helpers/common/mapboxHelpers'
 import type { ProfileRow } from '@/types/admin/userAccounts'
+
+const GEOGRAPHIC_PROFILES_CACHE_KEY = 'geographic-map:profiles'
+const GEOGRAPHIC_PSGC_CACHE_KEY = 'geographic-map:agusan-del-sur-municipality-barangay-counts'
+const GEOGRAPHIC_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
 
 export const AGUSAN_DEL_SUR_MUNICIPALITIES: JumpLocationEntry[] = [
 	{ province: 'Agusan del Sur', municipality: 'City of Bayugan', latitude: 8.714579545754654, longitude: 125.74815761294684 },
@@ -204,6 +209,14 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const isGeocoding = ref(false)
 	const geoError = ref<string | null>(null)
 	const psgcMunicipalityBarangayCounts = ref<MunicipalityBarangayCount[]>([])
+	const cachedProfiles = getPersistentCacheValue<ProfileRow[]>(GEOGRAPHIC_PROFILES_CACHE_KEY)
+	const cachedMunicipalityCounts = getPersistentCacheValue<MunicipalityBarangayCount[]>(GEOGRAPHIC_PSGC_CACHE_KEY)
+	if (cachedProfiles !== null) {
+		records.value = cachedProfiles
+	}
+	if (cachedMunicipalityCounts !== null) {
+		psgcMunicipalityBarangayCounts.value = cachedMunicipalityCounts
+	}
 
 	// When true, the map was just created and we should preserve
 	// the initial center/zoom rather than auto-fitting to markers.
@@ -614,55 +627,63 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	}
 
 	async function loadAllProfiles() {
-		isRecordsLoading.value = true
 		try {
-			records.value = await userAccountService.fetchAllProfiles()
+			const profiles = await getOrSetPersistentCache(GEOGRAPHIC_PROFILES_CACHE_KEY, GEOGRAPHIC_CACHE_TTL_MS, async () => {
+				return userAccountService.fetchAllProfiles()
+			})
+			records.value = profiles
 		} catch (error) {
 			console.error('Failed to load profiles for geographic map:', error)
 			geoError.value = 'Unable to load users for the geographic map.'
 			records.value = []
-		} finally {
-			isRecordsLoading.value = false
 		}
 	}
 
 	async function loadMunicipalityBarangayCounts() {
 		try {
-			const provinces = await getAllProvinces()
-			const province = provinces.find((entry: { name?: string; code?: string }) => normalizeText(entry.name) === normalizeText('Agusan del Sur'))
+			const counts = await getOrSetPersistentCache(GEOGRAPHIC_PSGC_CACHE_KEY, GEOGRAPHIC_CACHE_TTL_MS, async () => {
+				const provinces = await getAllProvinces()
+				const province = provinces.find((entry: { name?: string; code?: string }) => normalizeText(entry.name) === normalizeText('Agusan del Sur'))
 
-			if (!province?.code) {
-				psgcMunicipalityBarangayCounts.value = []
-				return
-			}
+				if (!province?.code) {
+					return []
+				}
 
-			const municipalitiesFromPsgc = await getCities(province.code)
-			const counts = await Promise.all(
-				municipalitiesFromPsgc.map(async (municipality: { name?: string; code?: string }) => {
-					if (!municipality.code || !municipality.name) {
-						return null
-					}
+				const municipalitiesFromPsgc = await getCities(province.code)
+				const municipalityCounts = await Promise.all(
+					municipalitiesFromPsgc.map(async (municipality: { name?: string; code?: string }) => {
+						if (!municipality.code || !municipality.name) {
+							return null
+						}
 
-					const barangays = await getBarangays(municipality.code)
-					return {
-						name: municipality.name.trim(),
-						barangays: barangays.length,
-					}
-				})
-			)
+						const barangays = await getBarangays(municipality.code)
+						return {
+							name: municipality.name.trim(),
+							barangays: barangays.length,
+						}
+					})
+				)
 
-			psgcMunicipalityBarangayCounts.value = counts.filter((value): value is MunicipalityBarangayCount => Boolean(value))
+				return municipalityCounts.filter((value): value is MunicipalityBarangayCount => Boolean(value))
+			})
+
+			psgcMunicipalityBarangayCounts.value = counts
 		} catch (error) {
 			console.error('Failed to load PSGC municipality barangay counts:', error)
-			psgcMunicipalityBarangayCounts.value = []
 		}
 	}
 
 	async function refreshRecords() {
-		await Promise.all([
+		const shouldShowLoading = cachedProfiles === null || cachedMunicipalityCounts === null
+		isRecordsLoading.value = shouldShowLoading
+		try {
+			await Promise.all([
 			loadAllProfiles(),
 			loadMunicipalityBarangayCounts(),
-		])
+			])
+		} finally {
+			isRecordsLoading.value = false
+		}
 	}
 
 	watch(

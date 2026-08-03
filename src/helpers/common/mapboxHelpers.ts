@@ -4,6 +4,7 @@ export interface MapCoordinates {
 }
 
 export const DEFAULT_MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12'
+const MAPBOX_GEOCODE_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
 
 export const DEFAULT_MAP_CENTER: MapCoordinates = {
 	latitude: 8.55251025178305,
@@ -11,6 +12,43 @@ export const DEFAULT_MAP_CENTER: MapCoordinates = {
 }
 
 const geocodeCache = new Map<string, MapCoordinates | null>()
+
+function canUseLocalStorage() {
+	return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+}
+
+function getCachedGeocode(query: string) {
+	if (!canUseLocalStorage()) return undefined
+
+	try {
+		const rawValue = window.localStorage.getItem(`mapbox-geocode:${query}`)
+		if (!rawValue) return undefined
+
+		const parsedValue = JSON.parse(rawValue) as { expiresAt: number; value: MapCoordinates | null }
+		if (!parsedValue || typeof parsedValue.expiresAt !== 'number') return undefined
+		if (Date.now() > parsedValue.expiresAt) {
+			window.localStorage.removeItem(`mapbox-geocode:${query}`)
+			return undefined
+		}
+
+		return parsedValue.value
+	} catch {
+		return undefined
+	}
+}
+
+function setCachedGeocode(query: string, value: MapCoordinates | null) {
+	if (!canUseLocalStorage()) return
+
+	try {
+		window.localStorage.setItem(
+			`mapbox-geocode:${query}`,
+			JSON.stringify({ expiresAt: Date.now() + MAPBOX_GEOCODE_CACHE_TTL_MS, value })
+		)
+	} catch {
+		// Ignore storage failures.
+	}
+}
 
 export function resolveMapboxToken(token?: string | null) {
 	return (token ?? import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '').trim()
@@ -75,6 +113,12 @@ export async function geocodeMapboxLocation(query: string, token: string) {
 		return geocodeCache.get(normalizedQuery) ?? null
 	}
 
+	const persistentCache = getCachedGeocode(normalizedQuery)
+	if (persistentCache !== undefined) {
+		geocodeCache.set(normalizedQuery, persistentCache)
+		return persistentCache
+	}
+
 	const endpoint = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(normalizedQuery)}.json`)
 	endpoint.searchParams.set('access_token', token)
 	endpoint.searchParams.set('limit', '1')
@@ -85,6 +129,7 @@ export async function geocodeMapboxLocation(query: string, token: string) {
 		const response = await fetch(endpoint.toString())
 		if (!response.ok) {
 			geocodeCache.set(normalizedQuery, null)
+			setCachedGeocode(normalizedQuery, null)
 			return null
 		}
 
@@ -93,6 +138,7 @@ export async function geocodeMapboxLocation(query: string, token: string) {
 
 		if (!Array.isArray(center) || center.length < 2) {
 			geocodeCache.set(normalizedQuery, null)
+			setCachedGeocode(normalizedQuery, null)
 			return null
 		}
 
@@ -103,13 +149,16 @@ export async function geocodeMapboxLocation(query: string, token: string) {
 
 		if (Number.isNaN(coordinates.latitude) || Number.isNaN(coordinates.longitude)) {
 			geocodeCache.set(normalizedQuery, null)
+			setCachedGeocode(normalizedQuery, null)
 			return null
 		}
 
 		geocodeCache.set(normalizedQuery, coordinates)
+		setCachedGeocode(normalizedQuery, coordinates)
 		return coordinates
 	} catch {
 		geocodeCache.set(normalizedQuery, null)
+		setCachedGeocode(normalizedQuery, null)
 		return null
 	}
 }
