@@ -36,7 +36,7 @@ const {
     <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <div class="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
         <div class="shrink-0 border-b px-4 py-3">
-          <h2 class="text-base font-semibold">Municipality Summary</h2>
+          <h2 class="text-base font-semibold">Summary</h2>
         </div>
 
         <div class="min-h-0 flex-1 overflow-auto">
