@@ -1,6 +1,6 @@
 import { computed, createApp, h, nextTick, onBeforeUnmount, onMounted, ref, unref, watch, type MaybeRef, type Ref } from 'vue'
 import mapboxgl from 'mapbox-gl'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { userAccountService } from '@/services/admin/userAccountService'
 import {
 	DEFAULT_MAP_CENTER,
@@ -36,6 +36,12 @@ type MapboxMarkerHandle = {
 interface DirectoryMarkerEntry {
 	marker: MapboxMarkerHandle
 	app: MarkerAppHandle
+}
+
+interface MunicipalityMarkerGroup {
+	key: string
+	label: string
+	records: ProfileRow[]
 }
 
 function normalizeText(value?: string | null) {
@@ -85,6 +91,38 @@ function offsetDuplicateCoordinates(coordinates: MapCoordinates, occurrence: num
 		latitude: coordinates.latitude + Math.sin(angle) * distance,
 		longitude: coordinates.longitude + Math.cos(angle) * distance,
 	}
+}
+
+function getMunicipalityKey(record: ProfileRow) {
+	return [normalizeText(record.geographic), normalizeText(record.province), normalizeText(record.region)]
+		.filter(Boolean)
+		.join(':')
+}
+
+function getMunicipalityLabel(record: ProfileRow) {
+	return record.geographic?.trim() || 'Unknown municipality'
+}
+
+function groupRecordsByMunicipality(records: ProfileRow[]) {
+	const groups = new Map<string, MunicipalityMarkerGroup>()
+
+	for (const record of records) {
+		const municipalityKey = getMunicipalityKey(record)
+		const groupKey = municipalityKey || `record:${record.id}`
+		const existing = groups.get(groupKey)
+		if (existing) {
+			existing.records.push(record)
+			continue
+		}
+
+		groups.set(groupKey, {
+			key: groupKey,
+			label: getMunicipalityLabel(record),
+			records: [record],
+		})
+	}
+
+	return [...groups.values()]
 }
 
 export function useGeographicMap(options: UseGeographicMapOptions = {}) {
@@ -162,28 +200,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		markerEntries.value = []
 	}
 
-	function getRecordCoordinateKey(record: ProfileRow) {
-		return `${record.id}:${record.role ?? ''}:${record.status ?? ''}:${record.geographic ?? ''}:${record.barangay ?? ''}:${record.province ?? ''}:${record.region ?? ''}`
-	}
-
-	async function resolveRecordCoordinates(record: ProfileRow) {
-		const cacheKey = getRecordCoordinateKey(record)
-		if (coordinateCache.has(cacheKey)) {
-			return coordinateCache.get(cacheKey) ?? null
-		}
-
-		const query = buildLocationQuery([
-			record.barangay,
-			record.geographic,
-			record.province,
-			record.region,
-		])
-
-		const coordinates = query ? await geocodeMapboxLocation(query, mapboxToken) : null
-		coordinateCache.set(cacheKey, coordinates)
-		return coordinates
-	}
-
 	async function resolveSelectionCoordinates() {
 		if (viewMode.value === 'barangay' && selectedBarangay.value) {
 			return geocodeMapboxLocation(
@@ -199,24 +215,56 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		return null
 	}
 
-	function buildAvatarMarker(record: ProfileRow, coordinates: MapCoordinates): DirectoryMarkerEntry {
-		const displayName = getDisplayName(record)
-		const initials = getInitials(displayName)
-		const avatarSrc = record.avatarUrl ?? ''
+	function buildAvatarMarker(group: MunicipalityMarkerGroup, coordinates: MapCoordinates): DirectoryMarkerEntry {
 		const mountPoint = document.createElement('div')
 		mountPoint.className = 'pointer-events-auto'
 
 		const app = createApp({
 			render() {
+				const visibleRecords = group.records.slice(0, 4)
+				const hiddenCount = Math.max(group.records.length - visibleRecords.length, 0)
 				return h(
-					Avatar,
-					{ class: 'size-11 border-2 border-white shadow-lg shadow-black/20 ring-1 ring-black/10' },
-					{
-						default: () => [
-							avatarSrc ? h(AvatarImage, { src: avatarSrc, alt: displayName }) : null,
-							h(AvatarFallback, null, { default: () => initials }),
-						],
-					}
+					'div',
+					{ class: 'flex flex-col items-center gap-1' },
+					[
+						h(
+							AvatarGroup,
+							{ class: 'items-center rounded-full bg-background/90 p-0.5 shadow-lg shadow-black/20 ring-1 ring-black/10 backdrop-blur-sm' },
+							{
+								default: () => [
+									...visibleRecords.map((record) => {
+										const displayName = getDisplayName(record)
+										const initials = getInitials(displayName)
+										const avatarSrc = record.avatarUrl ?? ''
+
+										return h(
+											Avatar,
+											{ class: 'size-7 border-2 border-white shadow-sm shadow-black/20' },
+											{
+												default: () => [
+													avatarSrc ? h(AvatarImage, { src: avatarSrc, alt: displayName }) : null,
+													h(AvatarFallback, null, { default: () => initials }),
+												],
+											}
+										)
+									}),
+									hiddenCount > 0
+										? h(AvatarGroupCount, { class: 'size-9 text-[10px] font-semibold' }, { default: () => `+${hiddenCount}` })
+										: null,
+								],
+							}
+						),
+						h(
+							'p',
+							{ class: 'max-w-28 truncate rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm ring-1 ring-black/5' },
+							group.label
+						),
+						h(
+							'p',
+							{ class: 'max-w-28 truncate text-[10px] font-medium text-muted-foreground' },
+							`Total User: ${group.records.length}`
+						),
+					]
 				)
 			},
 		})
@@ -286,26 +334,27 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			clearMarkers()
 
 			const visibleRecords = filteredRecords.value
+			const municipalityGroups = groupRecordsByMunicipality(visibleRecords)
 			const resolvedEntries: Array<{
-				record: ProfileRow
+				group: MunicipalityMarkerGroup
 				coordinates: MapCoordinates | null
 			}> = await Promise.all(
-				visibleRecords.map(async (record) => ({
-					record,
-					coordinates: await resolveRecordCoordinates(record),
+				municipalityGroups.map(async (group) => ({
+					group,
+					coordinates: await resolveSelectionCoordinatesForGroup(group),
 				}))
 			)
 
 			const markerCoordinates: MapCoordinates[] = []
 			const coordinateUsage = new Map<string, number>()
 			for (const entry of resolvedEntries) {
-				const baseCoordinates = entry.coordinates ?? createFallbackCoordinates(entry.record, markerCoordinates.length)
+				const baseCoordinates = entry.coordinates ?? createFallbackCoordinates(entry.group.records[0], markerCoordinates.length)
 				const coordinateKey = `${baseCoordinates.latitude.toFixed(5)}:${baseCoordinates.longitude.toFixed(5)}`
 				const occurrence = coordinateUsage.get(coordinateKey) ?? 0
 				coordinateUsage.set(coordinateKey, occurrence + 1)
 				const finalCoordinates = offsetDuplicateCoordinates(baseCoordinates, occurrence)
 				markerCoordinates.push(finalCoordinates)
-				const markerEntry: DirectoryMarkerEntry = buildAvatarMarker(entry.record, finalCoordinates)
+				const markerEntry: DirectoryMarkerEntry = buildAvatarMarker(entry.group, finalCoordinates)
 				markerEntries.value.push(markerEntry)
 			}
 
@@ -335,6 +384,25 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		} finally {
 			isGeocoding.value = false
 		}
+	}
+
+	async function resolveSelectionCoordinatesForGroup(group: MunicipalityMarkerGroup) {
+		const firstRecord = group.records[0]
+		if (!firstRecord) return null
+
+		const cacheKey = `municipality:${getMunicipalityKey(firstRecord) || firstRecord.id}`
+		if (coordinateCache.has(cacheKey)) {
+			return coordinateCache.get(cacheKey) ?? null
+		}
+
+		const query = buildLocationQuery([
+			firstRecord.geographic,
+			firstRecord.province,
+			firstRecord.region,
+		])
+		const coordinates = query ? await geocodeMapboxLocation(query, mapboxToken) : null
+		coordinateCache.set(cacheKey, coordinates)
+		return coordinates
 	}
 
 	function initializeMap() {
