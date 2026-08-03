@@ -202,6 +202,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	function buildAvatarMarker(record: ProfileRow, coordinates: MapCoordinates): DirectoryMarkerEntry {
 		const displayName = getDisplayName(record)
 		const initials = getInitials(displayName)
+		const avatarSrc = record.avatarUrl ?? ''
 		const mountPoint = document.createElement('div')
 		mountPoint.className = 'pointer-events-auto'
 
@@ -212,7 +213,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 					{ class: 'size-11 border-2 border-white shadow-lg shadow-black/20 ring-1 ring-black/10' },
 					{
 						default: () => [
-								h(AvatarImage, { src: '', alt: displayName }),
+							avatarSrc ? h(AvatarImage, { src: avatarSrc, alt: displayName }) : null,
 							h(AvatarFallback, null, { default: () => initials }),
 						],
 					}

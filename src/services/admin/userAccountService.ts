@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
+import { mediaService } from '@/services/common/mediaService'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
@@ -24,6 +25,26 @@ export const userAccountService = {
       return []
     }
 
+    const profileIds = profiles.map((profile) => profile.id)
+    const { data: mediaRows } = await supabase
+      .schema('core')
+      .from('profile_media')
+      .select('*')
+      .in('profile_id', profileIds)
+      .order('created_at', { ascending: false })
+
+    const avatarMap = new Map<string, string>()
+    if (mediaRows && Array.isArray(mediaRows)) {
+      for (const media of mediaRows) {
+        if (!media?.profile_id || avatarMap.has(media.profile_id)) continue
+        const avatarSource = media as typeof media & { public_url?: string | null }
+        const avatarUrl = avatarSource.public_url || (media.path ? mediaService.getPublicUrl(media.path) : null)
+        if (avatarUrl) {
+          avatarMap.set(media.profile_id, avatarUrl)
+        }
+      }
+    }
+
     // Fetch all user emails via a SECURITY DEFINER database function
     // that reads from auth.users (not accessible directly from the client).
     try {
@@ -36,13 +57,18 @@ export const userAccountService = {
         return profiles.map((p) => ({
           ...p,
           email: emailMap.get(p.id) ?? null,
+          avatarUrl: avatarMap.get(p.id) ?? null,
         })) as ProfileRow[]
       }
     } catch {
       // RPC not available – fall through gracefully
     }
 
-    return profiles.map((p) => ({ ...p, email: null as string | null })) as ProfileRow[]
+    return profiles.map((p) => ({
+      ...p,
+      email: null as string | null,
+      avatarUrl: avatarMap.get(p.id) ?? null,
+    })) as ProfileRow[]
   },
 
   async createProfile(payload: CreateAccountPayload): Promise<ProfileRow> {
