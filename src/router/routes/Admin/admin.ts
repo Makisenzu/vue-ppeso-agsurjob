@@ -53,9 +53,27 @@ export const adminRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'geographic-data',
-        name: 'geographic-data',
-        component: () => import('@/components/admin/management/geographic/GeographicData.vue'),
+        meta: { breadcrumb: 'Geographic Data', breadcrumbTo: { name: 'geographic-data' } },
+        children: [
+          {
+            path: '',
+            name: 'geographic-data',
+            component: () => import('@/components/admin/management/geographic/GeographicData.vue'),
+            meta: { breadcrumb: false },
+          },
+          {
+            path: ':id',
+            name: 'geographic-data-details',
+            component: () => import('@/components/admin/management/geographic/MunicipalityData.vue'),
+            meta: { breadcrumb: 'Municipality Data' },
+          },
+        ],
       },
+      // {
+      //   path: 'geographic-data',
+      //   name: 'geographic-data',
+      //   component: () => import('@/components/admin/management/geographic/GeographicData.vue'),
+      // },
     ],
   },
 ]

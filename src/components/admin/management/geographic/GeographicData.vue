@@ -3,6 +3,7 @@ import { Eye, RefreshCw } from '@lucide/vue'
 
 import MapboxMap from './MapboxMap.vue'
 import { useGeographicMap } from '@/composables/admin/useGeographicMap'
+import { useRouter } from 'vue-router'
 
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -15,6 +16,12 @@ const {
   selectedProvince,
   selectedMunicipality,
 } = useGeographicMap()
+const router = useRouter()
+
+function gotoMunicipality(name: string) {
+  // navigate to details route for municipality
+  void router.push({ name: 'geographic-data-details', params: { id: encodeURIComponent(name) } })
+}
 </script>
 
 <template>
@@ -62,7 +69,7 @@ const {
                   <TableCell class="text-right">{{ row.barangays }}</TableCell>
                   <TableCell class="text-right">{{ row.users }}</TableCell>
                   <TableCell class="text-right">
-                    <Button size="sm" variant="ghost" @click="selectMunicipality(row.name)">
+                    <Button size="sm" variant="ghost" @click="gotoMunicipality(row.name)">
                       <Eye class="h-4 w-4" />
                       <span class="ml-2">View</span>
                     </Button>
