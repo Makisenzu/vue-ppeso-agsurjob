@@ -121,23 +121,23 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
         ])
       },
     },
-    {
-      accessorKey: 'email',
-      header: ({ column }) => {
-        return h(
-          Button,
-          {
-            variant: 'ghost',
-            onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-          },
-          () => ['Email', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })]
-        )
-      },
-      cell: ({ row }) => {
-        const email = row.original.email
-        return h('div', { class: 'lowercase text-muted-foreground font-mono text-xs' }, email || 'N/A')
-      },
-    },
+    // {
+    //   accessorKey: 'email',
+    //   header: ({ column }) => {
+    //     return h(
+    //       Button,
+    //       {
+    //         variant: 'ghost',
+    //         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+    //       },
+    //       () => ['Email', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })]
+    //     )
+    //   },
+    //   cell: ({ row }) => {
+    //     const email = row.original.email
+    //     return h('div', { class: 'lowercase text-muted-foreground font-mono text-xs' }, email || 'N/A')
+    //   },
+    // },
     {
       accessorKey: 'role',
       header: 'Role',
@@ -194,27 +194,27 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
         )
       },
     },
-    {
-      accessorKey: 'contact_number',
-      header: 'Contact',
-      cell: ({ row }) => h('div', { class: 'text-sm' }, row.getValue('contact_number') || 'N/A'),
-    },
+    // {
+    //   accessorKey: 'contact_number',
+    //   header: 'Contact',
+    //   cell: ({ row }) => h('div', { class: 'text-sm' }, row.getValue('contact_number') || 'N/A'),
+    // },
     {
       accessorKey: 'region',
       header: 'Region',
       filterFn: 'equalsString',
       cell: ({ row }) => h('div', { class: 'text-sm truncate max-w-[150px]' }, row.getValue('region') || 'N/A'),
     },
-    // {
-    //   accessorKey: 'province',
-    //   header: 'Location',
-    //   filterFn: 'equalsString',
-    //   cell: ({ row }) => {
-    //     const p = row.original
-    //     const loc = p.province || p.companyDetails?.company_address || p.geographic || 'N/A'
-    //     return h('div', { class: 'text-sm truncate max-w-[150px]' }, loc)
-    //   },
-    // },
+    {
+      accessorKey: 'province',
+      header: 'Province',
+      filterFn: 'equalsString',
+      cell: ({ row }) => {
+        const p = row.original
+        const loc = p.province || p.companyDetails?.company_address || p.geographic || 'N/A'
+        return h('div', { class: 'text-sm truncate max-w-[150px]' }, loc)
+      },
+    },
     {
       accessorKey: 'geographic',
       header: 'City / Municipality',
