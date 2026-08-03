@@ -13,6 +13,41 @@ import {
 } from '@/helpers/common/mapboxHelpers'
 import type { ProfileRow } from '@/types/admin/userAccounts'
 
+const AGUSAN_DEL_SUR_MUNICIPALITIES: JumpLocationEntry[] = [
+	{ province: 'Agusan del Sur', municipality: 'City of Bayugan', latitude: 8.714579545754654, longitude: 125.74815761294684 },
+	{ province: 'Agusan del Sur', municipality: 'Bunawan', latitude: 8.175856177177328, longitude: 125.99440939690173 },
+	{ province: 'Agusan del Sur', municipality: 'Esperanza', latitude: 8.67636777814262, longitude: 125.6456281225687 },
+	{ province: 'Agusan del Sur', municipality: 'La Paz', latitude: 8.279508687215753, longitude: 125.81538651624723 },
+	{ province: 'Agusan del Sur', municipality: 'Loreto', latitude: 8.186649968514885, longitude: 125.85303978101459 },
+	{ province: 'Agusan del Sur', municipality: 'Prosperidad', latitude: 8.605781769060076, longitude: 125.91316083036553 },
+	{ province: 'Agusan del Sur', municipality: 'Rosario', latitude: 8.38597635304188, longitude: 126.00251397352055 },
+	{ province: 'Agusan del Sur', municipality: 'San Francisco', latitude: 8.505163822596515, longitude: 125.97695600151802 },
+	{ province: 'Agusan del Sur', municipality: 'San Luis', latitude: 8.477717564524182, longitude: 125.74466737311792 },
+	{ province: 'Agusan del Sur', municipality: 'Santa Josefa', latitude: 7.991982, longitude: 126.003941 },
+	{ province: 'Agusan del Sur', municipality: 'Sibagat', latitude: 8.820286, longitude: 125.977841 },
+	{ province: 'Agusan del Sur', municipality: 'Talacogon', latitude: 8.450263774712683, longitude: 125.78592465151321 },
+	{ province: 'Agusan del Sur', municipality: 'Trento', latitude: 8.044078940694366, longitude: 126.06278599367083 },
+	{ province: 'Agusan del Sur', municipality: 'Veruela', latitude: 8.028639, longitude: 125.944172 },
+]
+
+const DEFAULT_PROVINCE_LOCATIONS: JumpLocationEntry[] = [
+	{ province: 'Agusan del Sur', latitude: 8.55251025178305, longitude: 125.94684817739258 },
+]
+
+const DEFAULT_MUNICIPALITY_LOCATIONS: JumpLocationEntry[] = AGUSAN_DEL_SUR_MUNICIPALITIES
+
+const DEFAULT_BARANGAY_LOCATIONS: JumpLocationEntry[] = []
+
+const AGUSAN_DEL_SUR_MUNICIPALITY_INDEX = new Map(
+	AGUSAN_DEL_SUR_MUNICIPALITIES.map((location) => [normalizeText(location.municipality), location])
+)
+
+interface JumpLocationEntry extends MapCoordinates {
+	province?: string
+	municipality?: string
+	barangay?: string
+}
+
 interface UseGeographicMapOptions {
 	mapContainer?: Ref<HTMLDivElement | null>
 	latitude?: MaybeRef<number | null>
@@ -21,9 +56,12 @@ interface UseGeographicMapOptions {
 	zoom?: MaybeRef<number>
 	style?: MaybeRef<string | null | undefined>
 	defaultCenter?: MapCoordinates
+	provinceLocations?: MaybeRef<JumpLocationEntry[] | null | undefined>
+	municipalityLocations?: MaybeRef<JumpLocationEntry[] | null | undefined>
+	barangayLocations?: MaybeRef<JumpLocationEntry[] | null | undefined>
 }
 
-type ViewMode = 'all' | 'municipalities' | 'barangay'
+	type ViewMode = 'all' | 'municipalities' | 'barangay'
 
 type MarkerAppHandle = {
 	unmount: () => void
@@ -46,6 +84,14 @@ interface MunicipalityMarkerGroup {
 
 function normalizeText(value?: string | null) {
 	return value?.trim().toLowerCase() ?? ''
+}
+
+function matchesText(left?: string | null, right?: string | null) {
+	return normalizeText(left) === normalizeText(right)
+}
+
+function findAgusanDelSurMunicipalityLocation(municipality?: string | null) {
+	return AGUSAN_DEL_SUR_MUNICIPALITY_INDEX.get(normalizeText(municipality)) ?? null
 }
 
 function getDisplayName(record: ProfileRow) {
@@ -135,7 +181,11 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const mapboxToken = resolveMapboxToken()
 	const mapStyle = computed(() => resolveMapboxStyle(unref(options.style) ?? DEFAULT_MAPBOX_STYLE))
 	const defaultCenter = computed(() => options.defaultCenter ?? DEFAULT_MAP_CENTER)
+	const provinceLocationEntries = computed(() => unref(options.provinceLocations) ?? DEFAULT_PROVINCE_LOCATIONS)
+	const municipalityLocationEntries = computed(() => unref(options.municipalityLocations) ?? DEFAULT_MUNICIPALITY_LOCATIONS)
+	const barangayLocationEntries = computed(() => unref(options.barangayLocations) ?? DEFAULT_BARANGAY_LOCATIONS)
 	const viewMode = ref<ViewMode>('all')
+	const selectedProvince = ref<string>('')
 	const selectedMunicipality = ref<string>('')
 	const selectedBarangay = ref<string>('')
 	const isReady = ref(false)
@@ -148,7 +198,20 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const municipalities = computed(() => {
 		const seen = new Map<string, { name: string; count: number }>()
 		for (const record of records.value) {
+			if (selectedProvince.value && normalizeText(record.province) !== normalizeText(selectedProvince.value)) continue
 			const name = record.geographic?.trim()
+			if (!name) continue
+			const key = normalizeText(name)
+			const entry = seen.get(key)
+			seen.set(key, entry ? { ...entry, count: entry.count + 1 } : { name, count: 1 })
+		}
+		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
+	})
+
+	const provinces = computed(() => {
+		const seen = new Map<string, { name: string; count: number }>()
+		for (const record of records.value) {
+			const name = record.province?.trim()
 			if (!name) continue
 			const key = normalizeText(name)
 			const entry = seen.get(key)
@@ -161,6 +224,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		if (!selectedMunicipality.value) return []
 		const seen = new Map<string, { name: string; count: number }>()
 		for (const record of records.value) {
+			if (selectedProvince.value && normalizeText(record.province) !== normalizeText(selectedProvince.value)) continue
 			if (normalizeText(record.geographic) !== normalizeText(selectedMunicipality.value)) continue
 			const name = record.barangay?.trim()
 			if (!name) continue
@@ -172,25 +236,57 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	})
 
 	const filteredRecords = computed(() => {
-		if (viewMode.value === 'all') return records.value
 		return records.value.filter((record) => {
+			const matchesProvince = !selectedProvince.value
+				|| normalizeText(record.province) === normalizeText(selectedProvince.value)
 			const matchesMunicipality = !selectedMunicipality.value
 				|| normalizeText(record.geographic) === normalizeText(selectedMunicipality.value)
-			const matchesBarangay = viewMode.value !== 'barangay'
-				|| !selectedBarangay.value
+			const matchesBarangay = !selectedBarangay.value
 				|| normalizeText(record.barangay) === normalizeText(selectedBarangay.value)
-			return matchesMunicipality && matchesBarangay
+			return matchesProvince && matchesMunicipality && matchesBarangay
 		})
 	})
 
 	const totalUsers = computed(() => filteredRecords.value.length)
 	const selectedLocationLabel = computed(() => {
-		if (viewMode.value === 'barangay' && selectedBarangay.value) return selectedBarangay.value
+		if (selectedBarangay.value) return selectedBarangay.value
 		if (selectedMunicipality.value) return selectedMunicipality.value
+		if (selectedProvince.value) return selectedProvince.value
 		return 'All locations'
 	})
 	const hasLocation = computed(() => filteredRecords.value.length > 0)
 	const coordinateCache = new Map<string, MapCoordinates | null>()
+
+	function findProvinceOverride(province?: string | null) {
+		const locations = provinceLocationEntries.value
+		return locations.find((location) => matchesText(location.province, province)) ?? null
+	}
+
+	function findMunicipalityOverride(province?: string | null, municipality?: string | null) {
+		const locations = municipalityLocationEntries.value
+		const municipalityMatches = locations.filter((location) => matchesText(location.municipality, municipality))
+		if (municipalityMatches.length === 0) return null
+
+		if (!province) {
+			return municipalityMatches[0] ?? null
+		}
+
+		return (
+			municipalityMatches.find((location) => !location.province || matchesText(location.province, province))
+			?? municipalityMatches[0]
+			?? null
+		)
+	}
+
+	function findBarangayOverride(province?: string | null, municipality?: string | null, barangay?: string | null) {
+		const locations = barangayLocationEntries.value
+		return locations.find((location) => {
+			if (!matchesText(location.barangay, barangay)) return false
+			if (location.province && !matchesText(location.province, province)) return false
+			if (location.municipality && !matchesText(location.municipality, municipality)) return false
+			return true
+		}) ?? null
+	}
 
 	function clearMarkers() {
 		for (const entry of markerEntries.value) {
@@ -201,15 +297,43 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	}
 
 	async function resolveSelectionCoordinates() {
-		if (viewMode.value === 'barangay' && selectedBarangay.value) {
+		if (selectedBarangay.value) {
+			const barangayOverride = findBarangayOverride(selectedProvince.value, selectedMunicipality.value, selectedBarangay.value)
+			if (barangayOverride) return barangayOverride
+
+			const municipalityOverride = findMunicipalityOverride(selectedProvince.value, selectedMunicipality.value)
+			if (municipalityOverride) return municipalityOverride
+
+			const provinceOverride = findProvinceOverride(selectedProvince.value)
+			if (provinceOverride) return provinceOverride
+
 			return geocodeMapboxLocation(
-				buildLocationQuery([selectedBarangay.value, selectedMunicipality.value]),
+				buildLocationQuery([selectedBarangay.value, selectedMunicipality.value, selectedProvince.value]),
 				mapboxToken
 			)
 		}
 
 		if (selectedMunicipality.value) {
-			return geocodeMapboxLocation(buildLocationQuery([selectedMunicipality.value]), mapboxToken)
+			const municipalityListOverride = findAgusanDelSurMunicipalityLocation(selectedMunicipality.value)
+			if (municipalityListOverride) return municipalityListOverride
+
+			const municipalityOverride = findMunicipalityOverride(selectedProvince.value, selectedMunicipality.value)
+			if (municipalityOverride) return municipalityOverride
+
+			const municipalityOnlyOverride = findMunicipalityOverride(null, selectedMunicipality.value)
+			if (municipalityOnlyOverride) return municipalityOnlyOverride
+
+			const provinceOverride = findProvinceOverride(selectedProvince.value)
+			if (provinceOverride) return provinceOverride
+
+			return geocodeMapboxLocation(buildLocationQuery([selectedMunicipality.value, selectedProvince.value]), mapboxToken)
+		}
+
+		if (selectedProvince.value) {
+			const provinceOverride = findProvinceOverride(selectedProvince.value)
+			if (provinceOverride) return provinceOverride
+
+			return geocodeMapboxLocation(buildLocationQuery([selectedProvince.value]), mapboxToken)
 		}
 
 		return null
@@ -303,7 +427,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			const only = markerCoordinates[0]
 			map.value.flyTo({
 				center: [only.longitude, only.latitude],
-				zoom: 12,
+				zoom: 10,
 				duration: 900,
 			})
 			return
@@ -358,9 +482,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 				markerEntries.value.push(markerEntry)
 			}
 
-			// On the very first refresh (initial load), preserve initial
-			// center/zoom set during map initialization. Subsequent calls
-			// (filter changes, selections) will perform fly/fit behavior.
 			if (initialLoad.value) {
 				initialLoad.value = false
 				return
@@ -395,6 +516,30 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			return coordinateCache.get(cacheKey) ?? null
 		}
 
+		const municipalityListOverride = findAgusanDelSurMunicipalityLocation(firstRecord.geographic)
+		if (municipalityListOverride) {
+			coordinateCache.set(cacheKey, municipalityListOverride)
+			return municipalityListOverride
+		}
+
+		const municipalityOverride = findMunicipalityOverride(firstRecord.province, firstRecord.geographic)
+		if (municipalityOverride) {
+			coordinateCache.set(cacheKey, municipalityOverride)
+			return municipalityOverride
+		}
+
+		const municipalityOnlyOverride = findMunicipalityOverride(null, firstRecord.geographic)
+		if (municipalityOnlyOverride) {
+			coordinateCache.set(cacheKey, municipalityOnlyOverride)
+			return municipalityOnlyOverride
+		}
+
+		const provinceOverride = findProvinceOverride(firstRecord.province)
+		if (provinceOverride) {
+			coordinateCache.set(cacheKey, provinceOverride)
+			return provinceOverride
+		}
+
 		const query = buildLocationQuery([
 			firstRecord.geographic,
 			firstRecord.province,
@@ -414,7 +559,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			style: mapStyle.value,
 			center: [defaultCenter.value.longitude, defaultCenter.value.latitude],
 			zoom: 8,
-			cooperativeGestures: true,
 		})
 
 		window.requestAnimationFrame(() => {
@@ -459,10 +603,13 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		void refreshMap()
 	})
 
+	watch(selectedProvince, () => {
+		selectedMunicipality.value = ''
+		selectedBarangay.value = ''
+	})
+
 	watch(selectedMunicipality, () => {
-		if (viewMode.value !== 'barangay') {
-			selectedBarangay.value = ''
-		}
+		selectedBarangay.value = ''
 	})
 
 	watch(viewMode, (newMode) => {
@@ -491,8 +638,10 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		mapContainer,
 		mapboxToken,
 		viewMode,
+		selectedProvince,
 		selectedMunicipality,
 		selectedBarangay,
+		provinces,
 		municipalities,
 		barangays,
 		filteredRecords,
@@ -501,5 +650,8 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		hasLocation,
 		isLoading: computed(() => isRecordsLoading.value || isGeocoding.value),
 		geoError,
+		defaultProvinceLocations: DEFAULT_PROVINCE_LOCATIONS,
+		defaultMunicipalityLocations: DEFAULT_MUNICIPALITY_LOCATIONS,
+		defaultBarangayLocations: DEFAULT_BARANGAY_LOCATIONS,
 	}
 }

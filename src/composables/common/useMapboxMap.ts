@@ -59,7 +59,6 @@ export function useMapboxMap(options: UseMapboxMapOptions) {
         style: mapStyle.value,
         center: [center.longitude, center.latitude],
         zoom: hasCoordinates.value ? zoom.value : Math.max(zoom.value - 2, 5),
-        cooperativeGestures: true,
       })
 
       map.value.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
