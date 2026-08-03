@@ -73,6 +73,10 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const isGeocoding = ref(false)
 	const geoError = ref<string | null>(null)
 
+	// When true, the map was just created and we should preserve
+	// the initial center/zoom rather than auto-fitting to markers.
+	const initialLoad = ref(true)
+
 	const records = computed(() => store.records.filter((record) => record.status !== 'inactive'))
 	const municipalities = computed(() => {
 		const seen = new Map<string, { name: string; count: number }>()
@@ -280,6 +284,14 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 				markerEntries.value.push(markerEntry)
 			}
 
+			// On the very first refresh (initial load), preserve initial
+			// center/zoom set during map initialization. Subsequent calls
+			// (filter changes, selections) will perform fly/fit behavior.
+			if (initialLoad.value) {
+				initialLoad.value = false
+				return
+			}
+
 			const selectionCoordinates = await resolveSelectionCoordinates()
 			if (selectionCoordinates) {
 				const zoom = viewMode.value === 'barangay' ? 14 : 11
@@ -308,7 +320,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			container: mapContainer.value,
 			style: mapStyle.value,
 			center: [defaultCenter.value.longitude, defaultCenter.value.latitude],
-			zoom: 7,
+			zoom: 8,
 			cooperativeGestures: true,
 		})
 
