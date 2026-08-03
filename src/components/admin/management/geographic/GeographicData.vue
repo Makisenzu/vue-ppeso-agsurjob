@@ -37,7 +37,6 @@ const {
       <div class="min-h-0 overflow-hidden rounded-xl border bg-background shadow-sm">
         <div class="border-b px-4 py-3">
           <h2 class="text-base font-semibold">Municipality Summary</h2>
-          <p class="text-sm text-muted-foreground">Select a municipality to focus the map.</p>
         </div>
 
         <div class="max-h-full overflow-auto">
