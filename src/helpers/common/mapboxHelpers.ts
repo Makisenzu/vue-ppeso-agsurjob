@@ -10,6 +10,8 @@ export const DEFAULT_MAP_CENTER: MapCoordinates = {
 	longitude: 125.94684817739258,
 }
 
+const geocodeCache = new Map<string, MapCoordinates | null>()
+
 export function resolveMapboxToken(token?: string | null) {
 	return (token ?? import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '').trim()
 }
@@ -52,6 +54,63 @@ export function resolveCoordinates(
 	return {
 		latitude: Number(latitude),
 		longitude: Number(longitude),
+	}
+}
+
+export function buildLocationQuery(parts: Array<string | null | undefined>) {
+	const locationParts = parts
+		.map((value) => value?.trim().replace(/\s+/g, ' ') ?? '')
+		.filter(Boolean)
+
+	if (locationParts.length === 0) return ''
+
+	return [...locationParts, 'Philippines'].join(', ')
+}
+
+export async function geocodeMapboxLocation(query: string, token: string) {
+	const normalizedQuery = query.trim()
+	if (!normalizedQuery || !token) return null
+
+	if (geocodeCache.has(normalizedQuery)) {
+		return geocodeCache.get(normalizedQuery) ?? null
+	}
+
+	const endpoint = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(normalizedQuery)}.json`)
+	endpoint.searchParams.set('access_token', token)
+	endpoint.searchParams.set('limit', '1')
+	endpoint.searchParams.set('types', 'place,locality,neighborhood,address')
+	endpoint.searchParams.set('country', 'ph')
+
+	try {
+		const response = await fetch(endpoint.toString())
+		if (!response.ok) {
+			geocodeCache.set(normalizedQuery, null)
+			return null
+		}
+
+		const data = await response.json()
+		const center = data?.features?.[0]?.center
+
+		if (!Array.isArray(center) || center.length < 2) {
+			geocodeCache.set(normalizedQuery, null)
+			return null
+		}
+
+		const coordinates = {
+			longitude: Number(center[0]),
+			latitude: Number(center[1]),
+		}
+
+		if (Number.isNaN(coordinates.latitude) || Number.isNaN(coordinates.longitude)) {
+			geocodeCache.set(normalizedQuery, null)
+			return null
+		}
+
+		geocodeCache.set(normalizedQuery, coordinates)
+		return coordinates
+	} catch {
+		geocodeCache.set(normalizedQuery, null)
+		return null
 	}
 }
 

@@ -1,0 +1,1 @@
+export { useGeographicMap as useGeographicDirectoryMap } from '@/composables/admin/useGeographicMap'
