@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRefs } from 'vue'
+import { ref, toRefs, watch } from 'vue'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useGeographicMap } from '@/composables/admin/useGeographicMap'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -19,6 +19,8 @@ const props = withDefaults(
         label?: string
         zoom?: number
         heightClass?: string
+        selectedProvince?: string
+        selectedMunicipality?: string
         provinceLocations?: JumpLocation[]
         municipalityLocations?: JumpLocation[]
         barangayLocations?: JumpLocation[]
@@ -55,6 +57,22 @@ const {
     municipalityLocations: props.municipalityLocations,
     barangayLocations: props.barangayLocations,
 })
+
+watch(
+    () => props.selectedProvince,
+    (value) => {
+        selectedProvince.value = value?.trim() ?? ''
+    },
+    { immediate: true }
+)
+
+watch(
+    () => props.selectedMunicipality,
+    (value) => {
+        selectedMunicipality.value = value?.trim() ?? ''
+    },
+    { immediate: true }
+)
 </script>
 
 <template>

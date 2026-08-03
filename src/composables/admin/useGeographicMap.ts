@@ -13,7 +13,7 @@ import {
 } from '@/helpers/common/mapboxHelpers'
 import type { ProfileRow } from '@/types/admin/userAccounts'
 
-const AGUSAN_DEL_SUR_MUNICIPALITIES: JumpLocationEntry[] = [
+export const AGUSAN_DEL_SUR_MUNICIPALITIES: JumpLocationEntry[] = [
 	{ province: 'Agusan del Sur', municipality: 'City of Bayugan', latitude: 8.714579545754654, longitude: 125.74815761294684 },
 	{ province: 'Agusan del Sur', municipality: 'Bunawan', latitude: 8.175856177177328, longitude: 125.99440939690173 },
 	{ province: 'Agusan del Sur', municipality: 'Esperanza', latitude: 8.67636777814262, longitude: 125.6456281225687 },
@@ -80,6 +80,12 @@ interface MunicipalityMarkerGroup {
 	key: string
 	label: string
 	records: ProfileRow[]
+}
+
+interface MunicipalitySummaryRow {
+	name: string
+	users: number
+	barangays: number
 }
 
 function normalizeText(value?: string | null) {
@@ -206,6 +212,42 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			seen.set(key, entry ? { ...entry, count: entry.count + 1 } : { name, count: 1 })
 		}
 		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
+	})
+
+	const municipalityRows = computed<MunicipalitySummaryRow[]>(() => {
+		const municipalityNames = new Map<string, string>()
+
+		for (const location of AGUSAN_DEL_SUR_MUNICIPALITIES) {
+			if (!location.municipality) continue
+			municipalityNames.set(normalizeText(location.municipality), location.municipality)
+		}
+
+		for (const record of records.value) {
+			const municipality = record.geographic?.trim()
+			if (!municipality) continue
+			const key = normalizeText(municipality)
+			if (!municipalityNames.has(key)) {
+				municipalityNames.set(key, municipality)
+			}
+		}
+
+		return [...municipalityNames.values()]
+			.sort((left, right) => left.localeCompare(right))
+			.map((name) => {
+				const municipalityRecords = records.value.filter((record) => normalizeText(record.geographic) === normalizeText(name))
+				const barangays = new Set(
+					municipalityRecords
+						.map((record) => record.barangay?.trim())
+						.filter((value): value is string => Boolean(value))
+						.map((value) => normalizeText(value))
+				)
+
+				return {
+					name,
+					users: municipalityRecords.length,
+					barangays: barangays.size,
+				}
+			})
 	})
 
 	const provinces = computed(() => {
@@ -634,6 +676,11 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		map.value = null
 	})
 
+	function selectMunicipality(name: string) {
+		selectedProvince.value = 'Agusan del Sur'
+		selectedMunicipality.value = name
+	}
+
 	return {
 		mapContainer,
 		mapboxToken,
@@ -643,11 +690,14 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		selectedBarangay,
 		provinces,
 		municipalities,
+		municipalityRows,
 		barangays,
 		filteredRecords,
 		totalUsers,
 		selectedLocationLabel,
 		hasLocation,
+		selectMunicipality,
+		refreshRecords: loadAllProfiles,
 		isLoading: computed(() => isRecordsLoading.value || isGeocoding.value),
 		geoError,
 		defaultProvinceLocations: DEFAULT_PROVINCE_LOCATIONS,
