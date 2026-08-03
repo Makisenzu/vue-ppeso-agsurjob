@@ -2,6 +2,7 @@ import { computed, createApp, h, nextTick, onBeforeUnmount, onMounted, ref, unre
 import mapboxgl from 'mapbox-gl'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { userAccountService } from '@/services/admin/userAccountService'
+import { getAllProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
 import {
 	DEFAULT_MAP_CENTER,
 	DEFAULT_MAPBOX_STYLE,
@@ -85,6 +86,11 @@ interface MunicipalityMarkerGroup {
 interface MunicipalitySummaryRow {
 	name: string
 	users: number
+	barangays: number
+}
+
+interface MunicipalityBarangayCount {
+	name: string
 	barangays: number
 }
 
@@ -197,6 +203,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const isReady = ref(false)
 	const isGeocoding = ref(false)
 	const geoError = ref<string | null>(null)
+	const psgcMunicipalityBarangayCounts = ref<MunicipalityBarangayCount[]>([])
 
 	// When true, the map was just created and we should preserve
 	// the initial center/zoom rather than auto-fitting to markers.
@@ -216,6 +223,9 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 
 	const municipalityRows = computed<MunicipalitySummaryRow[]>(() => {
 		const municipalityNames = new Map<string, string>()
+		const barangayCountLookup = new Map(
+			psgcMunicipalityBarangayCounts.value.map((entry) => [normalizeText(entry.name), entry.barangays])
+		)
 
 		for (const location of AGUSAN_DEL_SUR_MUNICIPALITIES) {
 			if (!location.municipality) continue
@@ -235,17 +245,11 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			.sort((left, right) => left.localeCompare(right))
 			.map((name) => {
 				const municipalityRecords = records.value.filter((record) => normalizeText(record.geographic) === normalizeText(name))
-				const barangays = new Set(
-					municipalityRecords
-						.map((record) => record.barangay?.trim())
-						.filter((value): value is string => Boolean(value))
-						.map((value) => normalizeText(value))
-				)
 
 				return {
 					name,
 					users: municipalityRecords.length,
-					barangays: barangays.size,
+					barangays: barangayCountLookup.get(normalizeText(name)) ?? 0,
 				}
 			})
 	})
@@ -622,6 +626,45 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		}
 	}
 
+	async function loadMunicipalityBarangayCounts() {
+		try {
+			const provinces = await getAllProvinces()
+			const province = provinces.find((entry: { name?: string; code?: string }) => normalizeText(entry.name) === normalizeText('Agusan del Sur'))
+
+			if (!province?.code) {
+				psgcMunicipalityBarangayCounts.value = []
+				return
+			}
+
+			const municipalitiesFromPsgc = await getCities(province.code)
+			const counts = await Promise.all(
+				municipalitiesFromPsgc.map(async (municipality: { name?: string; code?: string }) => {
+					if (!municipality.code || !municipality.name) {
+						return null
+					}
+
+					const barangays = await getBarangays(municipality.code)
+					return {
+						name: municipality.name.trim(),
+						barangays: barangays.length,
+					}
+				})
+			)
+
+			psgcMunicipalityBarangayCounts.value = counts.filter((value): value is MunicipalityBarangayCount => Boolean(value))
+		} catch (error) {
+			console.error('Failed to load PSGC municipality barangay counts:', error)
+			psgcMunicipalityBarangayCounts.value = []
+		}
+	}
+
+	async function refreshRecords() {
+		await Promise.all([
+			loadAllProfiles(),
+			loadMunicipalityBarangayCounts(),
+		])
+	}
+
 	watch(
 		() => [mapContainer.value, mapboxToken, mapStyle.value],
 		() => {
@@ -665,7 +708,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	})
 
 	onMounted(async () => {
-		await loadAllProfiles()
+		await refreshRecords()
 		await nextTick()
 		initializeMap()
 	})
@@ -697,7 +740,8 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		selectedLocationLabel,
 		hasLocation,
 		selectMunicipality,
-		refreshRecords: loadAllProfiles,
+		refreshRecords,
+		refreshPsgcMunicipalityCounts: loadMunicipalityBarangayCounts,
 		isLoading: computed(() => isRecordsLoading.value || isGeocoding.value),
 		geoError,
 		defaultProvinceLocations: DEFAULT_PROVINCE_LOCATIONS,

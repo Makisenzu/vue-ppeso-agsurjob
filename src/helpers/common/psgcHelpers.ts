@@ -5,6 +5,11 @@ export const getRegions = async () => {
   return data.data || []
 }
 
+export const getAllProvinces = async () => {
+  const { data } = await psgcApi.get('/provinces/')
+  return data.data || []
+}
+
 export const getProvinces = async (regionCode: string) => {
   const { data } = await psgcApi.get(`/regions/${regionCode}/provinces/`)
   return data.data || []

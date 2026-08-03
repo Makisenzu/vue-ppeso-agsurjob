@@ -74,7 +74,7 @@ const {
         </div>
       </div>
 
-      <div class="min-h-0 w-full overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div class="min-h-0 w-full overflow-hidden">
         <MapboxMap
           height-class="h-full"
           :selected-province="selectedProvince"

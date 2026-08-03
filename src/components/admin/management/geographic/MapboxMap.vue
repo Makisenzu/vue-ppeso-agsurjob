@@ -40,7 +40,6 @@ const mapContainer = ref<HTMLDivElement | null>(null)
 
 const {
     mapboxToken,
-    hasLocation,
     provinces,
     municipalities,
     barangays,
@@ -129,8 +128,6 @@ watch(
 
         <div class="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
             <span class="inline-flex h-1.5 w-1.5 rounded-full bg-primary"></span>
-            <span v-if="hasLocation">Showing the selected geographic location.</span>
-            <span v-else>Default map view is shown until coordinates are provided.</span>
         </div>
 
         <div
