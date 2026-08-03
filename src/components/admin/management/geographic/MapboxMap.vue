@@ -15,7 +15,7 @@ const props = withDefaults(
         latitude: null,
         longitude: null,
         label: 'Geographic location',
-        zoom: 11,
+        zoom: 10,
         heightClass: 'h-[28rem]',
     }
 )
