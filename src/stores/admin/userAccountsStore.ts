@@ -123,9 +123,8 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     errorMessage.value = null
     try {
       const newProfile = await userAccountService.createProfile(payload)
-      // Close sheet immediately
       closeAddAccountSheet()
-      // Prepend newly created profile directly into the local state array (pure AJAX-like immediate UI update)
+      // Prepend newly created profile directly into the local state array
       profiles.value = [newProfile, ...profiles.value]
       toastAlert.success('Account Created', `Account for ${payload.firstname} ${payload.lastname} created successfully.`)
     } catch (err: any) {

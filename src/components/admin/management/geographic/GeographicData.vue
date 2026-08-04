@@ -52,9 +52,9 @@ function gotoMunicipality(name: string) {
                 <TableHead>Municipality</TableHead>
                 <TableHead class="text-right">Barangays</TableHead>
                 <TableHead class="text-right">Total Users</TableHead>
-                <TableHead class="text-right">LowLand</TableHead>
-                <TableHead class="text-right">UpLand</TableHead>
-                <TableHead class="text-right">Action</TableHead>
+                <TableHead class="text-center">Lowland User</TableHead>
+                <TableHead class="text-center">Upland User</TableHead>
+                <TableHead class="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -69,8 +69,8 @@ function gotoMunicipality(name: string) {
                   <TableCell class="font-medium">{{ row.name }}</TableCell>
                   <TableCell class="text-right">{{ row.barangays }}</TableCell>
                   <TableCell class="text-right">{{ row.users }}</TableCell>
-                  <TableCell class="text-right">-</TableCell>
-                  <TableCell class="text-right">-</TableCell>
+                  <TableCell class="text-center">-</TableCell>
+                  <TableCell class="text-center">-</TableCell>
                   <TableCell class="text-right">
                     <Button size="sm" variant="ghost" @click="gotoMunicipality(row.name)">
                       <Eye class="h-4 w-4" />

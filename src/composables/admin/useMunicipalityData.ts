@@ -227,7 +227,6 @@ export function useMunicipalityData(initialMunicipality?: string) {
             barangayTags.set(barangayName, tag)
           }
         } else {
-          // Even if no records found, initialize all barangay entries so they don't show as unclassified
           // Try direct name match against database
           for (const [barangayName, _] of counts.entries()) {
             barangayTags.set(barangayName, null)

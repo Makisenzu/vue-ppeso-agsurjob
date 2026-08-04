@@ -103,7 +103,6 @@ export const systemDirectoryService = {
         empMediaRes,
         profileMediaRes,
       ] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('public').from('requirement_templates').select('id, name')).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('employers').from('companies').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
@@ -115,8 +114,6 @@ export const systemDirectoryService = {
         Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
       ])
-
-      // Build Maps synchronously in JS memory
       const emailMap = new Map<string, string>()
       if (emailRes.data && Array.isArray(emailRes.data)) {
         emailRes.data.forEach((row: { id: string; email: string }) => {
@@ -158,7 +155,7 @@ export const systemDirectoryService = {
         })
       }
 
-      // Process Applicant Documents SYNCHRONOUSLY (Zero await inside loops!)
+      // Process Applicant Documents SYNCHRONOUSLY
       const applicantDocsMap = new Map<string, SubmittedDocument[]>()
       const appReqs = appReqsRes.data || []
       const appMedia = appMediaRes.data || []
