@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { DirectoryProfileRow, SubmittedDocument } from '@/types/admin/systemDirectory'
 import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
-import { getPersistentCacheValue, removePersistentCacheValue } from '@/helpers/common/persistentCache'
+import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
 const SYSTEM_DIRECTORY_CACHE_KEY = 'admin:system-directory:records'
