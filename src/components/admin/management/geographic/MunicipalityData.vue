@@ -30,6 +30,10 @@ onMounted(() => {
 function goBack() {
   router.back()
 }
+
+function handleRefresh() {
+  void loadData(undefined, { forceRefresh: true })
+}
 </script>
 
 <template>
@@ -42,7 +46,7 @@ function goBack() {
 
 			<div class="flex items-center gap-2">
 				<Button variant="ghost" @click="goBack">Back</Button>
-				<Button variant="outline" :disabled="isLoading" @click="loadData">
+				<Button variant="outline" :disabled="isLoading" @click="handleRefresh">
 					Refresh
 				</Button>
 			</div>

@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { userAccountService } from '@/services/admin/userAccountService'
 import { getAllProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
+import { getOrSetPersistentCache, getPersistentCacheValue, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type { Database } from '@/types/database.types'
 
 function normalizeText(value?: string | null) {
@@ -121,16 +122,36 @@ type BarangayRow = {
   lpiiTag: Database['public']['Enums']['lpii_type']
 }
 
+const MUNICIPALITY_CACHE_TTL_MS = 1000 * 60 * 15
+
+function getMunicipalityCacheKey(municipalityName: string) {
+  return `geographic:municipality:${normalizeText(municipalityName)}`
+}
+
 export function useMunicipalityData(initialMunicipality?: string) {
   const municipality = ref(initialMunicipality ?? '')
   const isLoading = ref(false)
   const barangayRows = ref<BarangayRow[]>([])
 
-  async function loadData(name?: string) {
+  async function loadData(name?: string, options?: { forceRefresh?: boolean }) {
     const municipalityName = (name ?? municipality.value) || ''
     if (!municipalityName) {
       barangayRows.value = []
       return
+    }
+
+    municipality.value = municipalityName
+    const cacheKey = getMunicipalityCacheKey(municipalityName)
+
+    if (!options?.forceRefresh) {
+      const cachedRows = getPersistentCacheValue<BarangayRow[]>(cacheKey)
+      if (cachedRows !== null) {
+        barangayRows.value = cachedRows
+        isLoading.value = false
+        return
+      }
+    } else {
+      removePersistentCacheValue(cacheKey)
     }
 
     isLoading.value = true
@@ -219,13 +240,16 @@ export function useMunicipalityData(initialMunicipality?: string) {
         }
       }
 
-      barangayRows.value = Array.from(counts.entries())
+      const nextRows = Array.from(counts.entries())
         .map(([name, users]) => ({
           name,
           users,
           lpiiTag: barangayTags.get(name) ?? 'LOWLAND',
         }))
         .sort((a, b) => a.name.localeCompare(b.name))
+
+      await getOrSetPersistentCache(cacheKey, MUNICIPALITY_CACHE_TTL_MS, async () => nextRows)
+      barangayRows.value = nextRows
     } finally {
       isLoading.value = false
     }
