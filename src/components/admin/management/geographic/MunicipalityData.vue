@@ -55,9 +55,8 @@ function goBack() {
 					<TableHeader>
 						<TableRow>
 							<TableHead>Barangay</TableHead>
+							<TableHead class="text-right">LPII Tagging</TableHead>
 							<TableHead class="text-right">Total Users</TableHead>
-							<TableHead class="text-center">LowLand</TableHead>
-							<TableHead class="text-center">UpLand</TableHead>
 							<TableHead class="text-right">Actions</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -74,9 +73,8 @@ function goBack() {
 						<template v-else-if="tableRows.length">
 							<TableRow v-for="row in tableRows" :key="row.barangay">
 								<TableCell class="font-medium">{{ row.barangay }}</TableCell>
+								<TableCell class="text-right">{{ row.lowLand }}</TableCell>
 								<TableCell class="text-right">{{ row.totalUsers }}</TableCell>
-								<TableCell class="text-center text-muted-foreground">{{ row.lowLand }}</TableCell>
-								<TableCell class="text-center text-muted-foreground">{{ row.upLand }}</TableCell>
 								<TableCell class="text-right">
 									<Button size="sm" variant="ghost" disabled>
 										<Eye class="h-4 w-4" />

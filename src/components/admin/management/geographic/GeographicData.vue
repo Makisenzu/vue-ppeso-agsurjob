@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 const {
   municipalityRows,
   isLoading,
-  selectMunicipality,
   refreshRecords,
   selectedProvince,
   selectedMunicipality,
@@ -52,7 +51,9 @@ function gotoMunicipality(name: string) {
               <TableRow>
                 <TableHead>Municipality</TableHead>
                 <TableHead class="text-right">Barangays</TableHead>
-                <TableHead class="text-right">Users</TableHead>
+                <TableHead class="text-right">Total Users</TableHead>
+                <TableHead class="text-right">LowLand</TableHead>
+                <TableHead class="text-right">UpLand</TableHead>
                 <TableHead class="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -68,6 +69,8 @@ function gotoMunicipality(name: string) {
                   <TableCell class="font-medium">{{ row.name }}</TableCell>
                   <TableCell class="text-right">{{ row.barangays }}</TableCell>
                   <TableCell class="text-right">{{ row.users }}</TableCell>
+                  <TableCell class="text-right">-</TableCell>
+                  <TableCell class="text-right">-</TableCell>
                   <TableCell class="text-right">
                     <Button size="sm" variant="ghost" @click="gotoMunicipality(row.name)">
                       <Eye class="h-4 w-4" />

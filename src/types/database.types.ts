@@ -920,6 +920,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      barangays: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          lpii_tag: Database["public"]["Enums"]["lpii_type"]
+          municipality_id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          lpii_tag?: Database["public"]["Enums"]["lpii_type"]
+          municipality_id: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          lpii_tag?: Database["public"]["Enums"]["lpii_type"]
+          municipality_id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barangays_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           category: string | null
@@ -1105,6 +1140,94 @@ export type Database = {
           },
         ]
       }
+      municipalities: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_city: boolean | null
+          name: string
+          province_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_city?: boolean | null
+          name: string
+          province_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_city?: boolean | null
+          name?: string
+          province_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "municipalities_province_id_fkey"
+            columns: ["province_id"]
+            isOneToOne: false
+            referencedRelation: "provinces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provinces: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+          region_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+          region_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          region_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provinces_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regions: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       requirement_templates: {
         Row: {
           created_at: string
@@ -1153,6 +1276,7 @@ export type Database = {
       company_role_type: "owner" | "admin" | "hr" | "employee"
       gender_type: "male" | "female" | "non-binary" | "prefer_not_to_say"
       job_status_type: "draft" | "active" | "paused" | "closed"
+      lpii_type: "LOWLAND" | "UPLAND" | "WETLAND"
       notification_type:
         | "application_status"
         | "interview_alert"
@@ -1435,6 +1559,7 @@ export const Constants = {
       company_role_type: ["owner", "admin", "hr", "employee"],
       gender_type: ["male", "female", "non-binary", "prefer_not_to_say"],
       job_status_type: ["draft", "active", "paused", "closed"],
+      lpii_type: ["LOWLAND", "UPLAND", "WETLAND"],
       notification_type: [
         "application_status",
         "interview_alert",
