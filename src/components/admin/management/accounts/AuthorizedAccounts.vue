@@ -82,7 +82,7 @@ const {
   isDetailsOpen,
   isAddAccountOpen,
   isEditStatusOpen,
-  fetchProfiles,
+  refreshProfiles,
   openProfileDetails,
   openAddAccountSheet,
   closeAddAccountSheet,
@@ -328,7 +328,7 @@ const handleCreateAccount = async () => {
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" @click="fetchProfiles" :disabled="isLoading">
+        <Button variant="outline" @click="refreshProfiles" :disabled="isLoading">
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
           <span class="hidden sm:inline ml-2">Refresh</span>
         </Button>

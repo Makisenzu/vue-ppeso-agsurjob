@@ -31,13 +31,31 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     isLoading.value = cachedProfiles === null
 
     try {
-      const fetched = await userAccountService.fetchAllProfiles()
+      const fetched = await userAccountService.fetchAllProfiles(false)
       // Re-assign with a new array reference so Vue/Tanstack Table reactivity updates instantly
       profiles.value = [...fetched]
     } catch (err: any) {
       const msg = err.message || 'Failed to load user account profiles.'
       errorMessage.value = msg
       toastAlert.error('Error Loading Profiles', msg)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const refreshProfiles = async () => {
+    errorMessage.value = null
+    isLoading.value = true
+
+    try {
+      const fetched = await userAccountService.fetchAllProfiles(true)
+      // Re-assign with a new array reference so Vue/Tanstack Table reactivity updates instantly
+      profiles.value = [...fetched]
+      toastAlert.success('Data Refreshed', 'User accounts data has been refreshed.')
+    } catch (err: any) {
+      const msg = err.message || 'Failed to refresh user account profiles.'
+      errorMessage.value = msg
+      toastAlert.error('Refresh Failed', msg)
     } finally {
       isLoading.value = false
     }
@@ -135,6 +153,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     isAddAccountOpen,
     isEditStatusOpen,
     fetchProfiles,
+    refreshProfiles,
     openProfileDetails,
     closeProfileDetails,
     openAddAccountSheet,

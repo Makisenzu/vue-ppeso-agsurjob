@@ -46,6 +46,7 @@ export function useUserAccounts(actionTemplateRef?: Component) {
   } = storeToRefs(store)
   const {
     fetchProfiles,
+    refreshProfiles,
     openProfileDetails,
     closeProfileDetails,
     openAddAccountSheet,
@@ -248,6 +249,7 @@ export function useUserAccounts(actionTemplateRef?: Component) {
     isAddAccountOpen,
     isEditStatusOpen,
     fetchProfiles,
+    refreshProfiles,
     openProfileDetails,
     closeProfileDetails,
     openAddAccountSheet,

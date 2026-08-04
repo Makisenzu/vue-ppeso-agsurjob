@@ -66,7 +66,11 @@ export const systemDirectoryService = {
     return mediaService.getPublicUrl(filePath, 'documents') || mediaService.getPublicUrl(filePath, 'media')
   },
 
-  async fetchAllDirectoryRecords(): Promise<DirectoryProfileRow[]> {
+  async fetchAllDirectoryRecords(forceRefresh = false): Promise<DirectoryProfileRow[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(SYSTEM_DIRECTORY_CACHE_KEY)
+    }
+    
     return getOrSetPersistentCache(SYSTEM_DIRECTORY_CACHE_KEY, SYSTEM_DIRECTORY_CACHE_TTL_MS, async () => {
       // 1. Fetch core profile records
       const { data: profiles, error: profileErr } = await supabase

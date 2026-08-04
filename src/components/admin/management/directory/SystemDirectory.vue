@@ -72,7 +72,7 @@ const {
   isEditStatusOpen,
   isEditDocStatusOpen,
   selectedDocument,
-  fetchRecords,
+  refreshRecords,
   openRecordDetails,
   openEditStatusModal,
   closeEditStatusModal,
@@ -339,7 +339,7 @@ const handleUpdateDocumentStatus = async () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="outline" @click="fetchRecords" :disabled="isLoading">
+        <Button variant="outline" @click="refreshRecords" :disabled="isLoading">
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
           <span class="hidden sm:inline ml-2">Refresh</span>
         </Button>

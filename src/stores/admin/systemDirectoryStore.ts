@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { DirectoryProfileRow, SubmittedDocument } from '@/types/admin/systemDirectory'
 import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
-import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
+import { getPersistentCacheValue, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
 const SYSTEM_DIRECTORY_CACHE_KEY = 'admin:system-directory:records'
@@ -32,12 +32,29 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     isLoading.value = cachedRecords === null
 
     try {
-      const fetched = await systemDirectoryService.fetchAllDirectoryRecords()
+      const fetched = await systemDirectoryService.fetchAllDirectoryRecords(false)
       records.value = [...fetched]
     } catch (err: any) {
       const msg = err.message || 'Failed to load system directory records.'
       errorMessage.value = msg
       toastAlert.error('Error Loading Directory', msg)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const refreshRecords = async () => {
+    errorMessage.value = null
+    isLoading.value = true
+
+    try {
+      const fetched = await systemDirectoryService.fetchAllDirectoryRecords(true)
+      records.value = [...fetched]
+      toastAlert.success('Data Refreshed', 'Directory records have been refreshed.')
+    } catch (err: any) {
+      const msg = err.message || 'Failed to refresh system directory records.'
+      errorMessage.value = msg
+      toastAlert.error('Refresh Failed', msg)
     } finally {
       isLoading.value = false
     }
@@ -194,6 +211,7 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     isEditDocStatusOpen,
     selectedDocument,
     fetchRecords,
+    refreshRecords,
     openRecordDetails,
     closeRecordDetails,
     openEditStatusModal,

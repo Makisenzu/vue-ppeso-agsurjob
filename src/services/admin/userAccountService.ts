@@ -13,7 +13,11 @@ const USER_ACCOUNTS_CACHE_TTL_MS = 1000 * 60 * 15
 type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 
 export const userAccountService = {
-  async fetchAllProfiles(): Promise<ProfileRow[]> {
+  async fetchAllProfiles(forceRefresh = false): Promise<ProfileRow[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
+    }
+    
     return getOrSetPersistentCache(USER_ACCOUNTS_CACHE_KEY, USER_ACCOUNTS_CACHE_TTL_MS, async () => {
       const { data: profiles, error } = await supabase
         .schema('core')

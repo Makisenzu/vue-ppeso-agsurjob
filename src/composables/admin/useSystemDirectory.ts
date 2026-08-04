@@ -49,6 +49,7 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
   } = storeToRefs(store)
   const {
     fetchRecords,
+    refreshRecords,
     openRecordDetails,
     closeRecordDetails,
     openEditStatusModal,
@@ -303,6 +304,7 @@ export function useSystemDirectory(actionTemplateRef?: Component) {
     isEditDocStatusOpen,
     selectedDocument,
     fetchRecords,
+    refreshRecords,
     openRecordDetails: handleOpenRecordDetails,
     closeRecordDetails,
     openEditStatusModal,

@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { userAccountService } from '@/services/admin/userAccountService'
 import { getAllProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
-import { getOrSetPersistentCache, getPersistentCacheValue } from '@/helpers/common/persistentCache'
+import { getOrSetPersistentCache, getPersistentCacheValue, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import {
 	DEFAULT_MAP_CENTER,
 	DEFAULT_MAPBOX_STYLE,
@@ -630,10 +630,13 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		})
 	}
 
-	async function loadAllProfiles() {
+	async function loadAllProfiles(forceRefresh = false) {
 		try {
+			if (forceRefresh) {
+				removePersistentCacheValue(GEOGRAPHIC_PROFILES_CACHE_KEY)
+			}
 			const profiles = await getOrSetPersistentCache(GEOGRAPHIC_PROFILES_CACHE_KEY, GEOGRAPHIC_CACHE_TTL_MS, async () => {
-				return userAccountService.fetchAllProfiles()
+				return userAccountService.fetchAllProfiles(forceRefresh)
 			})
 			records.value = profiles
 		} catch (error) {
