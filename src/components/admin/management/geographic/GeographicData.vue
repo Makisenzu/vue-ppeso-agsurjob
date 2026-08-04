@@ -59,7 +59,7 @@ function gotoMunicipality(name: string) {
             </TableHeader>
             <TableBody>
               <TableRow v-if="isLoading">
-                <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
+                <TableCell colspan="6" class="h-24 text-center text-muted-foreground">
                   Loading municipality data...
                 </TableCell>
               </TableRow>
@@ -81,7 +81,7 @@ function gotoMunicipality(name: string) {
               </template>
 
               <TableRow v-else>
-                <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
+                <TableCell colspan="6" class="h-24 text-center text-muted-foreground">
                   No municipality data available.
                 </TableCell>
               </TableRow>

@@ -18,8 +18,7 @@ const tableRows = computed(() =>
 	barangayRows.value.map((row) => ({
 		barangay: row.name,
 		totalUsers: row.users,
-		lowLand: '—',
-		upLand: '—',
+		lpiiTag: row.lpiiTag,
 		actionLabel: 'View',
 	}))
 )
@@ -64,7 +63,7 @@ function goBack() {
 					<TableBody>
 						<template v-if="showLoadingRow">
 							<TableRow>
-								<TableCell colspan="5" class="h-24 text-center text-muted-foreground">
+								<TableCell colspan="4" class="h-24 text-center text-muted-foreground">
 									Loading barangay data...
 								</TableCell>
 							</TableRow>
@@ -73,7 +72,7 @@ function goBack() {
 						<template v-else-if="tableRows.length">
 							<TableRow v-for="row in tableRows" :key="row.barangay">
 								<TableCell class="font-medium">{{ row.barangay }}</TableCell>
-								<TableCell class="text-right">{{ row.lowLand }}</TableCell>
+								<TableCell class="text-right">{{ row.lpiiTag }}</TableCell>
 								<TableCell class="text-right">{{ row.totalUsers }}</TableCell>
 								<TableCell class="text-right">
 									<Button size="sm" variant="ghost" disabled>
@@ -85,7 +84,7 @@ function goBack() {
 						</template>
 
 						<TableRow v-else>
-							<TableCell colspan="5" class="h-24 text-center text-muted-foreground">
+							<TableCell colspan="4" class="h-24 text-center text-muted-foreground">
 								No barangay data available.
 							</TableCell>
 						</TableRow>

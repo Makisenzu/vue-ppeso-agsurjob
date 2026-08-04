@@ -208,6 +208,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 	const isReady = ref(false)
 	const isGeocoding = ref(false)
 	const geoError = ref<string | null>(null)
+	const psgcMunicipalityEntries = ref<{ name: string; code: string }[]>([])
 	const psgcMunicipalityBarangayCounts = ref<MunicipalityBarangayCount[]>([])
 	const cachedProfiles = getPersistentCacheValue<ProfileRow[]>(GEOGRAPHIC_PROFILES_CACHE_KEY)
 	const cachedMunicipalityCounts = getPersistentCacheValue<MunicipalityBarangayCount[]>(GEOGRAPHIC_PSGC_CACHE_KEY)
@@ -240,9 +241,12 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			psgcMunicipalityBarangayCounts.value.map((entry) => [normalizeText(entry.name), entry.barangays])
 		)
 
-		for (const location of AGUSAN_DEL_SUR_MUNICIPALITIES) {
-			if (!location.municipality) continue
-			municipalityNames.set(normalizeText(location.municipality), location.municipality)
+		const municipalitySource = psgcMunicipalityEntries.value.length
+			? psgcMunicipalityEntries.value.map((entry) => entry.name)
+			: AGUSAN_DEL_SUR_MUNICIPALITIES.map((entry) => entry.municipality).filter((value): value is string => Boolean(value))
+
+		for (const location of municipalitySource) {
+			municipalityNames.set(normalizeText(location), location)
 		}
 
 		for (const record of records.value) {
@@ -650,6 +654,12 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 				}
 
 				const municipalitiesFromPsgc = await getCities(province.code)
+				psgcMunicipalityEntries.value = municipalitiesFromPsgc
+					.map((municipality: { name?: string; code?: string }) => ({
+						name: municipality.name?.trim() ?? '',
+						code: municipality.code?.trim() ?? '',
+					}))
+					.filter((municipality: { name: string; code: string }) => Boolean(municipality.name) && Boolean(municipality.code))
 				const municipalityCounts = await Promise.all(
 					municipalitiesFromPsgc.map(async (municipality: { name?: string; code?: string }) => {
 						if (!municipality.code || !municipality.name) {
