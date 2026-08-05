@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, Hexagon, FolderSearch2, Newspaper, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+import { UsersRound, File, FolderSearch2, Newspaper, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, MessageCircle, Star, UserRoundCog} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -37,9 +37,7 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
-const activitySubItems = [
-  { title: 'Posting History', to: {name: 'dashboard'}, icon: Inbox },
-  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
+const communicationItems = [
   { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
 ]
 const contactSubItems = [
@@ -50,14 +48,17 @@ const contactSubItems = [
 ]
 const settingsSubItems = [
   { title: 'Company Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
-  { title: 'Team Member', to: {name: 'dashboard'}, icon: Settings },
+]
+
+const jobItems = [
+  { title: 'Job Posts', to: {name: 'job-postings'}, icon: Newspaper },
+  { title: 'Applicants', to: {name: 'job-applicants'}, icon: FolderSearch2 },
+  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
 ]
 
 const companyItems = [
-  { title: 'Company Profile', to: {name: 'company-profile'}, icon: Hexagon },
-  { title: 'Job Posting', to: {name: 'job-postings'}, icon: Newspaper },
-  { title: 'Applicants', to: {name: 'job-applicants'}, icon: FolderSearch2 },
-  { title: 'Shortlisted Candidates', to: {name: 'shortlisted-applicants'}, icon: Bookmark },
+  { title: 'Company Profile', to: {name: 'company-profile'}, icon: File },
+  { title: 'Team', to: {name: 'company-profile'}, icon: UsersRound },
 ]
 </script>
 
@@ -127,7 +128,7 @@ const companyItems = [
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>General</SidebarGroupLabel>
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarMenuItem>
               <SidebarMenuButton as-child :tooltip="'Home'">
                   <RouterLink :to="{ name: 'login' }">
@@ -163,58 +164,33 @@ const companyItems = [
               </SidebarMenuItem>
 
               <div class="my-1 h-px bg-sidebar-border" />
-              <SidebarGroupLabel>Others</SidebarGroupLabel>
+
+              <SidebarGroupLabel>Jobs</SidebarGroupLabel>
+              <SidebarMenuItem v-for="item in jobItems" :key="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title">
+                  <RouterLink :to="item.to">
+                    <component :is="item.icon" />
+                    <span>{{ item.title }}</span>
+                  </RouterLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+
+              <div class="my-1 h-px bg-sidebar-border" />
               
-              <SidebarMenuItem>
-                <Collapsible as-child default-close class="group/collapsible">
-                  <div>
-                    <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'My Activities'">
-                        <Activity />
-                        <span>Activities    </span>
-                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
-                              <span>{{ subItem.title }}</span>
-                            </RouterLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
+              <SidebarGroupLabel>Communication</SidebarGroupLabel>
+              <SidebarMenuItem v-for="item in communicationItems" :key="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title">
+                  <RouterLink :to="item.to">
+                    <component :is="item.icon" />
+                    <span>{{ item.title }}</span>
+                  </RouterLink>
+                </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Collapsible as-child default-close class="group/collapsible">
-                  <div>
-                    <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'Support'">
-                        <UserRound />
-                        <span>Support</span>
-                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
-                              <span>{{ subItem.title }}</span>
-                            </RouterLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              </SidebarMenuItem>
+              <div class="my-1 h-px bg-sidebar-border" />
 
+              <SidebarGroupLabel>System</SidebarGroupLabel>
               <SidebarMenuItem>
                 <Collapsible as-child default-close class="group/collapsible">
                   <div>
@@ -228,6 +204,30 @@ const companyItems = [
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
+                          <SidebarMenuSubButton as-child>
+                            <RouterLink to="">
+                              <span>{{ subItem.title }}</span>
+                            </RouterLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Collapsible as-child default-close class="group/collapsible">
+                  <div>
+                    <CollapsibleTrigger as-child>
+                      <SidebarMenuButton :tooltip="'Support'">
+                        <UserRound />
+                        <span>Support</span>
+                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
                             <RouterLink to="">
                               <span>{{ subItem.title }}</span>

@@ -27,11 +27,6 @@ export const employerRoutes: RouteRecordRaw[] = [
         name: 'job-applicants',
         component: () => import('@/components/employer/CompanyManagement/JobApplicant/JobApplicant.vue')
       },
-      {
-        path: 'shortlisted-applicants',
-        name: 'shortlisted-applicants',
-        component: () => import('@/components/employer/CompanyManagement/ShortlistedApplicant/ShortlistedApplicant.vue')
-      }
     ]
   },
 ]
