@@ -16,8 +16,8 @@ export function useSignup() {
       icon: UserSearch,
     },
     {
-      id: 'employer',
-      label: 'Employer',
+      id: 'company_owner',
+      label: 'Company Owner',
       description: 'Post jobs and manage candidate applications.',
       icon: Building2,
     },
@@ -83,7 +83,7 @@ export function useSignup() {
         if (selectedRole.value === 'applicant') {
           return !!(a.education_level && a.employment_status)
         }
-        if (selectedRole.value === 'employer') {
+        if (selectedRole.value === 'company_owner') {
           return !!(e.company_name.trim() && e.company_email.trim() && e.business_type)
         }
         return false

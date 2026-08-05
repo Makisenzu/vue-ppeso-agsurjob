@@ -506,8 +506,8 @@ function onBarangayChange(code: any) {
 
               </template>
 
-  <!-- Employer -->
-  <template v-if="selectedRole === 'employer'">
+  <!-- Company Owner -->
+  <template v-if="selectedRole === 'company_owner'">
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
@@ -660,7 +660,7 @@ function onBarangayChange(code: any) {
                   </div>
                   <div class="space-y-1">
                     <p class="font-medium text-foreground">
-                      {{ selectedRole === 'applicant' ? 'Applicant Details' : 'Employer Details' }}
+                      {{ selectedRole === 'applicant' ? 'Applicant Details' : 'Company Owner Details' }}
                     </p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <template v-if="selectedRole === 'applicant'">
@@ -679,7 +679,7 @@ function onBarangayChange(code: any) {
                         <Label class="text-muted-foreground">Salary</Label>
                         <span>{{ applicantData.expected_salary || '--' }}</span>
                       </template>
-                      <template v-if="selectedRole === 'employer'">
+                      <template v-if="selectedRole === 'company_owner'">
                         <Label class="text-muted-foreground">Company</Label>
                         <span>{{ employerData.company_name || '--' }}</span>
                         <Label class="text-muted-foreground">Email</Label>

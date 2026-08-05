@@ -273,8 +273,9 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       const roleToInsert = signupData.value.role || selectedRole.value
+      const normalizedRole = roleToInsert === 'employer' ? 'company_owner' : roleToInsert
       const profileRole: Database['core']['Enums']['user_role'] =
-        roleToInsert === ('employer' as any) ? 'company_owner' : (roleToInsert as Database['core']['Enums']['user_role'])
+        (normalizedRole as Database['core']['Enums']['user_role'])
       const userId = result.user?.id
 
       if (!userId) {
@@ -336,7 +337,7 @@ export const useAuthStore = defineStore('auth', () => {
         })
         applicantProfile.value = Array.isArray(insertApplicantResult) ? (insertApplicantResult[0] ?? null) : null
         employerProfile.value = null
-      } else if (roleToInsert === ('employer' as any) || roleToInsert === 'company_owner' || roleToInsert === 'company_member') {
+      } else if (normalizedRole === 'company_owner' || normalizedRole === 'company_member' || roleToInsert === ('employer' as any)) {
         insertEmployerResult = await authService.insertEmployerData({
           profile_id: userId,
           company_name: employerData.value.company_name || null,

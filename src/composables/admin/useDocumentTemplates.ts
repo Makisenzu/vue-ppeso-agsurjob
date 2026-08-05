@@ -40,7 +40,7 @@ export function useDocumentTemplates() {
   const targetRoles = [
     { value: 'all', label: 'All Users' },
     { value: 'applicant', label: 'Applicants' },
-    { value: 'employer', label: 'Employers' },
+    { value: 'company_owner', label: 'Company Owners' },
     { value: 'admin', label: 'Admins' },
   ]
 

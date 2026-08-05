@@ -5,7 +5,7 @@ export const employerRoutes: RouteRecordRaw[] = [
   {
     path: '/employer',
     component: EmployerLayout,
-    meta: { breadcrumb: false, requiresAuth: true, role: 'employer' },
+    meta: { breadcrumb: false, requiresAuth: true, role: 'company_owner' },
     children: [
       {
         path: 'dashboard',

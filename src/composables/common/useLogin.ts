@@ -40,6 +40,7 @@ watch(password, () => { passwordError.value = '' })
 function getDashboardRoute(role: string | null) {
   switch (role) {
     case 'admin': return { name: 'admin-dashboard' }
+    case 'company_owner':
     case 'employer': return { name: 'employer-dashboard' }
     case 'peso_staff': return { name: 'peso-dashboard' }
     default: return { name: 'dashboard' }
