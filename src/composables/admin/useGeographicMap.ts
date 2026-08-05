@@ -92,6 +92,9 @@ interface MunicipalitySummaryRow {
 	name: string
 	users: number
 	barangays: number
+	lowlandUsers: number
+	uplandUsers: number
+	wetlandUsers: number
 }
 
 interface MunicipalityBarangayCount {
@@ -235,6 +238,18 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
 	})
 
+	const provinces = computed(() => {
+		const seen = new Map<string, { name: string; count: number }>()
+		for (const record of records.value) {
+			const name = record.province?.trim()
+			if (!name) continue
+			const key = normalizeText(name)
+			const entry = seen.get(key)
+			seen.set(key, entry ? { ...entry, count: entry.count + 1 } : { name, count: 1 })
+		}
+		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
+	})
+
 	const municipalityRows = computed<MunicipalitySummaryRow[]>(() => {
 		const municipalityNames = new Map<string, string>()
 		const barangayCountLookup = new Map(
@@ -258,29 +273,35 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			}
 		}
 
-		return [...municipalityNames.values()]
+		// Debug: check how many records have barangayLpiiTag
+		const recordsWithTags = records.value.filter((r) => r.barangayLpiiTag !== null && r.barangayLpiiTag !== undefined)
+		console.log('Records with barangayLpiiTag:', recordsWithTags.length, 'out of', records.value.length)
+		console.log('Sample records:', records.value.slice(0, 3))
+
+		const result = [...municipalityNames.values()]
 			.sort((left, right) => left.localeCompare(right))
 			.map((name) => {
 				const municipalityRecords = records.value.filter((record) => normalizeText(record.geographic) === normalizeText(name))
+				const lowlandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'LOWLAND').length
+				const uplandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'UPLAND').length
+				const wetlandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'WETLAND').length
+
+				if (lowlandUsers > 0 || uplandUsers > 0 || wetlandUsers > 0) {
+					console.log(`Municipality "${name}": lowland=${lowlandUsers}, upland=${uplandUsers}, wetland=${wetlandUsers}`)
+				}
 
 				return {
 					name,
 					users: municipalityRecords.length,
 					barangays: barangayCountLookup.get(normalizeText(name)) ?? 0,
+					lowlandUsers,
+					uplandUsers,
+					wetlandUsers,
 				}
 			})
-	})
 
-	const provinces = computed(() => {
-		const seen = new Map<string, { name: string; count: number }>()
-		for (const record of records.value) {
-			const name = record.province?.trim()
-			if (!name) continue
-			const key = normalizeText(name)
-			const entry = seen.get(key)
-			seen.set(key, entry ? { ...entry, count: entry.count + 1 } : { name, count: 1 })
-		}
-		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
+		console.log('Municipality rows result:', result.slice(0, 2))
+		return result
 	})
 
 	const barangays = computed(() => {
@@ -691,7 +712,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		isRecordsLoading.value = shouldShowLoading
 		try {
 			await Promise.all([
-			loadAllProfiles(),
+			loadAllProfiles(true),
 			loadMunicipalityBarangayCounts(),
 			])
 		} finally {

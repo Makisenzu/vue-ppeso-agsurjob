@@ -3,6 +3,7 @@ import type { Database } from '@/types/database.types'
 export type ProfileRow = Database['core']['Tables']['profiles']['Row'] & {
   email?: string | null
   avatarUrl?: string | null
+  barangayLpiiTag?: Database['public']['Enums']['lpii_type'] | null
 }
 
 export interface CreateAccountPayload {

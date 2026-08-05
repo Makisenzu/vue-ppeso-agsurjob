@@ -12,6 +12,69 @@ const USER_ACCOUNTS_CACHE_TTL_MS = 1000 * 60 * 15
 
 type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 
+function normalizeBarangayName(value?: string | null): string {
+  const normalized = value?.trim().toLowerCase() ?? ''
+  // Remove common barangay name suffixes/prefixes
+  return normalized
+    .replace(/\s+barangay$/i, '')
+    .replace(/^barangay\s+/i, '')
+    .replace(/\s+puroks?$/i, '')
+    .replace(/\s+sitio\s+/i, ' ')
+    .trim()
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = Array(b.length + 1)
+    .fill(null)
+    .map(() => Array(a.length + 1).fill(0))
+
+  for (let i = 0; i <= a.length; i++) matrix[0][i] = i
+  for (let j = 0; j <= b.length; j++) matrix[j][0] = j
+
+  for (let j = 1; j <= b.length; j++) {
+    for (let i = 1; i <= a.length; i++) {
+      const indicator = a[i - 1] === b[j - 1] ? 0 : 1
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i] + 1,
+        matrix[j - 1][i - 1] + indicator
+      )
+    }
+  }
+
+  return matrix[b.length][a.length]
+}
+
+function findBarangayTagByName(
+  barangayName: string,
+  barangayRecords: Array<{ name?: string | null; lpii_tag?: Database['public']['Enums']['lpii_type'] | null }>
+): Database['public']['Enums']['lpii_type'] | null {
+  if (!barangayName) return null
+  
+  const searchNormalized = normalizeBarangayName(barangayName)
+
+  // First try exact normalized match
+  for (const record of barangayRecords) {
+    if (normalizeBarangayName(record.name) === searchNormalized) {
+      return record.lpii_tag ?? null
+    }
+  }
+
+  // Second try similarity matching: check if normalized names contain each other or have high overlap
+  for (const record of barangayRecords) {
+    const recordNormalized = normalizeBarangayName(record.name)
+    if (
+      recordNormalized.includes(searchNormalized) ||
+      searchNormalized.includes(recordNormalized) ||
+      levenshteinDistance(searchNormalized, recordNormalized) <= 2
+    ) {
+      return record.lpii_tag ?? null
+    }
+  }
+
+  return null
+}
+
 export const userAccountService = {
   async fetchAllProfiles(forceRefresh = false): Promise<ProfileRow[]> {
     if (forceRefresh) {
@@ -19,6 +82,27 @@ export const userAccountService = {
     }
     
     return getOrSetPersistentCache(USER_ACCOUNTS_CACHE_KEY, USER_ACCOUNTS_CACHE_TTL_MS, async () => {
+      // First, fetch barangay terrain information from public schema
+      let barangayRecords: Array<{ name?: string | null; lpii_tag?: Database['public']['Enums']['lpii_type'] | null }> = []
+      try {
+        const { data: barangayData, error: barangayError } = await supabase
+          .schema('public')
+          .from('barangays')
+          .select('name, lpii_tag')
+
+        if (barangayError) {
+          console.error('Error fetching barangays:', barangayError)
+        }
+
+        if (barangayData && Array.isArray(barangayData)) {
+          barangayRecords = barangayData
+          console.log('Fetched barangays count:', barangayData.length)
+          console.log('Sample barangays:', barangayData.slice(0, 5))
+        }
+      } catch (error) {
+        console.error('Error fetching barangay terrain data:', error)
+      }
+
       const { data: profiles, error } = await supabase
         .schema('core')
         .from('profiles')
@@ -62,21 +146,46 @@ export const userAccountService = {
           const emailMap = new Map<string, string>(
             emailRows.map((row: { id: string; email: string }) => [row.id, row.email]),
           )
-          return profiles.map((p) => ({
-            ...p,
-            email: emailMap.get(p.id) ?? null,
-            avatarUrl: avatarMap.get(p.id) ?? null,
-          })) as ProfileRow[]
+          const result = profiles.map((p) => {
+            const lpiiTag = findBarangayTagByName(p.barangay ?? '', barangayRecords)
+            
+            return {
+              ...p,
+              email: emailMap.get(p.id) ?? null,
+              avatarUrl: avatarMap.get(p.id) ?? null,
+              barangayLpiiTag: lpiiTag,
+            }
+          })
+          
+          // Log sample profiles
+          const profilesWithTags = result.filter(r => r.barangayLpiiTag)
+          console.log('Profiles with terrain tags:', profilesWithTags.length, 'out of', result.length)
+          console.log('Sample profiles with tags:', profilesWithTags.slice(0, 3))
+          
+          return result as ProfileRow[]
         }
-      } catch {
+      } catch (error) {
         // RPC not available – fall through gracefully
+        console.error('RPC error:', error)
       }
 
-      return profiles.map((p) => ({
-        ...p,
-        email: null as string | null,
-        avatarUrl: avatarMap.get(p.id) ?? null,
-      })) as ProfileRow[]
+      const result = profiles.map((p) => {
+        const lpiiTag = findBarangayTagByName(p.barangay ?? '', barangayRecords)
+        
+        return {
+          ...p,
+          email: null as string | null,
+          avatarUrl: avatarMap.get(p.id) ?? null,
+          barangayLpiiTag: lpiiTag,
+        }
+      })
+      
+      // Log sample profiles
+      const profilesWithTags = result.filter(r => r.barangayLpiiTag)
+      console.log('Profiles with terrain tags (fallback):', profilesWithTags.length, 'out of', result.length)
+      console.log('Sample profiles with tags (fallback):', profilesWithTags.slice(0, 3))
+      
+      return result as ProfileRow[]
     })
   },
 

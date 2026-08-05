@@ -54,12 +54,13 @@ function gotoMunicipality(name: string) {
                 <TableHead class="text-right">Total Users</TableHead>
                 <TableHead class="text-center">Lowland User</TableHead>
                 <TableHead class="text-center">Upland User</TableHead>
+                <TableHead class="text-center">Wetland User</TableHead>
                 <TableHead class="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="isLoading">
-                <TableCell colspan="6" class="h-24 text-center text-muted-foreground">
+                <TableCell colspan="7" class="h-24 text-center text-muted-foreground">
                   Loading municipality data...
                 </TableCell>
               </TableRow>
@@ -69,8 +70,9 @@ function gotoMunicipality(name: string) {
                   <TableCell class="font-medium">{{ row.name }}</TableCell>
                   <TableCell class="text-right">{{ row.barangays }}</TableCell>
                   <TableCell class="text-right">{{ row.users }}</TableCell>
-                  <TableCell class="text-center">-</TableCell>
-                  <TableCell class="text-center">-</TableCell>
+                  <TableCell class="text-center">{{ row.lowlandUsers }}</TableCell>
+                  <TableCell class="text-center">{{ row.uplandUsers }}</TableCell>
+                  <TableCell class="text-center">{{ row.wetlandUsers }}</TableCell>
                   <TableCell class="text-right">
                     <Button size="sm" variant="ghost" @click="gotoMunicipality(row.name)">
                       <Eye class="h-4 w-4" />
@@ -81,7 +83,7 @@ function gotoMunicipality(name: string) {
               </template>
 
               <TableRow v-else>
-                <TableCell colspan="6" class="h-24 text-center text-muted-foreground">
+                <TableCell colspan="7" class="h-24 text-center text-muted-foreground">
                   No municipality data available.
                 </TableCell>
               </TableRow>
