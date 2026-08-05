@@ -10,12 +10,27 @@ export const employerRoutes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'employer-dashboard',
-        component: () => import('@/components/employer/EmployerDashboard.vue')
+        component: () => import('@/components/employer/EmployerHome.vue')
       },
       {
         path: 'company-profile',
         name: 'company-profile',
         component: () => import('@/components/employer/CompanyManagement/CompanyProfile.vue')
+      },
+      {
+        path: 'job-postings',
+        name: 'job-postings',
+        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPosting.vue')
+      },
+      {
+        path: 'job-applicants',
+        name: 'job-applicants',
+        component: () => import('@/components/employer/CompanyManagement/JobApplicant/JobApplicant.vue')
+      },
+      {
+        path: 'shortlisted-applicants',
+        name: 'shortlisted-applicants',
+        component: () => import('@/components/employer/CompanyManagement/ShortlistedApplicant/ShortlistedApplicant.vue')
       }
     ]
   },

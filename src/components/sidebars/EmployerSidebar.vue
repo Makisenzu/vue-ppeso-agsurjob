@@ -55,9 +55,9 @@ const settingsSubItems = [
 
 const companyItems = [
   { title: 'Company Profile', to: {name: 'company-profile'}, icon: Hexagon },
-  { title: 'Job Posting', to: {name: 'dashboard'}, icon: Newspaper },
-  { title: 'Applicants', to: {name: 'dashboard'}, icon: FolderSearch2 },
-  { title: 'Shortlisted Candidates', to: {name: 'dashboard'}, icon: Bookmark },
+  { title: 'Job Posting', to: {name: 'job-postings'}, icon: Newspaper },
+  { title: 'Applicants', to: {name: 'job-applicants'}, icon: FolderSearch2 },
+  { title: 'Shortlisted Candidates', to: {name: 'shortlisted-applicants'}, icon: Bookmark },
 ]
 </script>
 
