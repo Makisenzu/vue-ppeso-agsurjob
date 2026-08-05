@@ -126,8 +126,28 @@ watch(
             :class="['w-full overflow-hidden rounded-xl border border-border bg-muted/20 shadow-sm', heightClass]"
         ></div>
 
-        <div class="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-primary"></span>
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-[11px] text-muted-foreground">
+            <span class="font-medium uppercase tracking-wide text-muted-foreground/80">Legend</span>
+            <span class="inline-flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                <span>Admin</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+                <span>Applicant</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-orange-500"></span>
+                <span>Provincial PESO</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                <span>Municipal PESO</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-violet-500"></span>
+                <span>Company Member/Owner</span>
+            </span>
         </div>
 
         <div

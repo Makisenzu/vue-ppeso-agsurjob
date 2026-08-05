@@ -127,6 +127,26 @@ function getInitials(displayName: string) {
 		.join('') || 'U'
 }
 
+function getRoleBorderClass(role?: string | null) {
+	switch (role) {
+		case 'admin':
+			return 'border-red-500'
+		case 'applicant':
+			return 'border-blue-500'
+		case 'provincial_peso':
+			return 'border-orange-500'
+		case 'municipal_peso':
+			return 'border-green-500'
+		case 'company_owner':
+		case 'company_member':
+			return 'border-violet-500'
+		case 'dole':
+			return 'border-yellow-500'
+		default:
+			return 'border-border'
+	}
+}
+
 function hashText(value: string) {
 	let hash = 0
 	for (let index = 0; index < value.length; index += 1) {
@@ -447,7 +467,7 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 
 										return h(
 											Avatar,
-											{ class: 'size-7 border-2 border-white shadow-sm shadow-black/20' },
+											{ class: ['size-7 border-2 bg-background shadow-sm shadow-black/20', getRoleBorderClass(record.role)] },
 											{
 												default: () => [
 													avatarSrc ? h(AvatarImage, { src: avatarSrc, alt: displayName }) : null,
