@@ -30,8 +30,12 @@ function getDashboardRouteForRole(role: string | null) {
     case 'company_owner':
     case 'employer':
       return { name: 'employer-dashboard' }
+    case 'provincial_peso':
+      return { name: 'provincial-peso-dashboard' }
+    case 'municipal_peso':
+      return { name: 'municipal-peso-dashboard' }
     case 'peso_staff':
-      return { name: 'peso-dashboard' }
+      return { name: 'provincial-peso-dashboard' }
     case 'applicant':
     default:
       return { name: 'dashboard' }

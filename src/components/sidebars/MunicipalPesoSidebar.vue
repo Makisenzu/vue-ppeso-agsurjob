@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, Zap, MessageCircle, Star, Settings, UserRoundCog} from '@lucide/vue'
+import { Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, UserRound, Bell, Star, Settings, UserRoundCog, Users, FileText, BarChart3, MapPin, TrendingUp} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -37,27 +37,27 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
-const activitySubItems = [
-  { title: 'Job Applications', to: {name: 'dashboard'}, icon: Inbox },
-  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
-  { title: 'Offers', to: {name: 'dashboard'}, icon: Mail },
+const operationsItems = [
+  { title: 'Local Job Listings', to: {name: 'municipal-peso-dashboard'}, icon: FileText },
+  { title: 'Beneficiary Management', to: {name: 'municipal-peso-dashboard'}, icon: Users },
+  { title: 'Livelihood Programs', to: {name: 'municipal-peso-dashboard'}, icon: TrendingUp },
+  { title: 'Community Training', to: {name: 'municipal-peso-dashboard'}, icon: Star },
 ]
-const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
+const analyticsItems = [
+  { title: 'Employment Metrics', to: {name: 'municipal-peso-dashboard'}, icon: BarChart3 },
+  { title: 'Local Performance', to: {name: 'municipal-peso-dashboard'}, icon: MapPin },
+  { title: 'Program Statistics', to: {name: 'municipal-peso-dashboard'}, icon: TrendingUp },
+]
+const supportItems = [
+  { title: 'Help & Documentation', to: {name: 'municipal-peso-dashboard'}, icon: Search },
+  { title: 'Submit Support Ticket', to: {name: 'municipal-peso-dashboard'}, icon: Mail },
+  { title: 'Technical Support', to: {name: 'municipal-peso-dashboard'}, icon: Phone },
+  { title: 'Send Feedback', to: {name: 'municipal-peso-dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
-]
-const jobHuntItems = [
-  { title: 'Find Jobs', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Saved Jobs', to: {name: 'dashboard'}, icon: Bookmark },
-  { title: 'Companies', to: {name: 'dashboard'}, icon: Building },
+  { title: 'Profile Settings', to: {name: 'municipal-peso-dashboard'}, icon:  UserRoundCog },
+  { title: 'Account Security', to: {name: 'municipal-peso-dashboard'}, icon: Settings },
+  { title: 'Notification Preferences', to: {name: 'municipal-peso-dashboard'}, icon: Bell },
 ]
 </script>
 
@@ -135,8 +135,8 @@ const jobHuntItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
-                  <RouterLink :to="{ name: 'dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'municipal-peso-dashboard'">
+                  <RouterLink :to="{ name: 'municipal-peso-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
@@ -150,12 +150,12 @@ const jobHuntItems = [
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />
-          <SidebarGroupLabel>Job Search</SidebarGroupLabel>
+          <SidebarGroupLabel>Operations</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem v-for="item in jobHuntItems" :key="item.title">
+              <SidebarMenuItem v-for="item in operationsItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink to="">
+                  <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
                   </RouterLink>
@@ -163,23 +163,23 @@ const jobHuntItems = [
               </SidebarMenuItem>
 
               <div class="my-1 h-px bg-sidebar-border" />
-              <SidebarGroupLabel>Others</SidebarGroupLabel>
+              <SidebarGroupLabel>Analytics & Reporting</SidebarGroupLabel>
               
               <SidebarMenuItem>
                 <Collapsible as-child default-close class="group/collapsible">
                   <div>
                     <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'My Activities'">
-                        <Zap />
-                        <span>My Activities</span>
+                      <SidebarMenuButton :tooltip="'Analytics'">
+                        <BarChart3 />
+                        <span>Analytics</span>
                         <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in activitySubItems" :key="subItem.title">
+                        <SidebarMenuSubItem v-for="subItem in analyticsItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>
@@ -202,9 +202,9 @@ const jobHuntItems = [
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
+                        <SidebarMenuSubItem v-for="subItem in supportItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>
@@ -229,7 +229,7 @@ const jobHuntItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <RouterLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>

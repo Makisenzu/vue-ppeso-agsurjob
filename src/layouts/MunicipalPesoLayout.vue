@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import PesoSidebar from '@/components/sidebars/PesoSidebar.vue'
+import MunicipalPesoSidebar from '@/components/sidebars/MunicipalPesoSidebar.vue'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useColorMode } from '@vueuse/core'
 import { Sun, Moon } from '@lucide/vue'
+import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 
 const mode = useColorMode()
 
@@ -18,13 +19,12 @@ function toggleTheme() {
       storage-key="sidebar"
       class="flex min-h-screen"
     >
-      <PesoSidebar />
+      <MunicipalPesoSidebar />
       
-      <main class="flex-1 flex flex-col">
-        <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200">
+      <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-3 sm:px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200">
           <SidebarTrigger class="-ml-1 text-muted-foreground" />
-          <span class="text-sm font-semibold text-muted-foreground px-2">PESO Panel</span>
-
+          <CustomBreadcrumbs/>
           <button 
             @click="toggleTheme" 
             class="ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -34,7 +34,7 @@ function toggleTheme() {
           </button>
         </header>
 
-        <div class="flex-1 p-6 bg-background text-foreground transition-colors duration-200">
+        <div class="flex-1 p-4 sm:p-6 bg-background text-foreground transition-colors duration-200 overflow-x-hidden">
           <RouterView/>
         </div>
       </main>
