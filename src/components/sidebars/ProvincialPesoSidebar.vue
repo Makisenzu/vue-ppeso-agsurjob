@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, UserRound, Bell, Star, Settings, UserRoundCog, Users, FileText, BarChart3, CheckCircle} from '@lucide/vue'
+import { Blocks,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -37,27 +37,37 @@ const route = useRoute()
 const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
-const programManagementItems = [
-  { title: 'Program Listings', to: {name: 'provincial-peso-dashboard'}, icon: FileText },
-  { title: 'Participant Management', to: {name: 'provincial-peso-dashboard'}, icon: Users },
-  { title: 'Progress Tracking', to: {name: 'provincial-peso-dashboard'}, icon: BarChart3 },
-  { title: 'Skills Training', to: {name: 'provincial-peso-dashboard'}, icon: Star },
+const sddItems = [
+  { title: 'Job Start', to: {name: 'dashboard'}, icon: TrendingUp },
+  { title: 'Skills Training', to: {name: 'dashboard'}, icon: SportShoe },
+  { title: 'Free Wellness Services', to: {name: 'dashboard'}, icon: Leaf },
 ]
-const reportingItems = [
-  { title: 'Performance Reports', to: {name: 'provincial-peso-dashboard'}, icon: BarChart3 },
-  { title: 'Compliance Reports', to: {name: 'provincial-peso-dashboard'}, icon: CheckCircle },
-  { title: 'Fund Utilization', to: {name: 'provincial-peso-dashboard'}, icon: Mail },
-]
-const supportItems = [
-  { title: 'Help & Documentation', to: {name: 'provincial-peso-dashboard'}, icon: Search },
-  { title: 'Submit Support Ticket', to: {name: 'provincial-peso-dashboard'}, icon: Mail },
-  { title: 'Technical Support', to: {name: 'provincial-peso-dashboard'}, icon: Phone },
-  { title: 'Send Feedback', to: {name: 'provincial-peso-dashboard'}, icon: Star },
+const contactSubItems = [
+  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'provincial-peso-dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'provincial-peso-dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'provincial-peso-dashboard'}, icon: Bell },
+  { title: 'Company Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
+]
+
+const employmentItems = [
+  { title: 'FNPLP / OFW', to: {name: 'job-postings'}, icon: Plane },
+  { title: 'GIP', to: {name: 'job-applicants'}, icon: SquareUser },
+  { title: 'TUPAD', to: {name: 'dashboard'}, icon: Hammer },
+  { title: 'SPES', to: {name: 'dashboard'}, icon: BookMarked },
+  { title: 'SRA', to: {name: 'dashboard'}, icon: Navigation },
+  { title: 'LRA', to: {name: 'dashboard'}, icon: MapPinned },
+]
+
+const companyItems = [
+  { title: 'Organizational Chart', to: {name: 'company-profile'}, icon: File },
+  { title: 'Citizen Charter', to: {name: 'company-profile'}, icon: UsersRound },
+  { title: 'Functional Charter', to: {name: 'company-profile'}, icon: Blocks },
+  { title: 'Records Charter', to: {name: 'company-profile'}, icon: SquareLibrary },
+  { title: 'Where Abouts', to: {name: 'company-profile'}, icon: Info },
+  { title: 'Schedule of Activities', to: {name: 'company-profile'}, icon: CalendarDays },
 ]
 </script>
 
@@ -135,8 +145,8 @@ const settingsSubItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'provincial-peso-dashboard'">
-                  <RouterLink :to="{ name: 'provincial-peso-dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
+                  <RouterLink :to="{ name: 'dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
@@ -150,10 +160,10 @@ const settingsSubItems = [
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />
-          <SidebarGroupLabel>Program Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Administrative</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem v-for="item in programManagementItems" :key="item.title">
+              <SidebarMenuItem v-for="item in companyItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
@@ -163,58 +173,33 @@ const settingsSubItems = [
               </SidebarMenuItem>
 
               <div class="my-1 h-px bg-sidebar-border" />
-              <SidebarGroupLabel>Reporting & Analytics</SidebarGroupLabel>
+
+              <SidebarGroupLabel>ESMDD</SidebarGroupLabel>
+              <SidebarMenuItem v-for="item in employmentItems" :key="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title">
+                  <RouterLink :to="item.to">
+                    <component :is="item.icon" />
+                    <span>{{ item.title }}</span>
+                  </RouterLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+
+              <div class="my-1 h-px bg-sidebar-border" />
               
-              <SidebarMenuItem>
-                <Collapsible as-child default-close class="group/collapsible">
-                  <div>
-                    <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'Reports'">
-                        <BarChart3 />
-                        <span>Reports</span>
-                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in reportingItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
-                              <span>{{ subItem.title }}</span>
-                            </RouterLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
+              <SidebarGroupLabel>Skill Development Division</SidebarGroupLabel>
+              <SidebarMenuItem v-for="item in sddItems" :key="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title">
+                  <RouterLink :to="item.to">
+                    <component :is="item.icon" />
+                    <span>{{ item.title }}</span>
+                  </RouterLink>
+                </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Collapsible as-child default-close class="group/collapsible">
-                  <div>
-                    <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="'Support'">
-                        <UserRound />
-                        <span>Support</span>
-                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem v-for="subItem in supportItems" :key="subItem.title">
-                          <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
-                              <span>{{ subItem.title }}</span>
-                            </RouterLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              </SidebarMenuItem>
+              <div class="my-1 h-px bg-sidebar-border" />
 
+              <SidebarGroupLabel>System</SidebarGroupLabel>
               <SidebarMenuItem>
                 <Collapsible as-child default-close class="group/collapsible">
                   <div>
@@ -229,7 +214,31 @@ const settingsSubItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
+                            <RouterLink to="">
+                              <span>{{ subItem.title }}</span>
+                            </RouterLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Collapsible as-child default-close class="group/collapsible">
+                  <div>
+                    <CollapsibleTrigger as-child>
+                      <SidebarMenuButton :tooltip="'Support'">
+                        <UserRound />
+                        <span>Support</span>
+                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
+                          <SidebarMenuSubButton as-child>
+                            <RouterLink to="">
                               <span>{{ subItem.title }}</span>
                             </RouterLink>
                           </SidebarMenuSubButton>
@@ -265,7 +274,7 @@ const settingsSubItems = [
                         class="text-[9px] px-1 py-0 h-3.5 uppercase tracking-wider font-extrabold shrink-0 select-none"
                         :class="isVerified ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-amber-500 hover:bg-amber-500 text-black'"
                       >
-                        {{ isVerified ? 'Verified' : 'Pending' }}
+                        {{ isVerified ? 'Verified' : 'Not Verified' }}
                       </Badge>
                     </div>
                     <span class="truncate text-xs text-muted-foreground block">{{ userEmail }}</span>
