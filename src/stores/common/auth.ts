@@ -33,11 +33,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isHydrating = ref(false)
   const isInitialized = ref(false)
   const isAuthListenerBound = ref(false)
-  const selectedRole = ref<Database["core"]["Enums"]["user_role"] | null>(null)
+  const selectedRole = ref<Database["core"]["Enums"]["user_role"] | 'employer' | null>(null)
 
   // ─── Signup State ───
   const signupData = ref({
-    role: '' as Database["core"]["Enums"]["user_role"],
+    role: '' as Database["core"]["Enums"]["user_role"] | 'employer',
     firstName: '',
     middlename: '',
     lastName: '',
@@ -249,12 +249,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function submitSignup() {
     try {
+      const roleToInsert = signupData.value.role || selectedRole.value
+      const normalizedRole = (roleToInsert as string) === 'employer' ? 'company_owner' : roleToInsert
+      const profileRole: Database['core']['Enums']['user_role'] =
+        (normalizedRole as Database['core']['Enums']['user_role'])
+
       const result = await authService.signUp({
         email: signupData.value.email,
         password: signupData.value.password,
         options: {
           data: {
-            role: signupData.value.role || selectedRole.value,
+            role: profileRole,
             firstname: signupData.value.firstName,
             middlename: signupData.value.middlename,
             lastname: signupData.value.lastName,
@@ -272,10 +277,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       })
 
-      const roleToInsert = signupData.value.role || selectedRole.value
-      const normalizedRole = roleToInsert === 'employer' ? 'company_owner' : roleToInsert
-      const profileRole: Database['core']['Enums']['user_role'] =
-        (normalizedRole as Database['core']['Enums']['user_role'])
       const userId = result.user?.id
 
       if (!userId) {
@@ -324,7 +325,7 @@ export const useAuthStore = defineStore('auth', () => {
       let insertApplicantResult = null
       let insertEmployerResult = null
 
-      if (roleToInsert === 'applicant') {
+      if (normalizedRole === 'applicant') {
         insertApplicantResult = await authService.insertApplicantData({
           profile_id: userId,
           education_level: applicantData.value.education_level || null,
@@ -337,7 +338,7 @@ export const useAuthStore = defineStore('auth', () => {
         })
         applicantProfile.value = Array.isArray(insertApplicantResult) ? (insertApplicantResult[0] ?? null) : null
         employerProfile.value = null
-      } else if (normalizedRole === 'company_owner' || normalizedRole === 'company_member' || roleToInsert === ('employer' as any)) {
+      } else if (normalizedRole === 'company_owner' || normalizedRole === 'company_member') {
         insertEmployerResult = await authService.insertEmployerData({
           profile_id: userId,
           company_name: employerData.value.company_name || null,

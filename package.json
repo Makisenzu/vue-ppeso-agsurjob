@@ -13,6 +13,8 @@
     "@lucide/vue": "^1.31.0",
     "@supabase/supabase-js": "^2.108.1",
     "@tanstack/vue-table": "^8.21.3",
+    "@unovis/ts": "^1.6.7",
+    "@unovis/vue": "^1.6.7",
     "@vee-validate/zod": "^4.15.1",
     "@vueuse/core": "^14.4.0",
     "@vueuse/motion": "^3.0.3",
