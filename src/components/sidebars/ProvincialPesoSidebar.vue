@@ -53,12 +53,12 @@ const settingsSubItems = [
 ]
 
 const employmentItems = [
-  { title: 'FNPLP / OFW', to: {name: 'job-postings'}, icon: Plane },
-  { title: 'GIP', to: {name: 'job-applicants'}, icon: SquareUser },
-  { title: 'TUPAD', to: {name: 'dashboard'}, icon: Hammer },
-  { title: 'SPES', to: {name: 'dashboard'}, icon: BookMarked },
-  { title: 'SRA', to: {name: 'dashboard'}, icon: Navigation },
-  { title: 'LRA', to: {name: 'dashboard'}, icon: MapPinned },
+  { title: 'FNPLP / OFW', to: {name: 'provincial-peso-fnplp'}, icon: Plane },
+  { title: 'GIP', to: {name: 'provincial-peso-gip'}, icon: SquareUser },
+  { title: 'TUPAD', to: {name: 'provincial-peso-tupad'}, icon: Hammer },
+  { title: 'SPES', to: {name: 'provincial-peso-spes'}, icon: BookMarked },
+  { title: 'SRA', to: {name: 'provincial-peso-sra'}, icon: Navigation },
+  { title: 'LRA', to: {name: 'provincial-peso-lra'}, icon: MapPinned },
 ]
 
 const companyItems = [
