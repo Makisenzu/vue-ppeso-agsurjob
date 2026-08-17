@@ -10,6 +10,9 @@ import {
   componentToString,
 } from '@/components/ui/chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import pgasLogo from '@/assets/images/agsur.png'
+import doleLogo from '@/assets/images/dole.png'
 import { Building2, Landmark, Users } from '@lucide/vue'
 
 type GenderDataPoint = {
@@ -160,11 +163,17 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
       <!-- ─── Chart 1: GIP PGAS ─── -->
       <Card class="overflow-hidden">
         <CardHeader class="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
-          <div class="flex flex-1 flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
-            <CardTitle class="text-base font-semibold">GIP - PGAS</CardTitle>
-            <CardDescription class="text-xs">
-              Provincial Gov't of Agusan del Sur
-            </CardDescription>
+          <div class="flex flex-1 items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+            <Avatar class="h-15 w-15 rounded-lg border bg-background">
+              <AvatarImage :src="pgasLogo" alt="PGAS logo" class="object-cover" />
+              <AvatarFallback class="rounded-lg text-xs font-semibold">PGAS</AvatarFallback>
+            </Avatar>
+            <div class="flex flex-col justify-center gap-1">
+              <CardTitle class="text-base font-semibold">GIP - PGAS</CardTitle>
+              <CardDescription class="text-xs">
+                Provincial Gov't of Agusan del Sur
+              </CardDescription>
+            </div>
           </div>
           <div class="flex items-center gap-4 px-4 py-3 sm:px-6 sm:py-4 border-t sm:border-t-0 sm:border-l bg-muted/20">
             <div class="flex items-center gap-2">
@@ -223,11 +232,17 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
       <!-- ─── Chart 2: GIP DOLE ─── -->
       <Card class="overflow-hidden">
         <CardHeader class="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
-          <div class="flex flex-1 flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
-            <CardTitle class="text-base font-semibold">GIP - DOLE</CardTitle>
-            <CardDescription class="text-xs">
-              Department of Labor and Employment
-            </CardDescription>
+          <div class="flex flex-1 items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+            <Avatar class="h-15 w-15 rounded-lg border bg-background">
+              <AvatarImage :src="doleLogo" alt="DOLE logo" class="object-cover" />
+              <AvatarFallback class="rounded-lg text-xs font-semibold">DOLE</AvatarFallback>
+            </Avatar>
+            <div class="flex flex-col justify-center gap-1">
+              <CardTitle class="text-base font-semibold">GIP - DOLE</CardTitle>
+              <CardDescription class="text-xs">
+                Department of Labor and Employment
+              </CardDescription>
+            </div>
           </div>
           <div class="flex items-center gap-4 px-4 py-3 sm:px-6 sm:py-4 border-t sm:border-t-0 sm:border-l bg-muted/20">
             <div class="flex items-center gap-2">
