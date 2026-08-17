@@ -28,6 +28,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'provincial_peso' }
       },
       {
+        path: 'gip/details',
+        name: 'provincial-peso-gip-details',
+        component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipDetails.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'GIP Details' }
+      },
+      {
         path: 'spes',
         name: 'provincial-peso-spes',
         component: SPESDashboard,

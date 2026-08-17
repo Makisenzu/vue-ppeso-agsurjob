@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
 import type { ChartConfig } from '@/components/ui/chart'
 import {
@@ -11,9 +12,19 @@ import {
 } from '@/components/ui/chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
-import { Building2, Landmark, Users } from '@lucide/vue'
+import { Building2, ChevronRight, Landmark, Users } from '@lucide/vue'
+
+const router = useRouter()
+
+function navigateToDetails(program?: 'pgas' | 'dole') {
+  router.push({
+    name: 'provincial-peso-gip-details',
+    query: program ? { program } : undefined,
+  })
+}
 
 type GenderDataPoint = {
   year: number
@@ -156,6 +167,25 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
           </div>
         </div>
       </Card>
+    </div>
+
+    <!-- ─── Section Header: Dual Charts ─── -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight">Intern Demographics</h2>
+        <p class="text-xs text-muted-foreground">
+          Yearly demographic distribution by gender for PGAS and DOLE
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-1.5 self-start sm:self-auto cursor-pointer"
+        @click="navigateToDetails()"
+      >
+        <span>View Details</span>
+        <ChevronRight class="h-4 w-4" />
+      </Button>
     </div>
 
     <!-- ─── 1 Row: Dual Charts ─── -->
