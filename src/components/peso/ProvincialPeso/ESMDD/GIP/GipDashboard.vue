@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
-import type { ChartConfig } from '@/components/ui/chart'
 import {
   ChartContainer,
   ChartCrosshair,
@@ -16,89 +13,22 @@ import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 import { Building2, ChevronRight, Landmark, Users } from '@lucide/vue'
+import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
+import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 
-const router = useRouter()
-
-function navigateToDetails(program?: 'pgas' | 'dole') {
-  router.push({
-    name: 'provincial-peso-gip-details',
-    query: program ? { program } : undefined,
-  })
-}
-
-type GenderDataPoint = {
-  year: number
-  male: number
-  female: number
-}
-
-// ─── Chart Configs ───
-const pgasConfig: ChartConfig = {
-  male: {
-    label: 'Male',
-    color: '#2563eb',
-  },
-  female: {
-    label: 'Female',
-    color: '#dc14ea',
-  },
-}
-
-const doleConfig: ChartConfig = {
-  male: {
-    label: 'Male',
-    color: '#2563eb',
-  },
-  female: {
-    label: 'Female',
-    color: '#dc14ea',
-  },
-}
-
-// ─── GIP PGAS Yearly Dataset (2021 - 2026) ───
-const pgasData: GenderDataPoint[] = [
-  { year: 2021, male: 538, female: 614 },
-  { year: 2022, male: 880, female: 990 },
-  { year: 2023, male: 1300, female: 1440 },
-  { year: 2024, male: 1735, female: 1908 },
-  { year: 2025, male: 2080, female: 2295 },
-  { year: 2026, male: 1465, female: 1625 },
-]
-
-// ─── GIP DOLE Yearly Dataset (2021 - 2026) ───
-const doleData: GenderDataPoint[] = [
-  { year: 2021, male: 445, female: 530 },
-  { year: 2022, male: 728, female: 838 },
-  { year: 2023, male: 1085, female: 1230 },
-  { year: 2024, male: 1470, female: 1665 },
-  { year: 2025, male: 1795, female: 2015 },
-  { year: 2026, male: 1275, female: 1415 },
-]
-
-// ─── Totals ───
-const totalPgas = computed(() => ({
-  male: pgasData.reduce((acc, curr) => acc + curr.male, 0),
-  female: pgasData.reduce((acc, curr) => acc + curr.female, 0),
-}))
-
-const totalDole = computed(() => ({
-  male: doleData.reduce((acc, curr) => acc + curr.male, 0),
-  female: doleData.reduce((acc, curr) => acc + curr.female, 0),
-}))
-
-// ─── Year Formatter ───
-const formatTickYear = (dataList: GenderDataPoint[]) => (i: number) => {
-  const item = dataList[i]
-  if (!item) return ''
-  return `${item.year}`
-}
-
-// ─── Tooltip Formatter ───
-const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) => {
-  const idx = typeof d === 'number' ? d : 0
-  const item = dataList[idx]
-  return item ? `Year ${item.year}` : ''
-}
+const {
+  pgasYearlyData,
+  doleYearlyData,
+  totalPgasYearly,
+  totalDoleYearly,
+  overallMaleInterns,
+  overallFemaleInterns,
+  pgasConfig,
+  doleConfig,
+  formatTickYear,
+  formatTooltipLabel,
+  navigateToDetails,
+} = useGipDashboard()
 </script>
 
 <template>
@@ -123,7 +53,7 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
           <div>
             <p class="text-xs text-muted-foreground">GIP PGAS Total</p>
             <p class="text-xl font-bold font-mono">
-              {{ (totalPgas.male + totalPgas.female).toLocaleString() }}
+              {{ totalPgasYearly.total.toLocaleString() }}
             </p>
           </div>
         </div>
@@ -136,7 +66,7 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
           <div>
             <p class="text-xs text-muted-foreground">GIP DOLE Total</p>
             <p class="text-xl font-bold font-mono">
-              {{ (totalDole.male + totalDole.female).toLocaleString() }}
+              {{ totalDoleYearly.total.toLocaleString() }}
             </p>
           </div>
         </div>
@@ -149,7 +79,7 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
           <div>
             <p class="text-xs text-muted-foreground">Overall Male Interns</p>
             <p class="text-xl font-bold font-mono">
-              {{ (totalPgas.male + totalDole.male).toLocaleString() }}
+              {{ overallMaleInterns.toLocaleString() }}
             </p>
           </div>
         </div>
@@ -162,7 +92,7 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
           <div>
             <p class="text-xs text-muted-foreground">Overall Female Interns</p>
             <p class="text-xl font-bold font-mono">
-              {{ (totalPgas.female + totalDole.female).toLocaleString() }}
+              {{ overallFemaleInterns.toLocaleString() }}
             </p>
           </div>
         </div>
@@ -210,21 +140,21 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
               <span class="h-3 w-3 rounded-xs bg-[#2563eb]" />
               <div class="flex flex-col">
                 <span class="text-xs text-muted-foreground">Male</span>
-                <span class="text-sm font-bold font-mono">{{ totalPgas.male.toLocaleString() }}</span>
+                <span class="text-sm font-bold font-mono">{{ totalPgasYearly.male.toLocaleString() }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2 border-l pl-4">
               <span class="h-3 w-3 rounded-xs bg-[#dc14ea]" />
               <div class="flex flex-col">
                 <span class="text-xs text-muted-foreground">Female</span>
-                <span class="text-sm font-bold font-mono">{{ totalPgas.female.toLocaleString() }}</span>
+                <span class="text-sm font-bold font-mono">{{ totalPgasYearly.female.toLocaleString() }}</span>
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent class="px-2 pt-4 sm:p-6">
-          <ChartContainer :config="pgasConfig" :cursor="true" class="aspect-auto h-\[280px\] w-full">
-            <VisXYContainer :data="pgasData" :height="280">
+          <ChartContainer :config="pgasConfig" :cursor="true" class="aspect-auto h-70 w-full">
+            <VisXYContainer :data="pgasYearlyData" :height="280">
               <VisGroupedBar
                 :x="(_d: GenderDataPoint, i: number) => i"
                 :y="[(d: GenderDataPoint) => d.male, (d: GenderDataPoint) => d.female]"
@@ -242,14 +172,14 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
               />
               <VisAxis
                 type="x"
-                :tick-format="formatTickYear(pgasData)"
+                :tick-format="formatTickYear(pgasYearlyData)"
                 :grid-line="false"
                 :tick-line="false"
-                :num-ticks="pgasData.length"
+                :num-ticks="pgasYearlyData.length"
               />
               <ChartCrosshair
                 :template="componentToString(pgasConfig, ChartTooltipContent, {
-                  labelFormatter: formatTooltipLabel(pgasData),
+                  labelFormatter: formatTooltipLabel(pgasYearlyData),
                 })"
                 :color="() => 'transparent'"
               />
@@ -279,21 +209,21 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
               <span class="h-3 w-3 rounded-xs bg-[#2563eb]" />
               <div class="flex flex-col">
                 <span class="text-xs text-muted-foreground">Male</span>
-                <span class="text-sm font-bold font-mono">{{ totalDole.male.toLocaleString() }}</span>
+                <span class="text-sm font-bold font-mono">{{ totalDoleYearly.male.toLocaleString() }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2 border-l pl-4">
               <span class="h-3 w-3 rounded-xs bg-[#dc14ea]" />
               <div class="flex flex-col">
                 <span class="text-xs text-muted-foreground">Female</span>
-                <span class="text-sm font-bold font-mono">{{ totalDole.female.toLocaleString() }}</span>
+                <span class="text-sm font-bold font-mono">{{ totalDoleYearly.female.toLocaleString() }}</span>
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent class="px-2 pt-4 sm:p-6">
-          <ChartContainer :config="doleConfig" :cursor="true" class="aspect-auto h-\[280px\] w-full">
-            <VisXYContainer :data="doleData" :height="280">
+          <ChartContainer :config="doleConfig" :cursor="true" class="aspect-auto h-70 w-full">
+            <VisXYContainer :data="doleYearlyData" :height="280">
               <VisGroupedBar
                 :x="(_d: GenderDataPoint, i: number) => i"
                 :y="[(d: GenderDataPoint) => d.male, (d: GenderDataPoint) => d.female]"
@@ -311,14 +241,14 @@ const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | Date) =
               />
               <VisAxis
                 type="x"
-                :tick-format="formatTickYear(doleData)"
+                :tick-format="formatTickYear(doleYearlyData)"
                 :grid-line="false"
                 :tick-line="false"
-                :num-ticks="doleData.length"
+                :num-ticks="doleYearlyData.length"
               />
               <ChartCrosshair
                 :template="componentToString(doleConfig, ChartTooltipContent, {
-                  labelFormatter: formatTooltipLabel(doleData),
+                  labelFormatter: formatTooltipLabel(doleYearlyData),
                 })"
                 :color="() => 'transparent'"
               />
