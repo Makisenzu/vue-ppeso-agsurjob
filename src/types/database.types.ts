@@ -194,43 +194,154 @@ export type Database = {
       }
       applicants: {
         Row: {
-          course: string | null
-          created_at: string
-          education_level: string | null
+          address: Json
+          age: number | null
+          assessed_by_name: string | null
+          assessment_date: string | null
+          civil_status: string | null
+          contact_numbers: string[] | null
+          created_at: string | null
+          currently_in_school: boolean | null
+          date_of_birth: string
+          disabilities: string[] | null
+          disability_others: string | null
+          educational_background: Json | null
+          eligibilities: Json | null
+          email: string | null
           employment_status: string | null
-          expected_salary: number | null
-          id: number
-          preferred_job: string | null
-          preferred_location: string | null
+          employment_type: string | null
+          first_name: string
+          former_ofw_country: string | null
+          former_ofw_return_date: string | null
+          has_disability: boolean | null
+          height_ft: number | null
+          household_id_4ps: string | null
+          id: string
+          is_4ps_beneficiary: boolean | null
+          is_former_ofw: boolean | null
+          is_ofw: boolean | null
+          job_type_preference: string[] | null
+          language_proficiencies: Json | null
+          middle_name: string | null
+          months_looking_for_work: number | null
+          ofw_country: string | null
+          other_skills: string[] | null
+          other_skills_specified: string | null
+          preferred_local_locations: string[] | null
+          preferred_occupations: string[] | null
+          preferred_overseas_locations: string[] | null
           profile_id: string | null
+          referred_programs: string[] | null
+          religion: string | null
+          self_employed_type: string | null
+          sex: string | null
+          suffix: string | null
+          surname: string
+          tin: string | null
+          unemployed_reason: string | null
           updated_at: string | null
-          years_experience: number | null
+          vocational_trainings: Json | null
+          work_experiences: Json | null
         }
         Insert: {
-          course?: string | null
-          created_at?: string
-          education_level?: string | null
+          address?: Json
+          age?: number | null
+          assessed_by_name?: string | null
+          assessment_date?: string | null
+          civil_status?: string | null
+          contact_numbers?: string[] | null
+          created_at?: string | null
+          currently_in_school?: boolean | null
+          date_of_birth: string
+          disabilities?: string[] | null
+          disability_others?: string | null
+          educational_background?: Json | null
+          eligibilities?: Json | null
+          email?: string | null
           employment_status?: string | null
-          expected_salary?: number | null
-          id?: never
-          preferred_job?: string | null
-          preferred_location?: string | null
+          employment_type?: string | null
+          first_name: string
+          former_ofw_country?: string | null
+          former_ofw_return_date?: string | null
+          has_disability?: boolean | null
+          height_ft?: number | null
+          household_id_4ps?: string | null
+          id?: string
+          is_4ps_beneficiary?: boolean | null
+          is_former_ofw?: boolean | null
+          is_ofw?: boolean | null
+          job_type_preference?: string[] | null
+          language_proficiencies?: Json | null
+          middle_name?: string | null
+          months_looking_for_work?: number | null
+          ofw_country?: string | null
+          other_skills?: string[] | null
+          other_skills_specified?: string | null
+          preferred_local_locations?: string[] | null
+          preferred_occupations?: string[] | null
+          preferred_overseas_locations?: string[] | null
           profile_id?: string | null
+          referred_programs?: string[] | null
+          religion?: string | null
+          self_employed_type?: string | null
+          sex?: string | null
+          suffix?: string | null
+          surname: string
+          tin?: string | null
+          unemployed_reason?: string | null
           updated_at?: string | null
-          years_experience?: number | null
+          vocational_trainings?: Json | null
+          work_experiences?: Json | null
         }
         Update: {
-          course?: string | null
-          created_at?: string
-          education_level?: string | null
+          address?: Json
+          age?: number | null
+          assessed_by_name?: string | null
+          assessment_date?: string | null
+          civil_status?: string | null
+          contact_numbers?: string[] | null
+          created_at?: string | null
+          currently_in_school?: boolean | null
+          date_of_birth?: string
+          disabilities?: string[] | null
+          disability_others?: string | null
+          educational_background?: Json | null
+          eligibilities?: Json | null
+          email?: string | null
           employment_status?: string | null
-          expected_salary?: number | null
-          id?: never
-          preferred_job?: string | null
-          preferred_location?: string | null
+          employment_type?: string | null
+          first_name?: string
+          former_ofw_country?: string | null
+          former_ofw_return_date?: string | null
+          has_disability?: boolean | null
+          height_ft?: number | null
+          household_id_4ps?: string | null
+          id?: string
+          is_4ps_beneficiary?: boolean | null
+          is_former_ofw?: boolean | null
+          is_ofw?: boolean | null
+          job_type_preference?: string[] | null
+          language_proficiencies?: Json | null
+          middle_name?: string | null
+          months_looking_for_work?: number | null
+          ofw_country?: string | null
+          other_skills?: string[] | null
+          other_skills_specified?: string | null
+          preferred_local_locations?: string[] | null
+          preferred_occupations?: string[] | null
+          preferred_overseas_locations?: string[] | null
           profile_id?: string | null
+          referred_programs?: string[] | null
+          religion?: string | null
+          self_employed_type?: string | null
+          sex?: string | null
+          suffix?: string | null
+          surname?: string
+          tin?: string | null
+          unemployed_reason?: string | null
           updated_at?: string | null
-          years_experience?: number | null
+          vocational_trainings?: Json | null
+          work_experiences?: Json | null
         }
         Relationships: []
       }
@@ -283,13 +394,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "biometrics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "system_directory_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profile_media: {
@@ -337,13 +441,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "profile_media_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "system_directory_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profile_socials: {
@@ -377,13 +474,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profile_socials_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "system_directory_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -465,39 +555,7 @@ export type Database = {
       }
     }
     Views: {
-      system_directory_profiles: {
-        Row: {
-          applicant_id: number | null
-          birthdate: string | null
-          category: string | null
-          company_contact: string | null
-          company_email: string | null
-          company_id: number | null
-          company_name: string | null
-          contact_number: string | null
-          course: string | null
-          created_at: string | null
-          documents: Json | null
-          education_level: string | null
-          employment_status: string | null
-          expected_salary: number | null
-          firstname: string | null
-          gender: Database["core"]["Enums"]["gender_type"] | null
-          id: string | null
-          industry: string | null
-          lastname: string | null
-          middlename: string | null
-          preferred_job: string | null
-          preferred_location: string | null
-          registration_number: string | null
-          role: Database["core"]["Enums"]["user_role"] | null
-          status: Database["core"]["Enums"]["status_type"] | null
-          updated_at: string | null
-          website: string | null
-          years_experience: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_user_emails: {
@@ -1183,159 +1241,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      nsrp_forms: {
-        Row: {
-          address: Json
-          age: number | null
-          assessed_by_name: string | null
-          assessment_date: string | null
-          civil_status: string | null
-          contact_numbers: string[] | null
-          created_at: string | null
-          currently_in_school: boolean | null
-          date_of_birth: string
-          disabilities: string[] | null
-          disability_others: string | null
-          educational_background: Json | null
-          eligibilities: Json | null
-          email: string | null
-          employment_status: string | null
-          employment_type: string | null
-          first_name: string
-          former_ofw_country: string | null
-          former_ofw_return_date: string | null
-          has_disability: boolean | null
-          height_ft: number | null
-          household_id_4ps: string | null
-          id: string
-          is_4ps_beneficiary: boolean | null
-          is_former_ofw: boolean | null
-          is_ofw: boolean | null
-          job_type_preference: string[] | null
-          language_proficiencies: Json | null
-          middle_name: string | null
-          months_looking_for_work: number | null
-          ofw_country: string | null
-          other_skills: string[] | null
-          other_skills_specified: string | null
-          preferred_local_locations: string[] | null
-          preferred_occupations: string[] | null
-          preferred_overseas_locations: string[] | null
-          referred_programs: string[] | null
-          religion: string | null
-          self_employed_type: string | null
-          sex: string | null
-          suffix: string | null
-          surname: string
-          tin: string | null
-          unemployed_reason: string | null
-          updated_at: string | null
-          user_id: string | null
-          vocational_trainings: Json | null
-          work_experiences: Json | null
-        }
-        Insert: {
-          address?: Json
-          age?: number | null
-          assessed_by_name?: string | null
-          assessment_date?: string | null
-          civil_status?: string | null
-          contact_numbers?: string[] | null
-          created_at?: string | null
-          currently_in_school?: boolean | null
-          date_of_birth: string
-          disabilities?: string[] | null
-          disability_others?: string | null
-          educational_background?: Json | null
-          eligibilities?: Json | null
-          email?: string | null
-          employment_status?: string | null
-          employment_type?: string | null
-          first_name: string
-          former_ofw_country?: string | null
-          former_ofw_return_date?: string | null
-          has_disability?: boolean | null
-          height_ft?: number | null
-          household_id_4ps?: string | null
-          id?: string
-          is_4ps_beneficiary?: boolean | null
-          is_former_ofw?: boolean | null
-          is_ofw?: boolean | null
-          job_type_preference?: string[] | null
-          language_proficiencies?: Json | null
-          middle_name?: string | null
-          months_looking_for_work?: number | null
-          ofw_country?: string | null
-          other_skills?: string[] | null
-          other_skills_specified?: string | null
-          preferred_local_locations?: string[] | null
-          preferred_occupations?: string[] | null
-          preferred_overseas_locations?: string[] | null
-          referred_programs?: string[] | null
-          religion?: string | null
-          self_employed_type?: string | null
-          sex?: string | null
-          suffix?: string | null
-          surname: string
-          tin?: string | null
-          unemployed_reason?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          vocational_trainings?: Json | null
-          work_experiences?: Json | null
-        }
-        Update: {
-          address?: Json
-          age?: number | null
-          assessed_by_name?: string | null
-          assessment_date?: string | null
-          civil_status?: string | null
-          contact_numbers?: string[] | null
-          created_at?: string | null
-          currently_in_school?: boolean | null
-          date_of_birth?: string
-          disabilities?: string[] | null
-          disability_others?: string | null
-          educational_background?: Json | null
-          eligibilities?: Json | null
-          email?: string | null
-          employment_status?: string | null
-          employment_type?: string | null
-          first_name?: string
-          former_ofw_country?: string | null
-          former_ofw_return_date?: string | null
-          has_disability?: boolean | null
-          height_ft?: number | null
-          household_id_4ps?: string | null
-          id?: string
-          is_4ps_beneficiary?: boolean | null
-          is_former_ofw?: boolean | null
-          is_ofw?: boolean | null
-          job_type_preference?: string[] | null
-          language_proficiencies?: Json | null
-          middle_name?: string | null
-          months_looking_for_work?: number | null
-          ofw_country?: string | null
-          other_skills?: string[] | null
-          other_skills_specified?: string | null
-          preferred_local_locations?: string[] | null
-          preferred_occupations?: string[] | null
-          preferred_overseas_locations?: string[] | null
-          referred_programs?: string[] | null
-          religion?: string | null
-          self_employed_type?: string | null
-          sex?: string | null
-          suffix?: string | null
-          surname?: string
-          tin?: string | null
-          unemployed_reason?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          vocational_trainings?: Json | null
-          work_experiences?: Json | null
-        }
-        Relationships: []
       }
       provinces: {
         Row: {
