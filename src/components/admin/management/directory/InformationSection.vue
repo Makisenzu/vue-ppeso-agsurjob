@@ -26,7 +26,6 @@ import { useSystemDirectoryStore } from '@/stores/admin/systemDirectoryStore'
 import {
   formatDate,
   formatDateTime,
-  formatCurrency,
   formatFileSize,
   getRoleBadgeVariant,
   getRoleBadgeClass,
@@ -382,13 +381,9 @@ const handleUpdateDocumentStatus = async () => {
         <div v-if="selectedRecord.applicantDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-muted-foreground flex items-center gap-1">
-              Education Level:
+              Civil Status:
             </span>
-            <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.education_level || 'N/A' }}</span>
-          </div>
-          <div>
-            <span class="text-muted-foreground">Course / Major:</span>
-            <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.course || 'N/A' }}</span>
+            <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.civil_status || 'N/A' }}</span>
           </div>
           <div>
             <span class="text-muted-foreground flex items-center gap-1">
@@ -397,26 +392,22 @@ const handleUpdateDocumentStatus = async () => {
             <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.employment_status || 'N/A' }}</span>
           </div>
           <div>
-            <span class="text-muted-foreground">Years of Experience:</span>
-            <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.years_experience !== null ? selectedRecord.applicantDetails.years_experience + ' year(s)' : 'N/A' }}</span>
+            <span class="text-muted-foreground flex items-center gap-1">
+              Employment Type:
+            </span>
+            <span class="ml-2 font-medium capitalize">{{ selectedRecord.applicantDetails.employment_type || 'N/A' }}</span>
           </div>
           <div>
             <span class="text-muted-foreground flex items-center gap-1">
-              Expected Salary:
+              Preferred Occupations:
             </span>
-            <span class="ml-2 font-medium">{{ formatCurrency(selectedRecord.applicantDetails.expected_salary) }}</span>
-          </div>
-          <div>
-            <span class="text-muted-foreground flex items-center gap-1">
-              Preferred Job Title:
-            </span>
-            <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.preferred_job || 'N/A' }}</span>
+            <span class="ml-2 font-medium">{{ (selectedRecord.applicantDetails.preferred_occupations as string[])?.join(', ') || 'N/A' }}</span>
           </div>
           <div class="sm:col-span-2">
             <span class="text-muted-foreground flex items-center gap-1">
-              Preferred Location:
+              Preferred Locations:
             </span>
-            <span class="ml-2 font-medium">{{ selectedRecord.applicantDetails.preferred_location || 'N/A' }}</span>
+            <span class="ml-2 font-medium">{{ (selectedRecord.applicantDetails.preferred_local_locations as string[])?.join(', ') || 'N/A' }}</span>
           </div>
         </div>
         <div v-else class="text-sm text-muted-foreground italic bg-muted p-3 rounded">

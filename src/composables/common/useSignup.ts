@@ -1,102 +1,112 @@
-import { computed, ref } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/common/auth'
-import { UserSearch, Building2 } from '@lucide/vue'
-import type { Role, RoleOption } from '@/types/common/auth'
+import { storeToRefs } from 'pinia'
+import { useSignupStore } from '@/stores/common/signupStore'
+import { usePsgc } from '@/composables/common/usePsgc'
+import type { SignupRole } from '@/types/common/signup'
+import {
+  SIGNUP_ROLES,
+  STEP_META,
+  TOTAL_STEPS,
+  PROGRESS_STEPS,
+  validateStep,
+  GENDER_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  CIVIL_STATUS_OPTIONS,
+  BUSINESS_TYPE_OPTIONS,
+} from '@/helpers/common/signupHelper'
+
 export function useSignup() {
   const router = useRouter()
-  const authStore = useAuthStore()
+  const signupStore = useSignupStore()
 
-  // ─── Role options ───
-  const roles: RoleOption[] = [
-    {
-      id: 'applicant',
-      label: 'Applicant',
-      description: 'Search for jobs and apply to opportunities.',
-      icon: UserSearch,
-    },
-    {
-      id: 'company_owner',
-      label: 'Company Owner',
-      description: 'Post jobs and manage candidate applications.',
-      icon: Building2,
-    },
-  ]
+  const {
+    selectedRole,
+    profileForm,
+    applicantForm,
+    companyForm,
+    confirmPassword,
+    currentStep,
+    isSubmitting,
+    submitError,
+  } = storeToRefs(signupStore)
 
-  // ─── Step definitions (displayed in the stepper, excludes step 0) ───
-  const stepMeta = [
-    { title: 'Select Role', description: 'Choose the role that best describes you to get started.' },
-    { title: 'Personal Details', description: 'Tell us about yourself.' },
-    { title: 'Address & Status', description: 'Where are you located?' },
-    { title: 'Account Credentials', description: 'Set up your login information.' },
-    { title: 'Additional Information', description: 'Provide details relevant to your role.' },
-    { title: 'Review & Submit', description: 'Verify your information before creating your account.' },
-  ]
+  // ─── PSGC cascading address ───
+  const {
+    regions: psgcRegions,
+    provinces: psgcProvinces,
+    cities: psgcCities,
+    barangays: psgcBarangays,
+    selectedRegion,
+    selectedProvince,
+    selectedCity,
+    selectedBarangay,
+    initialize: initPsgc,
+  } = usePsgc()
 
-  // Steps shown in the stepper indicator (excludes step 0 role selection)
-  const progressSteps = stepMeta.slice(1).map((meta, i) => ({
-    step: i + 1,
-    title: meta.title,
-  }))
-
-  // ─── Role selection ───
-  const selectedRole = computed({
-    get: () => authStore.selectedRole as any,
-    set: (role: any) => {
-      authStore.selectedRole = role
-    },
+  onMounted(() => {
+    initPsgc()
   })
 
-  const isSelected = (id: Role) => selectedRole.value === id
-  const canContinue = computed(() => selectedRole.value !== null)
-
-  // ─── Step state ───
-  const currentStep = ref(0)
-  const totalSteps = 6 // 0..5
-  const confirmPassword = ref('')
-  const isSubmitting = ref(false)
-  const submitError = ref('')
-
-  const stepTitle = computed(() => stepMeta[currentStep.value]?.title ?? '')
-  const stepDescription = computed(() => stepMeta[currentStep.value]?.description ?? '')
-
-  // ─── Validation per step ───
-  const canProceed = computed(() => {
-    const s = authStore.signupData
-    const a = authStore.applicantData
-    const e = authStore.employerData
-
-    switch (currentStep.value) {
-      case 0:
-        return selectedRole.value !== null
-      case 1:
-        return !!(s.firstName.trim() && s.lastName.trim() && s.birthdate && s.gender && s.contact_number.trim())
-      case 2:
-        return !!(s.region.trim() && s.province.trim() && s.geographic.trim() && s.barangay.trim())
-      case 3:
-        return !!(
-          s.email.trim() &&
-          s.password.length >= 6 &&
-          confirmPassword.value === s.password
-        )
-      case 4:
-        if (selectedRole.value === 'applicant') {
-          return !!(a.education_level && a.employment_status)
-        }
-        if (selectedRole.value === 'company_owner') {
-          return !!(e.company_name.trim() && e.company_email.trim() && e.business_type)
-        }
-        return false
-      case 5:
-        return true
-      default:
-        return false
-    }
+  // Sync PSGC selections to profileForm names
+  watch(selectedRegion, (val) => {
+    profileForm.value.region = val?.name ?? ''
   })
+  watch(selectedProvince, (val) => {
+    profileForm.value.province = val?.name ?? ''
+  })
+  watch(selectedCity, (val) => {
+    profileForm.value.geographic = val?.name ?? ''
+  })
+  watch(selectedBarangay, (val) => {
+    profileForm.value.barangay = val?.name ?? ''
+  })
+
+  // ─── PSGC change handlers ───
+  function onRegionChange(code: any) {
+    const region = psgcRegions.value.find((r: any) => r.code === String(code))
+    if (region) selectedRegion.value = region
+  }
+
+  function onProvinceChange(code: any) {
+    const province = psgcProvinces.value.find((p: any) => p.code === String(code))
+    if (province) selectedProvince.value = province
+  }
+
+  function onCityChange(code: any) {
+    const city = psgcCities.value.find((c: any) => c.code === String(code))
+    if (city) selectedCity.value = city
+  }
+
+  function onBarangayChange(code: any) {
+    const barangay = psgcBarangays.value.find((b: any) => b.code === String(code))
+    if (barangay) selectedBarangay.value = barangay
+  }
+
+  // ─── Step metadata ───
+  const stepTitle = computed(() => STEP_META[currentStep.value]?.title ?? '')
+  const stepDescription = computed(() => STEP_META[currentStep.value]?.description ?? '')
+
+  // ─── Selection helpers ───
+  const isSelected = (id: SignupRole) => selectedRole.value === id
+
+  // ─── Validation ───
+  const canProceed = computed(() =>
+    validateStep(
+      currentStep.value,
+      profileForm.value,
+      applicantForm.value,
+      companyForm.value,
+      confirmPassword.value,
+      selectedRole.value,
+    ),
+  )
 
   // ─── Navigation ───
   function nextStep() {
-    if (currentStep.value < totalSteps - 1) {
+    if (currentStep.value < TOTAL_STEPS - 1) {
       currentStep.value++
     }
   }
@@ -107,41 +117,37 @@ export function useSignup() {
     }
   }
 
-  const handleBack = () => {
+  function handleBack() {
     router.push('/login')
   }
 
   // ─── Submission ───
   async function handleSubmit() {
-    isSubmitting.value = true
-    submitError.value = ''
     try {
-      authStore.signupData.role = selectedRole.value as any
-      await authStore.submitSignup()
+      await signupStore.submitSignup()
       router.push('/login')
-    } catch (error: any) {
-      submitError.value = error?.message || 'Signup failed. Please try again.'
-    } finally {
-      isSubmitting.value = false
+    } catch {
+      // Error is already set in the store's submitError
     }
   }
 
   return {
     // Role
-    roles,
+    roles: SIGNUP_ROLES,
     selectedRole,
     isSelected,
-    canContinue,
     // Steps
     currentStep,
-    totalSteps,
     stepTitle,
     stepDescription,
-    progressSteps,
+    progressSteps: PROGRESS_STEPS,
     canProceed,
     nextStep,
     prevStep,
-    // Form
+    // Form data (reactive refs from store)
+    profileForm,
+    applicantForm,
+    companyForm,
     confirmPassword,
     // Submit
     isSubmitting,
@@ -149,9 +155,25 @@ export function useSignup() {
     handleSubmit,
     // Navigation
     handleBack,
-    // Store refs
-    signupData: authStore.signupData,
-    applicantData: authStore.applicantData,
-    employerData: authStore.employerData,
+    // PSGC
+    psgcRegions,
+    psgcProvinces,
+    psgcCities,
+    psgcBarangays,
+    selectedRegion,
+    selectedProvince,
+    selectedCity,
+    selectedBarangay,
+    onRegionChange,
+    onProvinceChange,
+    onCityChange,
+    onBarangayChange,
+    // Select options
+    GENDER_OPTIONS,
+    EMPLOYMENT_STATUS_OPTIONS,
+    EMPLOYMENT_TYPE_OPTIONS,
+    EDUCATION_LEVEL_OPTIONS,
+    CIVIL_STATUS_OPTIONS,
+    BUSINESS_TYPE_OPTIONS,
   }
 }

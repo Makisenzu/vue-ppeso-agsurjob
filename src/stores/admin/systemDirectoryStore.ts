@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import type { DirectoryProfileRow, SubmittedDocument } from '@/types/admin/systemDirectory'
 import { systemDirectoryService } from '@/services/admin/systemDirectoryService'
 import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
@@ -10,12 +10,12 @@ const SYSTEM_DIRECTORY_CACHE_KEY = 'admin:system-directory:records'
 export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
   const toastAlert = useToastAlert()
 
-  const records = ref<DirectoryProfileRow[]>([])
+  const records = shallowRef<DirectoryProfileRow[]>([])
   const isLoading = ref<boolean>(false)
   const isSubmitting = ref<boolean>(false)
   const errorMessage = ref<string | null>(null)
 
-  const selectedRecord = ref<DirectoryProfileRow | null>(null)
+  const selectedRecord = shallowRef<DirectoryProfileRow | null>(null)
   const isDetailsOpen = ref<boolean>(false)
   const isEditStatusOpen = ref<boolean>(false)
   const isEditDocStatusOpen = ref<boolean>(false)
@@ -85,17 +85,17 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
       const updated = await systemDirectoryService.updateAccountStatus(profileId, newStatus)
 
       // 1. Immutable array update for TanStack Table
-      records.value = records.value.map((r) =>
-        r.id === profileId ? { ...r, status: updated.status, updated_at: updated.updated_at } : r
-      )
+      const target = records.value.find((item) => item.id === profileId)
+      if (target) {
+        target.status = updated.status
+        target.updated_at = updated.updated_at
+        records.value = [...records.value]
+      }
 
       // 2. Keep open details modal synchronized
       if (selectedRecord.value?.id === profileId) {
-        selectedRecord.value = {
-          ...selectedRecord.value,
-          status: updated.status,
-          updated_at: updated.updated_at,
-        }
+        selectedRecord.value.status = updated.status
+        selectedRecord.value.updated_at = updated.updated_at
       }
 
       closeEditStatusModal()

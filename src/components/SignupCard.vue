@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
 import SpotLightCard from './SpotLightCard.vue'
 import { useSignup } from '@/composables/common/useSignup.ts'
-import { usePsgc } from '@/composables/common/usePsgc.ts'
 import { Check, ChevronLeft } from '@lucide/vue'
 
 import {
@@ -36,61 +34,30 @@ const {
   submitError,
   handleSubmit,
   handleBack,
-  signupData,
-  applicantData,
-  employerData,
-} = useSignup()
-
-// ─── PSGC cascading address ───
-const {
-  regions: psgcRegions,
-  provinces: psgcProvinces,
-  cities: psgcCities,
-  barangays: psgcBarangays,
+  profileForm,
+  applicantForm,
+  companyForm,
+  // PSGC
+  psgcRegions,
+  psgcProvinces,
+  psgcCities,
+  psgcBarangays,
   selectedRegion,
   selectedProvince,
   selectedCity,
   selectedBarangay,
-  initialize: initPsgc,
-} = usePsgc()
-
-onMounted(() => {
-  initPsgc()
-})
-
-// Sync PSGC selections to signupData names
-watch(selectedRegion, (val) => {
-  signupData.region = val?.name ?? ''
-})
-watch(selectedProvince, (val) => {
-  signupData.province = val?.name ?? ''
-})
-watch(selectedCity, (val) => {
-  signupData.geographic = val?.name ?? ''
-})
-watch(selectedBarangay, (val) => {
-  signupData.barangay = val?.name ?? ''
-})
-
-function onRegionChange(code: any) {
-  const region = psgcRegions.value.find((r: any) => r.code === String(code))
-  if (region) selectedRegion.value = region
-}
-
-function onProvinceChange(code: any) {
-  const province = psgcProvinces.value.find((p: any) => p.code === String(code))
-  if (province) selectedProvince.value = province
-}
-
-function onCityChange(code: any) {
-  const city = psgcCities.value.find((c: any) => c.code === String(code))
-  if (city) selectedCity.value = city
-}
-
-function onBarangayChange(code: any) {
-  const barangay = psgcBarangays.value.find((b: any) => b.code === String(code))
-  if (barangay) selectedBarangay.value = barangay
-}
+  onRegionChange,
+  onProvinceChange,
+  onCityChange,
+  onBarangayChange,
+  // Select options
+  GENDER_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  CIVIL_STATUS_OPTIONS,
+  BUSINESS_TYPE_OPTIONS,
+} = useSignup()
 </script>
 
 <template>
@@ -205,35 +172,38 @@ function onBarangayChange(code: any) {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col space-y-1.5">
                   <Label for="firstName">First Name</Label>
-                  <Input id="firstName" v-model="signupData.firstName" placeholder="Juan" />
+                  <Input id="firstName" v-model="profileForm.firstname" placeholder="Juan" />
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="middleName">Middle Name</Label>
-                  <Input id="middleName" v-model="signupData.middlename" placeholder="Santos" />
+                  <Input id="middleName" v-model="profileForm.middlename" placeholder="Santos" />
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="lastName">Last Name</Label>
-                  <Input id="lastName" v-model="signupData.lastName" placeholder="Dela Cruz" />
+                  <Input id="lastName" v-model="profileForm.lastname" placeholder="Dela Cruz" />
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="birthdate">Birthdate</Label>
-                  <Input id="birthdate" v-model="signupData.birthdate" type="date" />
+                  <Input id="birthdate" v-model="profileForm.birthdate" type="date" />
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="gender">Gender</Label>
-                  <NativeSelect id="gender" v-model="signupData.gender" class="w-full!">
+                  <NativeSelect id="gender" v-model="profileForm.gender" class="w-full!">
                     <NativeSelectOption value="" disabled>Select gender</NativeSelectOption>
-                    <NativeSelectOption value="man">Man</NativeSelectOption>
-                    <NativeSelectOption value="woman">Woman</NativeSelectOption>
-                    <NativeSelectOption value="non_binary">Non-binary</NativeSelectOption>
-                    <NativeSelectOption value="prefer_not_to_say">Prefer not to say</NativeSelectOption>
+                    <NativeSelectOption
+                      v-for="opt in GENDER_OPTIONS"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </NativeSelectOption>
                   </NativeSelect>
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="contactNumber">Contact Number</Label>
                   <Input
                     id="contactNumber"
-                    v-model="signupData.contact_number"
+                    v-model="profileForm.contact_number"
                     type="tel"
                     placeholder="09XXXXXXXXX"
                   />
@@ -242,173 +212,173 @@ function onBarangayChange(code: any) {
             </template>
 
             <!-- ─── Step 2: Address & Status ─── -->
-              <template v-if="currentStep === 2">
-                <!-- Region -->
-                <div class="flex flex-col space-y-1.5">
-                  <Label for="region">Region</Label>
-                  <NativeSelect
-                    id="region"
-                    :model-value="selectedRegion?.code ?? ''"
-                    class="w-full!"
-                    @update:model-value="onRegionChange"
+            <template v-if="currentStep === 2">
+              <!-- Region -->
+              <div class="flex flex-col space-y-1.5">
+                <Label for="region">Region</Label>
+                <NativeSelect
+                  id="region"
+                  :model-value="selectedRegion?.code ?? ''"
+                  class="w-full!"
+                  @update:model-value="onRegionChange"
+                >
+                  <NativeSelectOption value="" disabled>
+                    {{ psgcRegions.length === 0 ? 'Loading...' : 'Select region' }}
+                  </NativeSelectOption>
+
+                  <NativeSelectOption
+                    v-for="r in psgcRegions"
+                    :key="r.code"
+                    :value="r.code"
                   >
-                    <NativeSelectOption value="" disabled>
-                      {{ psgcRegions.length === 0 ? 'Loading...' : 'Select region' }}
-                    </NativeSelectOption>
+                    {{ r.name }}
+                  </NativeSelectOption>
+                </NativeSelect>
+              </div>
 
-                    <NativeSelectOption
-                      v-for="r in psgcRegions"
-                      :key="r.code"
-                      :value="r.code"
-                    >
-                      {{ r.name }}
-                    </NativeSelectOption>
-                  </NativeSelect>
-                </div>
-
-                <!-- Province + City -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <!-- Province -->
-                  <div class="flex flex-col space-y-1.5">
-                    <Label for="province">Province</Label>
-                    <NativeSelect
-                      id="province"
-                      :model-value="selectedProvince?.code ?? ''"
-                      :disabled="!selectedRegion"
-                      class="w-full!"
-                      @update:model-value="onProvinceChange"
-                    >
-                      <NativeSelectOption value="" disabled>
-                        {{
-                          !selectedRegion
-                            ? 'Select a region first'
-                            : psgcProvinces.length === 0
-                              ? 'Loading...'
-                              : 'Select province'
-                        }}
-                      </NativeSelectOption>
-
-                      <NativeSelectOption
-                        v-for="p in psgcProvinces"
-                        :key="p.code"
-                        :value="p.code"
-                      >
-                        {{ p.name }}
-                      </NativeSelectOption>
-                    </NativeSelect>
-                  </div>
-
-                  <!-- City / Municipality -->
-                  <div class="flex flex-col space-y-1.5">
-                    <Label for="geographic">City / Municipality</Label>
-                    <NativeSelect
-                      id="geographic"
-                      :model-value="selectedCity?.code ?? ''"
-                      :disabled="!selectedProvince"
-                      class="w-full!"
-                      @update:model-value="onCityChange"
-                    >
-                      <NativeSelectOption value="" disabled>
-                        {{
-                          !selectedProvince
-                            ? 'Select a province first'
-                            : psgcCities.length === 0
-                              ? 'Loading...'
-                              : 'Select city / municipality'
-                        }}
-                      </NativeSelectOption>
-
-                      <NativeSelectOption
-                        v-for="c in psgcCities"
-                        :key="c.code"
-                        :value="c.code"
-                      >
-                        {{ c.name }}
-                      </NativeSelectOption>
-                    </NativeSelect>
-                  </div>
-                </div>
-
-                <!-- Barangay -->
+              <!-- Province + City -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Province -->
                 <div class="flex flex-col space-y-1.5">
-                  <Label for="barangay">Barangay</Label>
+                  <Label for="province">Province</Label>
                   <NativeSelect
-                    id="barangay"
-                    :model-value="selectedBarangay?.code ?? ''"
-                    :disabled="!selectedCity"
+                    id="province"
+                    :model-value="selectedProvince?.code ?? ''"
+                    :disabled="!selectedRegion"
                     class="w-full!"
-                    @update:model-value="onBarangayChange"
+                    @update:model-value="onProvinceChange"
                   >
                     <NativeSelectOption value="" disabled>
                       {{
-                        !selectedCity
-                          ? 'Select a city first'
-                          : psgcBarangays.length === 0
+                        !selectedRegion
+                          ? 'Select a region first'
+                          : psgcProvinces.length === 0
                             ? 'Loading...'
-                            : 'Select barangay'
+                            : 'Select province'
                       }}
                     </NativeSelectOption>
 
                     <NativeSelectOption
-                      v-for="b in psgcBarangays"
-                      :key="b.code"
-                      :value="b.code"
+                      v-for="p in psgcProvinces"
+                      :key="p.code"
+                      :value="p.code"
                     >
-                      {{ b.name }}
+                      {{ p.name }}
                     </NativeSelectOption>
                   </NativeSelect>
                 </div>
 
-                <!-- Checkboxes -->
-                <div class="flex items-center gap-2 pt-1">
-                  <Checkbox
-                    id="is4ps"
-                    :checked="signupData.is_4ps"
-                    @update:checked="(val: boolean) => (signupData.is_4ps = val)"
-                  />
-                  <Label
-                    for="is4ps"
-                    class="text-sm font-normal cursor-pointer"
+                <!-- City / Municipality -->
+                <div class="flex flex-col space-y-1.5">
+                  <Label for="geographic">City / Municipality</Label>
+                  <NativeSelect
+                    id="geographic"
+                    :model-value="selectedCity?.code ?? ''"
+                    :disabled="!selectedProvince"
+                    class="w-full!"
+                    @update:model-value="onCityChange"
                   >
-                    4Ps member
-                  </Label>
-                </div>
+                    <NativeSelectOption value="" disabled>
+                      {{
+                        !selectedProvince
+                          ? 'Select a province first'
+                          : psgcCities.length === 0
+                            ? 'Loading...'
+                            : 'Select city / municipality'
+                      }}
+                    </NativeSelectOption>
 
-                <div class="flex items-center gap-2">
-                  <Checkbox
-                    id="isPwd"
-                    :checked="signupData.is_pwd"
-                    @update:checked="(val: boolean) => (signupData.is_pwd = val)"
-                  />
-                  <Label
-                    for="isPwd"
-                    class="text-sm font-normal cursor-pointer"
-                  >
-                    Person with Disability (PWD)
-                  </Label>
+                    <NativeSelectOption
+                      v-for="c in psgcCities"
+                      :key="c.code"
+                      :value="c.code"
+                    >
+                      {{ c.name }}
+                    </NativeSelectOption>
+                  </NativeSelect>
                 </div>
-              </template>
+              </div>
+
+              <!-- Barangay -->
+              <div class="flex flex-col space-y-1.5">
+                <Label for="barangay">Barangay</Label>
+                <NativeSelect
+                  id="barangay"
+                  :model-value="selectedBarangay?.code ?? ''"
+                  :disabled="!selectedCity"
+                  class="w-full!"
+                  @update:model-value="onBarangayChange"
+                >
+                  <NativeSelectOption value="" disabled>
+                    {{
+                      !selectedCity
+                        ? 'Select a city first'
+                        : psgcBarangays.length === 0
+                          ? 'Loading...'
+                          : 'Select barangay'
+                    }}
+                  </NativeSelectOption>
+
+                  <NativeSelectOption
+                    v-for="b in psgcBarangays"
+                    :key="b.code"
+                    :value="b.code"
+                  >
+                    {{ b.name }}
+                  </NativeSelectOption>
+                </NativeSelect>
+              </div>
+
+              <!-- Checkboxes -->
+              <div class="flex items-center gap-2 pt-1">
+                <Checkbox
+                  id="is4ps"
+                  :checked="profileForm.is_4ps"
+                  @update:checked="(val: boolean) => (profileForm.is_4ps = val)"
+                />
+                <Label
+                  for="is4ps"
+                  class="text-sm font-normal cursor-pointer"
+                >
+                  4Ps member
+                </Label>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <Checkbox
+                  id="isPwd"
+                  :checked="profileForm.is_pwd"
+                  @update:checked="(val: boolean) => (profileForm.is_pwd = val)"
+                />
+                <Label
+                  for="isPwd"
+                  class="text-sm font-normal cursor-pointer"
+                >
+                  Person with Disability (PWD)
+                </Label>
+              </div>
+            </template>
 
             <!-- ─── Step 3: Account Credentials ─── -->
             <template v-if="currentStep === 3">
               <div class="flex flex-col space-y-1.5">
                 <Label for="email">Email</Label>
-                <Input id="email" v-model="signupData.email" type="email" placeholder="example@example.com" />
+                <Input id="email" v-model="profileForm.email" type="email" placeholder="example@example.com" />
                 <Label for="username">Username</Label>
-                <Input id="username" v-model="signupData.username" type="text" placeholder="username"/>
+                <Input id="username" v-model="profileForm.username" type="text" placeholder="username"/>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col space-y-1.5">
                   <Label for="password">Password</Label>
-                  <Input id="password" v-model="signupData.password" type="password" placeholder="At least 6 characters" />
-                  <p v-if="signupData.password.length > 0 && signupData.password.length < 6" class="text-xs text-destructive">
+                  <Input id="password" v-model="profileForm.password" type="password" placeholder="At least 6 characters" />
+                  <p v-if="profileForm.password.length > 0 && profileForm.password.length < 6" class="text-xs text-destructive">
                     Password must be at least 6 characters.
                   </p>
                 </div>
                 <div class="flex flex-col space-y-1.5">
                   <Label for="confirmPassword">Confirm Password</Label>
                   <Input id="confirmPassword" v-model="confirmPassword" type="password" />
-                  <p v-if="confirmPassword.length > 0 && confirmPassword !== signupData.password" class="text-xs text-destructive">
+                  <p v-if="confirmPassword.length > 0 && confirmPassword !== profileForm.password" class="text-xs text-destructive">
                     Passwords do not match.
                   </p>
                 </div>
@@ -420,23 +390,23 @@ function onBarangayChange(code: any) {
 
               <!-- Applicant -->
               <template v-if="selectedRole === 'applicant'">
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                   <div class="flex flex-col space-y-1.5">
-                    <Label for="educationLevel">Education Level</Label>
+                    <Label for="civilStatus">Civil Status</Label>
                     <NativeSelect
-                      id="educationLevel"
-                      v-model="applicantData.education_level"
+                      id="civilStatus"
+                      v-model="applicantForm.civil_status"
                       class="w-full!"
                     >
-                      <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
-                      <NativeSelectOption value="Elementary">Elementary</NativeSelectOption>
-                      <NativeSelectOption value="High School">High School</NativeSelectOption>
-                      <NativeSelectOption value="Senior High School">Senior High School</NativeSelectOption>
-                      <NativeSelectOption value="Vocational">Vocational</NativeSelectOption>
-                      <NativeSelectOption value="College">College</NativeSelectOption>
-                      <NativeSelectOption value="Post Graduate">Post Graduate</NativeSelectOption>
+                      <NativeSelectOption value="" disabled>Select civil status</NativeSelectOption>
+                      <NativeSelectOption
+                        v-for="opt in CIVIL_STATUS_OPTIONS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </NativeSelectOption>
                     </NativeSelect>
                   </div>
 
@@ -444,14 +414,53 @@ function onBarangayChange(code: any) {
                     <Label for="employmentStatus">Employment Status</Label>
                     <NativeSelect
                       id="employmentStatus"
-                      v-model="applicantData.employment_status"
+                      v-model="applicantForm.employment_status"
                       class="w-full!"
                     >
                       <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
-                      <NativeSelectOption value="Unemployed">Unemployed</NativeSelectOption>
-                      <NativeSelectOption value="Employed">Employed</NativeSelectOption>
-                      <NativeSelectOption value="Self-Employed">Self-Employed</NativeSelectOption>
-                      <NativeSelectOption value="Student">Student</NativeSelectOption>
+                      <NativeSelectOption
+                        v-for="opt in EMPLOYMENT_STATUS_OPTIONS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </NativeSelectOption>
+                    </NativeSelect>
+                  </div>
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="employmentType">Employment Type</Label>
+                    <NativeSelect
+                      id="employmentType"
+                      v-model="applicantForm.employment_type"
+                      class="w-full!"
+                    >
+                      <NativeSelectOption value="" disabled>Select type</NativeSelectOption>
+                      <NativeSelectOption
+                        v-for="opt in EMPLOYMENT_TYPE_OPTIONS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </NativeSelectOption>
+                    </NativeSelect>
+                  </div>
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="educationLevel">Education Level</Label>
+                    <NativeSelect
+                      id="educationLevel"
+                      v-model="applicantForm.educational_background.level"
+                      class="w-full!"
+                    >
+                      <NativeSelectOption value="" disabled>Select education level</NativeSelectOption>
+                      <NativeSelectOption
+                        v-for="opt in EDUCATION_LEVEL_OPTIONS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </NativeSelectOption>
                     </NativeSelect>
                   </div>
 
@@ -459,155 +468,138 @@ function onBarangayChange(code: any) {
                     <Label for="course">Course / Program</Label>
                     <Input
                       id="course"
-                      v-model="applicantData.course"
+                      v-model="applicantForm.educational_background.course"
                       placeholder="e.g. BS Information Technology"
                     />
                   </div>
 
                   <div class="flex flex-col space-y-1.5">
-                    <Label for="yearsExperience">Years of Experience</Label>
+                    <Label for="preferredOccupations">Preferred Occupations</Label>
                     <Input
-                      id="yearsExperience"
-                      v-model="applicantData.years_experience"
-                      type="number"
-                      placeholder="0"
+                      id="preferredOccupations"
+                      v-model="applicantForm.preferred_occupations"
+                      placeholder="e.g. Web Developer, Data Analyst"
+                    />
+                    <p class="text-xs text-muted-foreground">Separate multiple with commas</p>
+                  </div>
+
+                </div>
+
+                <div class="flex flex-col space-y-1.5 mt-4">
+                  <Label for="preferredLocations">Preferred Work Locations</Label>
+                  <Input
+                    id="preferredLocations"
+                    v-model="applicantForm.preferred_local_locations"
+                    placeholder="e.g. Naga City, Butuan City"
+                  />
+                  <p class="text-xs text-muted-foreground">Separate multiple with commas</p>
+                </div>
+
+              </template>
+
+              <!-- Company Owner -->
+              <template v-if="selectedRole === 'company_owner'">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      v-model="companyForm.company_name"
+                      placeholder="Acme Corp"
                     />
                   </div>
 
                   <div class="flex flex-col space-y-1.5">
-                    <Label for="preferredJob">Preferred Job</Label>
+                    <Label for="companyEmail">Company Email</Label>
                     <Input
-                      id="preferredJob"
-                      v-model="applicantData.preferred_job"
-                      placeholder="e.g. Web Developer"
+                      id="companyEmail"
+                      v-model="companyForm.company_email"
+                      type="email"
+                      placeholder="hr@company.com"
                     />
                   </div>
 
                   <div class="flex flex-col space-y-1.5">
-                    <Label for="preferredLocation">Preferred Location</Label>
+                    <Label for="companyContact">Company Contact</Label>
                     <Input
-                      id="preferredLocation"
-                      v-model="applicantData.preferred_location"
-                      placeholder="e.g. Naga City"
+                      id="companyContact"
+                      v-model="companyForm.company_contact"
+                      type="tel"
+                      placeholder="09XXXXXXXXX"
+                    />
+                  </div>
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="businessType">Business Type</Label>
+                    <NativeSelect
+                      id="businessType"
+                      v-model="companyForm.business_type"
+                      class="w-full!"
+                    >
+                      <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
+                      <NativeSelectOption
+                        v-for="opt in BUSINESS_TYPE_OPTIONS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </NativeSelectOption>
+                    </NativeSelect>
+                  </div>
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="industry">Industry</Label>
+                    <Input
+                      id="industry"
+                      v-model="companyForm.industry"
+                      placeholder="e.g. Information Technology"
+                    />
+                  </div>
+
+                  <div class="flex flex-col space-y-1.5">
+                    <Label for="website">Website</Label>
+                    <Input
+                      id="website"
+                      v-model="companyForm.website"
+                      type="url"
+                      placeholder="https://company.com"
                     />
                   </div>
 
                 </div>
 
                 <div class="flex flex-col space-y-1.5 mt-4">
-                  <Label for="expectedSalary">Expected Salary</Label>
+                  <Label for="registrationNumber">Registration Number</Label>
                   <Input
-                    id="expectedSalary"
-                    v-model="applicantData.expected_salary"
-                    type="number"
-                    placeholder="0"
+                    id="registrationNumber"
+                    v-model="companyForm.registration_number"
+                    placeholder="DTI / SEC number"
+                  />
+                </div>
+
+                <div class="flex flex-col space-y-1.5 mt-4">
+                  <Label for="companyAddress">Company Address</Label>
+                  <Input
+                    id="companyAddress"
+                    v-model="companyForm.company_address"
+                    placeholder="Full address"
+                  />
+                </div>
+
+                <div class="flex flex-col space-y-1.5 mt-4">
+                  <Label for="companyDescription">Company Description</Label>
+                  <Input
+                    id="companyDescription"
+                    v-model="companyForm.company_description"
+                    placeholder="Brief description"
                   />
                 </div>
 
               </template>
 
-  <!-- Company Owner -->
-  <template v-if="selectedRole === 'company_owner'">
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="companyName">Company Name</Label>
-        <Input
-          id="companyName"
-          v-model="employerData.company_name"
-          placeholder="Acme Corp"
-        />
-      </div>
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="companyEmail">Company Email</Label>
-        <Input
-          id="companyEmail"
-          v-model="employerData.company_email"
-          type="email"
-          placeholder="hr@company.com"
-        />
-      </div>
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="companyContact">Company Contact</Label>
-        <Input
-          id="companyContact"
-          v-model="employerData.company_contact"
-          type="tel"
-          placeholder="09XXXXXXXXX"
-        />
-      </div>
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="businessType">Business Type</Label>
-        <NativeSelect
-          id="businessType"
-          v-model="employerData.business_type"
-          class="w-full!"
-        >
-          <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
-          <NativeSelectOption value="Sole Proprietorship">Sole Proprietorship</NativeSelectOption>
-          <NativeSelectOption value="Partnership">Partnership</NativeSelectOption>
-          <NativeSelectOption value="Corporation">Corporation</NativeSelectOption>
-          <NativeSelectOption value="Cooperative">Cooperative</NativeSelectOption>
-          <NativeSelectOption value="Government">Government</NativeSelectOption>
-          <NativeSelectOption value="NGO">NGO</NativeSelectOption>
-        </NativeSelect>
-      </div>
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="industry">Industry</Label>
-        <Input
-          id="industry"
-          v-model="employerData.industry"
-          placeholder="e.g. Information Technology"
-        />
-      </div>
-
-      <div class="flex flex-col space-y-1.5">
-        <Label for="website">Website</Label>
-        <Input
-          id="website"
-          v-model="employerData.website"
-          type="url"
-          placeholder="https://company.com"
-        />
-      </div>
-
-    </div>
-
-    <div class="flex flex-col space-y-1.5 mt-4">
-      <Label for="registrationNumber">Registration Number</Label>
-      <Input
-        id="registrationNumber"
-        v-model="employerData.registration_number"
-        placeholder="DTI / SEC number"
-      />
-    </div>
-
-    <div class="flex flex-col space-y-1.5 mt-4">
-      <Label for="companyAddress">Company Address</Label>
-      <Input
-        id="companyAddress"
-        v-model="employerData.company_address"
-        placeholder="Full address"
-      />
-    </div>
-
-    <div class="flex flex-col space-y-1.5 mt-4">
-      <Label for="companyDescription">Company Description</Label>
-      <Input
-        id="companyDescription"
-        v-model="employerData.company_description"
-        placeholder="Brief description"
-      />
-    </div>
-
-  </template>
-
             </template>
+
             <!-- ─── Step 5: Review ─── -->
             <template v-if="currentStep === 5">
               <div class="space-y-4 text-sm">
@@ -617,30 +609,30 @@ function onBarangayChange(code: any) {
                     <p class="font-medium text-foreground">Personal Details</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <Label class="text-muted-foreground">Name</Label>
-                      <span>{{ signupData.firstName }} {{ signupData.middlename }} {{ signupData.lastName }}</span>
+                      <span>{{ profileForm.firstname }} {{ profileForm.middlename }} {{ profileForm.lastname }}</span>
                       <Label class="text-muted-foreground">Birthdate</Label>
-                      <span>{{ signupData.birthdate }}</span>
+                      <span>{{ profileForm.birthdate }}</span>
                       <Label class="text-muted-foreground">Gender</Label>
-                      <span>{{ signupData.gender }}</span>
+                      <span>{{ profileForm.gender }}</span>
                       <Label class="text-muted-foreground">Contact</Label>
-                      <span>{{ signupData.contact_number }}</span>
+                      <span>{{ profileForm.contact_number }}</span>
                     </div>
                   </div>
                   <div class="space-y-1">
                     <p class="font-medium text-foreground">Address & Status</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <Label class="text-muted-foreground">Region</Label>
-                      <span>{{ signupData.region }}</span>
+                      <span>{{ profileForm.region }}</span>
                       <Label class="text-muted-foreground">Province</Label>
-                      <span>{{ signupData.province }}</span>
+                      <span>{{ profileForm.province }}</span>
                       <Label class="text-muted-foreground">City</Label>
-                      <span>{{ signupData.geographic }}</span>
+                      <span>{{ profileForm.geographic }}</span>
                       <Label class="text-muted-foreground">Barangay</Label>
-                      <span>{{ signupData.barangay }}</span>
+                      <span>{{ profileForm.barangay }}</span>
                       <Label class="text-muted-foreground">4Ps</Label>
-                      <span>{{ signupData.is_4ps ? 'Yes' : 'No' }}</span>
+                      <span>{{ profileForm.is_4ps ? 'Yes' : 'No' }}</span>
                       <Label class="text-muted-foreground">PWD</Label>
-                      <span>{{ signupData.is_pwd ? 'Yes' : 'No' }}</span>
+                      <span>{{ profileForm.is_pwd ? 'Yes' : 'No' }}</span>
                     </div>
                   </div>
                 </div>
@@ -653,9 +645,9 @@ function onBarangayChange(code: any) {
                     <p class="font-medium text-foreground">Account</p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <Label class="text-muted-foreground">Email</Label>
-                      <span>{{ signupData.email }}</span>
+                      <span>{{ profileForm.email }}</span>
                       <Label class="text-muted-foreground">Username</Label>
-                      <span>{{ signupData.username }}</span>
+                      <span>{{ profileForm.username }}</span>
                     </div>
                   </div>
                   <div class="space-y-1">
@@ -664,38 +656,38 @@ function onBarangayChange(code: any) {
                     </p>
                     <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                       <template v-if="selectedRole === 'applicant'">
+                        <Label class="text-muted-foreground">Civil Status</Label>
+                        <span>{{ applicantForm.civil_status || '--' }}</span>
+                        <Label class="text-muted-foreground">Employment</Label>
+                        <span>{{ applicantForm.employment_status || '--' }}</span>
+                        <Label class="text-muted-foreground">Type</Label>
+                        <span>{{ applicantForm.employment_type || '--' }}</span>
                         <Label class="text-muted-foreground">Education</Label>
-                        <span>{{ applicantData.education_level || '--' }}</span>
+                        <span>{{ applicantForm.educational_background.level || '--' }}</span>
                         <Label class="text-muted-foreground">Course</Label>
-                        <span>{{ applicantData.course || '--' }}</span>
-                        <Label class="text-muted-foreground">Experience</Label>
-                        <span>{{ applicantData.years_experience || '0' }} yr(s)</span>
-                        <Label class="text-muted-foreground">Status</Label>
-                        <span>{{ applicantData.employment_status || '--' }}</span>
-                        <Label class="text-muted-foreground">Job</Label>
-                        <span>{{ applicantData.preferred_job || '--' }}</span>
-                        <Label class="text-muted-foreground">Location</Label>
-                        <span>{{ applicantData.preferred_location || '--' }}</span>
-                        <Label class="text-muted-foreground">Salary</Label>
-                        <span>{{ applicantData.expected_salary || '--' }}</span>
+                        <span>{{ applicantForm.educational_background.course || '--' }}</span>
+                        <Label class="text-muted-foreground">Occupations</Label>
+                        <span>{{ applicantForm.preferred_occupations || '--' }}</span>
+                        <Label class="text-muted-foreground">Locations</Label>
+                        <span>{{ applicantForm.preferred_local_locations || '--' }}</span>
                       </template>
                       <template v-if="selectedRole === 'company_owner'">
                         <Label class="text-muted-foreground">Company</Label>
-                        <span>{{ employerData.company_name || '--' }}</span>
+                        <span>{{ companyForm.company_name || '--' }}</span>
                         <Label class="text-muted-foreground">Email</Label>
-                        <span>{{ employerData.company_email || '--' }}</span>
+                        <span>{{ companyForm.company_email || '--' }}</span>
                         <Label class="text-muted-foreground">Contact</Label>
-                        <span>{{ employerData.company_contact || '--' }}</span>
+                        <span>{{ companyForm.company_contact || '--' }}</span>
                         <Label class="text-muted-foreground">Type</Label>
-                        <span>{{ employerData.business_type || '--' }}</span>
+                        <span>{{ companyForm.business_type || '--' }}</span>
                         <Label class="text-muted-foreground">Industry</Label>
-                        <span>{{ employerData.industry || '--' }}</span>
+                        <span>{{ companyForm.industry || '--' }}</span>
                         <Label class="text-muted-foreground">Address</Label>
-                        <span>{{ employerData.company_address || '--' }}</span>
+                        <span>{{ companyForm.company_address || '--' }}</span>
                         <Label class="text-muted-foreground">Website</Label>
-                        <span>{{ employerData.website || '--' }}</span>
+                        <span>{{ companyForm.website || '--' }}</span>
                         <Label class="text-muted-foreground">Reg. No.</Label>
-                        <span>{{ employerData.registration_number || '--' }}</span>
+                        <span>{{ companyForm.registration_number || '--' }}</span>
                       </template>
                     </div>
                   </div>
@@ -705,7 +697,7 @@ function onBarangayChange(code: any) {
               <p v-if="submitError" class="text-sm text-destructive text-center mt-3">
                 {{ submitError }}
               </p>
-        </template>
+            </template>
 
           </div>
         </form>

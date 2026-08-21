@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient"
-import type { SignInWithPasswordCredentials, SignUpWithPasswordCredentials } from '@supabase/supabase-js'
+import type { SignInWithPasswordCredentials } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
 
@@ -148,60 +148,6 @@ export const authService = {
       requirementMedia: requirementMediaResult.data ?? [],
       profileMedia: profileMediaResult.data ?? [],
     }
-  },
-
-  async insertProfileData(profileData: ProfileInsert): Promise<ProfileRow[]> {
-    const { data, error } = await supabase
-      .schema('core')
-      .from('profiles')
-      .upsert(profileData, { onConflict: 'id' })
-      .select()
-    if (error) {
-      throw new Error(error.message || 'Failed to insert profile data')
-    }
-    return data as ProfileRow[]
-  },
-
-  async insertApplicantData(applicantData: ApplicantInsert): Promise<ApplicantRow[]> {
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('applicants')
-      .insert(applicantData)
-      .select()
-    if (data) {
-      return data as ApplicantRow[]
-    } else {
-      throw new Error(error?.message || 'Failed to insert applicant data')
-    }
-  },
-  
-  async insertEmployerData(employerData: EmployerInsert): Promise<EmployerRow[]> {
-    const { data, error } = await supabase
-      .schema('employers')
-      .from('companies')
-      .insert(employerData)
-      .select()
-    if (data) {
-      return data as EmployerRow[]
-    } else {
-      throw new Error(error?.message || 'Failed to insert employer data')
-    }
-  },
-
-  async checkEmailExists(email: string): Promise<boolean> {
-    const { data, error } = await supabase.rpc('check_if_email_exists', {
-      target_email: email.trim()
-    })
-    if (error) {
-      throw new Error(error.message)
-    }
-    return !!data
-  },  
-
-  async signUp(credentials: SignUpWithPasswordCredentials) {
-    const { data, error } = await supabase.auth.signUp(credentials)
-    if (error) throw error
-    return data
   },
 
   async fetchSubmittedRequirements(profileId: string): Promise<ApplicantRequirementRow[]> {
