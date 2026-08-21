@@ -799,6 +799,155 @@ export type Database = {
       [_ in never]: never
     }
   }
+  esmdd: {
+    Tables: {
+      gip_applicants: {
+        Row: {
+          applicant_id: string | null
+          created_at: string | null
+          document_submitted: string[] | null
+          id: string
+          remarks: string[] | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id?: string | null
+          created_at?: string | null
+          document_submitted?: string[] | null
+          id?: string
+          remarks?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string | null
+          created_at?: string | null
+          document_submitted?: string[] | null
+          id?: string
+          remarks?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gips: {
+        Row: {
+          application_id: string | null
+          created_at: string | null
+          id: string
+          remarks: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gips_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spes: {
+        Row: {
+          application_id: string | null
+          beneficiary: string | null
+          created_at: string | null
+          days_duration: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          beneficiary?: string | null
+          created_at?: string | null
+          days_duration?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          beneficiary?: string | null
+          created_at?: string | null
+          days_duration?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "spes_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spes_applicants: {
+        Row: {
+          applicant_id: string | null
+          beneficiary: string | null
+          created_at: string | null
+          id: string
+          remarks: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id?: string | null
+          beneficiary?: string | null
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string | null
+          beneficiary?: string | null
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   jobs: {
     Tables: {
       job_application_attachments: {
@@ -1598,6 +1747,9 @@ export const Constants = {
     },
   },
   employers: {
+    Enums: {},
+  },
+  esmdd: {
     Enums: {},
   },
   jobs: {

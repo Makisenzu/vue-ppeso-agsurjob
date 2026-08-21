@@ -19,6 +19,7 @@ export function useGipDetails() {
     doleLpiiData,
     interns,
     isLoading,
+    isSubmitting,
     errorMessage,
     selectedIntern,
     isDetailsModalOpen,
@@ -30,6 +31,7 @@ export function useGipDetails() {
     selectedStatusFilter,
     currentPage,
     pageSize,
+    availableYears,
     overallLpiiData,
     totalOverallLpii,
     totalPgasLpii,
@@ -41,6 +43,8 @@ export function useGipDetails() {
 
   const {
     fetchDetailsData,
+    createGipApplication,
+    createGipDeployment,
     setSelectedProgram,
     resetFilters,
     openInternDetails,
@@ -98,9 +102,11 @@ export function useGipDetails() {
     filteredInterns,
     paginatedInterns,
     totalPages,
+    availableYears,
     selectedIntern,
     isDetailsModalOpen,
     isLoading,
+    isSubmitting,
     errorMessage,
 
     // Filter & Pagination Models
@@ -126,5 +132,7 @@ export function useGipDetails() {
     closeInternDetails,
     exportCsv,
     fetchDetailsData,
+    createGipApplication,
+    createGipDeployment,
   }
 }

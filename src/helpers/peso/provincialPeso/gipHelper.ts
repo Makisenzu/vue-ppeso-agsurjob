@@ -1,8 +1,11 @@
 import type { ChartConfig } from '@/components/ui/chart'
 import { VisDonutSelectors } from '@unovis/vue'
 import type {
+  ApplicantRow,
   GenderDataPoint,
+  GipApplicantRow,
   GipInternRecord,
+  GipRow,
   LpiiCategory,
   LpiiCategoryConfig,
   LpiiDataPoint,
@@ -83,6 +86,237 @@ export const donutTooltipTriggers = {
       </div>
     </div>
   `,
+}
+
+// ─── Helpers: Address & Education Parsing ───
+export function parseApplicantAddress(addressJson: any): {
+  municipality: string
+  barangay: string
+} {
+  if (!addressJson || typeof addressJson !== 'object') {
+    return { municipality: 'Agusan del Sur', barangay: 'N/A' }
+  }
+
+  const municipality =
+    addressJson.city_municipality ||
+    addressJson.municipality ||
+    addressJson.city ||
+    addressJson.geographic ||
+    'Agusan del Sur'
+
+  const barangay = addressJson.barangay || 'N/A'
+
+  return { municipality, barangay }
+}
+
+export function parseApplicantCourse(educationalBackgroundJson: any): string {
+  if (!educationalBackgroundJson) return 'General Course'
+  if (Array.isArray(educationalBackgroundJson) && educationalBackgroundJson.length > 0) {
+    const latest = educationalBackgroundJson[educationalBackgroundJson.length - 1]
+    return latest.course || latest.level || 'College Graduate'
+  }
+  if (typeof educationalBackgroundJson === 'object' && educationalBackgroundJson.course) {
+    return educationalBackgroundJson.course
+  }
+  return 'General Course'
+}
+
+// ─── Transform DB Records into Domain GipInternRecord ───
+export function mapToGipInternRecord(
+  gip: GipRow,
+  application: GipApplicantRow | null,
+  applicant: ApplicantRow | null,
+  barangayTagMap?: Map<string, LpiiCategory>
+): GipInternRecord {
+  const address = parseApplicantAddress(applicant?.address)
+  const course = parseApplicantCourse(applicant?.educational_background)
+
+  const rawGender = (applicant?.sex || '').trim().toLowerCase()
+  const gender: 'Male' | 'Female' = rawGender.startsWith('f') || rawGender === 'woman' ? 'Female' : 'Male'
+
+  const createdDate = gip.created_at || application?.created_at || applicant?.created_at || new Date().toISOString()
+  const batchYear = new Date(createdDate).getFullYear() || 2026
+
+  // Infer program from remarks or default to PGAS
+  const remarksText = `${gip.remarks || ''} ${(application?.remarks || []).join(' ')}`.toUpperCase()
+  const program: 'PGAS' | 'DOLE' = remarksText.includes('DOLE') ? 'DOLE' : 'PGAS'
+
+  // Match LPII tag from barangay map or remarks or fallback
+  const normalizedBrgy = address.barangay.trim().toLowerCase()
+  let lpiiTag: LpiiCategory = 'LOWLAND'
+  if (barangayTagMap && barangayTagMap.has(normalizedBrgy)) {
+    lpiiTag = barangayTagMap.get(normalizedBrgy)!
+  } else if (remarksText.includes('UPLAND')) {
+    lpiiTag = 'UPLAND'
+  } else if (remarksText.includes('WETLAND')) {
+    lpiiTag = 'WETLAND'
+  }
+
+  // Format full name
+  const nameParts = [
+    applicant?.first_name,
+    applicant?.middle_name ? `${applicant.middle_name.charAt(0)}.` : '',
+    applicant?.surname,
+    applicant?.suffix,
+  ].filter(Boolean)
+  const fullName = nameParts.length > 0 ? nameParts.join(' ') : `Intern ${gip.id.slice(0, 6)}`
+
+  // Format short code
+  const code = `GIP-${batchYear}-${gip.id.slice(0, 4).toUpperCase()}`
+
+  // Parse contact
+  const contact =
+    (applicant?.contact_numbers && applicant.contact_numbers.length > 0 ? applicant.contact_numbers[0] : null) ||
+    applicant?.email ||
+    'N/A'
+
+  // Status mapping
+  let status: string = gip.status || application?.status || 'Active'
+  if (status.toLowerCase() === 'approved' || status.toLowerCase() === 'active') {
+    status = 'Active'
+  } else if (status.toLowerCase() === 'hired') {
+    status = 'Hired'
+  } else if (status.toLowerCase() === 'resigned' || status.toLowerCase() === 'rejected') {
+    status = 'Resigned'
+  }
+
+  return {
+    id: gip.id,
+    code,
+    fullName,
+    gender,
+    program,
+    municipality: address.municipality,
+    barangay: address.barangay,
+    lpiiTag,
+    assignedOffice: gip.remarks || (program === 'PGAS' ? 'Provincial PESO / PGAS Office' : 'DOLE AgSur Field Office'),
+    supervisor: 'Assigned Coordinator',
+    course,
+    stipend: program === 'DOLE' ? '₱450.00 / day' : '₱420.00 / day',
+    batchYear,
+    period: `Jan ${batchYear} - Jun ${batchYear}`,
+    status,
+    contact,
+    rawGip: gip,
+    rawApplication: application,
+    rawApplicant: applicant,
+  }
+}
+
+// ─── Demographic Aggregation Helpers ───
+export function computeYearlyDemographics(records: GipInternRecord[]): {
+  pgas: GenderDataPoint[]
+  dole: GenderDataPoint[]
+} {
+  const currentYear = new Date().getFullYear()
+  const yearsSet = new Set<number>([currentYear - 2, currentYear - 1, currentYear])
+  for (const r of records) {
+    if (r.batchYear) yearsSet.add(r.batchYear)
+  }
+
+  const sortedYears = Array.from(yearsSet).sort((a, b) => a - b)
+
+  const pgasMap = new Map<number, { male: number; female: number }>()
+  const doleMap = new Map<number, { male: number; female: number }>()
+
+  for (const y of sortedYears) {
+    pgasMap.set(y, { male: 0, female: 0 })
+    doleMap.set(y, { male: 0, female: 0 })
+  }
+
+  for (const r of records) {
+    const targetMap = r.program === 'DOLE' ? doleMap : pgasMap
+    const entry = targetMap.get(r.batchYear) || { male: 0, female: 0 }
+    if (r.gender === 'Female') {
+      entry.female += 1
+    } else {
+      entry.male += 1
+    }
+    targetMap.set(r.batchYear, entry)
+  }
+
+  const pgas: GenderDataPoint[] = sortedYears.map((year) => ({
+    year,
+    male: pgasMap.get(year)?.male ?? 0,
+    female: pgasMap.get(year)?.female ?? 0,
+  }))
+
+  const dole: GenderDataPoint[] = sortedYears.map((year) => ({
+    year,
+    male: doleMap.get(year)?.male ?? 0,
+    female: doleMap.get(year)?.female ?? 0,
+  }))
+
+  return { pgas, dole }
+}
+
+// ─── LPII Aggregation Helpers ───
+export function computeLpiiBreakdown(records: GipInternRecord[]): {
+  pgas: LpiiDataPoint[]
+  dole: LpiiDataPoint[]
+} {
+  const countCategory = (prog: 'PGAS' | 'DOLE', cat: LpiiCategory) =>
+    records.filter((r) => r.program === prog && r.lpiiTag === cat).length
+
+  const pgas: LpiiDataPoint[] = [
+    {
+      category: 'LOWLAND',
+      label: 'Lowland',
+      count: countCategory('PGAS', 'LOWLAND'),
+      color: LPII_CONFIG.LOWLAND.color,
+      description: 'Agricultural plains & urban flatlands',
+    },
+    {
+      category: 'UPLAND',
+      label: 'Upland',
+      count: countCategory('PGAS', 'UPLAND'),
+      color: LPII_CONFIG.UPLAND.color,
+      description: 'Hilly and mountainous highland zones',
+    },
+    {
+      category: 'WETLAND',
+      label: 'Wetland',
+      count: countCategory('PGAS', 'WETLAND'),
+      color: LPII_CONFIG.WETLAND.color,
+      description: 'Agusan Marsh & riverine corridors',
+    },
+  ]
+
+  const dole: LpiiDataPoint[] = [
+    {
+      category: 'LOWLAND',
+      label: 'Lowland',
+      count: countCategory('DOLE', 'LOWLAND'),
+      color: LPII_CONFIG.LOWLAND.color,
+      description: 'Commercial & agro-industrial corridors',
+    },
+    {
+      category: 'UPLAND',
+      label: 'Upland',
+      count: countCategory('DOLE', 'UPLAND'),
+      color: LPII_CONFIG.UPLAND.color,
+      description: 'Hinterland barangays & ancestral domains',
+    },
+    {
+      category: 'WETLAND',
+      label: 'Wetland',
+      count: countCategory('DOLE', 'WETLAND'),
+      color: LPII_CONFIG.WETLAND.color,
+      description: 'Lakeside & riparian settlements',
+    },
+  ]
+
+  return { pgas, dole }
+}
+
+// ─── Extract Unique Batch Years ───
+export function extractAvailableYears(records: GipInternRecord[]): number[] {
+  const currentYear = new Date().getFullYear()
+  const years = new Set<number>([currentYear])
+  for (const r of records) {
+    if (r.batchYear) years.add(r.batchYear)
+  }
+  return Array.from(years).sort((a, b) => b - a)
 }
 
 // ─── CSV Export Utility ───

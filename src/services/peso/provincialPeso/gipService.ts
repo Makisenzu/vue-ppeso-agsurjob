@@ -1,375 +1,206 @@
+import { supabase } from '@/lib/supabaseClient'
 import type {
+  ApplicantRow,
+  BarangayRow,
   GenderDataPoint,
+  GipApplicantInsert,
+  GipApplicantRow,
+  GipApplicantUpdate,
+  GipInsert,
   GipInternRecord,
+  GipRow,
+  GipUpdate,
+  LpiiCategory,
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
-import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
-
-// ─── Initial / Seed Data ───
-const pgasYearlyData: GenderDataPoint[] = [
-  { year: 2021, male: 538, female: 614 },
-  { year: 2022, male: 880, female: 990 },
-  { year: 2023, male: 1300, female: 1440 },
-  { year: 2024, male: 1735, female: 1908 },
-  { year: 2025, male: 2080, female: 2295 },
-  { year: 2026, male: 1465, female: 1625 },
-]
-
-const doleYearlyData: GenderDataPoint[] = [
-  { year: 2021, male: 445, female: 530 },
-  { year: 2022, male: 728, female: 838 },
-  { year: 2023, male: 1085, female: 1230 },
-  { year: 2024, male: 1470, female: 1665 },
-  { year: 2025, male: 1795, female: 2015 },
-  { year: 2026, male: 1275, female: 1415 },
-]
-
-const pgasLpiiBreakdown: LpiiDataPoint[] = [
-  {
-    category: 'LOWLAND',
-    label: 'Lowland',
-    count: 4890,
-    color: LPII_CONFIG.LOWLAND.color,
-    description: 'Agricultural plains & urban flatlands',
-  },
-  {
-    category: 'UPLAND',
-    label: 'Upland',
-    count: 3280,
-    color: LPII_CONFIG.UPLAND.color,
-    description: 'Hilly and mountainous highland zones',
-  },
-  {
-    category: 'WETLAND',
-    label: 'Wetland',
-    count: 1848,
-    color: LPII_CONFIG.WETLAND.color,
-    description: 'Agusan Marsh & riverine corridors',
-  },
-]
-
-const doleLpiiBreakdown: LpiiDataPoint[] = [
-  {
-    category: 'LOWLAND',
-    label: 'Lowland',
-    count: 4120,
-    color: LPII_CONFIG.LOWLAND.color,
-    description: 'Commercial & agro-industrial corridors',
-  },
-  {
-    category: 'UPLAND',
-    label: 'Upland',
-    count: 2840,
-    color: LPII_CONFIG.UPLAND.color,
-    description: 'Hinterland barangays & ancestral domains',
-  },
-  {
-    category: 'WETLAND',
-    label: 'Wetland',
-    count: 1538,
-    color: LPII_CONFIG.WETLAND.color,
-    description: 'Lakeside & riparian settlements',
-  },
-]
-
-const internRecords: GipInternRecord[] = [
-  {
-    id: '1',
-    code: 'GIP-2026-001',
-    fullName: 'Jessa Mae Alcantara',
-    gender: 'Female',
-    program: 'PGAS',
-    municipality: 'City of Bayugan',
-    barangay: 'Taglatawan',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: 'Provincial PESO - Career Center',
-    supervisor: 'Maria Lourdes Santos',
-    course: 'BS Information Technology',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0917-234-5678',
-  },
-  {
-    id: '2',
-    code: 'GIP-2026-002',
-    fullName: 'Rodel Vance Dagohoy',
-    gender: 'Male',
-    program: 'PGAS',
-    municipality: 'Prosperidad',
-    barangay: 'Patin-ay',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: "Provincial Governor's Office (PGO)",
-    supervisor: 'Engr. Roberto M. Tan',
-    course: 'BS Public Administration',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0928-345-6789',
-  },
-  {
-    id: '3',
-    code: 'GIP-2026-003',
-    fullName: 'Kristine Joy Montes',
-    gender: 'Female',
-    program: 'DOLE',
-    municipality: 'San Francisco',
-    barangay: 'Barangay 5 (Poblacion)',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: 'DOLE Agusan del Sur Provincial Field Office',
-    supervisor: 'Director Arnaldo Perez',
-    course: 'BS Business Administration',
-    stipend: '₱450.00 / day',
-    batchYear: 2026,
-    period: 'Feb 2026 - Jul 2026',
-    status: 'Active',
-    contact: '0919-456-7890',
-  },
-  {
-    id: '4',
-    code: 'GIP-2026-004',
-    fullName: 'Mark Kenneth Olandria',
-    gender: 'Male',
-    program: 'PGAS',
-    municipality: 'Esperanza',
-    barangay: 'Guadalupe',
-    lpiiTag: 'UPLAND',
-    assignedOffice: 'Municipal Agriculture Office - Agroforestry',
-    supervisor: 'Agri. Nestor Libres',
-    course: 'BS Agriculture',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0935-567-8901',
-  },
-  {
-    id: '5',
-    code: 'GIP-2026-005',
-    fullName: 'Bea Andrea Calo',
-    gender: 'Female',
-    program: 'DOLE',
-    municipality: 'Talacogon',
-    barangay: 'San Nicolas',
-    lpiiTag: 'WETLAND',
-    assignedOffice: 'Municipal Social Welfare & Development (MSWDO)',
-    supervisor: 'Helen Garcia, RSW',
-    course: 'BS Social Work',
-    stipend: '₱450.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0947-678-9012',
-  },
-  {
-    id: '6',
-    code: 'GIP-2026-006',
-    fullName: 'Joshua Dale Encarnacion',
-    gender: 'Male',
-    program: 'PGAS',
-    municipality: 'Bunawan',
-    barangay: 'San Teodoro (Agusan Marsh)',
-    lpiiTag: 'WETLAND',
-    assignedOffice: 'Provincial Environment & Natural Resources (PENRO-LGU)',
-    supervisor: 'For. Daniel Cordero',
-    course: 'BS Environmental Science',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0956-789-0123',
-  },
-  {
-    id: '7',
-    code: 'GIP-2026-007',
-    fullName: 'Charmaine Rose Torralba',
-    gender: 'Female',
-    program: 'DOLE',
-    municipality: 'Sibagat',
-    barangay: 'El Rio',
-    lpiiTag: 'UPLAND',
-    assignedOffice: 'Municipal Disaster Risk Reduction Office (MDRRMO)',
-    supervisor: 'Officer Gary Plaza',
-    course: 'BS Criminology',
-    stipend: '₱450.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0970-890-1234',
-  },
-  {
-    id: '8',
-    code: 'GIP-2026-008',
-    fullName: 'Gabriel John Plaza',
-    gender: 'Male',
-    program: 'PGAS',
-    municipality: 'Trento',
-    barangay: 'Poblacion',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: 'Trento Municipal PESO Desk',
-    supervisor: 'Clarissa Fernandez',
-    course: 'BS Computer Science',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0981-901-2345',
-  },
-  {
-    id: '9',
-    code: 'GIP-2025-101',
-    fullName: 'Shiela Marie Salcedo',
-    gender: 'Female',
-    program: 'PGAS',
-    municipality: 'La Paz',
-    barangay: 'Panagangan',
-    lpiiTag: 'WETLAND',
-    assignedOffice: 'Rural Health Unit (RHU La Paz)',
-    supervisor: 'Dr. Evelyn Morales, MD',
-    course: 'BS Nursing',
-    stipend: '₱400.00 / day',
-    batchYear: 2025,
-    period: 'Jul 2025 - Dec 2025',
-    status: 'Hired',
-    contact: '0995-012-3456',
-  },
-  {
-    id: '10',
-    code: 'GIP-2025-102',
-    fullName: 'Christian Lloyd Mahinay',
-    gender: 'Male',
-    program: 'DOLE',
-    municipality: 'Loreto',
-    barangay: 'Johnson',
-    lpiiTag: 'UPLAND',
-    assignedOffice: 'Municipal Planning & Development Office (MPDO)',
-    supervisor: 'Arch. Vincent Flores',
-    course: 'BS Civil Engineering',
-    stipend: '₱430.00 / day',
-    batchYear: 2025,
-    period: 'Jul 2025 - Dec 2025',
-    status: 'Hired',
-    contact: '0966-123-4567',
-  },
-  {
-    id: '11',
-    code: 'GIP-2025-103',
-    fullName: 'Princess Dianne Valeros',
-    gender: 'Female',
-    program: 'PGAS',
-    municipality: 'Rosario',
-    barangay: 'Santa Cruz',
-    lpiiTag: 'UPLAND',
-    assignedOffice: 'Provincial Treasury Office (PTO)',
-    supervisor: 'Lourdes Quijada, CPA',
-    course: 'BS Accountancy',
-    stipend: '₱400.00 / day',
-    batchYear: 2025,
-    period: 'Mar 2025 - Aug 2025',
-    status: 'Resigned',
-    contact: '0912-234-5670',
-  },
-  {
-    id: '12',
-    code: 'GIP-2026-009',
-    fullName: 'Anthony Kyle Balansag',
-    gender: 'Male',
-    program: 'DOLE',
-    municipality: 'San Luis',
-    barangay: 'Don Alejandro',
-    lpiiTag: 'UPLAND',
-    assignedOffice: 'San Luis Municipal PESO Unit',
-    supervisor: 'Rommel Cariaga',
-    course: 'BS Secondary Education',
-    stipend: '₱450.00 / day',
-    batchYear: 2026,
-    period: 'Feb 2026 - Jul 2026',
-    status: 'Resigned',
-    contact: '0922-345-6781',
-  },
-  {
-    id: '13',
-    code: 'GIP-2026-010',
-    fullName: 'Alyssa Nicole Amante',
-    gender: 'Female',
-    program: 'PGAS',
-    municipality: 'Santa Josefa',
-    barangay: 'Pataragon',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: 'Provincial Tourism Office (PTO AgSur)',
-    supervisor: 'Gillian Perez',
-    course: 'BS Hospitality Management',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Active',
-    contact: '0933-456-7892',
-  },
-  {
-    id: '14',
-    code: 'GIP-2026-011',
-    fullName: 'Kenji Patrick Dumanon',
-    gender: 'Male',
-    program: 'PGAS',
-    municipality: 'Veruela',
-    barangay: 'Katipunan',
-    lpiiTag: 'LOWLAND',
-    assignedOffice: 'Veruela Local Civil Registrar',
-    supervisor: 'Marivic Santos',
-    course: 'BS Office Administration',
-    stipend: '₱420.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Hired',
-    contact: '0944-567-8903',
-  },
-  {
-    id: '15',
-    code: 'GIP-2026-012',
-    fullName: 'Hannah Patricia Cuyos',
-    gender: 'Female',
-    program: 'DOLE',
-    municipality: 'Bunawan',
-    barangay: 'San Marcos',
-    lpiiTag: 'WETLAND',
-    assignedOffice: 'DOLE Community Extension Desk',
-    supervisor: 'Jonathan Del Rosario',
-    course: 'BS Community Development',
-    stipend: '₱450.00 / day',
-    batchYear: 2026,
-    period: 'Jan 2026 - Jun 2026',
-    status: 'Hired',
-    contact: '0955-678-9014',
-  },
-]
+import {
+  computeLpiiBreakdown,
+  computeYearlyDemographics,
+  mapToGipInternRecord,
+} from '@/helpers/peso/provincialPeso/gipHelper'
 
 export const gipService = {
+  /**
+   * Fetches all GIP intern records by querying:
+   * 1. esmdd.gips
+   * 2. esmdd.gip_applicants
+   * 3. applicants.applicants
+   * 4. public.barangays (for LPII classification tagging)
+   */
+  async fetchInterns(): Promise<GipInternRecord[]> {
+    // 1. Fetch GIPs and GIP applicants
+    const [gipsRes, gipAppsRes, barangaysRes] = await Promise.all([
+      supabase
+        .schema('esmdd')
+        .from('gips')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      supabase
+        .schema('public')
+        .from('barangays')
+        .select('name, lpii_tag'),
+    ])
+
+    const gips = (gipsRes.data ?? []) as GipRow[]
+    const gipApps = (gipAppsRes.data ?? []) as GipApplicantRow[]
+    const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+
+    // Build Barangay -> LPII tag lookup map
+    const barangayTagMap = new Map<string, LpiiCategory>()
+    for (const b of barangays) {
+      if (b.name && b.lpii_tag) {
+        barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+      }
+    }
+
+    // Build map of application_id -> GipApplicantRow
+    const appMap = new Map<string, GipApplicantRow>()
+    for (const app of gipApps) {
+      appMap.set(app.id, app)
+    }
+
+    // Collect all applicant IDs needed
+    const applicantIds = new Set<string>()
+    for (const app of gipApps) {
+      if (app.applicant_id) applicantIds.add(app.applicant_id)
+    }
+
+    // 2. Fetch corresponding applicant profile records
+    let applicantsList: ApplicantRow[] = []
+    if (applicantIds.size > 0) {
+      const { data: applicantsData, error: applicantsError } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .select('*')
+        .in('id', Array.from(applicantIds))
+
+      if (!applicantsError && applicantsData) {
+        applicantsList = applicantsData as ApplicantRow[]
+      }
+    }
+
+    const applicantMap = new Map<string, ApplicantRow>()
+    for (const applicant of applicantsList) {
+      applicantMap.set(applicant.id, applicant)
+      if (applicant.profile_id) {
+        applicantMap.set(applicant.profile_id, applicant)
+      }
+    }
+
+    // 3. Map GIP records to domain format
+    const records: GipInternRecord[] = []
+
+    if (gips.length > 0) {
+      for (const gip of gips) {
+        const app = gip.application_id ? appMap.get(gip.application_id) || null : null
+        const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+        records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
+      }
+    } else if (gipApps.length > 0) {
+      // If gips is empty but applications exist, construct records from applications
+      for (const app of gipApps) {
+        const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+        const syntheticGip: GipRow = {
+          id: app.id,
+          application_id: app.id,
+          remarks: (app.remarks || []).join(' '),
+          status: app.status || 'Pending',
+          created_at: app.created_at,
+          updated_at: app.updated_at,
+        }
+        records.push(mapToGipInternRecord(syntheticGip, app, applicant, barangayTagMap))
+      }
+    }
+
+    return records
+  },
+
+  /**
+   * Computes yearly demographics from live database intern records.
+   */
   async fetchYearlyDemographics(): Promise<{
     pgas: GenderDataPoint[]
     dole: GenderDataPoint[]
   }> {
-    // In production, queries supabase.schema('peso' or 'system').from('gip_demographics')
-    return {
-      pgas: [...pgasYearlyData],
-      dole: [...doleYearlyData],
-    }
+    const records = await this.fetchInterns()
+    return computeYearlyDemographics(records)
   },
 
+  /**
+   * Computes LPII ecosystem distribution from live database intern records.
+   */
   async fetchLpiiData(): Promise<{
     pgas: LpiiDataPoint[]
     dole: LpiiDataPoint[]
   }> {
-    // In production, queries supabase.schema('peso').from('gip_lpii')
-    return {
-      pgas: [...pgasLpiiBreakdown],
-      dole: [...doleLpiiBreakdown],
-    }
+    const records = await this.fetchInterns()
+    return computeLpiiBreakdown(records)
   },
 
-  async fetchInterns(): Promise<GipInternRecord[]> {
-    // In production, queries supabase.schema('peso').from('gip_interns')
-    return [...internRecords]
+  /**
+   * Creates a new GIP application record in esmdd.gip_applicants.
+   */
+  async createGipApplicant(payload: GipApplicantInsert): Promise<GipApplicantRow> {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to create GIP application.')
+    return data as GipApplicantRow
+  },
+
+  /**
+   * Creates a new deployed GIP record in esmdd.gips.
+   */
+  async createGip(payload: GipInsert): Promise<GipRow> {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to create GIP record.')
+    return data as GipRow
+  },
+
+  /**
+   * Updates an existing GIP deployment record in esmdd.gips.
+   */
+  async updateGip(id: string, payload: GipUpdate): Promise<GipRow> {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to update GIP record.')
+    return data as GipRow
+  },
+
+  /**
+   * Updates an existing GIP application in esmdd.gip_applicants.
+   */
+  async updateGipApplicant(id: string, payload: GipApplicantUpdate): Promise<GipApplicantRow> {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to update GIP application.')
+    return data as GipApplicantRow
   },
 }

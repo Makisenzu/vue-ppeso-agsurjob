@@ -6,9 +6,9 @@ import {
   Download,
   Eye,
   Filter,
+  Loader2,
   MapPin,
   Mountain,
-  Plus,
   RefreshCw,
   Search,
   TreePine,
@@ -54,8 +54,10 @@ const {
   filteredInterns,
   paginatedInterns,
   totalPages,
+  availableYears,
   selectedIntern,
   isDetailsModalOpen,
+  isLoading,
   searchQuery,
   programTab,
   selectedLpiiFilter,
@@ -71,6 +73,7 @@ const {
   resetFilters,
   openInternDetails,
   exportCsv,
+  fetchDetailsData,
 } = useGipDetails()
 </script>
 
@@ -98,7 +101,7 @@ const {
         <Button
           size="sm"
           :variant="programTab === 'ALL' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs"
+          class="h-8 px-3 text-xs cursor-pointer"
           @click="programTab = 'ALL'"
         >
           All Programs
@@ -106,7 +109,7 @@ const {
         <Button
           size="sm"
           :variant="programTab === 'PGAS' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs"
+          class="h-8 px-3 text-xs cursor-pointer"
           @click="programTab = 'PGAS'"
         >
           PGAS
@@ -114,7 +117,7 @@ const {
         <Button
           size="sm"
           :variant="programTab === 'DOLE' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs"
+          class="h-8 px-3 text-xs cursor-pointer"
           @click="programTab = 'DOLE'"
         >
           DOLE
@@ -127,7 +130,7 @@ const {
       <!-- 1 Row Grid with 3 Pie Charts -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <!-- ─── Pie Chart 1: Overall LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-sm">
+        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div>
@@ -145,7 +148,10 @@ const {
           </CardHeader>
 
           <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="relative w-full max-w-65 aspect-square flex items-center justify-center">
+            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
+              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div v-else-if="totalOverallLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
               <VisSingleContainer :data="overallLpiiData" :height="220">
                 <VisDonut
                   :value="(d: LpiiDataPoint) => d.count"
@@ -158,6 +164,9 @@ const {
                 />
                 <VisTooltip :triggers="donutTooltipTriggers" />
               </VisSingleContainer>
+            </div>
+            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+              <p>No intern records yet</p>
             </div>
 
             <!-- Legend and counts -->
@@ -181,7 +190,7 @@ const {
         </Card>
 
         <!-- ─── Pie Chart 2: PGAS LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-sm">
+        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2.5">
@@ -200,7 +209,10 @@ const {
           </CardHeader>
 
           <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="relative w-full max-w-65 aspect-square flex items-center justify-center">
+            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
+              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div v-else-if="totalPgasLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
               <VisSingleContainer :data="pgasLpiiData" :height="220">
                 <VisDonut
                   :value="(d: LpiiDataPoint) => d.count"
@@ -213,6 +225,9 @@ const {
                 />
                 <VisTooltip :triggers="donutTooltipTriggers" />
               </VisSingleContainer>
+            </div>
+            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+              <p>No PGAS interns yet</p>
             </div>
 
             <!-- Legend and counts -->
@@ -236,7 +251,7 @@ const {
         </Card>
 
         <!-- ─── Pie Chart 3: DOLE LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-sm">
+        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2.5">
@@ -255,7 +270,10 @@ const {
           </CardHeader>
 
           <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="relative w-full max-w-65 aspect-square flex items-center justify-center">
+            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
+              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div v-else-if="totalDoleLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
               <VisSingleContainer :data="doleLpiiData" :height="220">
                 <VisDonut
                   :value="(d: LpiiDataPoint) => d.count"
@@ -268,6 +286,9 @@ const {
                 />
                 <VisTooltip :triggers="donutTooltipTriggers" />
               </VisSingleContainer>
+            </div>
+            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+              <p>No DOLE interns yet</p>
             </div>
 
             <!-- Legend and counts -->
@@ -293,7 +314,7 @@ const {
     </div>
 
     <!-- ─── DATA TABLE COMPONENT (Below Pie Chart Row) ─── -->
-    <Card class="border shadow-sm">
+    <Card class="border shadow-xs">
       <CardHeader class="pb-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -311,17 +332,19 @@ const {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2">
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs" @click="exportCsv">
+            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer" @click="exportCsv">
               <Download class="h-3.5 w-3.5" />
               <span>Export CSV</span>
             </Button>
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs" @click="resetFilters">
-              <RefreshCw class="h-3.5 w-3.5" />
-              <span>Reset</span>
-            </Button>
-            <Button class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700" size="sm">
-              <Plus class="h-3.5 w-3.5" />
-              <span>Add GIP</span>
+            <Button
+              variant="outline"
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer"
+              :disabled="isLoading"
+              @click="fetchDetailsData"
+            >
+              <RefreshCw :class="['h-3.5 w-3.5', isLoading && 'animate-spin']" />
+              <span>Refresh</span>
             </Button>
           </div>
         </div>
@@ -365,8 +388,9 @@ const {
               class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="ALL">All Batch Years</option>
-              <option value="2026">Batch 2026</option>
-              <option value="2025">Batch 2025</option>
+              <option v-for="y in availableYears" :key="y" :value="y.toString()">
+                Batch {{ y }}
+              </option>
             </select>
           </div>
 
@@ -414,7 +438,17 @@ const {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <template v-if="paginatedInterns.length > 0">
+              <template v-if="isLoading">
+                <TableRow>
+                  <TableCell colspan="8" class="h-32 text-center text-muted-foreground">
+                    <div class="flex flex-col items-center justify-center gap-2 py-4">
+                      <Loader2 class="h-7 w-7 animate-spin text-muted-foreground" />
+                      <p class="text-xs text-muted-foreground">Loading GIP intern records...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </template>
+              <template v-else-if="paginatedInterns.length > 0">
                 <TableRow
                   v-for="intern in paginatedInterns"
                   :key="intern.id"
@@ -521,7 +555,7 @@ const {
                       class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-[11px] gap-1"
                     >
                       <UserX class="h-3 w-3" />
-                      Resigned
+                      {{ intern.status }}
                     </Badge>
                   </TableCell>
 
@@ -549,7 +583,7 @@ const {
                     <p class="text-xs text-muted-foreground">
                       Try adjusting the search keyword, LPII category, or program filters.
                     </p>
-                    <Button size="sm" variant="outline" class="mt-2 text-xs" @click="resetFilters">
+                    <Button size="sm" variant="outline" class="mt-2 text-xs cursor-pointer" @click="resetFilters">
                       Clear Filters
                     </Button>
                   </div>
@@ -571,7 +605,7 @@ const {
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5"
+              class="h-8 text-xs px-2.5 cursor-pointer"
               :disabled="currentPage <= 1"
               @click="currentPage--"
             >
@@ -583,7 +617,7 @@ const {
                 :key="p"
                 size="sm"
                 :variant="currentPage === p ? 'default' : 'outline'"
-                class="h-8 w-8 p-0 text-xs"
+                class="h-8 w-8 p-0 text-xs cursor-pointer"
                 @click="currentPage = p"
               >
                 {{ p }}
@@ -592,7 +626,7 @@ const {
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5"
+              class="h-8 text-xs px-2.5 cursor-pointer"
               :disabled="currentPage >= totalPages"
               @click="currentPage++"
             >
@@ -683,7 +717,7 @@ const {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" class="text-xs" @click="isDetailsModalOpen = false">
+          <Button variant="outline" size="sm" class="text-xs cursor-pointer" @click="isDetailsModalOpen = false">
             Close
           </Button>
         </DialogFooter>

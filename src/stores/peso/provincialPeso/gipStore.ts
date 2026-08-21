@@ -2,12 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type {
   GenderDataPoint,
+  GipApplicantInsert,
+  GipInsert,
   GipInternRecord,
   GipProgram,
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
 import { gipService } from '@/services/peso/provincialPeso/gipService'
-import { LPII_CONFIG, exportGipInternsCsv } from '@/helpers/peso/provincialPeso/gipHelper'
+import {
+  LPII_CONFIG,
+  exportGipInternsCsv,
+  extractAvailableYears,
+} from '@/helpers/peso/provincialPeso/gipHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
 export const useGipStore = defineStore('gipStore', () => {
@@ -26,6 +32,7 @@ export const useGipStore = defineStore('gipStore', () => {
 
   // ─── UI & Async Flags ───
   const isLoading = ref<boolean>(false)
+  const isSubmitting = ref<boolean>(false)
   const errorMessage = ref<string | null>(null)
   const selectedIntern = ref<GipInternRecord | null>(null)
   const isDetailsModalOpen = ref<boolean>(false)
@@ -54,6 +61,9 @@ export const useGipStore = defineStore('gipStore', () => {
       currentPage.value = 1
     }
   )
+
+  // ─── Computed: Available Batch Years ───
+  const availableYears = computed<number[]>(() => extractAvailableYears(interns.value))
 
   // ─── Computed: Dashboard Totals ───
   const totalPgasYearly = computed(() => {
@@ -228,6 +238,34 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  const createGipApplication = async (payload: GipApplicantInsert) => {
+    isSubmitting.value = true
+    try {
+      await gipService.createGipApplicant(payload)
+      toastAlert.success('Application Submitted', 'GIP Application created successfully.')
+      await fetchDetailsData()
+    } catch (err: any) {
+      toastAlert.error('Submission Failed', err.message || 'Could not submit GIP application.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const createGipDeployment = async (payload: GipInsert) => {
+    isSubmitting.value = true
+    try {
+      await gipService.createGip(payload)
+      toastAlert.success('GIP Deployed', 'Intern record deployed successfully.')
+      await fetchDetailsData()
+    } catch (err: any) {
+      toastAlert.error('Deployment Failed', err.message || 'Could not deploy intern.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const setSelectedProgram = (prog: GipProgram) => {
     selectedProgram.value = prog
   }
@@ -266,6 +304,7 @@ export const useGipStore = defineStore('gipStore', () => {
     doleLpiiData,
     interns,
     isLoading,
+    isSubmitting,
     errorMessage,
     selectedIntern,
     isDetailsModalOpen,
@@ -279,6 +318,7 @@ export const useGipStore = defineStore('gipStore', () => {
     pageSize,
 
     // Computed
+    availableYears,
     totalPgasYearly,
     totalDoleYearly,
     overallMaleInterns,
@@ -294,6 +334,8 @@ export const useGipStore = defineStore('gipStore', () => {
     // Actions
     fetchDashboardData,
     fetchDetailsData,
+    createGipApplication,
+    createGipDeployment,
     setSelectedProgram,
     resetFilters,
     openInternDetails,

@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
-import { Building2, ChevronRight, Landmark, Users } from '@lucide/vue'
+import { Building2, ChevronRight, Landmark, Loader2, RefreshCw, Users } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 
@@ -23,11 +23,13 @@ const {
   totalDoleYearly,
   overallMaleInterns,
   overallFemaleInterns,
+  isLoading,
   pgasConfig,
   doleConfig,
   formatTickYear,
   formatTooltipLabel,
   navigateToDetails,
+  fetchDashboardData,
 } = useGipDashboard()
 </script>
 
@@ -41,6 +43,16 @@ const {
           Monitoring and comparative demographic distribution of deployed interns for PGAS and DOLE.
         </p>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-1.5 self-start sm:self-auto cursor-pointer"
+        :disabled="isLoading"
+        @click="fetchDashboardData"
+      >
+        <RefreshCw :class="['h-4 w-4', isLoading && 'animate-spin']" />
+        <span>Refresh Data</span>
+      </Button>
     </div>
 
     <!-- Quick Stats -->
@@ -153,7 +165,10 @@ const {
           </div>
         </CardHeader>
         <CardContent class="px-2 pt-4 sm:p-6">
-          <ChartContainer :config="pgasConfig" :cursor="true" class="aspect-auto h-70 w-full">
+          <div v-if="isLoading" class="flex h-70 w-full items-center justify-center">
+            <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+          <ChartContainer v-else-if="pgasYearlyData.length > 0" :config="pgasConfig" :cursor="true" class="aspect-auto h-70 w-full">
             <VisXYContainer :data="pgasYearlyData" :height="280">
               <VisGroupedBar
                 :x="(_d: GenderDataPoint, i: number) => i"
@@ -186,6 +201,9 @@ const {
               <ChartTooltip />
             </VisXYContainer>
           </ChartContainer>
+          <div v-else class="flex h-70 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+            <p>No PGAS demographic records found</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -222,7 +240,10 @@ const {
           </div>
         </CardHeader>
         <CardContent class="px-2 pt-4 sm:p-6">
-          <ChartContainer :config="doleConfig" :cursor="true" class="aspect-auto h-70 w-full">
+          <div v-if="isLoading" class="flex h-70 w-full items-center justify-center">
+            <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+          <ChartContainer v-else-if="doleYearlyData.length > 0" :config="doleConfig" :cursor="true" class="aspect-auto h-70 w-full">
             <VisXYContainer :data="doleYearlyData" :height="280">
               <VisGroupedBar
                 :x="(_d: GenderDataPoint, i: number) => i"
@@ -255,6 +276,9 @@ const {
               <ChartTooltip />
             </VisXYContainer>
           </ChartContainer>
+          <div v-else class="flex h-70 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+            <p>No DOLE demographic records found</p>
+          </div>
         </CardContent>
       </Card>
     </div>
