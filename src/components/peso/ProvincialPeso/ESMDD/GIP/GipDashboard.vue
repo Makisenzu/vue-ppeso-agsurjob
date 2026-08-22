@@ -19,13 +19,16 @@ import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboa
 const {
   pgasYearlyData,
   doleYearlyData,
+  applicantsYearlyData,
   totalPgasYearly,
   totalDoleYearly,
+  totalApplicantsYearly,
   overallMaleInterns,
   overallFemaleInterns,
   isLoading,
   pgasConfig,
   doleConfig,
+  applicantsConfig,
   formatTickYear,
   formatTooltipLabel,
   navigateToDetails,
@@ -282,5 +285,105 @@ const {
         </CardContent>
       </Card>
     </div>
+
+    <!-- ─── Section Header: All Applicants ─── -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight">GIP Applicants</h2>
+        <p class="text-xs text-muted-foreground">
+          Yearly demographic distribution of all GIP applicants across Agusan del Sur
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-1.5 self-start sm:self-auto cursor-pointer"
+        @click="navigateToDetails()"
+      >
+        <span>View Details</span>
+        <ChevronRight class="h-4 w-4" />
+      </Button>
+    </div>
+
+    <!-- ─── Chart 3: All GIP Applicants ─── -->
+    <Card class="overflow-hidden">
+      <CardHeader class="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
+        <div class="flex flex-1 items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <div class="flex h-15 w-15 items-center justify-center rounded-lg border bg-primary/10 text-primary">
+            <Users class="h-7 w-7" />
+          </div>
+          <div class="flex flex-col justify-center gap-1">
+            <CardTitle class="text-base font-semibold">GIP - All Applicants</CardTitle>
+            <CardDescription class="text-xs">
+              Overall applicant pool demographic distribution by gender
+            </CardDescription>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 px-4 py-3 sm:px-6 sm:py-4 border-t sm:border-t-0 sm:border-l bg-muted/20">
+          <div class="flex items-center gap-2">
+            <span class="h-3 w-3 rounded-xs bg-primary" />
+            <div class="flex flex-col">
+              <span class="text-xs text-muted-foreground">Total</span>
+              <span class="text-sm font-bold font-mono">{{ totalApplicantsYearly.total.toLocaleString() }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 border-l pl-4">
+            <span class="h-3 w-3 rounded-xs bg-[#2563eb]" />
+            <div class="flex flex-col">
+              <span class="text-xs text-muted-foreground">Male</span>
+              <span class="text-sm font-bold font-mono">{{ totalApplicantsYearly.male.toLocaleString() }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 border-l pl-4">
+            <span class="h-3 w-3 rounded-xs bg-[#dc14ea]" />
+            <div class="flex flex-col">
+              <span class="text-xs text-muted-foreground">Female</span>
+              <span class="text-sm font-bold font-mono">{{ totalApplicantsYearly.female.toLocaleString() }}</span>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="px-2 pt-4 sm:p-6">
+        <div v-if="isLoading" class="flex h-70 w-full items-center justify-center">
+          <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+        <ChartContainer v-else-if="applicantsYearlyData.length > 0" :config="applicantsConfig" :cursor="true" class="aspect-auto h-70 w-full">
+          <VisXYContainer :data="applicantsYearlyData" :height="280">
+            <VisGroupedBar
+              :x="(_d: GenderDataPoint, i: number) => i"
+              :y="[(d: GenderDataPoint) => d.male, (d: GenderDataPoint) => d.female]"
+              :color="[applicantsConfig.male.color!, applicantsConfig.female.color!]"
+              :rounded-corners="4"
+              :bar-padding="0.08"
+              :group-padding="0.25"
+            />
+            <VisAxis
+              type="y"
+              :grid-line="true"
+              :tick-line="false"
+              :domain-line="false"
+              :num-ticks="5"
+            />
+            <VisAxis
+              type="x"
+              :tick-format="formatTickYear(applicantsYearlyData)"
+              :grid-line="false"
+              :tick-line="false"
+              :num-ticks="applicantsYearlyData.length"
+            />
+            <ChartCrosshair
+              :template="componentToString(applicantsConfig, ChartTooltipContent, {
+                labelFormatter: formatTooltipLabel(applicantsYearlyData),
+              })"
+              :color="() => 'transparent'"
+            />
+            <ChartTooltip />
+          </VisXYContainer>
+        </ChartContainer>
+        <div v-else class="flex h-70 w-full flex-col items-center justify-center text-xs text-muted-foreground">
+          <p>No applicant demographic records found</p>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>

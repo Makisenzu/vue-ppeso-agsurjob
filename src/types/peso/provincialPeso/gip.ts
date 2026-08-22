@@ -69,6 +69,26 @@ export interface GipInternRecord {
   rawApplicant?: Record<string, any> | null
 }
 
+export interface GipApplicantRecord {
+  id: string
+  code: string
+  applicantId: string | null
+  fullName: string
+  gender: 'Male' | 'Female' | string
+  municipality: string
+  barangay: string
+  lpiiTag: LpiiCategory
+  course: string
+  batchYear: number
+  status: string
+  contact: string
+  documentsSubmitted: string[]
+  remarks: string[]
+  createdAt: string
+  rawApplication: GipApplicantRow
+  rawApplicant: ApplicantRow | null
+}
+
 export interface GipJoinedRecord {
   gip: GipRow
   application: GipApplicantRow | null

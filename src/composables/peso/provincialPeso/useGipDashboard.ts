@@ -5,6 +5,7 @@ import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import {
   pgasChartConfig,
   doleChartConfig,
+  applicantsChartConfig,
   formatTickYear,
   formatTooltipLabel,
 } from '@/helpers/peso/provincialPeso/gipHelper'
@@ -16,8 +17,10 @@ export function useGipDashboard() {
   const {
     pgasYearlyData,
     doleYearlyData,
+    applicantsYearlyData,
     totalPgasYearly,
     totalDoleYearly,
+    totalApplicantsYearly,
     overallMaleInterns,
     overallFemaleInterns,
     isLoading,
@@ -41,8 +44,10 @@ export function useGipDashboard() {
     // Data & State
     pgasYearlyData,
     doleYearlyData,
+    applicantsYearlyData,
     totalPgasYearly,
     totalDoleYearly,
+    totalApplicantsYearly,
     overallMaleInterns,
     overallFemaleInterns,
     isLoading,
@@ -51,6 +56,7 @@ export function useGipDashboard() {
     // Chart Configuration & Formatters
     pgasConfig: pgasChartConfig,
     doleConfig: doleChartConfig,
+    applicantsConfig: applicantsChartConfig,
     formatTickYear,
     formatTooltipLabel,
 

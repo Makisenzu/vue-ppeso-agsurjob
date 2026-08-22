@@ -3,6 +3,7 @@ import { VisDonutSelectors } from '@unovis/vue'
 import type {
   ApplicantRow,
   GenderDataPoint,
+  GipApplicantRecord,
   GipApplicantRow,
   GipInternRecord,
   GipRow,
@@ -36,7 +37,7 @@ export const LPII_CONFIG: Record<LpiiCategory, LpiiCategoryConfig> = {
   },
 }
 
-// ─── Chart Configs (PGAS & DOLE) ───
+// ─── Chart Configs (PGAS, DOLE & Applicants) ───
 export const pgasChartConfig: ChartConfig = {
   male: {
     label: 'Male',
@@ -49,6 +50,17 @@ export const pgasChartConfig: ChartConfig = {
 }
 
 export const doleChartConfig: ChartConfig = {
+  male: {
+    label: 'Male',
+    color: '#2563eb',
+  },
+  female: {
+    label: 'Female',
+    color: '#dc14ea',
+  },
+}
+
+export const applicantsChartConfig: ChartConfig = {
   male: {
     label: 'Male',
     color: '#2563eb',
@@ -203,6 +215,63 @@ export function mapToGipInternRecord(
   }
 }
 
+// ─── Transform DB Records into Domain GipApplicantRecord ───
+export function mapToGipApplicantRecord(
+  application: GipApplicantRow,
+  applicant: ApplicantRow | null,
+  barangayTagMap?: Map<string, LpiiCategory>
+): GipApplicantRecord {
+  const address = parseApplicantAddress(applicant?.address)
+  const course = parseApplicantCourse(applicant?.educational_background)
+
+  const rawGender = (applicant?.sex || '').trim().toLowerCase()
+  const gender: 'Male' | 'Female' = rawGender.startsWith('f') || rawGender === 'woman' ? 'Female' : 'Male'
+
+  const createdDate = application.created_at || applicant?.created_at || new Date().toISOString()
+  const batchYear = new Date(createdDate).getFullYear() || 2026
+
+  const normalizedBrgy = address.barangay.trim().toLowerCase()
+  let lpiiTag: LpiiCategory = 'LOWLAND'
+  if (barangayTagMap && barangayTagMap.has(normalizedBrgy)) {
+    lpiiTag = barangayTagMap.get(normalizedBrgy)!
+  }
+
+  const nameParts = [
+    applicant?.first_name,
+    applicant?.middle_name ? `${applicant.middle_name.charAt(0)}.` : '',
+    applicant?.surname,
+    applicant?.suffix,
+  ].filter(Boolean)
+  const fullName = nameParts.length > 0 ? nameParts.join(' ') : `Applicant ${application.id.slice(0, 6)}`
+
+  const code = `GIP-APP-${batchYear}-${application.id.slice(0, 4).toUpperCase()}`
+
+  const contact =
+    (applicant?.contact_numbers && applicant.contact_numbers.length > 0 ? applicant.contact_numbers[0] : null) ||
+    applicant?.email ||
+    'N/A'
+
+  return {
+    id: application.id,
+    code,
+    applicantId: application.applicant_id,
+    fullName,
+    gender,
+    municipality: address.municipality,
+    barangay: address.barangay,
+    lpiiTag,
+    course,
+    batchYear,
+    status: application.status || 'Pending',
+    contact,
+    documentsSubmitted: application.document_submitted || [],
+    remarks: application.remarks || [],
+    createdAt: createdDate,
+    rawApplication: application,
+    rawApplicant: applicant,
+  }
+}
+
 // ─── Demographic Aggregation Helpers ───
 export function computeYearlyDemographics(records: GipInternRecord[]): {
   pgas: GenderDataPoint[]
@@ -248,6 +317,39 @@ export function computeYearlyDemographics(records: GipInternRecord[]): {
   }))
 
   return { pgas, dole }
+}
+
+export function computeApplicantsDemographics(
+  records: Array<{ batchYear: number; gender: string }>
+): GenderDataPoint[] {
+  const currentYear = new Date().getFullYear()
+  const yearsSet = new Set<number>([currentYear - 2, currentYear - 1, currentYear])
+  for (const r of records) {
+    if (r.batchYear) yearsSet.add(r.batchYear)
+  }
+
+  const sortedYears = Array.from(yearsSet).sort((a, b) => a - b)
+  const applicantsMap = new Map<number, { male: number; female: number }>()
+
+  for (const y of sortedYears) {
+    applicantsMap.set(y, { male: 0, female: 0 })
+  }
+
+  for (const r of records) {
+    const entry = applicantsMap.get(r.batchYear) || { male: 0, female: 0 }
+    if (r.gender === 'Female') {
+      entry.female += 1
+    } else {
+      entry.male += 1
+    }
+    applicantsMap.set(r.batchYear, entry)
+  }
+
+  return sortedYears.map((year) => ({
+    year,
+    male: applicantsMap.get(year)?.male ?? 0,
+    female: applicantsMap.get(year)?.female ?? 0,
+  }))
 }
 
 // ─── LPII Aggregation Helpers ───

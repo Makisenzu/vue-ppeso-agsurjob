@@ -22,6 +22,7 @@ export const useGipStore = defineStore('gipStore', () => {
   // ─── Demographic State (Dashboard) ───
   const pgasYearlyData = ref<GenderDataPoint[]>([])
   const doleYearlyData = ref<GenderDataPoint[]>([])
+  const applicantsYearlyData = ref<GenderDataPoint[]>([])
 
   // ─── LPII State (Details) ───
   const pgasLpiiData = ref<LpiiDataPoint[]>([])
@@ -75,6 +76,12 @@ export const useGipStore = defineStore('gipStore', () => {
   const totalDoleYearly = computed(() => {
     const male = doleYearlyData.value.reduce((acc, curr) => acc + curr.male, 0)
     const female = doleYearlyData.value.reduce((acc, curr) => acc + curr.female, 0)
+    return { male, female, total: male + female }
+  })
+
+  const totalApplicantsYearly = computed(() => {
+    const male = applicantsYearlyData.value.reduce((acc, curr) => acc + curr.male, 0)
+    const female = applicantsYearlyData.value.reduce((acc, curr) => acc + curr.female, 0)
     return { male, female, total: male + female }
   })
 
@@ -209,6 +216,7 @@ export const useGipStore = defineStore('gipStore', () => {
       const yearly = await gipService.fetchYearlyDemographics()
       pgasYearlyData.value = yearly.pgas
       doleYearlyData.value = yearly.dole
+      applicantsYearlyData.value = yearly.applicants
     } catch (err: any) {
       const msg = err.message || 'Failed to load GIP dashboard demographic data.'
       errorMessage.value = msg
@@ -300,6 +308,7 @@ export const useGipStore = defineStore('gipStore', () => {
     // State
     pgasYearlyData,
     doleYearlyData,
+    applicantsYearlyData,
     pgasLpiiData,
     doleLpiiData,
     interns,
@@ -321,6 +330,7 @@ export const useGipStore = defineStore('gipStore', () => {
     availableYears,
     totalPgasYearly,
     totalDoleYearly,
+    totalApplicantsYearly,
     overallMaleInterns,
     overallFemaleInterns,
     overallLpiiData,

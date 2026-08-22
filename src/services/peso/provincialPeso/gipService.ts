@@ -4,6 +4,7 @@ import type {
   BarangayRow,
   GenderDataPoint,
   GipApplicantInsert,
+  GipApplicantRecord,
   GipApplicantRow,
   GipApplicantUpdate,
   GipInsert,
@@ -14,8 +15,10 @@ import type {
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
 import {
+  computeApplicantsDemographics,
   computeLpiiBreakdown,
   computeYearlyDemographics,
+  mapToGipApplicantRecord,
   mapToGipInternRecord,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
@@ -121,14 +124,78 @@ export const gipService = {
   },
 
   /**
-   * Computes yearly demographics from live database intern records.
+   * Fetches all GIP applicant records from esmdd.gip_applicants and applicants.applicants.
+   */
+  async fetchApplicants(): Promise<GipApplicantRecord[]> {
+    const [gipAppsRes, barangaysRes] = await Promise.all([
+      supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      supabase
+        .schema('public')
+        .from('barangays')
+        .select('name, lpii_tag'),
+    ])
+
+    const gipApps = (gipAppsRes.data ?? []) as GipApplicantRow[]
+    const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+
+    const barangayTagMap = new Map<string, LpiiCategory>()
+    for (const b of barangays) {
+      if (b.name && b.lpii_tag) {
+        barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+      }
+    }
+
+    const applicantIds = new Set<string>()
+    for (const app of gipApps) {
+      if (app.applicant_id) applicantIds.add(app.applicant_id)
+    }
+
+    let applicantsList: ApplicantRow[] = []
+    if (applicantIds.size > 0) {
+      const { data: applicantsData, error: applicantsError } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .select('*')
+        .in('id', Array.from(applicantIds))
+
+      if (!applicantsError && applicantsData) {
+        applicantsList = applicantsData as ApplicantRow[]
+      }
+    }
+
+    const applicantMap = new Map<string, ApplicantRow>()
+    for (const applicant of applicantsList) {
+      applicantMap.set(applicant.id, applicant)
+      if (applicant.profile_id) {
+        applicantMap.set(applicant.profile_id, applicant)
+      }
+    }
+
+    return gipApps.map((app) => {
+      const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+      return mapToGipApplicantRecord(app, applicant, barangayTagMap)
+    })
+  },
+
+  /**
+   * Computes yearly demographics from live database intern records and applicant records.
    */
   async fetchYearlyDemographics(): Promise<{
     pgas: GenderDataPoint[]
     dole: GenderDataPoint[]
+    applicants: GenderDataPoint[]
   }> {
-    const records = await this.fetchInterns()
-    return computeYearlyDemographics(records)
+    const [interns, applicants] = await Promise.all([
+      this.fetchInterns(),
+      this.fetchApplicants(),
+    ])
+    const { pgas, dole } = computeYearlyDemographics(interns)
+    const applicantsData = computeApplicantsDemographics(applicants)
+    return { pgas, dole, applicants: applicantsData }
   },
 
   /**
