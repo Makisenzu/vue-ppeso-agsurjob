@@ -314,6 +314,8 @@ export const useGipStore = defineStore('gipStore', () => {
   const applicantFemaleLpiiData = ref<LpiiDataPoint[]>([])
   const selectedApplicant = ref<GipApplicantRecord | null>(null)
   const isApplicantDetailsModalOpen = ref<boolean>(false)
+  const isAddApplicantModalOpen = ref<boolean>(false)
+  const isBatchUploadModalOpen = ref<boolean>(false)
 
   // ─── Applicant Filter & Pagination State ───
   const applicantSearchQuery = ref<string>('')
@@ -464,6 +466,64 @@ export const useGipStore = defineStore('gipStore', () => {
     applicantStatusFilter.value = 'ALL'
   }
 
+  const openAddApplicantModal = () => {
+    isAddApplicantModalOpen.value = true
+  }
+
+  const closeAddApplicantModal = () => {
+    isAddApplicantModalOpen.value = false
+  }
+
+  const openBatchUploadModal = () => {
+    isBatchUploadModalOpen.value = true
+  }
+
+  const closeBatchUploadModal = () => {
+    isBatchUploadModalOpen.value = false
+  }
+
+  const createSingleApplicant = async (payload: any) => {
+    isSubmitting.value = true
+    try {
+      await gipService.createSingleApplicantWithGipApplication(payload)
+      toastAlert.success('Applicant Registered', `${payload.firstName} ${payload.surname} has been added to GIP registry.`)
+      isAddApplicantModalOpen.value = false
+      await fetchApplicantsData()
+    } catch (err: any) {
+      toastAlert.error('Registration Failed', err.message || 'Could not register applicant.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const batchImportApplicants = async (applicantsList: any[]) => {
+    isSubmitting.value = true
+    try {
+      const result = await gipService.batchCreateGipApplicants(applicantsList)
+      if (result.successCount > 0) {
+        toastAlert.success(
+          'Batch Import Completed',
+          `Successfully registered ${result.successCount} of ${result.total} GIP applicants.`
+        )
+      }
+      if (result.errors.length > 0) {
+        toastAlert.info(
+          'Some Records Skipped',
+          `${result.errors.length} records had errors and were not imported.`
+        )
+      }
+      isBatchUploadModalOpen.value = false
+      await fetchApplicantsData()
+      return result
+    } catch (err: any) {
+      toastAlert.error('Batch Import Failed', err.message || 'Failed to import applicants.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const exportApplicantsCsv = () => {
     try {
       exportGipApplicantsCsv(filteredApplicants.value, applicantStatusTab.value)
@@ -492,6 +552,8 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedApplicant,
     isDetailsModalOpen,
     isApplicantDetailsModalOpen,
+    isAddApplicantModalOpen,
+    isBatchUploadModalOpen,
     searchQuery,
     selectedProgram,
     selectedLpiiFilter,
@@ -539,6 +601,8 @@ export const useGipStore = defineStore('gipStore', () => {
     fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
+    createSingleApplicant,
+    batchImportApplicants,
     setSelectedProgram,
     resetFilters,
     resetApplicantFilters,
@@ -546,6 +610,10 @@ export const useGipStore = defineStore('gipStore', () => {
     closeInternDetails,
     openApplicantDetails,
     closeApplicantDetails,
+    openAddApplicantModal,
+    closeAddApplicantModal,
+    openBatchUploadModal,
+    closeBatchUploadModal,
     exportCsv,
     exportApplicantsCsv,
   }

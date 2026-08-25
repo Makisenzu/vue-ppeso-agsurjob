@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
+  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   Clock,
@@ -10,9 +12,13 @@ import {
   Loader2,
   MapPin,
   Mountain,
+  Plus,
   RefreshCw,
+  ScanText,
   Search,
+  Trash2,
   TreePine,
+  UploadCloud,
   User,
   Users,
   UserX,
@@ -24,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import {
   Table,
   TableBody,
@@ -43,6 +50,9 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
+import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
+import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
+import GipAddApplicantDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddApplicantDialog.vue'
 
 const {
   applicants,
@@ -67,16 +77,43 @@ const {
   selectedStatusFilter,
   currentPage,
   pageSize,
-  LPII_CONFIG,
   donutTooltipTriggers,
   getInitials,
   goBack,
   resetFilters,
   openApplicantDetails,
   closeApplicantDetails,
+  openAddApplicantModal,
   exportCsv,
   fetchApplicantsData,
 } = useGipApplicants()
+
+// ─── Batch Upload (inline drag-and-drop, no modal) ───
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const {
+  isDragging,
+  isParsing,
+  uploadedFile,
+  parsedApplicants,
+  ocrProgress,
+  validApplicantsCount,
+  invalidApplicantsCount,
+  hasParsedData,
+  isSubmitting,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onFileInputChange,
+  removeCandidate,
+  confirmImport,
+  resetBatchState,
+  downloadTemplate,
+} = useGipBatchUpload()
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
 </script>
 
 <template>
@@ -341,7 +378,31 @@ const {
           </div>
 
           <!-- Action buttons -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Button
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer"
+              @click="triggerFileInput"
+            >
+              <UploadCloud class="h-3.5 w-3.5" />
+              <span>Upload Batch</span>
+            </Button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".xlsx,.xls,.csv,.pdf"
+              class="hidden"
+              @change="onFileInputChange"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer"
+              @click="openAddApplicantModal"
+            >
+              <Plus class="h-3.5 w-3.5" />
+              <span>Add Applicant</span>
+            </Button>
             <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer" @click="exportCsv">
               <Download class="h-3.5 w-3.5" />
               <span>Export CSV</span>
@@ -607,12 +668,217 @@ const {
                 </TableRow>
               </template>
 
-              <!-- Empty State -->
+              <!-- ─── Empty State ─── -->
+              <!-- Case A: No applicants exist — full-width inline drag-and-drop zone -->
+              <TableRow v-else-if="applicants.length === 0 && !hasParsedData && !ocrProgress.isProcessing && !isParsing">
+                <TableCell colspan="8" class="p-3 sm:p-5 text-center">
+                  <div
+                    :class="[
+                      'w-full min-h-[320px] flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 text-center transition-all cursor-pointer group',
+                      isDragging
+                        ? 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[0.998]'
+                        : 'border-muted-foreground/30 hover:border-primary/60 hover:bg-muted/30 bg-muted/10',
+                    ]"
+                    @dragover="onDragOver"
+                    @dragleave="onDragLeave"
+                    @drop="onDrop"
+                    @click="triggerFileInput"
+                  >
+                    <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:scale-110 group-hover:bg-primary/15 transition-all mb-4 shadow-xs">
+                      <ScanText class="h-8 w-8" />
+                    </div>
+
+                    <h3 class="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                      No GIP Applicants Registered Yet
+                    </h3>
+                    <p class="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed mt-1.5">
+                      Drag and drop an <span class="font-semibold text-foreground">Excel spreadsheet</span> (.xlsx, .csv) or
+                      <span class="font-semibold text-foreground">scanned NSRP Form 1 PDF</span> here to bulk-import applicants.
+                    </p>
+
+                    <div class="flex flex-wrap items-center justify-center gap-3 mt-6" @click.stop>
+                      <Button size="sm" class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs" @click="triggerFileInput">
+                        <UploadCloud class="h-4 w-4" />
+                        <span>Browse Files</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs bg-background hover:bg-muted"
+                        @click="openAddApplicantModal"
+                      >
+                        <Plus class="h-4 w-4" />
+                        <span>Add Applicant</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs bg-background hover:bg-muted"
+                        @click="downloadTemplate"
+                      >
+                        <Download class="h-4 w-4" />
+                        <span>Download Template</span>
+                      </Button>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <!-- Case A-2: OCR / Parsing in-progress state -->
+              <TableRow v-else-if="applicants.length === 0 && (ocrProgress.isProcessing || isParsing) && !hasParsedData">
+                <TableCell colspan="8" class="p-3 sm:p-5 text-center">
+                  <div class="w-full min-h-[320px] flex flex-col items-center justify-center rounded-xl border border-border/80 bg-muted/20 p-8 sm:p-12 text-center space-y-4">
+                    <div class="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs">
+                      <Loader2 class="h-8 w-8 animate-spin" />
+                      <ScanText class="absolute h-4 w-4" />
+                    </div>
+                    <div class="space-y-1.5 max-w-md">
+                      <h3 class="font-bold text-base text-foreground">
+                        {{ ocrProgress.statusMessage || 'Processing file...' }}
+                      </h3>
+                      <p class="text-xs text-muted-foreground leading-relaxed">
+                        Reading document structure, running OCR text recognition, and extracting applicant fields.
+                      </p>
+                    </div>
+                    <div class="w-full max-w-md space-y-2 pt-2">
+                      <Progress :model-value="ocrProgress.progressPercent" class="h-2.5 rounded-full" />
+                      <div class="flex justify-between text-xs font-medium text-muted-foreground">
+                        <span>Page {{ ocrProgress.currentPage }} of {{ ocrProgress.totalPages }}</span>
+                        <span class="font-mono">{{ ocrProgress.progressPercent }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <!-- Case A-3: Parsed data review table (inline, no modal) -->
+              <template v-else-if="applicants.length === 0 && hasParsedData">
+                <!-- Summary banner row -->
+                <TableRow>
+                  <TableCell colspan="8" class="py-3 px-4 bg-muted/10 border-b">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary" class="font-medium text-xs">
+                          File: {{ uploadedFile?.name }}
+                        </Badge>
+                        <Badge variant="outline" class="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                          <CheckCircle2 class="h-3 w-3 mr-1" />
+                          {{ validApplicantsCount }} Ready
+                        </Badge>
+                        <Badge
+                          v-if="invalidApplicantsCount > 0"
+                          variant="outline"
+                          class="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                        >
+                          <AlertCircle class="h-3 w-3 mr-1" />
+                          {{ invalidApplicantsCount }} Needs Review
+                        </Badge>
+                      </div>
+                      <div class="flex items-center gap-2 self-end sm:self-auto">
+                        <Button
+                          size="sm"
+                          class="h-7 text-xs cursor-pointer gap-1.5"
+                          :disabled="validApplicantsCount === 0 || isSubmitting"
+                          @click="confirmImport"
+                        >
+                          <Loader2 v-if="isSubmitting" class="h-3.5 w-3.5 animate-spin" />
+                          <CheckCircle2 v-else class="h-3.5 w-3.5" />
+                          <span>Import {{ validApplicantsCount }} Applicants</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                          @click="resetBatchState"
+                        >
+                          <X class="h-3.5 w-3.5 mr-1" />
+                          Discard
+                        </Button>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+
+                <!-- Parsed applicant rows -->
+                <TableRow
+                  v-for="(candidate, idx) in parsedApplicants"
+                  :key="candidate.id || idx"
+                  class="hover:bg-muted/30"
+                >
+                  <TableCell class="py-2">
+                    <div class="flex flex-col">
+                      <span class="font-semibold text-xs text-foreground">
+                        {{ candidate.surname }}, {{ candidate.firstName }} {{ candidate.middleName }}
+                      </span>
+                      <span class="text-[10px] text-muted-foreground">
+                        {{ candidate.sex }} • {{ candidate.dateOfBirth || 'DOB N/A' }}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell class="py-2">
+                    <div class="flex flex-col text-[11px]">
+                      <span class="font-medium text-foreground">{{ candidate.municipality }}</span>
+                      <span class="text-muted-foreground">Brgy. {{ candidate.barangay }}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell class="py-2">
+                    <Badge
+                      variant="outline"
+                      :class="['text-[10px] py-0.5 px-2 font-semibold gap-1', LPII_CONFIG[candidate.lpiiTag].badgeClass]"
+                    >
+                      <TreePine v-if="candidate.lpiiTag === 'LOWLAND'" class="h-3 w-3" />
+                      <Mountain v-else-if="candidate.lpiiTag === 'UPLAND'" class="h-3 w-3" />
+                      <Waves v-else class="h-3 w-3" />
+                      {{ LPII_CONFIG[candidate.lpiiTag].label }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell class="py-2">
+                    <span class="text-[11px] font-medium truncate max-w-40 block" :title="candidate.course">
+                      {{ candidate.course }}
+                    </span>
+                  </TableCell>
+                  <TableCell class="py-2">
+                    <span class="text-[10px] font-mono text-muted-foreground">
+                      {{ candidate.pageRange || 'Row Data' }}
+                    </span>
+                  </TableCell>
+                  <TableCell class="py-2">
+                    <Badge
+                      v-if="candidate.isValid !== false"
+                      variant="outline"
+                      class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]"
+                    >
+                      Valid
+                    </Badge>
+                    <Badge
+                      v-else
+                      variant="outline"
+                      class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px]"
+                      :title="candidate.validationErrors?.join(', ')"
+                    >
+                      Needs Check
+                    </Badge>
+                  </TableCell>
+                  <TableCell class="py-2" />
+                  <TableCell class="py-2 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
+                      @click="removeCandidate(idx)"
+                    >
+                      <Trash2 class="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </template>
+
+              <!-- Case B: Search or dropdown filters returned 0 matches -->
               <TableRow v-else>
-                <TableCell colspan="8" class="h-32 text-center text-muted-foreground">
+                <TableCell colspan="8" class="h-36 text-center text-muted-foreground">
                   <div class="flex flex-col items-center justify-center gap-2 py-4">
                     <Filter class="h-7 w-7 text-muted-foreground/50" />
-                    <p class="text-sm font-semibold">No applicant records match the selected criteria</p>
+                    <p class="text-sm font-semibold text-foreground">No applicant records match the selected criteria</p>
                     <p class="text-xs text-muted-foreground">
                       Try adjusting the search keyword, LPII category, or status filters.
                     </p>
@@ -783,5 +1049,10 @@ const {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+
+
+    <!-- ─── ADD SINGLE APPLICANT DIALOG ─── -->
+    <GipAddApplicantDialog />
   </div>
 </template>
