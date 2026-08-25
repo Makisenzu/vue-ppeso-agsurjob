@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import type {
   GenderDataPoint,
   GipApplicantInsert,
+  GipApplicantRecord,
   GipInsert,
   GipInternRecord,
   GipProgram,
@@ -11,7 +12,9 @@ import type {
 import { gipService } from '@/services/peso/provincialPeso/gipService'
 import {
   LPII_CONFIG,
+  exportGipApplicantsCsv,
   exportGipInternsCsv,
+  extractApplicantAvailableYears,
   extractAvailableYears,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
@@ -304,6 +307,172 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  // ─── Applicant Records State (Applicants Table & Donut Charts) ───
+  const applicants = ref<GipApplicantRecord[]>([])
+  const applicantOverallLpiiData = ref<LpiiDataPoint[]>([])
+  const applicantMaleLpiiData = ref<LpiiDataPoint[]>([])
+  const applicantFemaleLpiiData = ref<LpiiDataPoint[]>([])
+  const selectedApplicant = ref<GipApplicantRecord | null>(null)
+  const isApplicantDetailsModalOpen = ref<boolean>(false)
+
+  // ─── Applicant Filter & Pagination State ───
+  const applicantSearchQuery = ref<string>('')
+  const applicantStatusTab = ref<string>('ALL')
+  const applicantLpiiFilter = ref<string>('ALL')
+  const applicantYearFilter = ref<string>('ALL')
+  const applicantGenderFilter = ref<string>('ALL')
+  const applicantStatusFilter = ref<string>('ALL')
+  const applicantCurrentPage = ref<number>(1)
+  const applicantPageSize = ref<number>(8)
+
+  // Reset applicant pagination when filters change
+  watch(
+    [
+      applicantSearchQuery,
+      applicantStatusTab,
+      applicantLpiiFilter,
+      applicantYearFilter,
+      applicantGenderFilter,
+      applicantStatusFilter,
+    ],
+    () => {
+      applicantCurrentPage.value = 1
+    }
+  )
+
+  // ─── Computed: Applicant Totals & LPII ───
+  const applicantAvailableYears = computed<number[]>(() =>
+    extractApplicantAvailableYears(applicants.value)
+  )
+
+  const totalOverallApplicantLpii = computed<number>(() =>
+    applicantOverallLpiiData.value.reduce((sum, item) => sum + item.count, 0)
+  )
+
+  const totalMaleApplicantLpii = computed<number>(() =>
+    applicantMaleLpiiData.value.reduce((sum, item) => sum + item.count, 0)
+  )
+
+  const totalFemaleApplicantLpii = computed<number>(() =>
+    applicantFemaleLpiiData.value.reduce((sum, item) => sum + item.count, 0)
+  )
+
+  const filteredApplicants = computed<GipApplicantRecord[]>(() => {
+    return applicants.value.filter((app) => {
+      // Status Tab filter
+      if (
+        applicantStatusTab.value !== 'ALL' &&
+        app.status.trim().toUpperCase() !== applicantStatusTab.value.trim().toUpperCase()
+      ) {
+        return false
+      }
+      // LPII filter
+      if (
+        applicantLpiiFilter.value !== 'ALL' &&
+        app.lpiiTag.trim().toUpperCase() !== applicantLpiiFilter.value.trim().toUpperCase()
+      ) {
+        return false
+      }
+      // Year filter
+      if (
+        applicantYearFilter.value !== 'ALL' &&
+        app.batchYear.toString() !== applicantYearFilter.value.trim()
+      ) {
+        return false
+      }
+      // Gender filter
+      if (
+        applicantGenderFilter.value !== 'ALL' &&
+        app.gender.trim().toUpperCase() !== applicantGenderFilter.value.trim().toUpperCase()
+      ) {
+        return false
+      }
+      // Status filter dropdown
+      if (
+        applicantStatusFilter.value !== 'ALL' &&
+        app.status.trim().toUpperCase() !== applicantStatusFilter.value.trim().toUpperCase()
+      ) {
+        return false
+      }
+      // Search query
+      if (applicantSearchQuery.value.trim()) {
+        const q = applicantSearchQuery.value.toLowerCase().trim()
+        const matchName = app.fullName.toLowerCase().includes(q)
+        const matchCode = app.code.toLowerCase().includes(q)
+        const matchMuni = app.municipality.toLowerCase().includes(q)
+        const matchBrgy = app.barangay.toLowerCase().includes(q)
+        const matchCourse = app.course.toLowerCase().includes(q)
+        const matchContact = app.contact.toLowerCase().includes(q)
+        return (
+          matchName ||
+          matchCode ||
+          matchMuni ||
+          matchBrgy ||
+          matchCourse ||
+          matchContact
+        )
+      }
+      return true
+    })
+  })
+
+  const totalApplicantPages = computed<number>(
+    () => Math.ceil(filteredApplicants.value.length / applicantPageSize.value) || 1
+  )
+
+  const paginatedApplicants = computed<GipApplicantRecord[]>(() => {
+    const start = (applicantCurrentPage.value - 1) * applicantPageSize.value
+    return filteredApplicants.value.slice(start, start + applicantPageSize.value)
+  })
+
+  const fetchApplicantsData = async () => {
+    errorMessage.value = null
+    isLoading.value = true
+    try {
+      const [lpiiBreakdown, list] = await Promise.all([
+        gipService.fetchApplicantLpiiData(),
+        gipService.fetchApplicants(),
+      ])
+      applicantOverallLpiiData.value = lpiiBreakdown.overall
+      applicantMaleLpiiData.value = lpiiBreakdown.male
+      applicantFemaleLpiiData.value = lpiiBreakdown.female
+      applicants.value = list
+    } catch (err: any) {
+      const msg = err.message || 'Failed to load GIP applicants and demographic registry.'
+      errorMessage.value = msg
+      toastAlert.error('Error Loading Applicants', msg)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const openApplicantDetails = (app: GipApplicantRecord) => {
+    selectedApplicant.value = app
+    isApplicantDetailsModalOpen.value = true
+  }
+
+  const closeApplicantDetails = () => {
+    isApplicantDetailsModalOpen.value = false
+  }
+
+  const resetApplicantFilters = () => {
+    applicantSearchQuery.value = ''
+    applicantStatusTab.value = 'ALL'
+    applicantLpiiFilter.value = 'ALL'
+    applicantYearFilter.value = 'ALL'
+    applicantGenderFilter.value = 'ALL'
+    applicantStatusFilter.value = 'ALL'
+  }
+
+  const exportApplicantsCsv = () => {
+    try {
+      exportGipApplicantsCsv(filteredApplicants.value, applicantStatusTab.value)
+      toastAlert.success('Export Successful', 'GIP Applicants list exported as CSV.')
+    } catch {
+      toastAlert.error('Export Failed', 'Failed to export GIP Applicants list.')
+    }
+  }
+
   return {
     // State
     pgasYearlyData,
@@ -312,11 +481,17 @@ export const useGipStore = defineStore('gipStore', () => {
     pgasLpiiData,
     doleLpiiData,
     interns,
+    applicants,
+    applicantOverallLpiiData,
+    applicantMaleLpiiData,
+    applicantFemaleLpiiData,
     isLoading,
     isSubmitting,
     errorMessage,
     selectedIntern,
+    selectedApplicant,
     isDetailsModalOpen,
+    isApplicantDetailsModalOpen,
     searchQuery,
     selectedProgram,
     selectedLpiiFilter,
@@ -326,8 +501,19 @@ export const useGipStore = defineStore('gipStore', () => {
     currentPage,
     pageSize,
 
+    // Applicant Filter State
+    applicantSearchQuery,
+    applicantStatusTab,
+    applicantLpiiFilter,
+    applicantYearFilter,
+    applicantGenderFilter,
+    applicantStatusFilter,
+    applicantCurrentPage,
+    applicantPageSize,
+
     // Computed
     availableYears,
+    applicantAvailableYears,
     totalPgasYearly,
     totalDoleYearly,
     totalApplicantsYearly,
@@ -337,19 +523,30 @@ export const useGipStore = defineStore('gipStore', () => {
     totalOverallLpii,
     totalPgasLpii,
     totalDoleLpii,
+    totalOverallApplicantLpii,
+    totalMaleApplicantLpii,
+    totalFemaleApplicantLpii,
     filteredInterns,
+    filteredApplicants,
     totalPages,
+    totalApplicantPages,
     paginatedInterns,
+    paginatedApplicants,
 
     // Actions
     fetchDashboardData,
     fetchDetailsData,
+    fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
     setSelectedProgram,
     resetFilters,
+    resetApplicantFilters,
     openInternDetails,
     closeInternDetails,
+    openApplicantDetails,
+    closeApplicantDetails,
     exportCsv,
+    exportApplicantsCsv,
   }
 })

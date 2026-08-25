@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
+import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
 import { Building2, ChevronRight, Landmark, Loader2, RefreshCw, Users } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
@@ -32,6 +33,7 @@ const {
   formatTickYear,
   formatTooltipLabel,
   navigateToDetails,
+  navigateToApplicants,
   fetchDashboardData,
 } = useGipDashboard()
 </script>
@@ -298,7 +300,7 @@ const {
         variant="outline"
         size="sm"
         class="gap-1.5 self-start sm:self-auto cursor-pointer"
-        @click="navigateToDetails()"
+        @click="navigateToApplicants()"
       >
         <span>View Details</span>
         <ChevronRight class="h-4 w-4" />
@@ -309,9 +311,10 @@ const {
     <Card class="overflow-hidden">
       <CardHeader class="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div class="flex flex-1 items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
-          <div class="flex h-15 w-15 items-center justify-center rounded-lg border bg-primary/10 text-primary">
-            <Users class="h-7 w-7" />
-          </div>
+          <Avatar class="h-15 w-15 rounded-lg border bg-background">
+            <AvatarImage :src="gipLogo" alt="GIP logo" class="object-cover" />
+            <AvatarFallback class="rounded-lg text-xs font-semibold">GIP</AvatarFallback>
+          </Avatar>
           <div class="flex flex-col justify-center gap-1">
             <CardTitle class="text-base font-semibold">GIP - All Applicants</CardTitle>
             <CardDescription class="text-xs">

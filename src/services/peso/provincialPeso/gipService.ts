@@ -15,6 +15,7 @@ import type {
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
 import {
+  computeApplicantLpiiBreakdown,
   computeApplicantsDemographics,
   computeLpiiBreakdown,
   computeYearlyDemographics,
@@ -207,6 +208,18 @@ export const gipService = {
   }> {
     const records = await this.fetchInterns()
     return computeLpiiBreakdown(records)
+  },
+
+  /**
+   * Computes LPII ecosystem distribution from live database applicant records.
+   */
+  async fetchApplicantLpiiData(): Promise<{
+    overall: LpiiDataPoint[]
+    male: LpiiDataPoint[]
+    female: LpiiDataPoint[]
+  }> {
+    const records = await this.fetchApplicants()
+    return computeApplicantLpiiBreakdown(records)
   },
 
   /**

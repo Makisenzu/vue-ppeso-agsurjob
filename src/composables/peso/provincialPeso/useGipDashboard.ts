@@ -36,6 +36,13 @@ export function useGipDashboard() {
     })
   }
 
+  function navigateToApplicants(status?: string) {
+    router.push({
+      name: 'provincial-peso-gip-applicants',
+      query: status ? { status } : undefined,
+    })
+  }
+
   onMounted(() => {
     fetchDashboardData()
   })
@@ -62,6 +69,7 @@ export function useGipDashboard() {
 
     // Navigation & Actions
     navigateToDetails,
+    navigateToApplicants,
     fetchDashboardData,
   }
 }

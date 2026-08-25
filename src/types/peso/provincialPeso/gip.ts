@@ -85,8 +85,8 @@ export interface GipApplicantRecord {
   documentsSubmitted: string[]
   remarks: string[]
   createdAt: string
-  rawApplication: GipApplicantRow
-  rawApplicant: ApplicantRow | null
+  rawApplication?: Record<string, any> | null
+  rawApplicant?: Record<string, any> | null
 }
 
 export interface GipJoinedRecord {

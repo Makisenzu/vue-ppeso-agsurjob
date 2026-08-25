@@ -464,6 +464,103 @@ export function exportGipInternsCsv(interns: GipInternRecord[], program: string 
   document.body.removeChild(link)
 }
 
+// ─── Applicant LPII Breakdown Helper ───
+export function computeApplicantLpiiBreakdown(records: GipApplicantRecord[]): {
+  overall: LpiiDataPoint[]
+  male: LpiiDataPoint[]
+  female: LpiiDataPoint[]
+} {
+  const countCat = (cat: LpiiCategory, genderFilter?: 'Male' | 'Female') =>
+    records.filter((r) => r.lpiiTag === cat && (!genderFilter || r.gender === genderFilter)).length
+
+  const buildLpiiData = (genderFilter?: 'Male' | 'Female'): LpiiDataPoint[] => [
+    {
+      category: 'LOWLAND',
+      label: 'Lowland',
+      count: countCat('LOWLAND', genderFilter),
+      color: LPII_CONFIG.LOWLAND.color,
+      description: 'Plains, valleys, and municipal center barangays',
+    },
+    {
+      category: 'UPLAND',
+      label: 'Upland',
+      count: countCat('UPLAND', genderFilter),
+      color: LPII_CONFIG.UPLAND.color,
+      description: 'Highland ridges and interior forest barangays',
+    },
+    {
+      category: 'WETLAND',
+      label: 'Wetland',
+      count: countCat('WETLAND', genderFilter),
+      color: LPII_CONFIG.WETLAND.color,
+      description: 'Agusan Marsh wildlife buffer & river basin communities',
+    },
+  ]
+
+  return {
+    overall: buildLpiiData(),
+    male: buildLpiiData('Male'),
+    female: buildLpiiData('Female'),
+  }
+}
+
+// ─── Extract Unique Batch Years for Applicants ───
+export function extractApplicantAvailableYears(records: GipApplicantRecord[]): number[] {
+  const currentYear = new Date().getFullYear()
+  const years = new Set<number>([currentYear])
+  for (const r of records) {
+    if (r.batchYear) years.add(r.batchYear)
+  }
+  return Array.from(years).sort((a, b) => b - a)
+}
+
+// ─── CSV Export Utility for Applicants ───
+export function exportGipApplicantsCsv(applicants: GipApplicantRecord[], statusFilter: string = 'ALL'): void {
+  const headers = [
+    'Applicant Code',
+    'Full Name',
+    'Gender',
+    'Municipality',
+    'Barangay',
+    'LPII Category',
+    'Course / Education',
+    'Batch Year',
+    'Status',
+    'Contact',
+    'Documents Submitted',
+    'Application Date',
+  ]
+
+  const rows = applicants.map((a) => [
+    a.code,
+    `"${a.fullName}"`,
+    a.gender,
+    `"${a.municipality}"`,
+    `"${a.barangay}"`,
+    a.lpiiTag,
+    `"${a.course}"`,
+    a.batchYear,
+    a.status,
+    `"${a.contact}"`,
+    `"${(a.documentsSubmitted || []).join('; ')}"`,
+    a.createdAt ? a.createdAt.slice(0, 10) : 'N/A',
+  ])
+
+  const csvContent =
+    'data:text/csv;charset=utf-8,' +
+    [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute(
+    'download',
+    `GIP_Applicants_${statusFilter}_${new Date().toISOString().slice(0, 10)}.csv`
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 // ─── Initials Helper ───
 export function getInitials(fullName: string): string {
   if (!fullName) return ''
@@ -475,3 +572,4 @@ export function getInitials(fullName: string): string {
     .slice(0, 2)
     .toUpperCase()
 }
+
