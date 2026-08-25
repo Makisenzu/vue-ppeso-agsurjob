@@ -1,31 +1,76 @@
 import { supabase } from '@/lib/supabaseClient'
 import type {
-  ApplicantRow,
-  BarangayRow,
-  GenderDataPoint,
-  GipApplicantInsert,
+  GipInternRecord,
   GipApplicantRecord,
+  GenderDataPoint,
+  LpiiDataPoint,
+  LpiiCategory,
+  GipRow,
   GipApplicantRow,
+  ApplicantRow,
+  GipApplicantInsert,
   GipApplicantUpdate,
   GipInsert,
-  GipInternRecord,
-  GipRow,
   GipUpdate,
-  LpiiCategory,
-  LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
 import {
-  computeApplicantLpiiBreakdown,
+  mapToGipInternRecord,
+  mapToGipApplicantRecord,
+  computeYearlyDemographics,
   computeApplicantsDemographics,
   computeLpiiBreakdown,
-  computeYearlyDemographics,
-  mapToGipApplicantRecord,
-  mapToGipInternRecord,
+  computeApplicantLpiiBreakdown,
 } from '@/helpers/peso/provincialPeso/gipHelper'
+
+type BarangayRow = {
+  name: string
+  lpii_tag: string
+}
+
+/**
+ * Resilient query helper for esmdd.gip_applicants.
+ */
+async function fetchGipApplicantsQuery(): Promise<GipApplicantRow[]> {
+  try {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      // Schema not exposed or table not yet created in Supabase
+      return []
+    }
+    return (data ?? []) as GipApplicantRow[]
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Resilient query helper for esmdd.gips.
+ */
+async function fetchGipsQuery(): Promise<GipRow[]> {
+  try {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return []
+    }
+    return (data ?? []) as GipRow[]
+  } catch {
+    return []
+  }
+}
 
 export const gipService = {
   /**
-   * Fetches all GIP intern records by querying:
+   * Fetches all GIP deployment records by joining:
    * 1. esmdd.gips
    * 2. esmdd.gip_applicants
    * 3. applicants.applicants
@@ -33,25 +78,15 @@ export const gipService = {
    */
   async fetchInterns(): Promise<GipInternRecord[]> {
     // 1. Fetch GIPs and GIP applicants
-    const [gipsRes, gipAppsRes, barangaysRes] = await Promise.all([
-      supabase
-        .schema('esmdd')
-        .from('gips')
-        .select('*')
-        .order('created_at', { ascending: false }),
-      supabase
-        .schema('esmdd')
-        .from('gip_applicants')
-        .select('*')
-        .order('created_at', { ascending: false }),
+    const [gips, gipApps, barangaysRes] = await Promise.all([
+      fetchGipsQuery(),
+      fetchGipApplicantsQuery(),
       supabase
         .schema('public')
         .from('barangays')
         .select('name, lpii_tag'),
     ])
 
-    const gips = (gipsRes.data ?? []) as GipRow[]
-    const gipApps = (gipAppsRes.data ?? []) as GipApplicantRow[]
     const barangays = (barangaysRes.data ?? []) as BarangayRow[]
 
     // Build Barangay -> LPII tag lookup map
@@ -128,19 +163,14 @@ export const gipService = {
    * Fetches all GIP applicant records from esmdd.gip_applicants and applicants.applicants.
    */
   async fetchApplicants(): Promise<GipApplicantRecord[]> {
-    const [gipAppsRes, barangaysRes] = await Promise.all([
-      supabase
-        .schema('esmdd')
-        .from('gip_applicants')
-        .select('*')
-        .order('created_at', { ascending: false }),
+    const [gipApps, barangaysRes] = await Promise.all([
+      fetchGipApplicantsQuery(),
       supabase
         .schema('public')
         .from('barangays')
         .select('name, lpii_tag'),
     ])
 
-    const gipApps = (gipAppsRes.data ?? []) as GipApplicantRow[]
     const barangays = (barangaysRes.data ?? []) as BarangayRow[]
 
     const barangayTagMap = new Map<string, LpiiCategory>()
@@ -226,62 +256,105 @@ export const gipService = {
    * Creates a new GIP application record in esmdd.gip_applicants.
    */
   async createGipApplicant(payload: GipApplicantInsert): Promise<GipApplicantRow> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gip_applicants')
-      .insert(payload)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .insert(payload)
+        .select()
+        .single()
 
-    if (error) throw new Error(error.message || 'Failed to create GIP application.')
-    return data as GipApplicantRow
+      if (error) throw error
+      return data as GipApplicantRow
+    } catch (err: any) {
+      // Fallback if esmdd schema is not exposed
+      const { data, error } = await (supabase.from('gip_applicants' as any) as any)
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message || 'Failed to create GIP application.')
+      return data as GipApplicantRow
+    }
   },
 
   /**
    * Creates a new deployed GIP record in esmdd.gips.
    */
   async createGip(payload: GipInsert): Promise<GipRow> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gips')
-      .insert(payload)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('gips')
+        .insert(payload)
+        .select()
+        .single()
 
-    if (error) throw new Error(error.message || 'Failed to create GIP record.')
-    return data as GipRow
+      if (error) throw error
+      return data as GipRow
+    } catch (err: any) {
+      const { data, error } = await (supabase.from('gips' as any) as any)
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message || 'Failed to create GIP record.')
+      return data as GipRow
+    }
   },
 
   /**
    * Updates an existing GIP deployment record in esmdd.gips.
    */
   async updateGip(id: string, payload: GipUpdate): Promise<GipRow> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gips')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('gips')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw new Error(error.message || 'Failed to update GIP record.')
-    return data as GipRow
+      if (error) throw error
+      return data as GipRow
+    } catch (err: any) {
+      const { data, error } = await (supabase.from('gips' as any) as any)
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message || 'Failed to update GIP record.')
+      return data as GipRow
+    }
   },
 
   /**
    * Updates an existing GIP application in esmdd.gip_applicants.
    */
   async updateGipApplicant(id: string, payload: GipApplicantUpdate): Promise<GipApplicantRow> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gip_applicants')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw new Error(error.message || 'Failed to update GIP application.')
-    return data as GipApplicantRow
+      if (error) throw error
+      return data as GipApplicantRow
+    } catch (err: any) {
+      const { data, error } = await (supabase.from('gip_applicants' as any) as any)
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message || 'Failed to update GIP application.')
+      return data as GipApplicantRow
+    }
   },
 
   /**
@@ -361,32 +434,23 @@ export const gipService = {
       throw new Error(applicantError.message || 'Failed to create applicant master profile.')
     }
 
-    // 2. Insert into esmdd.gip_applicants
+    // 2. Insert into esmdd.gip_applicants (with fallback)
     const remarks = [
       `Batch ${applicantData.batchYear}`,
       `${applicantData.lpiiTag} ECOSYSTEM`,
       `Registered via Provincial PESO GIP Registry`,
     ]
 
-    const { data: gipApp, error: gipAppError } = await supabase
-      .schema('esmdd')
-      .from('gip_applicants')
-      .insert({
-        applicant_id: (applicant as any).id,
-        status: 'Pending',
-        document_submitted: applicantData.documentsSubmitted || ['NSRP Form 1', 'Resume'],
-        remarks,
-      })
-      .select()
-      .single()
-
-    if (gipAppError) {
-      throw new Error(gipAppError.message || 'Failed to link applicant to GIP application registry.')
-    }
+    const gipApp = await this.createGipApplicant({
+      applicant_id: (applicant as any).id,
+      status: 'Pending',
+      document_submitted: applicantData.documentsSubmitted || ['NSRP Form 1', 'Resume'],
+      remarks,
+    })
 
     return {
       applicantId: (applicant as any).id,
-      applicationId: (gipApp as any).id,
+      applicationId: gipApp.id,
     }
   },
 
