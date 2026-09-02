@@ -69,6 +69,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: SRADashboard,
         meta: { requiresAuth: true, role: 'provincial_peso' }
       },
+      {
+        path: 'entry',
+        name: 'provincial-peso-entry',
+        component: () => import('@/components/peso/ProvincialPeso/Common/ApplicantEntry.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicant Entry' }
+      }
     ]
   },
   {

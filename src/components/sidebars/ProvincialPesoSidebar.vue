@@ -158,7 +158,7 @@ const companyItems = [
                   </RouterLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Entry of Applicants'">
-                  <RouterLink to="#">
+                  <RouterLink :to="{ name: 'provincial-peso-entry' }">
                     <BetweenHorizontalEnd />
                     <span>Entry of Applicants</span>
                   </RouterLink>
