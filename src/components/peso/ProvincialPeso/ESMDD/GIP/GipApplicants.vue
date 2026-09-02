@@ -54,7 +54,6 @@ import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplic
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
-import GipAddApplicantDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddApplicantDialog.vue'
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
 import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
 
@@ -412,15 +411,6 @@ const handleUploadBatchClick = () => {
               class="hidden"
               @change="onFileInputChange"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer"
-              @click="openAddApplicantModal"
-            >
-              <Plus class="h-3.5 w-3.5" />
-              <span>Add Applicant</span>
-            </Button>
             <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer" @click="exportCsv">
               <Download class="h-3.5 w-3.5" />
               <span>Export CSV</span>
@@ -718,15 +708,6 @@ const handleUploadBatchClick = () => {
                       <Button size="sm" class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs" @click="triggerFileInput">
                         <UploadCloud class="h-4 w-4" />
                         <span>Browse Files</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs bg-background hover:bg-muted"
-                        @click="openAddApplicantModal"
-                      >
-                        <Plus class="h-4 w-4" />
-                        <span>Add Applicant</span>
                       </Button>
                       <Button
                         variant="outline"

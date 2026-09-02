@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Blocks,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned} from '@lucide/vue'
+import { BetweenHorizontalEnd,Blocks,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -155,6 +155,12 @@ const companyItems = [
                   <RouterLink to="#">
                     <Bell />
                     <span>Notification</span>
+                  </RouterLink>
+              </SidebarMenuButton>
+              <SidebarMenuButton as-child :tooltip="'Entry of Applicants'">
+                  <RouterLink to="#">
+                    <BetweenHorizontalEnd />
+                    <span>Entry of Applicants</span>
                   </RouterLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
