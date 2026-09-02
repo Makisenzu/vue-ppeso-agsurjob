@@ -133,14 +133,38 @@ export function useGipBatchUpload() {
     }
   }
 
+  const editingCandidate = ref<NsrpParsedApplicant | null>(null)
+  const editingCandidateIndex = ref<number>(-1)
+  const isEditModalOpen = ref<boolean>(false)
+
+  const openEditCandidateModal = (candidate: NsrpParsedApplicant, index: number) => {
+    editingCandidate.value = { ...candidate }
+    editingCandidateIndex.value = index
+    isEditModalOpen.value = true
+  }
+
+  const closeEditCandidateModal = () => {
+    isEditModalOpen.value = false
+    editingCandidate.value = null
+    editingCandidateIndex.value = -1
+  }
+
+  const saveEditedCandidate = (updated: NsrpParsedApplicant, index: number) => {
+    if (parsedApplicants.value[index]) {
+      parsedApplicants.value[index] = { ...updated }
+      // Trigger reactive update
+      parsedApplicants.value = [...parsedApplicants.value]
+      toastAlert.success('Candidate Updated', `Information for ${updated.firstName} ${updated.surname} has been updated.`)
+    }
+  }
+
   const removeCandidate = (index: number) => {
     parsedApplicants.value.splice(index, 1)
+    parsedApplicants.value = [...parsedApplicants.value]
   }
 
   const updateCandidate = (index: number, updated: NsrpParsedApplicant) => {
-    if (parsedApplicants.value[index]) {
-      parsedApplicants.value[index] = { ...updated }
-    }
+    saveEditedCandidate(updated, index)
   }
 
   const confirmImport = async () => {
@@ -153,6 +177,9 @@ export function useGipBatchUpload() {
     uploadedFile.value = null
     parsedApplicants.value = []
     selectedCandidate.value = null
+    editingCandidate.value = null
+    editingCandidateIndex.value = -1
+    isEditModalOpen.value = false
     ocrProgress.value = {
       isProcessing: false,
       stage: 'idle',
@@ -179,6 +206,9 @@ export function useGipBatchUpload() {
     uploadedFile,
     parsedApplicants,
     selectedCandidate,
+    editingCandidate,
+    editingCandidateIndex,
+    isEditModalOpen,
     ocrProgress,
     validApplicantsCount,
     invalidApplicantsCount,
@@ -202,6 +232,9 @@ export function useGipBatchUpload() {
     processSelectedFile,
     removeCandidate,
     updateCandidate,
+    openEditCandidateModal,
+    closeEditCandidateModal,
+    saveEditedCandidate,
     confirmImport,
     resetBatchState,
     downloadTemplate,

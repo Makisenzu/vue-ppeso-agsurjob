@@ -12,6 +12,7 @@ import {
   Loader2,
   MapPin,
   Mountain,
+  Pencil,
   Plus,
   RefreshCw,
   ScanText,
@@ -51,8 +52,19 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
+import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
 import GipAddApplicantDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddApplicantDialog.vue'
+import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
+import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
+
+const gipStore = useGipStore()
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
 
 const {
   applicants,
@@ -88,14 +100,14 @@ const {
   fetchApplicantsData,
 } = useGipApplicants()
 
-// ─── Batch Upload (inline drag-and-drop, no modal) ───
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
 const {
   isDragging,
   isParsing,
   uploadedFile,
   parsedApplicants,
+  editingCandidate,
+  editingCandidateIndex,
+  isEditModalOpen,
   ocrProgress,
   validApplicantsCount,
   invalidApplicantsCount,
@@ -106,13 +118,19 @@ const {
   onDrop,
   onFileInputChange,
   removeCandidate,
+  openEditCandidateModal,
+  saveEditedCandidate,
   confirmImport,
   resetBatchState,
   downloadTemplate,
 } = useGipBatchUpload()
 
-const triggerFileInput = () => {
-  fileInputRef.value?.click()
+const handleUploadBatchClick = () => {
+  if (applicants.value.length > 0) {
+    gipStore.openBatchUploadModal()
+  } else {
+    triggerFileInput()
+  }
 }
 </script>
 
@@ -382,7 +400,7 @@ const triggerFileInput = () => {
             <Button
               size="sm"
               class="gap-1.5 text-xs cursor-pointer"
-              @click="triggerFileInput"
+              @click="handleUploadBatchClick"
             >
               <UploadCloud class="h-3.5 w-3.5" />
               <span>Upload Batch</span>
@@ -859,16 +877,27 @@ const triggerFileInput = () => {
                       Needs Check
                     </Badge>
                   </TableCell>
-                  <TableCell class="py-2" />
                   <TableCell class="py-2 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                      @click="removeCandidate(idx)"
-                    >
-                      <Trash2 class="h-3.5 w-3.5" />
-                    </Button>
+                    <div class="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                        title="Edit Scanned Information"
+                        @click="openEditCandidateModal(candidate, idx)"
+                      >
+                        <Pencil class="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="Delete Candidate"
+                        @click="removeCandidate(idx)"
+                      >
+                        <Trash2 class="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </template>
@@ -1054,5 +1083,16 @@ const triggerFileInput = () => {
 
     <!-- ─── ADD SINGLE APPLICANT DIALOG ─── -->
     <GipAddApplicantDialog />
+
+    <!-- ─── BATCH IMPORT APPLICANTS DIALOG ─── -->
+    <GipBatchUploadDialog />
+
+    <!-- ─── EDIT SCANNED CANDIDATE DIALOG (INLINE TABLE SUPPORT) ─── -->
+    <GipEditCandidateDialog
+      v-model:open="isEditModalOpen"
+      :candidate="editingCandidate"
+      :index="editingCandidateIndex"
+      @save="saveEditedCandidate"
+    />
   </div>
 </template>

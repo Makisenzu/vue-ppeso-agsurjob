@@ -8,6 +8,7 @@ import {
   FileType,
   Loader2,
   Mountain,
+  Pencil,
   ScanText,
   Trash2,
   TreePine,
@@ -36,14 +37,22 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
 import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
+import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
 
 const {
   isDragging,
   isParsing,
   uploadedFile,
   parsedApplicants,
+  editingCandidate,
+  editingCandidateIndex,
+  isEditModalOpen,
   ocrProgress,
   validApplicantsCount,
   invalidApplicantsCount,
@@ -55,16 +64,12 @@ const {
   onDrop,
   onFileInputChange,
   removeCandidate,
+  openEditCandidateModal,
+  saveEditedCandidate,
   confirmImport,
   resetBatchState,
   downloadTemplate,
 } = useGipBatchUpload()
-
-const triggerFileInput = () => {
-  if (fileInputRef.value) {
-    fileInputRef.value.click()
-  }
-}
 </script>
 
 <template>
@@ -299,16 +304,28 @@ const triggerFileInput = () => {
                       </Badge>
                     </TableCell>
 
-                    <!-- Remove -->
+                    <!-- Actions: Edit & Remove -->
                     <TableCell class="py-2 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                        @click="removeCandidate(idx)"
-                      >
-                        <Trash2 class="h-3.5 w-3.5" />
-                      </Button>
+                      <div class="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                          title="Edit Scanned Information"
+                          @click="openEditCandidateModal(candidate, idx)"
+                        >
+                          <Pencil class="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                          title="Delete Candidate"
+                          @click="removeCandidate(idx)"
+                        >
+                          <Trash2 class="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -349,4 +366,12 @@ const triggerFileInput = () => {
       </DialogFooter>
     </DialogContent>
   </Dialog>
+
+  <!-- ─── Edit Scanned Candidate Dialog ─── -->
+  <GipEditCandidateDialog
+    v-model:open="isEditModalOpen"
+    :candidate="editingCandidate"
+    :index="editingCandidateIndex"
+    @save="saveEditedCandidate"
+  />
 </template>

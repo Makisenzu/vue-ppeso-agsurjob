@@ -573,3 +573,15 @@ export function getInitials(fullName: string): string {
     .toUpperCase()
 }
 
+// ─── GIP Standard Document Options ───
+export const GIP_DOCUMENT_OPTIONS = [
+  'NSRP Form 1',
+  'Resume / Bio-Data',
+  'Transcript of Records',
+  'College Diploma',
+  'Barangay Clearance',
+  'Valid Government ID',
+  'Certificate of Indigency',
+]
+
+
