@@ -13,7 +13,6 @@ import {
   MapPin,
   Mountain,
   Pencil,
-  Plus,
   RefreshCw,
   ScanText,
   Search,
@@ -94,7 +93,6 @@ const {
   resetFilters,
   openApplicantDetails,
   closeApplicantDetails,
-  openAddApplicantModal,
   exportCsv,
   fetchApplicantsData,
 } = useGipApplicants()
@@ -682,7 +680,7 @@ const handleUploadBatchClick = () => {
                 <TableCell colspan="8" class="p-3 sm:p-5 text-center">
                   <div
                     :class="[
-                      'w-full min-h-[320px] flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 text-center transition-all cursor-pointer group',
+                      'w-full min-h-80 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 text-center transition-all cursor-pointer group',
                       isDragging
                         ? 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[0.998]'
                         : 'border-muted-foreground/30 hover:border-primary/60 hover:bg-muted/30 bg-muted/10',
@@ -726,7 +724,7 @@ const handleUploadBatchClick = () => {
               <!-- Case A-2: OCR / Parsing in-progress state -->
               <TableRow v-else-if="applicants.length === 0 && (ocrProgress.isProcessing || isParsing) && !hasParsedData">
                 <TableCell colspan="8" class="p-3 sm:p-5 text-center">
-                  <div class="w-full min-h-[320px] flex flex-col items-center justify-center rounded-xl border border-border/80 bg-muted/20 p-8 sm:p-12 text-center space-y-4">
+                  <div class="w-full min-h-80 flex flex-col items-center justify-center rounded-xl border border-border/80 bg-muted/20 p-8 sm:p-12 text-center space-y-4">
                     <div class="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs">
                       <Loader2 class="h-8 w-8 animate-spin" />
                       <ScanText class="absolute h-4 w-4" />
