@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Award,
   BookMarked,
   Briefcase,
   CheckCircle2,
@@ -55,8 +56,7 @@ const {
   searchQuery,
   selectedGenderFilter,
   selectedEmploymentStatusFilter,
-  selected4psFilter,
-  selectedPwdFilter,
+  selectedProgramFilter,
   selectedMunicipalityFilter,
   currentPage,
   pageSize,
@@ -110,7 +110,11 @@ const {
     <!-- ─── Metric Cards: Total Entry, GIP Applicants, TUPAD, SPES ─── -->
     <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <!-- 1. Total Entry -->
-      <Card class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-primary/40 transition-colors">
+      <Card
+        class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-primary/40 transition-all cursor-pointer"
+        :class="selectedProgramFilter === 'ALL' ? 'border-primary ring-2 ring-primary/20 shadow-sm' : ''"
+        @click="selectedProgramFilter = 'ALL'"
+      >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
             <p class="text-xs font-medium text-muted-foreground truncate">Total Entry</p>
@@ -128,7 +132,11 @@ const {
       </Card>
 
       <!-- 2. GIP Applicants -->
-      <Card class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-blue-500/40 transition-colors">
+      <Card
+        class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-blue-500/40 transition-all cursor-pointer"
+        :class="selectedProgramFilter === 'GIP' ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm' : ''"
+        @click="selectedProgramFilter = selectedProgramFilter === 'GIP' ? 'ALL' : 'GIP'"
+      >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
             <p class="text-xs font-medium text-muted-foreground truncate">GIP Applicants</p>
@@ -136,7 +144,7 @@ const {
               {{ statsSummary.gip.toLocaleString() }}
             </p>
             <p class="text-[11px] text-muted-foreground truncate">
-              Internship Program
+              Government Internship Program
             </p>
           </div>
           <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -146,7 +154,11 @@ const {
       </Card>
 
       <!-- 3. TUPAD -->
-      <Card class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-emerald-500/40 transition-colors">
+      <Card
+        class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-emerald-500/40 transition-all cursor-pointer"
+        :class="selectedProgramFilter === 'TUPAD' ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm' : ''"
+        @click="selectedProgramFilter = selectedProgramFilter === 'TUPAD' ? 'ALL' : 'TUPAD'"
+      >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
             <p class="text-xs font-medium text-muted-foreground truncate">TUPAD</p>
@@ -154,7 +166,7 @@ const {
               {{ statsSummary.tupad.toLocaleString() }}
             </p>
             <p class="text-[11px] text-muted-foreground truncate">
-              Emergency Employment
+              TUPAD Applicants
             </p>
           </div>
           <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -164,7 +176,11 @@ const {
       </Card>
 
       <!-- 4. SPES -->
-      <Card class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-amber-500/40 transition-colors">
+      <Card
+        class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-amber-500/40 transition-all cursor-pointer"
+        :class="selectedProgramFilter === 'SPES' ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm' : ''"
+        @click="selectedProgramFilter = selectedProgramFilter === 'SPES' ? 'ALL' : 'SPES'"
+      >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
             <p class="text-xs font-medium text-muted-foreground truncate">SPES</p>
@@ -203,7 +219,7 @@ const {
             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               v-model="searchQuery"
-              placeholder="Search by name, email, course, occupation, municipality..."
+              placeholder="Search by name, email, course, occupation, program..."
               class="pl-9 text-xs h-9"
             />
             <button
@@ -253,24 +269,17 @@ const {
             </select>
           </div>
 
-          <!-- Special Group Filter (4Ps & PWD) -->
-          <div class="grid grid-cols-2 gap-2">
+          <!-- Program Filter (GIP, TUPAD, SPES) -->
+          <div>
             <select
-              v-model="selected4psFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              v-model="selectedProgramFilter"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="ALL">4Ps: All</option>
-              <option value="YES">4Ps Only</option>
-              <option value="NO">Non-4Ps</option>
-            </select>
-
-            <select
-              v-model="selectedPwdFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">PWD: All</option>
-              <option value="YES">PWD Only</option>
-              <option value="NO">Non-PWD</option>
+              <option value="ALL">All Programs (GIP/TUPAD/SPES)</option>
+              <option value="GIP">GIP (Govt Internship)</option>
+              <option value="TUPAD">TUPAD (Emergency Emp.)</option>
+              <option value="SPES">SPES (Student Emp.)</option>
+              <option value="NONE">No Program Assigned</option>
             </select>
           </div>
         </div>
@@ -287,7 +296,7 @@ const {
                 <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
                 <TableHead class="text-xs font-semibold">Employment Status</TableHead>
                 <TableHead class="text-xs font-semibold">Highest Educational Attainment</TableHead>
-                <TableHead class="text-xs font-semibold">Special Categories</TableHead>
+                <TableHead class="text-xs font-semibold">Programs & Categories</TableHead>
                 <TableHead class="text-right text-xs font-semibold">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -386,32 +395,68 @@ const {
                     </div>
                   </TableCell>
 
-                  <!-- Special Categories (4Ps, PWD, OFW) -->
+                  <!-- Programs & Special Categories (GIP, TUPAD, SPES, 4Ps, PWD, OFW) -->
                   <TableCell class="py-3">
-                    <div class="flex flex-wrap items-center gap-1 max-w-40">
+                    <div class="flex flex-wrap items-center gap-1 max-w-48">
+                      <!-- GIP -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('GIP'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-semibold"
+                      >
+                        GIP
+                      </Badge>
+                      <!-- TUPAD -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('TUPAD'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-semibold"
+                      >
+                        TUPAD
+                      </Badge>
+                      <!-- SPES -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('SPES'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-semibold"
+                      >
+                        SPES
+                      </Badge>
+                      <!-- 4Ps -->
                       <Badge
                         v-if="applicant.is4psBeneficiary"
-                        variant="secondary"
-                        class="text-[10px] px-1.5 py-0 bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                        variant="outline"
+                        class="text-[10px] px-1.5 py-0 bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
                       >
                         4Ps
                       </Badge>
+                      <!-- PWD -->
                       <Badge
                         v-if="applicant.hasDisability"
-                        variant="secondary"
-                        class="text-[10px] px-1.5 py-0 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                        variant="outline"
+                        class="text-[10px] px-1.5 py-0 bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
                       >
                         PWD
                       </Badge>
+                      <!-- OFW -->
                       <Badge
                         v-if="applicant.isOfw || applicant.isFormerOfw"
-                        variant="secondary"
-                        class="text-[10px] px-1.5 py-0 bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30"
+                        variant="outline"
+                        class="text-[10px] px-1.5 py-0 bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20"
                       >
                         OFW
                       </Badge>
+                      <!-- General -->
                       <span
-                        v-if="!applicant.is4psBeneficiary && !applicant.hasDisability && !applicant.isOfw && !applicant.isFormerOfw"
+                        v-if="
+                          !applicant.referredPrograms.some((p) =>
+                            ['GIP', 'TUPAD', 'SPES'].some((key) => p.toUpperCase().includes(key))
+                          ) &&
+                          !applicant.is4psBeneficiary &&
+                          !applicant.hasDisability &&
+                          !applicant.isOfw &&
+                          !applicant.isFormerOfw
+                        "
                         class="text-[11px] text-muted-foreground"
                       >
                         General
@@ -584,11 +629,17 @@ const {
               <Briefcase class="h-4 w-4 text-primary" />
               Employment Status & DOLE Classifications
             </h4>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               <div class="rounded-lg bg-background p-2.5 border">
                 <span class="text-muted-foreground block text-[11px]">Employment Status</span>
                 <span class="font-medium text-foreground mt-0.5 block">
                   {{ selectedApplicant.employmentStatus }}
+                </span>
+              </div>
+              <div class="rounded-lg bg-background p-2.5 border">
+                <span class="text-muted-foreground block text-[11px]">Referred Programs</span>
+                <span class="font-medium text-foreground mt-0.5 block">
+                  {{ selectedApplicant.referredPrograms.length > 0 ? selectedApplicant.referredPrograms.join(', ') : 'None' }}
                 </span>
               </div>
               <div class="rounded-lg bg-background p-2.5 border">

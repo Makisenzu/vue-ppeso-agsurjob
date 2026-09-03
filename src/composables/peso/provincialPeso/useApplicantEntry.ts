@@ -20,8 +20,7 @@ export function useApplicantEntry() {
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
-    selected4psFilter,
-    selectedPwdFilter,
+    selectedProgramFilter,
     selectedMunicipalityFilter,
     currentPage,
     pageSize,
@@ -45,8 +44,7 @@ export function useApplicantEntry() {
     const q = searchQuery.value.trim().toLowerCase()
     const gender = selectedGenderFilter.value
     const empStatus = selectedEmploymentStatusFilter.value
-    const is4ps = selected4psFilter.value
-    const isPwd = selectedPwdFilter.value
+    const program = selectedProgramFilter.value
     const muni = selectedMunicipalityFilter.value
 
     return applicants.value.filter((a) => {
@@ -60,6 +58,7 @@ export function useApplicantEntry() {
         const courseMatch = a.highestEducationalAttainment.toLowerCase().includes(q)
         const occMatch = a.preferredOccupations.some((occ) => occ.toLowerCase().includes(q))
         const skillsMatch = a.otherSkills.some((s) => s.toLowerCase().includes(q))
+        const progMatch = a.referredPrograms.some((p) => p.toLowerCase().includes(q))
 
         if (
           !nameMatch &&
@@ -69,7 +68,8 @@ export function useApplicantEntry() {
           !brgyMatch &&
           !courseMatch &&
           !occMatch &&
-          !skillsMatch
+          !skillsMatch &&
+          !progMatch
         ) {
           return false
         }
@@ -96,16 +96,16 @@ export function useApplicantEntry() {
         }
       }
 
-      // 4Ps Filter
-      if (is4ps !== 'ALL') {
-        if (is4ps === 'YES' && !a.is4psBeneficiary) return false
-        if (is4ps === 'NO' && a.is4psBeneficiary) return false
-      }
-
-      // PWD Filter
-      if (isPwd !== 'ALL') {
-        if (isPwd === 'YES' && !a.hasDisability) return false
-        if (isPwd === 'NO' && a.hasDisability) return false
+      // Program Filter (GIP, TUPAD, SPES)
+      if (program !== 'ALL') {
+        const progs = a.referredPrograms.map((p) => (p || '').toUpperCase())
+        const progText = progs.join(' ')
+        if (program === 'GIP' && !progText.includes('GIP')) return false
+        if (program === 'TUPAD' && !progText.includes('TUPAD')) return false
+        if (program === 'SPES' && !progText.includes('SPES')) return false
+        if (program === 'NONE' && (progText.includes('GIP') || progText.includes('TUPAD') || progText.includes('SPES'))) {
+          return false
+        }
       }
 
       // Municipality Filter
@@ -146,7 +146,8 @@ export function useApplicantEntry() {
   }
 
   const exportCsv = () => {
-    exportApplicantsToCsv(filteredApplicants.value, selectedEmploymentStatusFilter.value)
+    const filterDesc = selectedProgramFilter.value !== 'ALL' ? selectedProgramFilter.value : selectedEmploymentStatusFilter.value
+    exportApplicantsToCsv(filteredApplicants.value, filterDesc)
   }
 
   onMounted(() => {
@@ -166,8 +167,7 @@ export function useApplicantEntry() {
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
-    selected4psFilter,
-    selectedPwdFilter,
+    selectedProgramFilter,
     selectedMunicipalityFilter,
     currentPage,
     pageSize,

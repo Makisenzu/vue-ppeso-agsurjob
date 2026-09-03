@@ -20,8 +20,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const searchQuery = ref<string>('')
   const selectedGenderFilter = ref<string>('ALL')
   const selectedEmploymentStatusFilter = ref<string>('ALL')
-  const selected4psFilter = ref<string>('ALL')
-  const selectedPwdFilter = ref<string>('ALL')
+  const selectedProgramFilter = ref<string>('ALL')
   const selectedMunicipalityFilter = ref<string>('ALL')
 
   // ─── Pagination State ───
@@ -59,8 +58,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     searchQuery.value = ''
     selectedGenderFilter.value = 'ALL'
     selectedEmploymentStatusFilter.value = 'ALL'
-    selected4psFilter.value = 'ALL'
-    selectedPwdFilter.value = 'ALL'
+    selectedProgramFilter.value = 'ALL'
     selectedMunicipalityFilter.value = 'ALL'
     currentPage.value = 1
   }
@@ -73,8 +71,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
-    selected4psFilter,
-    selectedPwdFilter,
+    selectedProgramFilter,
     selectedMunicipalityFilter,
     currentPage,
     pageSize,
