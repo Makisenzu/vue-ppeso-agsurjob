@@ -119,25 +119,25 @@ export function usePsgc() {
       isRestoring.value = true
       try {
         await loadRegions()
-        const region = regions.value.find(r => r.name.toLowerCase() === regionName.toLowerCase())
+        const region = regions.value.find(r => r.name?.trim().toLowerCase() === regionName.trim().toLowerCase())
         if (region) {
           selectedRegion.value = region
           await loadProvinces(region.code)
           
           if (provinceName) {
-            const province = provinces.value.find(p => p.name.toLowerCase() === provinceName.toLowerCase())
+            const province = provinces.value.find(p => p.name?.trim().toLowerCase() === provinceName.trim().toLowerCase())
             if (province) {
               selectedProvince.value = province
               await loadCities(province.code)
               
               if (cityName) {
-                const city = cities.value.find(c => c.name.toLowerCase() === cityName.toLowerCase())
+                const city = cities.value.find(c => c.name?.trim().toLowerCase() === cityName.trim().toLowerCase())
                 if (city) {
                   selectedCity.value = city
                   await loadBarangays(city.code)
                   
                   if (barangayName) {
-                    const barangay = barangays.value.find(b => b.name.toLowerCase() === barangayName.toLowerCase())
+                    const barangay = barangays.value.find(b => b.name?.trim().toLowerCase() === barangayName.trim().toLowerCase())
                     if (barangay) {
                       selectedBarangay.value = barangay
                     }

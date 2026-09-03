@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import {
   ArrowLeft,
   ArrowRight,
@@ -42,6 +42,7 @@ import type {
   VocationalTrainingItem,
   WorkExperienceItem,
 } from '@/types/peso/provincialPeso/applicantEntry'
+import { usePsgc } from '@/composables/common/usePsgc'
 
 const props = defineProps<{
   isSubmitting?: boolean
@@ -54,23 +55,38 @@ const emit = defineEmits<{
 
 const toastAlert = useToastAlert()
 
-// ─── Municipalities of Agusan del Sur ───
-const AGUSAN_MUNICIPALITIES = [
-  'Bayugan City',
-  'Bunawan',
-  'Esperanza',
-  'La Paz',
-  'Loreto',
-  'Prosperidad',
-  'Rosario',
-  'San Francisco',
-  'San Luis',
-  'Santa Josefa',
-  'Sibagat',
-  'Talacogon',
-  'Trento',
-  'Veruela',
-]
+// ─── PSGC Cascading Address ───
+const {
+  provinces: psgcProvinces,
+  cities: psgcCities,
+  barangays: psgcBarangays,
+  selectedRegion,
+  selectedProvince,
+  selectedCity,
+  selectedBarangay,
+  initialize: initPsgc,
+} = usePsgc()
+
+onMounted(() => {
+  // Auto-initialize to Region XIII (Caraga) → Agusan del Sur
+  initPsgc('Region XIII (Caraga)', 'Agusan del Sur')
+})
+
+// ─── PSGC change handlers ───
+const onProvinceChange = (code: string) => {
+  const province = psgcProvinces.value.find((p: any) => p.code === code)
+  if (province) selectedProvince.value = province
+}
+
+const onCityChange = (code: string) => {
+  const city = psgcCities.value.find((c: any) => c.code === code)
+  if (city) selectedCity.value = city
+}
+
+const onBarangayChange = (code: string) => {
+  const barangay = psgcBarangays.value.find((b: any) => b.code === code)
+  if (barangay) selectedBarangay.value = barangay
+}
 
 // ─── Vertical Stepper Steps Definition ───
 const steps = [
@@ -131,14 +147,10 @@ const additionalContactNumbers = ref<string[]>([])
 const newAdditionalContact = ref('')
 const email = ref('')
 
-// Address
+// Address (province, municipality, barangay come from PSGC selections)
 const houseNumber = ref('')
 const street = ref('')
 const village = ref('')
-const barangay = ref('')
-const municipality = ref('Prosperidad')
-const province = ref('Agusan del Sur')
-const region = ref('Region XIII (Caraga)')
 
 // Auto-calculate age when dateOfBirth changes
 watch(dateOfBirth, (val) => {
@@ -170,7 +182,7 @@ const removeContactNumber = (idx: number) => {
 
 // ─── STEP 2: DOLE Status & Classifications ───
 const employmentStatus = ref('Unemployed')
-const employmentType = ref('Wage Employed')
+const employmentType = ref<'Wage employed' | 'Self-employed'>('Wage employed')
 const unemployedReason = ref('Fresh Graduate')
 const monthsLookingForWork = ref<number | undefined>(undefined)
 const selfEmployedType = ref('')
@@ -433,11 +445,11 @@ const validateStep = (stepNum: number): boolean => {
       toastAlert.error('Validation Error', 'Date of Birth is required.')
       return false
     }
-    if (!municipality.value.trim()) {
-      toastAlert.error('Validation Error', 'Municipality is required.')
+    if (!selectedCity.value) {
+      toastAlert.error('Validation Error', 'Municipality / City is required.')
       return false
     }
-    if (!barangay.value.trim()) {
+    if (!selectedBarangay.value) {
       toastAlert.error('Validation Error', 'Barangay is required.')
       return false
     }
@@ -492,15 +504,15 @@ const handleSubmit = () => {
     }
   }
 
-  // Compile structured address JSON
+  // Compile structured address JSON from PSGC selections
   const addressPayload = {
     houseNumber: houseNumber.value.trim() || undefined,
     street: street.value.trim() || undefined,
     village: village.value.trim() || undefined,
-    barangay: barangay.value.trim(),
-    municipality: municipality.value.trim(),
-    province: province.value.trim(),
-    region: region.value.trim(),
+    barangay: selectedBarangay.value?.name?.trim() || '',
+    municipality: selectedCity.value?.name?.trim() || '',
+    province: selectedProvince.value?.name?.trim() || 'Agusan del Sur',
+    region: selectedRegion.value?.name?.trim() || 'Region XIII (Caraga)',
   }
 
   // Filter out empty rows from arrays
@@ -566,7 +578,12 @@ const handleSubmit = () => {
 
     // DOLE Employment Classification
     employment_status: employmentStatus.value || null,
-    employment_type: employmentType.value || null,
+    employment_type:
+      employmentStatus.value === 'Employed'
+        ? (employmentType.value || 'Wage employed')
+        : employmentStatus.value === 'Self-Employed'
+          ? 'Self-employed'
+          : null,
     unemployed_reason: employmentStatus.value === 'Unemployed' ? unemployedReason.value || null : null,
     months_looking_for_work: employmentStatus.value === 'Unemployed' ? (monthsLookingForWork.value ?? null) : null,
     self_employed_type: employmentStatus.value === 'Self-Employed' ? selfEmployedType.value || null : null,
@@ -853,46 +870,70 @@ const handleSubmit = () => {
               </div>
             </div>
 
-            <!-- Permanent Address Breakdown -->
+            <!-- Permanent Address Breakdown (PSGC-powered) -->
             <div class="p-4 rounded-xl border bg-muted/10 space-y-3">
               <div class="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                <span>Permanent Residential Address (Agusan del Sur)</span>
+                <MapPin class="h-3.5 w-3.5 text-primary" />
+                <span>Permanent Residential Address</span>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground">Province <span class="text-destructive">*</span></span>
+                  <select
+                    :value="selectedProvince?.code ?? ''"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    :disabled="!selectedRegion"
+                    @change="onProvinceChange(($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="" disabled>{{ psgcProvinces.length === 0 ? 'Loading...' : 'Select province' }}</option>
+                    <option v-for="p in psgcProvinces" :key="p.code" :value="p.code">
+                      {{ p.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="space-y-1">
                   <span class="text-[11px] text-muted-foreground">Municipality / City <span class="text-destructive">*</span></span>
                   <select
-                    v-model="municipality"
+                    :value="selectedCity?.code ?? ''"
                     class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    :disabled="!selectedProvince"
+                    @change="onCityChange(($event.target as HTMLSelectElement).value)"
                   >
-                    <option v-for="m in AGUSAN_MUNICIPALITIES" :key="m" :value="m">
-                      {{ m }}
+                    <option value="" disabled>{{ !selectedProvince ? 'Select province first' : psgcCities.length === 0 ? 'Loading...' : 'Select municipality / city' }}</option>
+                    <option v-for="c in psgcCities" :key="c.code" :value="c.code">
+                      {{ c.name }}
                     </option>
                   </select>
                 </div>
                 <div class="space-y-1">
                   <span class="text-[11px] text-muted-foreground">Barangay <span class="text-destructive">*</span></span>
-                  <Input v-model="barangay" placeholder="e.g. Poblacion, Patin-ay" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">House No. / Street / Village</span>
-                  <Input v-model="street" placeholder="e.g. Purok 4, Maharlika Hwy" class="h-9 text-xs" />
+                  <select
+                    :value="selectedBarangay?.code ?? ''"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    :disabled="!selectedCity"
+                    @change="onBarangayChange(($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="" disabled>{{ !selectedCity ? 'Select municipality first' : psgcBarangays.length === 0 ? 'Loading...' : 'Select barangay' }}</option>
+                    <option v-for="b in psgcBarangays" :key="b.code" :value="b.code">
+                      {{ b.name }}
+                    </option>
+                  </select>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-muted-foreground text-[11px]">
-                <div>
-                  <span>Province: </span>
-                  <span class="font-medium text-foreground">{{ province }}</span>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground">House No. / Street</span>
+                  <Input v-model="street" placeholder="e.g. Purok 4, Maharlika Hwy" class="h-9 text-xs" />
                 </div>
-                <div>
-                  <span>Region: </span>
-                  <span class="font-medium text-foreground">{{ region }}</span>
+                <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground">Village / Sitio</span>
+                  <Input v-model="village" placeholder="Optional" class="h-9 text-xs" />
                 </div>
-                <div>
-                  <span>Specific Village / Sitio: </span>
-                  <Input v-model="village" placeholder="Optional" class="h-8 text-xs mt-0.5" />
+                <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground">Region</span>
+                  <span class="text-xs font-medium text-foreground h-9 flex items-center">{{ selectedRegion?.name || 'Region XIII (Caraga)' }}</span>
                 </div>
               </div>
             </div>
@@ -969,17 +1010,14 @@ const handleSubmit = () => {
                   <option value="Self-Employed">Self-Employed</option>
                 </select>
               </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Employment Type</span>
+              <div v-if="employmentStatus === 'Employed'" class="space-y-1">
+                <span class="text-[11px] text-muted-foreground">Employment Type <span class="text-destructive">*</span></span>
                 <select
                   v-model="employmentType"
                   class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="Wage Employed">Wage Employed</option>
-                  <option value="Self-Employed">Self-Employed</option>
-                  <option value="Informal / Casual">Informal / Casual</option>
-                  <option value="Contractual">Contractual</option>
-                  <option value="Seasonal">Seasonal</option>
+                  <option value="Wage employed">Wage Employed</option>
+                  <option value="Self-employed">Self-Employed</option>
                 </select>
               </div>
             </div>
