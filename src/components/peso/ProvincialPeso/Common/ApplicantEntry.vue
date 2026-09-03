@@ -1,21 +1,16 @@
 <script setup lang="ts">
 import {
-  Award,
   BookMarked,
-  Briefcase,
   CheckCircle2,
-  Compass,
   Download,
   Eye,
   Filter,
-  GraduationCap,
   Hammer,
   Loader2,
   MapPin,
   Phone,
   RefreshCw,
   Search,
-  User,
   Users,
   UserX,
   X,
@@ -32,15 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import ApplicantNsrpDetails from '@/components/peso/ProvincialPeso/Common/ApplicantNsrpDetails.vue'
 import { useApplicantEntry } from '@/composables/peso/provincialPeso/useApplicantEntry'
 
 const {
@@ -51,7 +38,6 @@ const {
   totalPages,
   statsSummary,
   selectedApplicant,
-  isDetailsModalOpen,
   isLoading,
   searchQuery,
   selectedGenderFilter,
@@ -65,13 +51,20 @@ const {
   resetFilters,
   refreshApplicants,
   exportCsv,
-  getInitials,
   formatDateDisplay,
 } = useApplicantEntry()
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 pb-12">
+  <!-- ─── Full NSRP Details View (replaces registry when applicant is selected) ─── -->
+  <ApplicantNsrpDetails
+    v-if="selectedApplicant"
+    :applicant="selectedApplicant"
+    @back="closeDetails"
+  />
+
+  <!-- ─── Registry Table View ─── -->
+  <div v-else class="flex flex-col gap-6 pb-12">
     <!-- ─── Header & Title ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
@@ -553,236 +546,5 @@ const {
         </div>
       </CardContent>
     </Card>
-
-    <!-- ─── APPLICANT FULL DETAILS DIALOG (DOLE NSRP FORM 1) ─── -->
-    <Dialog v-model:open="isDetailsModalOpen">
-      <DialogContent class="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
-        <DialogHeader>
-          <div class="flex items-center gap-3">
-            <Avatar class="h-11 w-11 border bg-muted">
-              <AvatarFallback class="font-bold text-base text-primary">
-                {{ selectedApplicant ? getInitials(selectedApplicant.fullName) : '' }}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <DialogTitle class="text-lg font-bold">{{ selectedApplicant?.fullName }}</DialogTitle>
-              <DialogDescription class="text-xs flex items-center gap-2 mt-0.5">
-                <span class="font-medium text-foreground">{{ selectedApplicant?.sex }}</span>
-                <span>•</span>
-                <span>{{ selectedApplicant?.civilStatus }}</span>
-                <span>•</span>
-                <span class="font-mono">{{ selectedApplicant?.email || 'No email' }}</span>
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div v-if="selectedApplicant" class="space-y-4 py-2 text-xs">
-          <!-- Personal & Contact Information -->
-          <div class="rounded-xl border p-3.5 bg-muted/20 space-y-3">
-            <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-              <User class="h-4 w-4 text-primary" />
-              Personal & Contact Information
-            </h4>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Date of Birth</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ formatDateDisplay(selectedApplicant.dateOfBirth) }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Age</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.age ? `${selectedApplicant.age} years old` : 'N/A' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Contact Number</span>
-                <span class="font-medium text-foreground mt-0.5 block font-mono">
-                  {{ selectedApplicant.contactNumber }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Religion</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.religion || 'Not Specified' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Complete Address -->
-            <div class="rounded-lg bg-background p-2.5 border flex items-start gap-2">
-              <MapPin class="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-              <div>
-                <span class="text-muted-foreground block text-[11px]">Permanent Address</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.fullAddressString }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Employment Status & Special Beneficiary Info -->
-          <div class="rounded-xl border p-3.5 bg-muted/20 space-y-3">
-            <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-              <Briefcase class="h-4 w-4 text-primary" />
-              Employment Status & DOLE Classifications
-            </h4>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Employment Status</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.employmentStatus }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Referred Programs</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.referredPrograms.length > 0 ? selectedApplicant.referredPrograms.join(', ') : 'None' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Employment Type</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.employmentType || 'N/A' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">4Ps Beneficiary</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.is4psBeneficiary ? `Yes (ID: ${selectedApplicant.householdId4ps || 'N/A'})` : 'No' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">PWD Status</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.hasDisability ? `Yes (${selectedApplicant.disabilities.join(', ') || 'N/A'})` : 'No' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">OFW Status</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.isOfw ? `Current OFW (${selectedApplicant.ofwCountry || 'N/A'})` : selectedApplicant.isFormerOfw ? `Former OFW (${selectedApplicant.formerOfwCountry || 'N/A'})` : 'No' }}
-                </span>
-              </div>
-              <div class="rounded-lg bg-background p-2.5 border">
-                <span class="text-muted-foreground block text-[11px]">Months Looking for Work</span>
-                <span class="font-medium text-foreground mt-0.5 block">
-                  {{ selectedApplicant.monthsLookingForWork !== null ? `${selectedApplicant.monthsLookingForWork} month(s)` : 'N/A' }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Educational Background -->
-          <div class="rounded-xl border p-3.5 bg-muted/20 space-y-2.5">
-            <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-              <GraduationCap class="h-4 w-4 text-primary" />
-              Educational Background
-            </h4>
-            <div v-if="selectedApplicant.educationalBackground.length > 0" class="space-y-2">
-              <div
-                v-for="(edu, idx) in selectedApplicant.educationalBackground"
-                :key="idx"
-                class="rounded-lg bg-background p-2.5 border text-xs"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-foreground">{{ edu.course && edu.course !== 'N/A' ? edu.course : edu.level }}</span>
-                  <Badge variant="outline" class="text-[10px] font-mono">{{ edu.year_graduated }}</Badge>
-                </div>
-                <p class="text-muted-foreground text-[11px] mt-0.5">{{ edu.school }}</p>
-                <p v-if="edu.awards" class="text-primary text-[10px] mt-1">Honors/Awards: {{ edu.awards }}</p>
-              </div>
-            </div>
-            <p v-else class="text-[11px] text-muted-foreground italic bg-background p-2.5 rounded-lg border">
-              No educational background recorded.
-            </p>
-          </div>
-
-          <!-- Work Experiences -->
-          <div class="rounded-xl border p-3.5 bg-muted/20 space-y-2.5">
-            <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-              <Briefcase class="h-4 w-4 text-primary" />
-              Work Experiences
-            </h4>
-            <div v-if="selectedApplicant.workExperiences.length > 0" class="space-y-2">
-              <div
-                v-for="(work, idx) in selectedApplicant.workExperiences"
-                :key="idx"
-                class="rounded-lg bg-background p-2.5 border text-xs"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-foreground">{{ work.position || work.job_title }}</span>
-                  <Badge variant="outline" class="text-[10px] font-mono">{{ work.inclusive_dates }}</Badge>
-                </div>
-                <p class="text-muted-foreground text-[11px] mt-0.5">{{ work.company_name }}</p>
-                <p v-if="work.status_of_appointment" class="text-muted-foreground text-[10px] mt-0.5">
-                  Appointment: {{ work.status_of_appointment }}
-                </p>
-              </div>
-            </div>
-            <p v-else class="text-[11px] text-muted-foreground italic bg-background p-2.5 rounded-lg border">
-              No previous work experience recorded.
-            </p>
-          </div>
-
-          <!-- Preferences, Skills, and Eligibilities -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <!-- Preferred Occupations -->
-            <div class="rounded-xl border p-3.5 bg-muted/20 space-y-2">
-              <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-                <Compass class="h-4 w-4 text-primary" />
-                Preferred Occupations
-              </h4>
-              <div v-if="selectedApplicant.preferredOccupations.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="occ in selectedApplicant.preferredOccupations"
-                  :key="occ"
-                  variant="secondary"
-                  class="text-[11px] font-normal"
-                >
-                  {{ occ }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">None specified</p>
-            </div>
-
-            <!-- Skills & Eligibilities -->
-            <div class="rounded-xl border p-3.5 bg-muted/20 space-y-2">
-              <h4 class="font-semibold text-xs text-foreground flex items-center gap-2">
-                <Award class="h-4 w-4 text-primary" />
-                Skills & Eligibilities
-              </h4>
-              <div v-if="selectedApplicant.otherSkills.length > 0 || selectedApplicant.eligibilities.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="s in selectedApplicant.otherSkills"
-                  :key="s"
-                  variant="outline"
-                  class="text-[11px]"
-                >
-                  {{ s }}
-                </Badge>
-                <Badge
-                  v-for="el in selectedApplicant.eligibilities"
-                  :key="el.eligibility_title"
-                  variant="secondary"
-                  class="text-[11px] bg-primary/10 text-primary border-primary/20"
-                >
-                  {{ el.eligibility_title }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">None recorded</p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" size="sm" class="text-xs cursor-pointer" @click="closeDetails">
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   </div>
 </template>

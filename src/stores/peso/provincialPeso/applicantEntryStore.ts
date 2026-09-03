@@ -14,7 +14,6 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
 
   // ─── UI & Selection State ───
   const selectedApplicant = ref<ApplicantEntryRecord | null>(null)
-  const isDetailsModalOpen = ref<boolean>(false)
 
   // ─── Filter & Search State ───
   const searchQuery = ref<string>('')
@@ -46,11 +45,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
 
   const openDetails = (applicant: ApplicantEntryRecord) => {
     selectedApplicant.value = applicant
-    isDetailsModalOpen.value = true
   }
 
   const closeDetails = () => {
-    isDetailsModalOpen.value = false
     selectedApplicant.value = null
   }
 
@@ -67,7 +64,6 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     applicants,
     isLoading,
     selectedApplicant,
-    isDetailsModalOpen,
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
