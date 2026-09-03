@@ -1,0 +1,86 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { useToastAlert } from '@/composables/common/useToastAlert'
+import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
+import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
+
+export const useApplicantEntryStore = defineStore('applicantEntry', () => {
+  const toastAlert = useToastAlert()
+
+  // ─── State ───
+  const applicants = ref<ApplicantEntryRecord[]>([])
+  const isLoading = ref<boolean>(false)
+
+  // ─── UI & Selection State ───
+  const selectedApplicant = ref<ApplicantEntryRecord | null>(null)
+  const isDetailsModalOpen = ref<boolean>(false)
+
+  // ─── Filter & Search State ───
+  const searchQuery = ref<string>('')
+  const selectedGenderFilter = ref<string>('ALL')
+  const selectedEmploymentStatusFilter = ref<string>('ALL')
+  const selected4psFilter = ref<string>('ALL')
+  const selectedPwdFilter = ref<string>('ALL')
+  const selectedMunicipalityFilter = ref<string>('ALL')
+
+  // ─── Pagination State ───
+  const currentPage = ref<number>(1)
+  const pageSize = ref<number>(10)
+
+  // ─── Actions ───
+  const fetchApplicants = async (isManualRefresh: boolean = false) => {
+    isLoading.value = true
+    try {
+      const data = await applicantEntryService.fetchAllApplicants()
+      applicants.value = data.map(mapToApplicantEntryRecord)
+      if (isManualRefresh) {
+        toastAlert.success('Success', `Refreshed ${data.length} applicant records`)
+      }
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to fetch applicants:', error)
+      toastAlert.error('Fetch Error', error.message || 'Unable to retrieve applicants registry.')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const openDetails = (applicant: ApplicantEntryRecord) => {
+    selectedApplicant.value = applicant
+    isDetailsModalOpen.value = true
+  }
+
+  const closeDetails = () => {
+    isDetailsModalOpen.value = false
+    selectedApplicant.value = null
+  }
+
+  const resetFilters = () => {
+    searchQuery.value = ''
+    selectedGenderFilter.value = 'ALL'
+    selectedEmploymentStatusFilter.value = 'ALL'
+    selected4psFilter.value = 'ALL'
+    selectedPwdFilter.value = 'ALL'
+    selectedMunicipalityFilter.value = 'ALL'
+    currentPage.value = 1
+  }
+
+  return {
+    applicants,
+    isLoading,
+    selectedApplicant,
+    isDetailsModalOpen,
+    searchQuery,
+    selectedGenderFilter,
+    selectedEmploymentStatusFilter,
+    selected4psFilter,
+    selectedPwdFilter,
+    selectedMunicipalityFilter,
+    currentPage,
+    pageSize,
+    fetchApplicants,
+    openDetails,
+    closeDetails,
+    resetFilters,
+  }
+})
