@@ -646,9 +646,6 @@ const handleSubmit = () => {
             <ArrowLeft class="h-3.5 w-3.5" />
             <span>Back to Registry</span>
           </Button>
-          <Badge variant="outline" class="text-[11px] font-mono bg-primary/10 text-primary border-primary/20">
-            DOLE NSRP Form 1
-          </Badge>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl mt-1">
           Register New Jobseeker
@@ -989,7 +986,6 @@ const handleSubmit = () => {
         <Card v-show="currentStep === 2" class="border shadow-xs">
           <CardHeader class="pb-4 border-b bg-muted/20">
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Briefcase class="h-4 w-4 text-primary" />
               <span>Step 2: DOLE Status & Beneficiary Classifications</span>
             </CardTitle>
             <CardDescription class="text-xs">
@@ -1156,7 +1152,6 @@ const handleSubmit = () => {
             <div class="flex items-center justify-between">
               <div>
                 <CardTitle class="text-base font-semibold flex items-center gap-2">
-                  <GraduationCap class="h-4 w-4 text-primary" />
                   <span>Step 3: Educational Background</span>
                 </CardTitle>
                 <CardDescription class="text-xs">
@@ -1249,7 +1244,6 @@ const handleSubmit = () => {
         <Card v-show="currentStep === 4" class="border shadow-xs">
           <CardHeader class="pb-4 border-b bg-muted/20">
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Wrench class="h-4 w-4 text-primary" />
               <span>Step 4: Work Experience & Technical / Vocational Trainings</span>
             </CardTitle>
             <CardDescription class="text-xs">
@@ -1398,7 +1392,6 @@ const handleSubmit = () => {
         <Card v-show="currentStep === 5" class="border shadow-xs">
           <CardHeader class="pb-4 border-b bg-muted/20">
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Sparkles class="h-4 w-4 text-primary" />
               <span>Step 5: Eligibilities, Skills & Language Proficiencies</span>
             </CardTitle>
             <CardDescription class="text-xs">
@@ -1572,7 +1565,6 @@ const handleSubmit = () => {
         <Card v-show="currentStep === 6" class="border shadow-xs">
           <CardHeader class="pb-4 border-b bg-muted/20">
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Compass class="h-4 w-4 text-primary" />
               <span>Step 6: Job Preferences & PESO Assessment Evaluation</span>
             </CardTitle>
             <CardDescription class="text-xs">
