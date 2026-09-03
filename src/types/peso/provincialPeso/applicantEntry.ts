@@ -115,3 +115,12 @@ export interface ApplicantStatsSummary {
   tupad: number
   spes: number
 }
+
+export interface ProgramReferralSummary {
+  program: string
+  targetTable: string
+  success: boolean
+  recordId?: string
+  error?: string
+}
+

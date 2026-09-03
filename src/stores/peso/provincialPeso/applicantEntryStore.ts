@@ -68,8 +68,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     try {
       const createdRow = await applicantEntryService.createApplicant(payload)
       const newRecord = mapToApplicantEntryRecord(createdRow)
-      applicants.value = [newRecord, ...applicants.value]
-      toastAlert.success('Applicant Created', `${newRecord.fullName} has been successfully registered.`)
+      const progs = newRecord.referredPrograms
+      const progDetail = progs.length > 0 ? ` and referred to ${progs.join(', ')}` : ''
+      toastAlert.success('Applicant Created', `${newRecord.fullName} has been successfully registered${progDetail}.`)
       isAddApplicantOpen.value = false
       return newRecord
     } catch (error: any) {
