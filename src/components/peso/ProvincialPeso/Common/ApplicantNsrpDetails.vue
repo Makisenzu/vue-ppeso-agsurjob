@@ -4,22 +4,15 @@ import {
   ArrowLeft,
   Award,
   BookOpen,
-  Briefcase,
   Building2,
   CheckCircle2,
-  Compass,
-  FileCheck,
-  GraduationCap,
   Globe,
   Languages,
   Mail,
   MapPin,
   Phone,
   Printer,
-  Sparkles,
-  User,
   UserX,
-  Wrench,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -241,7 +234,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           <CardHeader class="pb-3 border-b bg-muted/20">
             <div class="flex items-center justify-between">
               <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <User class="h-4 w-4 text-primary" />
                 <span>I. Personal Information</span>
               </CardTitle>
             </div>
@@ -376,7 +368,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           <CardHeader class="pb-3 border-b bg-muted/20">
             <div class="flex items-center justify-between">
               <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <GraduationCap class="h-4 w-4 text-primary" />
                 <span>III. Educational Background</span>
               </CardTitle>
               <Badge variant="secondary" class="text-[10px] font-normal">
@@ -433,7 +424,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           <CardHeader class="pb-3 border-b bg-muted/20">
             <div class="flex items-center justify-between">
               <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <Briefcase class="h-4 w-4 text-primary" />
                 <span>IV. Work Experience</span>
               </CardTitle>
               <Badge variant="outline" class="text-[10px] font-mono">
@@ -481,7 +471,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           <CardHeader class="pb-3 border-b bg-muted/20">
             <div class="flex items-center justify-between">
               <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <Wrench class="h-4 w-4 text-primary" />
                 <span>V. Technical / Vocational Trainings</span>
               </CardTitle>
               <Badge variant="outline" class="text-[10px] font-mono">
@@ -523,7 +512,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           <CardHeader class="pb-3 border-b bg-muted/20">
             <div class="flex items-center justify-between">
               <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <FileCheck class="h-4 w-4 text-primary" />
                 <span>VI. Eligibility & Professional Licenses</span>
               </CardTitle>
               <Badge variant="outline" class="text-[10px] font-mono">
@@ -569,7 +557,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
         <Card class="border shadow-xs">
           <CardHeader class="pb-3 border-b bg-muted/20">
             <CardTitle class="text-sm font-semibold flex items-center gap-2">
-              <Briefcase class="h-4 w-4 text-primary" />
               <span>II. DOLE Status & Classifications</span>
             </CardTitle>
           </CardHeader>
@@ -657,7 +644,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
         <Card class="border shadow-xs">
           <CardHeader class="pb-3 border-b bg-muted/20">
             <CardTitle class="text-sm font-semibold flex items-center gap-2">
-              <Sparkles class="h-4 w-4 text-primary" />
               <span>VII. Skills & Languages</span>
             </CardTitle>
           </CardHeader>
@@ -736,7 +722,6 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
         <Card class="border shadow-xs">
           <CardHeader class="pb-3 border-b bg-muted/20">
             <CardTitle class="text-sm font-semibold flex items-center gap-2">
-              <Compass class="h-4 w-4 text-primary" />
               <span>VIII. Job & Location Preferences</span>
             </CardTitle>
           </CardHeader>
