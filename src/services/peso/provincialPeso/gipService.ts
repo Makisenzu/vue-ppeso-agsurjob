@@ -103,10 +103,18 @@ export const gipService = {
       appMap.set(app.id, app)
     }
 
-    // Collect all applicant IDs needed
+    // If there are no deployed interns in esmdd.gips, return empty list
+    if (gips.length === 0) {
+      return []
+    }
+
+    // Collect all applicant IDs needed for only deployed interns
     const applicantIds = new Set<string>()
-    for (const app of gipApps) {
-      if (app.applicant_id) applicantIds.add(app.applicant_id)
+    for (const gip of gips) {
+      if (gip.application_id) {
+        const app = appMap.get(gip.application_id)
+        if (app?.applicant_id) applicantIds.add(app.applicant_id)
+      }
     }
 
     // 2. Fetch corresponding applicant profile records
@@ -131,29 +139,13 @@ export const gipService = {
       }
     }
 
-    // 3. Map GIP records to domain format
+    // 3. Map GIP records strictly from esmdd.gips
     const records: GipInternRecord[] = []
 
-    if (gips.length > 0) {
-      for (const gip of gips) {
-        const app = gip.application_id ? appMap.get(gip.application_id) || null : null
-        const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-        records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
-      }
-    } else if (gipApps.length > 0) {
-      // If gips is empty but applications exist, construct records from applications
-      for (const app of gipApps) {
-        const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-        const syntheticGip: GipRow = {
-          id: app.id,
-          application_id: app.id,
-          remarks: (app.remarks || []).join(' '),
-          status: app.status || 'Pending',
-          created_at: app.created_at,
-          updated_at: app.updated_at,
-        }
-        records.push(mapToGipInternRecord(syntheticGip, app, applicant, barangayTagMap))
-      }
+    for (const gip of gips) {
+      const app = gip.application_id ? appMap.get(gip.application_id) || null : null
+      const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+      records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
     }
 
     return records
