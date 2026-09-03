@@ -15,7 +15,9 @@ export function useApplicantEntry() {
   const {
     applicants,
     isLoading,
+    isSubmitting,
     selectedApplicant,
+    isAddApplicantOpen,
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
@@ -25,7 +27,16 @@ export function useApplicantEntry() {
     pageSize,
   } = storeToRefs(store)
 
-  const { fetchApplicants, openDetails, closeDetails, resetFilters } = store
+  const {
+    fetchApplicants,
+    openDetails,
+    closeDetails,
+    openAddApplicant,
+    closeAddApplicant,
+    createApplicant,
+    resetFilters,
+  } = store
+
 
   // ─── Available Municipalities for Filter ───
   const availableMunicipalities = computed<string[]>(() => {
@@ -161,7 +172,9 @@ export function useApplicantEntry() {
     totalPages,
     statsSummary,
     selectedApplicant,
+    isAddApplicantOpen,
     isLoading,
+    isSubmitting,
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
@@ -171,6 +184,9 @@ export function useApplicantEntry() {
     pageSize,
     openDetails,
     closeDetails,
+    openAddApplicant,
+    closeAddApplicant,
+    createApplicant,
     resetFilters,
     refreshApplicants,
     exportCsv,
@@ -178,3 +194,4 @@ export function useApplicantEntry() {
     formatDateDisplay,
   }
 }
+

@@ -13,6 +13,7 @@ import {
   Search,
   Users,
   UserX,
+  UserPlus,
   X,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import ApplicantNsrpDetails from '@/components/peso/ProvincialPeso/Common/ApplicantNsrpDetails.vue'
+import ApplicantNewEntry from '@/components/peso/ProvincialPeso/Common/ApplicantNewEntry.vue'
 import { useApplicantEntry } from '@/composables/peso/provincialPeso/useApplicantEntry'
 
 const {
@@ -38,7 +40,9 @@ const {
   totalPages,
   statsSummary,
   selectedApplicant,
+  isAddApplicantOpen,
   isLoading,
+  isSubmitting,
   searchQuery,
   selectedGenderFilter,
   selectedEmploymentStatusFilter,
@@ -48,6 +52,9 @@ const {
   pageSize,
   openDetails,
   closeDetails,
+  openAddApplicant,
+  closeAddApplicant,
+  createApplicant,
   resetFilters,
   refreshApplicants,
   exportCsv,
@@ -61,6 +68,14 @@ const {
     v-if="selectedApplicant"
     :applicant="selectedApplicant"
     @back="closeDetails"
+  />
+
+  <!-- ─── New Applicant Entry Stepper Form (DOLE NSRP Form 1) ─── -->
+  <ApplicantNewEntry
+    v-else-if="isAddApplicantOpen"
+    :is-submitting="isSubmitting"
+    @back="closeAddApplicant"
+    @submit="createApplicant"
   />
 
   <!-- ─── Registry Table View ─── -->
@@ -78,6 +93,14 @@ const {
 
       <!-- Quick Action Buttons -->
       <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+        <Button
+          size="sm"
+          class="gap-1.5 text-xs cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+          @click="openAddApplicant"
+        >
+          <UserPlus class="h-3.5 w-3.5" />
+          <span>New Applicant</span>
+        </Button>
         <Button
           variant="outline"
           size="sm"

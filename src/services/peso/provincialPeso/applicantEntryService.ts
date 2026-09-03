@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
+import type { ApplicantInsert, ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const applicantEntryService = {
   /**
@@ -36,4 +36,23 @@ export const applicantEntryService = {
 
     return data as ApplicantRow | null
   },
+
+  /**
+   * Create a new applicant record in applicants.applicants schema
+   */
+  async createApplicant(payload: ApplicantInsert): Promise<ApplicantRow> {
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(error.message || 'Failed to register new applicant')
+    }
+
+    return data as ApplicantRow
+  },
 }
+

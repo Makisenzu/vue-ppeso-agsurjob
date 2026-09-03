@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
+import type { ApplicantEntryRecord, ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
@@ -11,9 +11,11 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   // ─── State ───
   const applicants = ref<ApplicantEntryRecord[]>([])
   const isLoading = ref<boolean>(false)
+  const isSubmitting = ref<boolean>(false)
 
   // ─── UI & Selection State ───
   const selectedApplicant = ref<ApplicantEntryRecord | null>(null)
+  const isAddApplicantOpen = ref<boolean>(false)
 
   // ─── Filter & Search State ───
   const searchQuery = ref<string>('')
@@ -45,10 +47,38 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
 
   const openDetails = (applicant: ApplicantEntryRecord) => {
     selectedApplicant.value = applicant
+    isAddApplicantOpen.value = false
   }
 
   const closeDetails = () => {
     selectedApplicant.value = null
+  }
+
+  const openAddApplicant = () => {
+    isAddApplicantOpen.value = true
+    selectedApplicant.value = null
+  }
+
+  const closeAddApplicant = () => {
+    isAddApplicantOpen.value = false
+  }
+
+  const createApplicant = async (payload: ApplicantInsert): Promise<ApplicantEntryRecord> => {
+    isSubmitting.value = true
+    try {
+      const createdRow = await applicantEntryService.createApplicant(payload)
+      const newRecord = mapToApplicantEntryRecord(createdRow)
+      applicants.value = [newRecord, ...applicants.value]
+      toastAlert.success('Applicant Created', `${newRecord.fullName} has been successfully registered.`)
+      isAddApplicantOpen.value = false
+      return newRecord
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to create applicant:', error)
+      toastAlert.error('Registration Error', error.message || 'Failed to register new applicant.')
+      throw error
+    } finally {
+      isSubmitting.value = false
+    }
   }
 
   const resetFilters = () => {
@@ -63,7 +93,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   return {
     applicants,
     isLoading,
+    isSubmitting,
     selectedApplicant,
+    isAddApplicantOpen,
     searchQuery,
     selectedGenderFilter,
     selectedEmploymentStatusFilter,
@@ -74,6 +106,10 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     fetchApplicants,
     openDetails,
     closeDetails,
+    openAddApplicant,
+    closeAddApplicant,
+    createApplicant,
     resetFilters,
   }
 })
+
