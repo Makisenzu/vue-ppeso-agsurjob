@@ -28,8 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import ApplicantNsrpDetails from '@/components/peso/ProvincialPeso/Common/ApplicantNsrpDetails.vue'
-import ApplicantNewEntry from '@/components/peso/ProvincialPeso/Common/ApplicantNewEntry.vue'
 import { useApplicantEntry } from '@/composables/peso/provincialPeso/useApplicantEntry'
 
 const {
@@ -39,10 +37,7 @@ const {
   availableMunicipalities,
   totalPages,
   statsSummary,
-  selectedApplicant,
-  isAddApplicantOpen,
   isLoading,
-  isSubmitting,
   searchQuery,
   selectedGenderFilter,
   selectedEmploymentStatusFilter,
@@ -51,10 +46,7 @@ const {
   currentPage,
   pageSize,
   openDetails,
-  closeDetails,
   openAddApplicant,
-  closeAddApplicant,
-  createApplicant,
   resetFilters,
   refreshApplicants,
   exportCsv,
@@ -63,23 +55,8 @@ const {
 </script>
 
 <template>
-  <!-- ─── Full NSRP Details View (replaces registry when applicant is selected) ─── -->
-  <ApplicantNsrpDetails
-    v-if="selectedApplicant"
-    :applicant="selectedApplicant"
-    @back="closeDetails"
-  />
-
-  <!-- ─── New Applicant Entry Stepper Form (DOLE NSRP Form 1) ─── -->
-  <ApplicantNewEntry
-    v-else-if="isAddApplicantOpen"
-    :is-submitting="isSubmitting"
-    @back="closeAddApplicant"
-    @submit="createApplicant"
-  />
-
   <!-- ─── Registry Table View ─── -->
-  <div v-else class="flex flex-col gap-6 pb-12">
+  <div class="flex flex-col gap-6 pb-12">
     <!-- ─── Header & Title ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">

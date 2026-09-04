@@ -19,25 +19,31 @@ export const pesoRoutes: RouteRecordRaw[] = [
         path: 'dashboard',
         name: 'provincial-peso-dashboard',
         component: PPESODashboard
-      }
-      ,
+      },
+      // ─── GIP (nested group for breadcrumb hierarchy: GIP > Details / Applicants) ───
       {
         path: 'gip',
-        name: 'provincial-peso-gip',
-        component: GipDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
-      },
-      {
-        path: 'gip/details',
-        name: 'provincial-peso-gip-details',
-        component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipDetails.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'GIP Details' }
-      },
-      {
-        path: 'gip/applicants',
-        name: 'provincial-peso-gip-applicants',
-        component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'GIP Applicants' }
+        meta: { breadcrumb: 'GIP', breadcrumbTo: { name: 'provincial-peso-gip' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-gip',
+            component: GipDashboard,
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: 'details',
+            name: 'provincial-peso-gip-details',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipDetails.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Details' },
+          },
+          {
+            path: 'applicants',
+            name: 'provincial-peso-gip-applicants',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicants' },
+          },
+        ],
       },
       {
         path: 'spes',
@@ -69,12 +75,31 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: SRADashboard,
         meta: { requiresAuth: true, role: 'provincial_peso' }
       },
+      // ─── Applicant Entry (nested group for breadcrumb hierarchy: Applicant Entry > Details / New) ───
       {
         path: 'entry',
-        name: 'provincial-peso-entry',
-        component: () => import('@/components/peso/ProvincialPeso/Common/ApplicantEntry.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicant Entry' }
-      }
+        meta: { breadcrumb: 'Applicant Entry', breadcrumbTo: { name: 'provincial-peso-entry' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-entry',
+            component: () => import('@/components/peso/ProvincialPeso/Common/ApplicantEntry.vue'),
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: 'new',
+            name: 'provincial-peso-entry-new',
+            component: () => import('@/components/peso/ProvincialPeso/Common/ApplicantNewEntry.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'New Entry' },
+          },
+          {
+            path: ':id',
+            name: 'provincial-peso-entry-details',
+            component: () => import('@/components/peso/ProvincialPeso/Common/ApplicantNsrpDetails.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Details' },
+          },
+        ],
+      },
     ]
   },
   {

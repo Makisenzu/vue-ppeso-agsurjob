@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import type { ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 
@@ -38,6 +42,22 @@ const emit = defineEmits<{
   (e: 'back'): void
   (e: 'submit', payload: ApplicantInsert): void
 }>()
+
+const router = useRouter()
+const store = useApplicantEntryStore()
+const { isSubmitting: storeSubmitting } = storeToRefs(store)
+
+const isFormSubmitting = computed(() => props.isSubmitting ?? storeSubmitting.value)
+
+const onFormSubmit = async (payload: ApplicantInsert) => {
+  emit('submit', payload)
+  try {
+    await store.createApplicant(payload)
+    router.push({ name: 'provincial-peso-entry' })
+  } catch {
+    // Toast error handled in store
+  }
+}
 
 const {
   steps,
@@ -150,11 +170,14 @@ const {
   assessedByName,
   assessmentDate,
   profileId,
-} = useApplicantNewEntry({ emit })
+} = useApplicantNewEntry({
+  emit: (_e: 'submit', payload: ApplicantInsert) => onFormSubmit(payload),
+})
 
 const handleCancel = () => {
   resetForm()
   emit('back')
+  router.push({ name: 'provincial-peso-entry' })
 }
 </script>
 
@@ -184,10 +207,10 @@ const handleCancel = () => {
         <Button
           size="sm"
           class="h-9 gap-1.5 text-xs font-semibold cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
-          :disabled="props.isSubmitting"
+          :disabled="isFormSubmitting"
           @click="handleSubmit"
         >
-          <Loader2 v-if="props.isSubmitting" class="h-4 w-4 animate-spin" />
+          <Loader2 v-if="isFormSubmitting" class="h-4 w-4 animate-spin" />
           <Save v-else class="h-4 w-4" />
           <span>Save & Register</span>
         </Button>
@@ -1263,10 +1286,10 @@ const handleCancel = () => {
             <Button
               v-else
               class="gap-1.5 text-xs h-9 font-semibold cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
-              :disabled="props.isSubmitting"
+              :disabled="isFormSubmitting"
               @click="handleSubmit"
             >
-              <Loader2 v-if="props.isSubmitting" class="h-4 w-4 animate-spin" />
+              <Loader2 v-if="isFormSubmitting" class="h-4 w-4 animate-spin" />
               <CheckCircle2 v-else class="h-4 w-4" />
               <span>Complete & Submit Registration</span>
             </Button>

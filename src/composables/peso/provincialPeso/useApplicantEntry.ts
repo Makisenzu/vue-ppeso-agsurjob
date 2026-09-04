@@ -1,4 +1,5 @@
 import { computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import {
@@ -10,6 +11,7 @@ import {
 import type { ApplicantEntryRecord, ApplicantStatsSummary } from '@/types/peso/provincialPeso/applicantEntry'
 
 export function useApplicantEntry() {
+  const router = useRouter()
   const store = useApplicantEntryStore()
 
   const {
@@ -29,13 +31,24 @@ export function useApplicantEntry() {
 
   const {
     fetchApplicants,
-    openDetails,
     closeDetails,
-    openAddApplicant,
     closeAddApplicant,
     createApplicant,
     resetFilters,
   } = store
+
+  const openDetails = (applicant: ApplicantEntryRecord) => {
+    store.openDetails(applicant)
+    router.push({
+      name: 'provincial-peso-entry-details',
+      params: { id: applicant.id },
+    })
+  }
+
+  const openAddApplicant = () => {
+    store.openAddApplicant()
+    router.push({ name: 'provincial-peso-entry-new' })
+  }
 
 
   // ─── Available Municipalities for Filter ───

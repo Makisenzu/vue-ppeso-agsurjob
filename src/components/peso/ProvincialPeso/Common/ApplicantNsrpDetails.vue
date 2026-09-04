@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import {
   ArrowLeft,
   Award,
@@ -8,6 +10,7 @@ import {
   CheckCircle2,
   Globe,
   Languages,
+  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -26,11 +29,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 
 interface Props {
-  applicant: ApplicantEntryRecord
+  applicant?: ApplicantEntryRecord
 }
 
 const props = defineProps<Props>()
@@ -39,19 +43,44 @@ const emit = defineEmits<{
   (e: 'back'): void
 }>()
 
+const route = useRoute()
+const router = useRouter()
+const store = useApplicantEntryStore()
+const { isLoading } = storeToRefs(store)
+
+const applicant = computed<ApplicantEntryRecord | null>(() => {
+  if (props.applicant) return props.applicant
+  const id = route.params.id as string
+  if (store.selectedApplicant && store.selectedApplicant.id === id) {
+    return store.selectedApplicant
+  }
+  return store.applicants.find((a) => a.id === id) ?? null
+})
+
+onMounted(async () => {
+  if (!applicant.value && store.applicants.length === 0) {
+    await store.fetchApplicants()
+  }
+})
+
+const handleBack = () => {
+  emit('back')
+  router.push({ name: 'provincial-peso-entry' })
+}
+
 const handlePrint = () => {
   window.print()
 }
 
 // Age or DOB formatted
-const formattedDob = computed(() => formatDateDisplay(props.applicant.dateOfBirth))
-const formattedRegisteredDate = computed(() => formatDateDisplay(props.applicant.createdAt))
-const formattedUpdatedDate = computed(() => formatDateDisplay(props.applicant.updatedAt))
-const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant.assessmentDate))
+const formattedDob = computed(() => (applicant.value ? formatDateDisplay(applicant.value.dateOfBirth) : 'N/A'))
+const formattedRegisteredDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.createdAt) : 'N/A'))
+const formattedUpdatedDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.updatedAt) : 'N/A'))
+const formattedAssessmentDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.assessmentDate) : 'N/A'))
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 pb-16 print:p-0 print:gap-4">
+  <div v-if="applicant" class="flex flex-col gap-6 pb-16 print:p-0 print:gap-4">
     <!-- ─── Navigation & Actions Header ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
       <div class="flex items-center gap-3">
@@ -59,7 +88,7 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
           variant="outline"
           size="sm"
           class="gap-1.5 text-xs cursor-pointer shadow-xs hover:bg-muted"
-          @click="emit('back')"
+          @click="handleBack"
         >
           <ArrowLeft class="h-3.5 w-3.5" />
           <span>Back to Registry</span>
@@ -825,5 +854,24 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(props.applicant
         </Card>
       </div>
     </div>
+  </div>
+
+  <!-- Loading State Fallback -->
+  <div v-else-if="isLoading" class="flex flex-col items-center justify-center min-h-[400px] gap-3">
+    <Loader2 class="h-8 w-8 animate-spin text-primary" />
+    <p class="text-sm text-muted-foreground">Loading applicant profile...</p>
+  </div>
+
+  <!-- Not Found State Fallback -->
+  <div v-else class="flex flex-col items-center justify-center min-h-[400px] gap-4">
+    <UserX class="h-12 w-12 text-muted-foreground" />
+    <div class="text-center">
+      <h3 class="font-semibold text-lg">Applicant Record Not Found</h3>
+      <p class="text-sm text-muted-foreground">The requested applicant profile could not be located in the registry.</p>
+    </div>
+    <Button variant="outline" size="sm" class="gap-2 cursor-pointer" @click="handleBack">
+      <ArrowLeft class="h-4 w-4" />
+      <span>Back to Registry</span>
+    </Button>
   </div>
 </template>
