@@ -169,7 +169,7 @@ const {
           <!-- Programs and Badges Group -->
           <div class="flex flex-wrap md:flex-col items-start md:items-end gap-2 shrink-0 border-t md:border-t-0 pt-4 md:pt-0">
             <div class="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-              Enrolled Programs & Status
+              Applied Programs
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
               <!-- GIP -->

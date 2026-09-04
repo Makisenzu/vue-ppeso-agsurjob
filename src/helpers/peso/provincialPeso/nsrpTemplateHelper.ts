@@ -402,6 +402,12 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       align-items: center;
       gap: 6px;
     }
+    .iso-seal-img {
+      height: 34px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
     .qf-box {
       border: 1px solid #000;
       padding: 3px 6px;
@@ -457,16 +463,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
             </div>
 
             <!-- Bagong Pilipinas Logo -->
-            <div style="width: 54px; text-align: center;">
-              <svg width="50" height="42" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="38" r="14" fill="#FACC15"/>
-                <path d="M50 18 L50 22 M50 54 L50 58 M30 38 L34 38 M66 38 L70 38 M36 24 L39 27 M61 49 L64 52 M36 52 L39 49 M61 27 L64 24" stroke="#FACC15" stroke-width="3" stroke-linecap="round"/>
-                <path d="M52 24 C72 20 86 34 84 52 C84 40 74 30 52 24 Z" fill="#DC2626"/>
-                <path d="M48 52 C28 56 14 42 16 24 C16 36 26 46 48 52 Z" fill="#1D4ED8"/>
-                <circle cx="50" cy="38" r="7" fill="#EAB308"/>
-              </svg>
-              <div style="font-size: 4.5pt; font-weight: 800; color: #1e3a8a; letter-spacing: 0.5px; text-align: center; line-height: 1;">BAGONG PILIPINAS</div>
-            </div>
+            <img src="/images/bagongPilipinas.png" alt="Bagong Pilipinas" class="header-seal" onerror="this.src='/src/assets/images/bagongPilipinas.png'">
           </div>
         </td>
       </tr>
@@ -834,14 +831,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     <!-- Footer Page 1 -->
     <div class="page-footer">
       <div class="iso-seal">
-        <div style="border: 2px solid #000; border-radius: 50%; width: 34px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4pt; font-weight: bold; line-height: 1; text-align: center;">
-          <div style="font-size: 9pt; line-height: 0.9;">O</div>
-          <div style="font-size: 3.5pt;">SO 9001</div>
-        </div>
-        <div style="border: 1.5px solid #000; width: 32px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4pt; text-align: center; line-height: 1;">
-          <div style="font-weight: bold; font-size: 6pt; color: #1e3a8a;">PAB</div>
-          <div>Accredited</div>
-        </div>
+        <img src="/images/isoSeal.png" alt="ISO 9001:2015 PAB Accredited" class="iso-seal-img" onerror="this.src='/src/assets/images/isoSeal.png'">
       </div>
 
       <div style="text-align: left; line-height: 1.25;">
@@ -1175,14 +1165,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     <!-- Footer Page 2 -->
     <div class="page-footer">
       <div class="iso-seal">
-        <div style="border: 2px solid #000; border-radius: 50%; width: 34px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4pt; font-weight: bold; line-height: 1; text-align: center;">
-          <div style="font-size: 9pt; line-height: 0.9;">O</div>
-          <div style="font-size: 3.5pt;">SO 9001</div>
-        </div>
-        <div style="border: 1.5px solid #000; width: 32px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4pt; text-align: center; line-height: 1;">
-          <div style="font-weight: bold; font-size: 6pt; color: #1e3a8a;">PAB</div>
-          <div>Accredited</div>
-        </div>
+        <img src="/images/isoSeal.png" alt="ISO 9001:2015 PAB Accredited" class="iso-seal-img" onerror="this.src='/src/assets/images/isoSeal.png'">
       </div>
 
       <div style="text-align: left; line-height: 1.25;">
