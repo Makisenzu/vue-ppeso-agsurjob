@@ -614,6 +614,80 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
+  const resetForm = () => {
+    currentStep.value = 1
+    firstName.value = ''
+    middleName.value = ''
+    surname.value = ''
+    suffix.value = ''
+    dateOfBirth.value = ''
+    age.value = undefined
+    sex.value = 'Male'
+    civilStatus.value = 'Single'
+    religion.value = ''
+    heightFt.value = undefined
+    tin.value = ''
+    primaryContactNumber.value = ''
+    additionalContactNumbers.value = []
+    newAdditionalContact.value = ''
+    email.value = ''
+    houseNumber.value = ''
+    street.value = ''
+    village.value = ''
+
+    employmentStatus.value = 'Unemployed'
+    employmentType.value = 'Wage employed'
+    unemployedReason.value = 'Fresh Graduate / First Time Jobseeker'
+    monthsLookingForWork.value = undefined
+    selfEmployedType.value = ''
+    is4psBeneficiary.value = false
+    householdId4ps.value = ''
+    hasDisability.value = false
+    selectedDisabilities.value = []
+    disabilityOthers.value = ''
+    isOfw.value = false
+    ofwCountry.value = ''
+    isFormerOfw.value = false
+    formerOfwCountry.value = ''
+    formerOfwReturnDate.value = ''
+
+    currentlyInSchool.value = false
+    educationalBackground.value = [
+      {
+        level: 'Tertiary / College',
+        school: '',
+        course: '',
+        year_graduated: '',
+        awards: '',
+        undergraduate_level_reached: '',
+      },
+    ]
+
+    workExperiences.value = []
+    vocationalTrainings.value = []
+    eligibilities.value = []
+    otherSkills.value = []
+    newSkillTag.value = ''
+    otherSkillsSpecified.value = ''
+    languageProficiencies.value = [
+      { language: 'English', read: true, write: true, speak: true, understand: true },
+      { language: 'Filipino / Tagalog', read: true, write: true, speak: true, understand: true },
+      { language: 'Cebuano / Bisaya', read: true, write: true, speak: true, understand: true },
+    ]
+
+    preferredOccupations.value = []
+    newOccupationTag.value = ''
+    preferredLocalLocations.value = ['Agusan del Sur']
+    newLocalLocationTag.value = ''
+    preferredOverseasLocations.value = []
+    newOverseasLocationTag.value = ''
+    jobTypePreference.value = ['Full-Time']
+    referredPrograms.value = ['GIP']
+    assessedByName.value = 'Provincial PESO Evaluator'
+    assessmentDate.value = new Date().toISOString().split('T')[0]
+    profileId.value = ''
+  }
+
   const handleSubmit = () => {
     const payload = buildPayload()
     if (payload && options?.emit) {
@@ -631,6 +705,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     validateStep,
     buildPayload,
     handleSubmit,
+    resetForm,
 
     // PSGC
     psgcProvinces,

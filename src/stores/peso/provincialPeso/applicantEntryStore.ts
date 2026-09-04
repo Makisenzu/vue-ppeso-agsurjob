@@ -29,8 +29,10 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const pageSize = ref<number>(10)
 
   // ─── Actions ───
-  const fetchApplicants = async (isManualRefresh: boolean = false) => {
-    isLoading.value = true
+  const fetchApplicants = async (isManualRefresh: boolean = false, silent: boolean = false) => {
+    if (!silent) {
+      isLoading.value = true
+    }
     try {
       const data = await applicantEntryService.fetchAllApplicants()
       applicants.value = data.map(mapToApplicantEntryRecord)
@@ -41,7 +43,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       console.error('[applicantEntryStore] Failed to fetch applicants:', error)
       toastAlert.error('Fetch Error', error.message || 'Unable to retrieve applicants registry.')
     } finally {
-      isLoading.value = false
+      if (!silent) {
+        isLoading.value = false
+      }
     }
   }
 
@@ -70,8 +74,21 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       const newRecord = mapToApplicantEntryRecord(createdRow)
       const progs = newRecord.referredPrograms
       const progDetail = progs.length > 0 ? ` and referred to ${progs.join(', ')}` : ''
+
+      // Prepend to local state immediately so table and metric cards reflect the new applicant right away
+      applicants.value = [newRecord, ...applicants.value.filter((a) => a.id !== newRecord.id)]
+
+      // Reset filters and ensure page is at start so the newly created jobseeker is immediately visible in the data table
+      resetFilters()
+
       toastAlert.success('Applicant Created', `${newRecord.fullName} has been successfully registered${progDetail}.`)
       isAddApplicantOpen.value = false
+
+      // Silent background fetch to guarantee complete sync with database defaults and triggers
+      fetchApplicants(false, true).catch((err) => {
+        console.error('[applicantEntryStore] Background sync failed:', err)
+      })
+
       return newRecord
     } catch (error: any) {
       console.error('[applicantEntryStore] Failed to create applicant:', error)

@@ -46,6 +46,7 @@ const {
   prevStep,
   goToStep,
   handleSubmit,
+  resetForm,
 
   // PSGC
   psgcProvinces,
@@ -150,6 +151,11 @@ const {
   assessmentDate,
   profileId,
 } = useApplicantNewEntry({ emit })
+
+const handleCancel = () => {
+  resetForm()
+  emit('back')
+}
 </script>
 
 <template>
@@ -171,7 +177,7 @@ const {
           variant="outline"
           size="sm"
           class="h-9 text-xs cursor-pointer shadow-xs"
-          @click="emit('back')"
+          @click="handleCancel"
         >
           Cancel
         </Button>
