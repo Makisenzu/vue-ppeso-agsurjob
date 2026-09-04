@@ -636,17 +636,6 @@ const handleSubmit = () => {
     <!-- ─── Header & Navigation ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            class="h-8 gap-1.5 text-xs cursor-pointer shadow-xs"
-            @click="emit('back')"
-          >
-            <ArrowLeft class="h-3.5 w-3.5" />
-            <span>Back to Registry</span>
-          </Button>
-        </div>
         <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl mt-1">
           Register New Jobseeker
         </h1>
