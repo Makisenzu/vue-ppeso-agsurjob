@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,18 +6,13 @@ import {
   Briefcase,
   Check,
   CheckCircle2,
-  Compass,
   FileCheck,
-  GraduationCap,
   Languages,
   Loader2,
   MapPin,
   Plus,
   Save,
-  Sparkles,
   Trash2,
-  User,
-  Wrench,
   X,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
@@ -33,16 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useToastAlert } from '@/composables/common/useToastAlert'
-import type {
-  ApplicantInsert,
-  EducationalBackgroundItem,
-  EligibilityItem,
-  LanguageProficiencyItem,
-  VocationalTrainingItem,
-  WorkExperienceItem,
-} from '@/types/peso/provincialPeso/applicantEntry'
-import { usePsgc } from '@/composables/common/usePsgc'
+import type { ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
+import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 
 const props = defineProps<{
   isSubmitting?: boolean
@@ -53,582 +39,117 @@ const emit = defineEmits<{
   (e: 'submit', payload: ApplicantInsert): void
 }>()
 
-const toastAlert = useToastAlert()
-
-// ─── PSGC Cascading Address ───
 const {
-  provinces: psgcProvinces,
-  cities: psgcCities,
-  barangays: psgcBarangays,
+  steps,
+  currentStep,
+  nextStep,
+  prevStep,
+  goToStep,
+  handleSubmit,
+
+  // PSGC
+  psgcProvinces,
+  psgcCities,
+  psgcBarangays,
   selectedRegion,
   selectedProvince,
   selectedCity,
   selectedBarangay,
-  initialize: initPsgc,
-} = usePsgc()
-
-onMounted(() => {
-  // Auto-initialize to Region XIII (Caraga) → Agusan del Sur
-  initPsgc('Region XIII (Caraga)', 'Agusan del Sur')
-})
-
-// ─── PSGC change handlers ───
-const onProvinceChange = (code: string) => {
-  const province = psgcProvinces.value.find((p: any) => p.code === code)
-  if (province) selectedProvince.value = province
-}
-
-const onCityChange = (code: string) => {
-  const city = psgcCities.value.find((c: any) => c.code === code)
-  if (city) selectedCity.value = city
-}
-
-const onBarangayChange = (code: string) => {
-  const barangay = psgcBarangays.value.find((b: any) => b.code === code)
-  if (barangay) selectedBarangay.value = barangay
-}
-
-// ─── Vertical Stepper Steps Definition ───
-const steps = [
-  {
-    step: 1,
-    title: 'Personal Info',
-    description: 'Name, DOB, Civil Status & Address',
-    icon: User,
-  },
-  {
-    step: 2,
-    title: 'DOLE Status',
-    description: 'Employment, 4Ps, PWD & OFW',
-    icon: Briefcase,
-  },
-  {
-    step: 3,
-    title: 'Education',
-    description: 'School, Degree & Attainment',
-    icon: GraduationCap,
-  },
-  {
-    step: 4,
-    title: 'Work & Training',
-    description: 'Experience & Technical Certs',
-    icon: Wrench,
-  },
-  {
-    step: 5,
-    title: 'Skills & Languages',
-    description: 'Eligibilities, Skills & Dialects',
-    icon: Sparkles,
-  },
-  {
-    step: 6,
-    title: 'Preferences & Review',
-    description: 'Job Targets, Assessment & Submit',
-    icon: Compass,
-  },
-]
-
-const currentStep = ref(1)
-
-// ─── STEP 1: Personal Information Form State ───
-const firstName = ref('')
-const middleName = ref('')
-const surname = ref('')
-const suffix = ref('')
-const dateOfBirth = ref('')
-const age = ref<number | undefined>(undefined)
-const sex = ref('Male')
-const civilStatus = ref('Single')
-const religion = ref('')
-const heightFt = ref<number | undefined>(undefined)
-const tin = ref('')
-const primaryContactNumber = ref('')
-const additionalContactNumbers = ref<string[]>([])
-const newAdditionalContact = ref('')
-const email = ref('')
-
-// Address (province, municipality, barangay come from PSGC selections)
-const houseNumber = ref('')
-const street = ref('')
-const village = ref('')
-
-// Auto-calculate age when dateOfBirth changes
-watch(dateOfBirth, (val) => {
-  if (!val) return
-  const birthDate = new Date(val)
-  if (isNaN(birthDate.getTime())) return
-  const today = new Date()
-  let calculatedAge = today.getFullYear() - birthDate.getFullYear()
-  const m = today.getMonth() - birthDate.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-    calculatedAge--
-  }
-  if (calculatedAge >= 0 && calculatedAge < 120) {
-    age.value = calculatedAge
-  }
-})
-
-const addContactNumber = () => {
-  const val = newAdditionalContact.value.trim()
-  if (val && !additionalContactNumbers.value.includes(val)) {
-    additionalContactNumbers.value.push(val)
-    newAdditionalContact.value = ''
-  }
-}
-
-const removeContactNumber = (idx: number) => {
-  additionalContactNumbers.value.splice(idx, 1)
-}
-
-// ─── STEP 2: DOLE Status & Classifications ───
-const employmentStatus = ref('Unemployed')
-const employmentType = ref<'Wage employed' | 'Self-employed'>('Wage employed')
-const unemployedReason = ref('Fresh Graduate')
-const monthsLookingForWork = ref<number | undefined>(undefined)
-const selfEmployedType = ref('')
-
-// Beneficiary flags
-const is4psBeneficiary = ref(false)
-const householdId4ps = ref('')
-const hasDisability = ref(false)
-const selectedDisabilities = ref<string[]>([])
-const disabilityOthers = ref('')
-const isOfw = ref(false)
-const ofwCountry = ref('')
-const isFormerOfw = ref(false)
-const formerOfwCountry = ref('')
-const formerOfwReturnDate = ref('')
-
-const DISABILITY_OPTIONS = [
-  'Visual',
-  'Hearing',
-  'Speech',
-  'Physical / Orthopedic',
-  'Mental / Psychosocial',
-  'Chronic Illness / Learning Disability',
-]
-
-const toggleDisability = (opt: string) => {
-  const idx = selectedDisabilities.value.indexOf(opt)
-  if (idx >= 0) {
-    selectedDisabilities.value.splice(idx, 1)
-  } else {
-    selectedDisabilities.value.push(opt)
-  }
-}
-
-// ─── STEP 3: Educational Background ───
-const currentlyInSchool = ref(false)
-const educationalBackground = ref<EducationalBackgroundItem[]>([
-  {
-    level: 'College / Tertiary',
-    school: '',
-    course: '',
-    year_graduated: '',
-    awards: '',
-    undergraduate_level_reached: '',
-  },
-])
-
-const addEducationRow = () => {
-  educationalBackground.value.push({
-    level: 'College / Tertiary',
-    school: '',
-    course: '',
-    year_graduated: '',
-    awards: '',
-    undergraduate_level_reached: '',
-  })
-}
-
-const removeEducationRow = (index: number) => {
-  if (educationalBackground.value.length > 1) {
-    educationalBackground.value.splice(index, 1)
-  }
-}
-
-// ─── STEP 4: Work Experience & Vocational Trainings ───
-const workExperiences = ref<WorkExperienceItem[]>([
-  {
-    company_name: '',
-    position: '',
-    job_title: '',
-    inclusive_dates: '',
-    monthly_salary: '',
-    status_of_appointment: 'Permanent',
-  },
-])
-
-const addWorkRow = () => {
-  workExperiences.value.push({
-    company_name: '',
-    position: '',
-    job_title: '',
-    inclusive_dates: '',
-    monthly_salary: '',
-    status_of_appointment: 'Permanent',
-  })
-}
-
-const removeWorkRow = (index: number) => {
-  workExperiences.value.splice(index, 1)
-}
-
-const vocationalTrainings = ref<VocationalTrainingItem[]>([])
-
-const addVocationalRow = () => {
-  vocationalTrainings.value.push({
-    course_training_title: '',
-    duration: '',
-    training_institution: '',
-    certificates_received: '',
-  })
-}
-
-const removeVocationalRow = (index: number) => {
-  vocationalTrainings.value.splice(index, 1)
-}
-
-// ─── STEP 5: Eligibilities, Skills & Languages ───
-const eligibilities = ref<EligibilityItem[]>([])
-
-const addEligibilityRow = () => {
-  eligibilities.value.push({
-    eligibility_title: '',
-    rating: '',
-    date_of_examination: '',
-    place_of_examination: '',
-  })
-}
-
-const removeEligibilityRow = (index: number) => {
-  eligibilities.value.splice(index, 1)
-}
-
-// Skills tags
-const otherSkills = ref<string[]>([
-  'Computer Literacy',
-  'Customer Service',
-])
-const newSkillTag = ref('')
-const otherSkillsSpecified = ref('')
-
-const addSkillTag = () => {
-  const s = newSkillTag.value.trim()
-  if (s && !otherSkills.value.includes(s)) {
-    otherSkills.value.push(s)
-    newSkillTag.value = ''
-  }
-}
-
-const removeSkillTag = (idx: number) => {
-  otherSkills.value.splice(idx, 1)
-}
-
-// Language proficiencies
-const languageProficiencies = ref<LanguageProficiencyItem[]>([
-  { language: 'English', read: true, write: true, speak: true, understand: true },
-  { language: 'Tagalog / Filipino', read: true, write: true, speak: true, understand: true },
-  { language: 'Cebuano / Bisaya', read: true, write: true, speak: true, understand: true },
-])
-
-const newLanguageName = ref('')
-const addLanguage = () => {
-  const l = newLanguageName.value.trim()
-  if (l && !languageProficiencies.value.some((item) => item.language?.toLowerCase() === l.toLowerCase())) {
-    languageProficiencies.value.push({
-      language: l,
-      read: true,
-      write: false,
-      speak: true,
-      understand: true,
-    })
-    newLanguageName.value = ''
-  }
-}
-
-const removeLanguage = (index: number) => {
-  languageProficiencies.value.splice(index, 1)
-}
-
-// ─── STEP 6: Job Preferences & PESO Assessment ───
-const preferredOccupations = ref<string[]>([
-  'Administrative Assistant',
-])
-const newOccupationTag = ref('')
-
-const addOccupation = () => {
-  const o = newOccupationTag.value.trim()
-  if (o && !preferredOccupations.value.includes(o)) {
-    preferredOccupations.value.push(o)
-    newOccupationTag.value = ''
-  }
-}
-
-const removeOccupation = (idx: number) => {
-  preferredOccupations.value.splice(idx, 1)
-}
-
-const preferredLocalLocations = ref<string[]>([
-  'Agusan del Sur',
-  'Prosperidad',
-])
-const newLocalLocationTag = ref('')
-
-const addLocalLocation = () => {
-  const l = newLocalLocationTag.value.trim()
-  if (l && !preferredLocalLocations.value.includes(l)) {
-    preferredLocalLocations.value.push(l)
-    newLocalLocationTag.value = ''
-  }
-}
-
-const removeLocalLocation = (idx: number) => {
-  preferredLocalLocations.value.splice(idx, 1)
-}
-
-const preferredOverseasLocations = ref<string[]>([])
-const newOverseasLocationTag = ref('')
-
-const addOverseasLocation = () => {
-  const o = newOverseasLocationTag.value.trim()
-  if (o && !preferredOverseasLocations.value.includes(o)) {
-    preferredOverseasLocations.value.push(o)
-    newOverseasLocationTag.value = ''
-  }
-}
-
-const removeOverseasLocation = (idx: number) => {
-  preferredOverseasLocations.value.splice(idx, 1)
-}
-
-const JOB_TYPE_OPTIONS = ['Full-Time', 'Part-Time', 'Contractual', 'Project-Based', 'Remote / Work From Home']
-const jobTypePreference = ref<string[]>(['Full-Time'])
-
-const toggleJobType = (opt: string) => {
-  const idx = jobTypePreference.value.indexOf(opt)
-  if (idx >= 0) {
-    jobTypePreference.value.splice(idx, 1)
-  } else {
-    jobTypePreference.value.push(opt)
-  }
-}
-
-const PROGRAM_OPTIONS = ['GIP', 'TUPAD', 'SPES', 'Special Recruitment', 'PESO Job Fair']
-const referredPrograms = ref<string[]>(['GIP'])
-
-const toggleProgram = (p: string) => {
-  const idx = referredPrograms.value.indexOf(p)
-  if (idx >= 0) {
-    referredPrograms.value.splice(idx, 1)
-  } else {
-    referredPrograms.value.push(p)
-  }
-}
-
-const assessedByName = ref('Provincial PESO Evaluator')
-const assessmentDate = ref(new Date().toISOString().split('T')[0])
-const profileId = ref('')
-
-// ─── Step Navigation & Validation ───
-const validateStep = (stepNum: number): boolean => {
-  if (stepNum === 1) {
-    if (!firstName.value.trim()) {
-      toastAlert.error('Validation Error', 'First Name is required.')
-      return false
-    }
-    if (!surname.value.trim()) {
-      toastAlert.error('Validation Error', 'Surname is required.')
-      return false
-    }
-    if (!dateOfBirth.value) {
-      toastAlert.error('Validation Error', 'Date of Birth is required.')
-      return false
-    }
-    if (!selectedCity.value) {
-      toastAlert.error('Validation Error', 'Municipality / City is required.')
-      return false
-    }
-    if (!selectedBarangay.value) {
-      toastAlert.error('Validation Error', 'Barangay is required.')
-      return false
-    }
-    if (!primaryContactNumber.value.trim()) {
-      toastAlert.error('Validation Error', 'Primary Contact Number is required.')
-      return false
-    }
-  }
-  return true
-}
-
-const nextStep = () => {
-  if (validateStep(currentStep.value)) {
-    if (currentStep.value < steps.length) {
-      currentStep.value++
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }
-}
-
-const prevStep = () => {
-  if (currentStep.value > 1) {
-    currentStep.value--
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
-
-const goToStep = (stepNum: number) => {
-  if (stepNum < currentStep.value) {
-    currentStep.value = stepNum
-  } else if (validateStep(currentStep.value)) {
-    currentStep.value = stepNum
-  }
-}
-
-// ─── Final Payload Construction (ALL COLUMNS IN applicants.applicants) ───
-const handleSubmit = () => {
-  // Validate required step 1 fields
-  if (!validateStep(1)) {
-    currentStep.value = 1
-    return
-  }
-
-  // Compile all contact numbers
-  const allContacts: string[] = []
-  if (primaryContactNumber.value.trim()) {
-    allContacts.push(primaryContactNumber.value.trim())
-  }
-  for (const c of additionalContactNumbers.value) {
-    if (c.trim() && !allContacts.includes(c.trim())) {
-      allContacts.push(c.trim())
-    }
-  }
-
-  // Compile structured address JSON from PSGC selections
-  const addressPayload = {
-    houseNumber: houseNumber.value.trim() || undefined,
-    street: street.value.trim() || undefined,
-    village: village.value.trim() || undefined,
-    barangay: selectedBarangay.value?.name?.trim() || '',
-    municipality: selectedCity.value?.name?.trim() || '',
-    province: selectedProvince.value?.name?.trim() || 'Agusan del Sur',
-    region: selectedRegion.value?.name?.trim() || 'Region XIII (Caraga)',
-  }
-
-  // Filter out empty rows from arrays
-  const cleanEducation = educationalBackground.value
-    .filter((e) => e.school?.trim() || e.course?.trim())
-    .map((e) => ({
-      level: e.level?.trim() || 'Education',
-      school: e.school?.trim() || '',
-      course: e.course?.trim() || 'N/A',
-      year_graduated: e.year_graduated || '',
-      awards: e.awards?.trim() || '',
-      undergraduate_level_reached: e.undergraduate_level_reached?.trim() || '',
-    }))
-
-  const cleanWork = workExperiences.value
-    .filter((w) => w.company_name?.trim() || w.position?.trim() || w.job_title?.trim())
-    .map((w) => ({
-      company_name: w.company_name?.trim() || '',
-      position: w.position?.trim() || w.job_title?.trim() || 'Staff',
-      job_title: w.job_title?.trim() || w.position?.trim() || 'Staff',
-      inclusive_dates: w.inclusive_dates?.trim() || 'N/A',
-      monthly_salary: w.monthly_salary ? Number(w.monthly_salary) : null,
-      status_of_appointment: w.status_of_appointment?.trim() || 'Permanent',
-    }))
-
-  const cleanVocational = vocationalTrainings.value
-    .filter((v) => v.course_training_title?.trim())
-    .map((v) => ({
-      course_training_title: v.course_training_title?.trim() || '',
-      duration: v.duration?.trim() || '',
-      training_institution: v.training_institution?.trim() || '',
-      certificates_received: v.certificates_received?.trim() || '',
-    }))
-
-  const cleanEligibilities = eligibilities.value
-    .filter((el) => el.eligibility_title?.trim())
-    .map((el) => ({
-      eligibility_title: el.eligibility_title?.trim() || '',
-      rating: el.rating || '',
-      date_of_examination: el.date_of_examination || '',
-      place_of_examination: el.place_of_examination?.trim() || '',
-    }))
-
-  // Construct complete payload filling all columns in applicants.applicants
-  const payload: ApplicantInsert = {
-    // Identity & Demographics
-    first_name: firstName.value.trim(),
-    middle_name: middleName.value.trim() || null,
-    surname: surname.value.trim(),
-    suffix: suffix.value.trim() || null,
-    date_of_birth: dateOfBirth.value,
-    age: age.value ?? null,
-    sex: sex.value || null,
-    civil_status: civilStatus.value || null,
-    religion: religion.value.trim() || null,
-    height_ft: heightFt.value ?? null,
-    tin: tin.value.trim() || null,
-    contact_numbers: allContacts.length > 0 ? allContacts : null,
-    email: email.value.trim() || null,
-
-    // Address
-    address: addressPayload,
-
-    // DOLE Employment Classification
-    employment_status: employmentStatus.value || null,
-    employment_type:
-      employmentStatus.value === 'Employed'
-        ? (employmentType.value || 'Wage employed')
-        : employmentStatus.value === 'Self-Employed'
-          ? 'Self-employed'
-          : null,
-    unemployed_reason: employmentStatus.value === 'Unemployed' ? unemployedReason.value || null : null,
-    months_looking_for_work: employmentStatus.value === 'Unemployed' ? (monthsLookingForWork.value ?? null) : null,
-    self_employed_type: employmentStatus.value === 'Self-Employed' ? selfEmployedType.value || null : null,
-
-    // Special Categories
-    is_4ps_beneficiary: is4psBeneficiary.value,
-    household_id_4ps: is4psBeneficiary.value ? householdId4ps.value.trim() || null : null,
-    has_disability: hasDisability.value,
-    disabilities: hasDisability.value ? selectedDisabilities.value : null,
-    disability_others: hasDisability.value && disabilityOthers.value.trim() ? disabilityOthers.value.trim() : null,
-    is_ofw: isOfw.value,
-    ofw_country: isOfw.value ? ofwCountry.value.trim() || null : null,
-    is_former_ofw: isFormerOfw.value,
-    former_ofw_country: isFormerOfw.value ? formerOfwCountry.value.trim() || null : null,
-    former_ofw_return_date: isFormerOfw.value && formerOfwReturnDate.value ? formerOfwReturnDate.value : null,
-
-    // Education
-    currently_in_school: currentlyInSchool.value,
-    educational_background: cleanEducation.length > 0 ? cleanEducation : null,
-
-    // Experience & Trainings
-    work_experiences: cleanWork.length > 0 ? cleanWork : null,
-    vocational_trainings: cleanVocational.length > 0 ? cleanVocational : null,
-
-    // Eligibilities & Skills
-    eligibilities: cleanEligibilities.length > 0 ? cleanEligibilities : null,
-    language_proficiencies: languageProficiencies.value.length > 0 ? languageProficiencies.value : null,
-    other_skills: otherSkills.value.length > 0 ? otherSkills.value : null,
-    other_skills_specified: otherSkillsSpecified.value.trim() || null,
-
-    // Preferences & Programs
-    preferred_occupations: preferredOccupations.value.length > 0 ? preferredOccupations.value : null,
-    preferred_local_locations: preferredLocalLocations.value.length > 0 ? preferredLocalLocations.value : null,
-    preferred_overseas_locations: preferredOverseasLocations.value.length > 0 ? preferredOverseasLocations.value : null,
-    job_type_preference: jobTypePreference.value.length > 0 ? jobTypePreference.value : null,
-    referred_programs: referredPrograms.value.length > 0 ? referredPrograms.value : null,
-
-    // Assessment & Metadata
-    assessed_by_name: assessedByName.value.trim() || 'Provincial PESO Staff',
-    assessment_date: assessmentDate.value || new Date().toISOString().split('T')[0],
-    profile_id: profileId.value.trim() || null,
-  }
-
-  emit('submit', payload)
-}
+  onProvinceChange,
+  onCityChange,
+  onBarangayChange,
+
+  // Step 1
+  firstName,
+  middleName,
+  surname,
+  suffix,
+  dateOfBirth,
+  age,
+  sex,
+  civilStatus,
+  religion,
+  heightFt,
+  tin,
+  primaryContactNumber,
+  additionalContactNumbers,
+  newAdditionalContact,
+  email,
+  street,
+  village,
+  addContactNumber,
+  removeContactNumber,
+
+  // Step 2
+  employmentStatus,
+  employmentType,
+  unemployedReason,
+  monthsLookingForWork,
+  selfEmployedType,
+  is4psBeneficiary,
+  householdId4ps,
+  hasDisability,
+  selectedDisabilities,
+  disabilityOthers,
+  isOfw,
+  ofwCountry,
+  isFormerOfw,
+  formerOfwCountry,
+  formerOfwReturnDate,
+  toggleDisability,
+  disabilityOptions,
+
+  // Step 3
+  currentlyInSchool,
+  educationalBackground,
+  addEducationRow,
+  removeEducationRow,
+
+  // Step 4
+  workExperiences,
+  addWorkRow,
+  removeWorkRow,
+  vocationalTrainings,
+  addVocationalRow,
+  removeVocationalRow,
+
+  // Step 5
+  eligibilities,
+  addEligibilityRow,
+  removeEligibilityRow,
+  otherSkills,
+  newSkillTag,
+  otherSkillsSpecified,
+  addSkillTag,
+  removeSkillTag,
+  languageProficiencies,
+  newLanguageName,
+  addLanguage,
+  removeLanguage,
+
+  // Step 6
+  preferredOccupations,
+  newOccupationTag,
+  addOccupation,
+  removeOccupation,
+  preferredLocalLocations,
+  newLocalLocationTag,
+  addLocalLocation,
+  removeLocalLocation,
+  preferredOverseasLocations,
+  newOverseasLocationTag,
+  addOverseasLocation,
+  removeOverseasLocation,
+  jobTypePreference,
+  toggleJobType,
+  jobTypeOptions,
+  referredPrograms,
+  toggleProgram,
+  programOptions,
+  assessedByName,
+  assessmentDate,
+  profileId,
+} = useApplicantNewEntry({ emit })
 </script>
 
 <template>
@@ -644,7 +165,7 @@ const handleSubmit = () => {
         </p>
       </div>
 
-      <!-- Action Save Button in Header -->
+      <!-- Action Buttons in Header -->
       <div class="flex items-center gap-2 self-start sm:self-auto">
         <Button
           variant="outline"
@@ -672,7 +193,7 @@ const handleSubmit = () => {
       <!-- ─── Left Column: Vertical Stepper Navigation (Sticky) ─── -->
       <div class="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-20 z-10">
         <div class="bg-transparent p-2 sm:p-3">
-          <!-- Step Counter / Title without divider -->
+          <!-- Step Counter / Title -->
           <div class="flex items-center justify-between mb-6 px-1">
             <span class="text-sm font-bold tracking-tight text-foreground">Registration Steps</span>
             <span class="text-xs font-mono text-muted-foreground">
@@ -680,7 +201,7 @@ const handleSubmit = () => {
             </span>
           </div>
 
-          <!-- Custom Vertical Stepper Matching Design -->
+          <!-- Vertical Stepper with Semantic Tokens -->
           <div class="flex flex-col w-full">
             <div
               v-for="(s, idx) in steps"
@@ -690,40 +211,35 @@ const handleSubmit = () => {
             >
               <!-- Left: Indicator & Connecting Line -->
               <div class="flex flex-col items-center self-stretch shrink-0">
-                <!-- Node Circle Indicator -->
-                <!-- ACTIVE STATE: concentric dark ring + vibrant emerald green fill + dark center -->
+                <!-- Node Circle Indicator: ACTIVE STATE -->
                 <div
                   v-if="currentStep === s.step"
-                  class="size-8 rounded-full border border-zinc-700/80 dark:border-zinc-700 bg-zinc-950 dark:bg-zinc-900 flex items-center justify-center shrink-0 shadow-sm"
+                  class="size-8 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center shrink-0 shadow-xs ring-4 ring-primary/15 transition-all"
                 >
-                  <div class="size-5.5 rounded-full bg-emerald-500 flex items-center justify-center shadow-xs">
-                    <div class="size-2 rounded-full bg-zinc-950 dark:bg-black border border-emerald-600/70" />
-                  </div>
+                  <div class="size-3 rounded-full bg-primary" />
                 </div>
 
-                <!-- COMPLETED STATE: green badge with check icon -->
+                <!-- COMPLETED STATE: Primary badge with check icon -->
                 <div
                   v-else-if="currentStep > s.step"
-                  class="size-8 rounded-full border border-emerald-500/30 bg-zinc-950 dark:bg-zinc-900 flex items-center justify-center shrink-0"
+                  class="size-8 rounded-full border border-primary bg-primary flex items-center justify-center text-primary-foreground shadow-xs shrink-0 transition-all"
                 >
-                  <div class="size-5.5 rounded-full bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold shadow-xs">
-                    <Check class="size-3.5 stroke-3" />
-                  </div>
+                  <Check class="size-3.5 stroke-3" />
                 </div>
 
-                <!-- PENDING / INACTIVE STATE: dark circle with centered light dot -->
+                <!-- PENDING / INACTIVE STATE -->
                 <div
                   v-else
-                  class="size-8 rounded-full border border-zinc-700/70 dark:border-zinc-800 bg-zinc-900/80 dark:bg-zinc-950 flex items-center justify-center shrink-0 transition-colors group-hover:border-zinc-600"
+                  class="size-8 rounded-full border border-border bg-muted/40 flex items-center justify-center shrink-0 transition-colors group-hover:border-foreground/30"
                 >
-                  <div class="size-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                  <div class="size-1.5 rounded-full bg-muted-foreground/60" />
                 </div>
 
                 <!-- Vertical Connecting Line -->
                 <div
                   v-if="idx < steps.length - 1"
                   class="w-0.5 flex-1 min-h-10 my-1 transition-colors duration-200"
-                  :class="currentStep > s.step ? 'bg-emerald-500/60' : 'bg-zinc-700/50 dark:bg-zinc-800'"
+                  :class="currentStep > s.step ? 'bg-primary' : 'bg-border'"
                 />
               </div>
 
@@ -733,7 +249,7 @@ const handleSubmit = () => {
                   class="text-sm tracking-tight transition-colors"
                   :class="
                     currentStep === s.step
-                      ? 'text-emerald-500 dark:text-emerald-400 font-bold'
+                      ? 'text-primary font-bold'
                       : 'text-foreground font-semibold group-hover:text-foreground/90'
                   "
                 >
@@ -741,7 +257,7 @@ const handleSubmit = () => {
                 </h3>
                 <p
                   class="text-xs leading-relaxed mt-1"
-                  :class="currentStep === s.step ? 'text-muted-foreground' : 'text-muted-foreground/80'"
+                  :class="currentStep === s.step ? 'text-foreground/80' : 'text-muted-foreground'"
                 >
                   {{ s.description }}
                 </p>
@@ -749,7 +265,7 @@ const handleSubmit = () => {
             </div>
           </div>
 
-          <!-- Quick Form Progress Footer without dividing line -->
+          <!-- Quick Form Progress Footer -->
           <div class="mt-2 pt-2 text-[11px] text-muted-foreground space-y-1.5 px-1">
             <div class="flex items-center justify-between">
               <span>Progress</span>
@@ -757,9 +273,9 @@ const handleSubmit = () => {
                 {{ Math.round((currentStep / steps.length) * 100) }}%
               </span>
             </div>
-            <div class="h-1.5 w-full bg-zinc-800/60 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div class="h-1.5 w-full bg-muted rounded-full overflow-hidden">
               <div
-                class="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                class="h-full bg-primary transition-all duration-300 rounded-full"
                 :style="{ width: `${(currentStep / steps.length) * 100}%` }"
               />
             </div>
@@ -819,7 +335,7 @@ const handleSubmit = () => {
                 <span class="text-[11px] text-muted-foreground">Sex / Gender</span>
                 <select
                   v-model="sex"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                 >
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -829,7 +345,7 @@ const handleSubmit = () => {
                 <span class="text-[11px] text-muted-foreground">Civil Status</span>
                 <select
                   v-model="civilStatus"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                 >
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
@@ -868,7 +384,7 @@ const handleSubmit = () => {
                   <span class="text-[11px] text-muted-foreground">Province <span class="text-destructive">*</span></span>
                   <select
                     :value="selectedProvince?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                     :disabled="!selectedRegion"
                     @change="onProvinceChange(($event.target as HTMLSelectElement).value)"
                   >
@@ -882,7 +398,7 @@ const handleSubmit = () => {
                   <span class="text-[11px] text-muted-foreground">Municipality / City <span class="text-destructive">*</span></span>
                   <select
                     :value="selectedCity?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                     :disabled="!selectedProvince"
                     @change="onCityChange(($event.target as HTMLSelectElement).value)"
                   >
@@ -896,7 +412,7 @@ const handleSubmit = () => {
                   <span class="text-[11px] text-muted-foreground">Barangay <span class="text-destructive">*</span></span>
                   <select
                     :value="selectedBarangay?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                     :disabled="!selectedCity"
                     @change="onBarangayChange(($event.target as HTMLSelectElement).value)"
                   >
@@ -988,7 +504,7 @@ const handleSubmit = () => {
                 <span class="text-[11px] text-muted-foreground">Employment Status <span class="text-destructive">*</span></span>
                 <select
                   v-model="employmentStatus"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                 >
                   <option value="Unemployed">Unemployed</option>
                   <option value="Employed">Employed</option>
@@ -999,7 +515,7 @@ const handleSubmit = () => {
                 <span class="text-[11px] text-muted-foreground">Employment Type <span class="text-destructive">*</span></span>
                 <select
                   v-model="employmentType"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                 >
                   <option value="Wage employed">Wage Employed</option>
                   <option value="Self-employed">Self-Employed</option>
@@ -1015,7 +531,7 @@ const handleSubmit = () => {
                   <span class="text-[11px] text-muted-foreground">Reason for Unemployment</span>
                   <select
                     v-model="unemployedReason"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                   >
                     <option value="Fresh Graduate">Fresh Graduate</option>
                     <option value="Finished Contract">Finished Contract</option>
@@ -1049,7 +565,7 @@ const handleSubmit = () => {
                 <input
                   type="checkbox"
                   v-model="is4psBeneficiary"
-                  class="h-4 w-4 rounded text-primary focus:ring-primary cursor-pointer"
+                  class="h-4 w-4 rounded accent-primary text-primary focus:ring-ring cursor-pointer"
                 />
               </div>
               <div v-if="is4psBeneficiary" class="pt-2 border-t space-y-1">
@@ -1068,14 +584,14 @@ const handleSubmit = () => {
                 <input
                   type="checkbox"
                   v-model="hasDisability"
-                  class="h-4 w-4 rounded text-primary focus:ring-primary cursor-pointer"
+                  class="h-4 w-4 rounded accent-primary text-primary focus:ring-ring cursor-pointer"
                 />
               </div>
               <div v-if="hasDisability" class="pt-2 border-t space-y-3">
                 <span class="text-[11px] text-muted-foreground block">Disability Types (Select all that apply)</span>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <label
-                    v-for="d in DISABILITY_OPTIONS"
+                    v-for="d in disabilityOptions"
                     :key="d"
                     class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-muted/40"
                     :class="selectedDisabilities.includes(d) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
@@ -1083,7 +599,7 @@ const handleSubmit = () => {
                     <input
                       type="checkbox"
                       :checked="selectedDisabilities.includes(d)"
-                      class="h-3.5 w-3.5 rounded text-primary"
+                      class="h-3.5 w-3.5 rounded accent-primary text-primary"
                       @change="toggleDisability(d)"
                     />
                     <span class="text-[11px]">{{ d }}</span>
@@ -1104,7 +620,7 @@ const handleSubmit = () => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-muted-foreground">Currently an Active OFW?</span>
-                  <input type="checkbox" v-model="isOfw" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                  <input type="checkbox" v-model="isOfw" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                 </div>
                 <div v-if="isOfw" class="pt-1">
                   <span class="text-[11px] text-muted-foreground">Country of Deployment</span>
@@ -1116,7 +632,7 @@ const handleSubmit = () => {
               <div class="space-y-2 pt-2 border-t">
                 <div class="flex items-center justify-between">
                   <span class="text-muted-foreground">Former / Returned OFW?</span>
-                  <input type="checkbox" v-model="isFormerOfw" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                  <input type="checkbox" v-model="isFormerOfw" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                 </div>
                 <div v-if="isFormerOfw" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div class="space-y-1">
@@ -1156,7 +672,12 @@ const handleSubmit = () => {
           <CardContent class="p-5 space-y-5 text-xs">
             <!-- Currently in school checkbox -->
             <div class="flex items-center gap-2 p-3 rounded-lg border bg-muted/10">
-              <input type="checkbox" v-model="currentlyInSchool" id="inSchool" class="h-4 w-4 rounded text-primary cursor-pointer" />
+              <input
+                type="checkbox"
+                v-model="currentlyInSchool"
+                id="inSchool"
+                class="h-4 w-4 rounded accent-primary text-primary cursor-pointer"
+              />
               <label for="inSchool" class="font-medium text-foreground cursor-pointer">
                 Applicant is currently enrolled in school / pursuing a degree
               </label>
@@ -1187,7 +708,7 @@ const handleSubmit = () => {
                     <span class="text-[11px] text-muted-foreground">Education Level</span>
                     <select
                       v-model="edu.level"
-                      class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs"
+                      class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       <option value="Elementary">Elementary</option>
                       <option value="Secondary / High School">Secondary / High School</option>
@@ -1299,7 +820,7 @@ const handleSubmit = () => {
                       <span class="text-[11px] text-muted-foreground">Status of Appointment</span>
                       <select
                         v-model="work.status_of_appointment"
-                        class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs"
+                        class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
                         <option value="Permanent">Permanent</option>
                         <option value="Contractual">Contractual</option>
@@ -1519,16 +1040,16 @@ const handleSubmit = () => {
                     <TableRow v-for="(lang, idx) in languageProficiencies" :key="idx">
                       <TableCell class="py-2 font-medium">{{ lang.language }}</TableCell>
                       <TableCell class="py-2 text-center">
-                        <input type="checkbox" v-model="lang.read" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                        <input type="checkbox" v-model="lang.read" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                       </TableCell>
                       <TableCell class="py-2 text-center">
-                        <input type="checkbox" v-model="lang.write" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                        <input type="checkbox" v-model="lang.write" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                       </TableCell>
                       <TableCell class="py-2 text-center">
-                        <input type="checkbox" v-model="lang.speak" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                        <input type="checkbox" v-model="lang.speak" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                       </TableCell>
                       <TableCell class="py-2 text-center">
-                        <input type="checkbox" v-model="lang.understand" class="h-4 w-4 rounded text-primary cursor-pointer" />
+                        <input type="checkbox" v-model="lang.understand" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
                       </TableCell>
                       <TableCell class="py-2 text-right">
                         <Button
@@ -1639,7 +1160,7 @@ const handleSubmit = () => {
                     v-for="(os, idx) in preferredOverseasLocations"
                     :key="idx"
                     variant="outline"
-                    class="text-[11px] bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20 gap-1"
+                    class="text-[11px] bg-primary/10 text-primary border-primary/30 gap-1"
                   >
                     <span>{{ os }}</span>
                     <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeOverseasLocation(idx)" />
@@ -1653,7 +1174,7 @@ const handleSubmit = () => {
               <span class="font-semibold text-foreground text-xs block">Employment Type Preferences</span>
               <div class="flex flex-wrap gap-2">
                 <label
-                  v-for="jt in JOB_TYPE_OPTIONS"
+                  v-for="jt in jobTypeOptions"
                   :key="jt"
                   class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-muted/40"
                   :class="jobTypePreference.includes(jt) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
@@ -1661,7 +1182,7 @@ const handleSubmit = () => {
                   <input
                     type="checkbox"
                     :checked="jobTypePreference.includes(jt)"
-                    class="h-3.5 w-3.5 rounded text-primary cursor-pointer"
+                    class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer"
                     @change="toggleJobType(jt)"
                   />
                   <span class="text-xs">{{ jt }}</span>
@@ -1674,7 +1195,7 @@ const handleSubmit = () => {
               <span class="font-semibold text-foreground text-xs block">Referred DOLE Programs & Assistance</span>
               <div class="flex flex-wrap gap-2">
                 <label
-                  v-for="prog in PROGRAM_OPTIONS"
+                  v-for="prog in programOptions"
                   :key="prog"
                   class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors hover:bg-muted/40"
                   :class="referredPrograms.includes(prog) ? 'bg-primary/15 border-primary/40 font-bold text-primary' : ''"
@@ -1682,7 +1203,7 @@ const handleSubmit = () => {
                   <input
                     type="checkbox"
                     :checked="referredPrograms.includes(prog)"
-                    class="h-3.5 w-3.5 rounded text-primary cursor-pointer"
+                    class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer"
                     @change="toggleProgram(prog)"
                   />
                   <span class="text-xs">{{ prog }}</span>
