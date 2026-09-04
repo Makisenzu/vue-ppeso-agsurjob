@@ -5,6 +5,11 @@ import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEn
 import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 
+import {
+  downloadNsrpFormHtml,
+  printNsrpForm,
+} from '@/helpers/peso/provincialPeso/nsrpTemplateHelper'
+
 export interface UseApplicantNsrpDetailsProps {
   applicant?: ApplicantEntryRecord
 }
@@ -41,7 +46,17 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   }
 
   const handlePrint = () => {
-    window.print()
+    if (applicant.value) {
+      printNsrpForm(applicant.value)
+    } else {
+      window.print()
+    }
+  }
+
+  const handleDownloadForm = () => {
+    if (applicant.value) {
+      downloadNsrpFormHtml(applicant.value)
+    }
   }
 
   const formattedDob = computed(() => (applicant.value ? formatDateDisplay(applicant.value.dateOfBirth) : 'N/A'))
@@ -54,6 +69,7 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     isLoading,
     handleBack,
     handlePrint,
+    handleDownloadForm,
     formattedDob,
     formattedRegisteredDate,
     formattedUpdatedDate,

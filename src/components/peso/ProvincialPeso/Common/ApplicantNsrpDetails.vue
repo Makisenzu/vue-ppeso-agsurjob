@@ -5,6 +5,7 @@ import {
   BookOpen,
   Building2,
   CheckCircle2,
+  Download,
   Globe,
   Languages,
   Loader2,
@@ -44,6 +45,7 @@ const {
   isLoading,
   handleBack,
   handlePrint,
+  handleDownloadForm,
   formattedDob,
   formattedRegisteredDate,
   formattedUpdatedDate,
@@ -73,11 +75,20 @@ const {
         <Button
           variant="outline"
           size="sm"
+          class="gap-1.5 text-xs cursor-pointer shadow-xs hover:bg-muted"
+          @click="handleDownloadForm"
+        >
+          <Download class="h-3.5 w-3.5 text-primary" />
+          <span>Download NSRP Form</span>
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
           class="gap-1.5 text-xs cursor-pointer shadow-xs"
           @click="handlePrint"
         >
           <Printer class="h-3.5 w-3.5" />
-          <span>Print / Export Form</span>
+          <span>Print NSRP Form</span>
         </Button>
       </div>
     </div>
