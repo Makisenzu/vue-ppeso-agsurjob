@@ -1,5 +1,7 @@
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { formatDateDisplay } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas-pro'
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return ''
@@ -418,9 +420,12 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 </head>
 <body>
 
-  <!-- Floating Print Helper for Browser Preview -->
+  <!-- Floating Action Helper for Browser Preview -->
   <div class="no-print" style="position: fixed; top: 12px; right: 12px; z-index: 9999; display: flex; gap: 8px;">
-    <button onclick="window.print()" style="background: #1e3a8a; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+    <button id="btn-download-pdf" onclick="downloadPdf()" style="background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 6px;">
+      📥 Download PDF
+    </button>
+    <button onclick="window.print()" style="background: #1e3a8a; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 6px;">
       🖨️ Print Form
     </button>
   </div>
@@ -1197,12 +1202,246 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@2.4.1/dist/html2canvas-pro.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    async function downloadPdf() {
+      var btn = document.getElementById('btn-download-pdf');
+      var originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ Generating PDF...';
+      btn.disabled = true;
+
+      try {
+        var jspdfObj = window.jspdf;
+        var jsPDF = jspdfObj.jsPDF;
+        var page1 = document.getElementById('page-1');
+        var page2 = document.getElementById('page-2');
+
+        var pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+          compress: true
+        });
+
+        var renderPage = async function(element, isFirst) {
+          var canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: 1200
+          });
+          var imgData = canvas.toDataURL('image/jpeg', 0.98);
+          if (!isFirst) {
+            pdf.addPage('a4', 'portrait');
+          }
+          var ratio = canvas.width / canvas.height;
+          var targetWidth = 195;
+          var targetHeight = targetWidth / ratio;
+          if (targetHeight > 287) {
+            targetHeight = 287;
+            targetWidth = targetHeight * ratio;
+          }
+          var marginX = (210 - targetWidth) / 2;
+          var marginY = (297 - targetHeight) / 2;
+          pdf.addImage(imgData, 'JPEG', marginX, marginY, targetWidth, targetHeight, undefined, 'FAST');
+        };
+
+        await renderPage(page1, true);
+        await renderPage(page2, false);
+
+        pdf.save('NSRP_Form1_${surname || 'applicant'}.pdf');
+      } catch (err) {
+        console.error('Error generating PDF:', err);
+        alert('Failed to generate PDF. You can also use Print Form and select "Save as PDF".');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>`
 }
 
 /**
- * Downloads the filled NSRP form as an HTML file.
+ * Internal helper to generate a 2-page A4 portrait jsPDF document from the NSRP HTML.
+ */
+async function createNsrpFormJsPdf(applicant: Partial<ApplicantEntryRecord>): Promise<jsPDF> {
+  const htmlContent = generateNsrpFormHtml(applicant)
+
+  // Use an isolated hidden iframe so no styles, Tailwind v4 CSS variables or oklch colors bleed into the renderer
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.left = '-99999px'
+  iframe.style.top = '0'
+  iframe.style.width = '1200px'
+  iframe.style.height = '1600px'
+  iframe.style.border = '0'
+  iframe.style.opacity = '0'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-99999'
+  document.body.appendChild(iframe)
+
+  try {
+    const iframeWin = iframe.contentWindow
+    const iframeDoc = iframe.contentDocument || iframeWin?.document
+    if (!iframeWin || !iframeDoc) {
+      throw new Error('Unable to initialize rendering environment for PDF.')
+    }
+
+    // Strip any script tags from the injected HTML to prevent duplicate script execution inside the iframe
+    const cleanHtml = htmlContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    iframeDoc.open()
+    iframeDoc.write(cleanHtml)
+    iframeDoc.close()
+
+    // Strip no-print elements from iframe
+    iframeDoc.querySelectorAll('.no-print').forEach((el) => el.remove())
+
+    // Normalize container pages so box-shadow or outer margins don't appear in canvas
+    iframeDoc.querySelectorAll('.page-container').forEach((el) => {
+      const pageEl = el as HTMLElement
+      pageEl.style.boxShadow = 'none'
+      pageEl.style.margin = '0 auto'
+    })
+
+    // Wait for images (seals, logos) to load
+    const images = Array.from(iframeDoc.querySelectorAll('img'))
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete && img.naturalHeight !== 0) {
+              resolve()
+            } else {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+              setTimeout(resolve, 1500)
+            }
+          })
+      )
+    )
+
+    // Wait for fonts
+    if (iframeDoc.fonts) {
+      await iframeDoc.fonts.ready
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const page1 = iframeDoc.getElementById('page-1') as HTMLElement
+    const page2 = iframeDoc.getElementById('page-2') as HTMLElement
+
+    if (!page1 || !page2) {
+      throw new Error('NSRP form pages (#page-1, #page-2) could not be located.')
+    }
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    })
+
+    const pdfWidth = 210
+    const pdfHeight = 297
+
+    const addElementToPdfPage = async (element: HTMLElement, isFirst: boolean) => {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 1200,
+      })
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+      if (!isFirst) {
+        pdf.addPage('a4', 'portrait')
+      }
+
+      const ratio = canvas.width / canvas.height
+      let targetWidth = 195
+      let targetHeight = targetWidth / ratio
+      if (targetHeight > 287) {
+        targetHeight = 287
+        targetWidth = targetHeight * ratio
+      }
+      const marginX = (pdfWidth - targetWidth) / 2
+      const marginY = (pdfHeight - targetHeight) / 2
+
+      pdf.addImage(imgData, 'JPEG', marginX, marginY, targetWidth, targetHeight, undefined, 'FAST')
+    }
+
+    await addElementToPdfPage(page1, true)
+    await addElementToPdfPage(page2, false)
+
+    return pdf
+  } finally {
+    if (document.body.contains(iframe)) {
+      document.body.removeChild(iframe)
+    }
+  }
+}
+
+/**
+ * Generates and downloads the filled NSRP form as a genuine high-resolution PDF file.
+ */
+export async function downloadNsrpFormPdf(
+  applicant: Partial<ApplicantEntryRecord>,
+  customFilename?: string
+): Promise<void> {
+  const pdf = await createNsrpFormJsPdf(applicant)
+  const safeName = (applicant.fullName || applicant.surname || 'applicant')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/gi, '_')
+  const fileName = customFilename || `NSRP_Form1_${safeName}.pdf`
+  pdf.save(fileName)
+}
+
+/**
+ * Prepares the NSRP form as a PDF and triggers the browser print interface.
+ */
+export async function printNsrpForm(applicant: Partial<ApplicantEntryRecord>): Promise<void> {
+  const pdf = await createNsrpFormJsPdf(applicant)
+  pdf.autoPrint()
+  const blob = pdf.output('blob')
+  const blobUrl = URL.createObjectURL(blob)
+
+  const printWindow = window.open(blobUrl, '_blank')
+  if (!printWindow) {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.src = blobUrl
+    document.body.appendChild(iframe)
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (err) {
+        console.error('Error triggering iframe print:', err)
+      }
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+        URL.revokeObjectURL(blobUrl)
+      }, 60000)
+    }
+  }
+}
+
+/**
+ * Downloads the filled NSRP form as an HTML file (legacy fallback).
  */
 export function downloadNsrpFormHtml(applicant: Partial<ApplicantEntryRecord>, customFilename?: string): void {
   const htmlContent = generateNsrpFormHtml(applicant)
@@ -1219,30 +1458,4 @@ export function downloadNsrpFormHtml(applicant: Partial<ApplicantEntryRecord>, c
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-}
-
-/**
- * Opens a print popup window loaded with the 100% accurate NSRP Form HTML and triggers window.print().
- */
-export function printNsrpForm(applicant: Partial<ApplicantEntryRecord>): void {
-  const htmlContent = generateNsrpFormHtml(applicant)
-  const printWindow = window.open('', '_blank', 'width=900,height=1100,menubar=no,toolbar=no,location=no,status=no')
-  if (!printWindow) {
-    // Fallback if popup blocker intervenes
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    return
-  }
-
-  printWindow.document.open()
-  printWindow.document.write(htmlContent)
-  printWindow.document.close()
-
-  printWindow.onload = () => {
-    printWindow.focus()
-    setTimeout(() => {
-      printWindow.print()
-    }, 400)
-  }
 }

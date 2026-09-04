@@ -1,12 +1,13 @@
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 
 import {
-  downloadNsrpFormHtml,
+  downloadNsrpFormPdf,
   printNsrpForm,
 } from '@/helpers/peso/provincialPeso/nsrpTemplateHelper'
 
@@ -23,7 +24,11 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   const route = useRoute()
   const router = useRouter()
   const store = useApplicantEntryStore()
+  const toastAlert = useToastAlert()
   const { isLoading } = storeToRefs(store)
+
+  const isGeneratingPdf = ref(false)
+  const isPrintingPdf = ref(false)
 
   const applicant = computed<ApplicantEntryRecord | null>(() => {
     if (options?.props?.applicant) return options.props.applicant
@@ -45,17 +50,33 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     router.push({ name: 'provincial-peso-entry' })
   }
 
-  const handlePrint = () => {
-    if (applicant.value) {
-      printNsrpForm(applicant.value)
-    } else {
+  const handlePrint = async () => {
+    if (!applicant.value) {
       window.print()
+      return
+    }
+    try {
+      isPrintingPdf.value = true
+      await printNsrpForm(applicant.value)
+    } catch (error: any) {
+      console.error('Failed to prepare NSRP print:', error)
+      toastAlert.error('Print Preparation Failed', error?.message || 'Unable to prepare PDF for printing.')
+    } finally {
+      isPrintingPdf.value = false
     }
   }
 
-  const handleDownloadForm = () => {
-    if (applicant.value) {
-      downloadNsrpFormHtml(applicant.value)
+  const handleDownloadForm = async () => {
+    if (!applicant.value) return
+    try {
+      isGeneratingPdf.value = true
+      await downloadNsrpFormPdf(applicant.value)
+      toastAlert.success('PDF Downloaded', 'The NSRP Form 1 PDF has been generated and downloaded.')
+    } catch (error: any) {
+      console.error('Failed to generate NSRP PDF:', error)
+      toastAlert.error('PDF Generation Failed', error?.message || 'Unable to generate PDF. Please try again.')
+    } finally {
+      isGeneratingPdf.value = false
     }
   }
 
@@ -67,9 +88,12 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   return {
     applicant,
     isLoading,
+    isGeneratingPdf,
+    isPrintingPdf,
     handleBack,
     handlePrint,
     handleDownloadForm,
+    handleDownloadPdf: handleDownloadForm,
     formattedDob,
     formattedRegisteredDate,
     formattedUpdatedDate,
@@ -78,3 +102,4 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     formatDateDisplay,
   }
 }
+

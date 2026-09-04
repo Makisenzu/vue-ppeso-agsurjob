@@ -43,6 +43,8 @@ const emit = defineEmits<{
 const {
   applicant,
   isLoading,
+  isGeneratingPdf,
+  isPrintingPdf,
   handleBack,
   handlePrint,
   handleDownloadForm,
@@ -76,19 +78,23 @@ const {
           variant="outline"
           size="sm"
           class="gap-1.5 text-xs cursor-pointer shadow-xs hover:bg-muted"
+          :disabled="isGeneratingPdf"
           @click="handleDownloadForm"
         >
-          <Download class="h-3.5 w-3.5 text-primary" />
-          <span>Download NSRP Form</span>
+          <Loader2 v-if="isGeneratingPdf" class="h-3.5 w-3.5 animate-spin text-primary" />
+          <Download v-else class="h-3.5 w-3.5 text-primary" />
+          <span>{{ isGeneratingPdf ? 'Generating PDF...' : 'Download PDF Form' }}</span>
         </Button>
         <Button
           variant="default"
           size="sm"
           class="gap-1.5 text-xs cursor-pointer shadow-xs"
+          :disabled="isPrintingPdf"
           @click="handlePrint"
         >
-          <Printer class="h-3.5 w-3.5" />
-          <span>Print NSRP Form</span>
+          <Loader2 v-if="isPrintingPdf" class="h-3.5 w-3.5 animate-spin" />
+          <Printer v-else class="h-3.5 w-3.5" />
+          <span>{{ isPrintingPdf ? 'Preparing Print...' : 'Print NSRP Form' }}</span>
         </Button>
       </div>
     </div>

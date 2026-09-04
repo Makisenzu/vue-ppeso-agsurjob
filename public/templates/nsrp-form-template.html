@@ -208,9 +208,12 @@
 </head>
 <body>
 
-  <!-- Floating Print Helper for Browser Preview -->
+  <!-- Floating Action Helper for Browser Preview -->
   <div class="no-print" style="position: fixed; top: 12px; right: 12px; z-index: 9999; display: flex; gap: 8px;">
-    <button onclick="window.print()" style="background: #1e3a8a; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+    <button id="btn-download-pdf" onclick="downloadPdf()" style="background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 6px;">
+      📥 Download PDF
+    </button>
+    <button onclick="window.print()" style="background: #1e3a8a; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 6px;">
       🖨️ Print Form
     </button>
   </div>
@@ -1005,5 +1008,65 @@
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@2.4.1/dist/html2canvas-pro.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    async function downloadPdf() {
+      var btn = document.getElementById('btn-download-pdf');
+      var originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ Generating PDF...';
+      btn.disabled = true;
+
+      try {
+        var jspdfObj = window.jspdf;
+        var jsPDF = jspdfObj.jsPDF;
+        var page1 = document.getElementById('page-1');
+        var page2 = document.getElementById('page-2');
+
+        var pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+          compress: true
+        });
+
+        var renderPage = async function(element, isFirst) {
+          var canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: 1200
+          });
+          var imgData = canvas.toDataURL('image/jpeg', 0.98);
+          if (!isFirst) {
+            pdf.addPage('a4', 'portrait');
+          }
+          var ratio = canvas.width / canvas.height;
+          var targetWidth = 195;
+          var targetHeight = targetWidth / ratio;
+          if (targetHeight > 287) {
+            targetHeight = 287;
+            targetWidth = targetHeight * ratio;
+          }
+          var marginX = (210 - targetWidth) / 2;
+          var marginY = (297 - targetHeight) / 2;
+          pdf.addImage(imgData, 'JPEG', marginX, marginY, targetWidth, targetHeight, undefined, 'FAST');
+        };
+
+        await renderPage(page1, true);
+        await renderPage(page2, false);
+
+        pdf.save('NSRP_Form1_Template.pdf');
+      } catch (err) {
+        console.error('Error generating PDF:', err);
+        alert('Failed to generate PDF. You can also use Print Form and select "Save as PDF".');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>
