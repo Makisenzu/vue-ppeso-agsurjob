@@ -51,6 +51,11 @@ const {
   refreshApplicants,
   exportCsv,
   formatDateDisplay,
+  toggleProgramFilter,
+  clearSearch,
+  setPage,
+  prevPage,
+  nextPage,
 } = useApplicantEntry()
 </script>
 
@@ -128,7 +133,7 @@ const {
       <Card
         class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-blue-500/40 transition-all cursor-pointer"
         :class="selectedProgramFilter === 'GIP' ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm' : ''"
-        @click="selectedProgramFilter = selectedProgramFilter === 'GIP' ? 'ALL' : 'GIP'"
+        @click="toggleProgramFilter('GIP')"
       >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
@@ -150,7 +155,7 @@ const {
       <Card
         class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-emerald-500/40 transition-all cursor-pointer"
         :class="selectedProgramFilter === 'TUPAD' ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm' : ''"
-        @click="selectedProgramFilter = selectedProgramFilter === 'TUPAD' ? 'ALL' : 'TUPAD'"
+        @click="toggleProgramFilter('TUPAD')"
       >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
@@ -172,7 +177,7 @@ const {
       <Card
         class="border shadow-xs bg-card/60 backdrop-blur-xs hover:border-amber-500/40 transition-all cursor-pointer"
         :class="selectedProgramFilter === 'SPES' ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm' : ''"
-        @click="selectedProgramFilter = selectedProgramFilter === 'SPES' ? 'ALL' : 'SPES'"
+        @click="toggleProgramFilter('SPES')"
       >
         <CardContent class="p-4 flex items-center justify-between">
           <div class="space-y-0.5 min-w-0">
@@ -218,7 +223,7 @@ const {
             <button
               v-if="searchQuery"
               class="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
-              @click="searchQuery = ''"
+              @click="clearSearch"
             >
               <X class="h-4 w-4" />
             </button>
@@ -516,7 +521,7 @@ const {
               size="sm"
               class="h-8 text-xs px-2.5 cursor-pointer"
               :disabled="currentPage <= 1"
-              @click="currentPage--"
+              @click="prevPage"
             >
               Previous
             </Button>
@@ -527,7 +532,7 @@ const {
                 size="sm"
                 :variant="currentPage === p ? 'default' : 'outline'"
                 class="h-8 w-8 p-0 text-xs cursor-pointer"
-                @click="currentPage = p"
+                @click="setPage(p)"
               >
                 {{ p }}
               </Button>
@@ -538,7 +543,7 @@ const {
               size="sm"
               class="h-8 text-xs px-2.5 cursor-pointer"
               :disabled="currentPage >= totalPages"
-              @click="currentPage++"
+              @click="nextPage"
             >
               Next
             </Button>

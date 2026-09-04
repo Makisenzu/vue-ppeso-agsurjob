@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
 import {
   ArrowLeft,
   Award,
@@ -29,9 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
-import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
+import { useApplicantNsrpDetails } from '@/composables/peso/provincialPeso/useApplicantNsrpDetails'
 
 interface Props {
   applicant?: ApplicantEntryRecord
@@ -43,40 +39,18 @@ const emit = defineEmits<{
   (e: 'back'): void
 }>()
 
-const route = useRoute()
-const router = useRouter()
-const store = useApplicantEntryStore()
-const { isLoading } = storeToRefs(store)
-
-const applicant = computed<ApplicantEntryRecord | null>(() => {
-  if (props.applicant) return props.applicant
-  const id = route.params.id as string
-  if (store.selectedApplicant && store.selectedApplicant.id === id) {
-    return store.selectedApplicant
-  }
-  return store.applicants.find((a) => a.id === id) ?? null
-})
-
-onMounted(async () => {
-  if (!applicant.value && store.applicants.length === 0) {
-    await store.fetchApplicants()
-  }
-})
-
-const handleBack = () => {
-  emit('back')
-  router.push({ name: 'provincial-peso-entry' })
-}
-
-const handlePrint = () => {
-  window.print()
-}
-
-// Age or DOB formatted
-const formattedDob = computed(() => (applicant.value ? formatDateDisplay(applicant.value.dateOfBirth) : 'N/A'))
-const formattedRegisteredDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.createdAt) : 'N/A'))
-const formattedUpdatedDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.updatedAt) : 'N/A'))
-const formattedAssessmentDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.assessmentDate) : 'N/A'))
+const {
+  applicant,
+  isLoading,
+  handleBack,
+  handlePrint,
+  formattedDob,
+  formattedRegisteredDate,
+  formattedUpdatedDate,
+  formattedAssessmentDate,
+  getInitials,
+  formatDateDisplay,
+} = useApplicantNsrpDetails({ props, emit })
 </script>
 
 <template>

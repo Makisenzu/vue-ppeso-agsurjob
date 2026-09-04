@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
 import {
   ArrowLeft,
   ArrowRight,
@@ -30,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import type { ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 
@@ -43,30 +39,15 @@ const emit = defineEmits<{
   (e: 'submit', payload: ApplicantInsert): void
 }>()
 
-const router = useRouter()
-const store = useApplicantEntryStore()
-const { isSubmitting: storeSubmitting } = storeToRefs(store)
-
-const isFormSubmitting = computed(() => props.isSubmitting ?? storeSubmitting.value)
-
-const onFormSubmit = async (payload: ApplicantInsert) => {
-  emit('submit', payload)
-  try {
-    await store.createApplicant(payload)
-    router.push({ name: 'provincial-peso-entry' })
-  } catch {
-    // Toast error handled in store
-  }
-}
-
 const {
+  isFormSubmitting,
+  handleCancel,
+  handleSubmit,
   steps,
   currentStep,
   nextStep,
   prevStep,
   goToStep,
-  handleSubmit,
-  resetForm,
 
   // PSGC
   psgcProvinces,
@@ -170,15 +151,7 @@ const {
   assessedByName,
   assessmentDate,
   profileId,
-} = useApplicantNewEntry({
-  emit: (_e: 'submit', payload: ApplicantInsert) => onFormSubmit(payload),
-})
-
-const handleCancel = () => {
-  resetForm()
-  emit('back')
-  router.push({ name: 'provincial-peso-entry' })
-}
+} = useApplicantNewEntry({ props, emit })
 </script>
 
 <template>

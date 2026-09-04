@@ -173,6 +173,32 @@ export function useApplicantEntry() {
     exportApplicantsToCsv(filteredApplicants.value, filterDesc)
   }
 
+  const toggleProgramFilter = (prog: string) => {
+    selectedProgramFilter.value = selectedProgramFilter.value === prog ? 'ALL' : prog
+  }
+
+  const clearSearch = () => {
+    searchQuery.value = ''
+  }
+
+  const setPage = (page: number) => {
+    if (page >= 1 && page <= totalPages.value) {
+      currentPage.value = page
+    }
+  }
+
+  const prevPage = () => {
+    if (currentPage.value > 1) {
+      currentPage.value--
+    }
+  }
+
+  const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++
+    }
+  }
+
   onMounted(() => {
     fetchApplicants()
   })
@@ -203,6 +229,11 @@ export function useApplicantEntry() {
     resetFilters,
     refreshApplicants,
     exportCsv,
+    toggleProgramFilter,
+    clearSearch,
+    setPage,
+    prevPage,
+    nextPage,
     getInitials,
     formatDateDisplay,
   }

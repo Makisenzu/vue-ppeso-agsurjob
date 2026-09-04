@@ -1,4 +1,6 @@
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import {
   Briefcase,
   Compass,
@@ -9,6 +11,7 @@ import {
 } from '@lucide/vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
+import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import type {
   ApplicantInsert,
   EducationalBackgroundItem,
@@ -48,12 +51,25 @@ export const PROGRAM_OPTIONS: readonly string[] = [
   'PESO Job Fair',
 ]
 
+export interface UseApplicantNewEntryProps {
+  isSubmitting?: boolean
+}
+
 export interface UseApplicantNewEntryOptions {
-  emit?: (e: 'submit', payload: ApplicantInsert) => void
+  props?: UseApplicantNewEntryProps
+  emit?: {
+    (e: 'back'): void
+    (e: 'submit', payload: ApplicantInsert): void
+  } | ((e: any, ...args: any[]) => void)
 }
 
 export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
+  const router = useRouter()
+  const store = useApplicantEntryStore()
   const toastAlert = useToastAlert()
+  const { isSubmitting: storeSubmitting } = storeToRefs(store)
+
+  const isFormSubmitting = computed(() => options?.props?.isSubmitting ?? storeSubmitting.value)
 
   // ─── Steps Definition ───
   const steps = [
@@ -688,15 +704,32 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     profileId.value = ''
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const payload = buildPayload()
-    if (payload && options?.emit) {
+    if (!payload) return null
+    if (options?.emit) {
       options.emit('submit', payload)
+    }
+    try {
+      await store.createApplicant(payload)
+      router.push({ name: 'provincial-peso-entry' })
+    } catch {
+      // Toast error handled in store
     }
     return payload
   }
 
+  const handleCancel = () => {
+    resetForm()
+    if (options?.emit) {
+      options.emit('back')
+    }
+    router.push({ name: 'provincial-peso-entry' })
+  }
+
   return {
+    isFormSubmitting,
+    handleCancel,
     steps,
     currentStep,
     nextStep,
