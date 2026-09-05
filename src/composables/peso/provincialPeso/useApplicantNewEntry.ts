@@ -359,7 +359,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
 
   // ─── STEP 6: Job Preferences & PESO Assessment ───
   const preferredOccupations = ref<string[]>([
-    'Administrative Assistant',
+    '',
   ])
   const newOccupationTag = ref('')
 
@@ -376,8 +376,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   }
 
   const preferredLocalLocations = ref<string[]>([
-    'Agusan del Sur',
-    'Prosperidad',
+    '',
   ])
   const newLocalLocationTag = ref('')
 
@@ -430,7 +429,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
-  const assessedByName = ref('Provincial PESO Evaluator')
+  const assessedByName = ref('JUNEL LIBRES')
   const assessmentDate = ref(new Date().toISOString().split('T')[0])
   const profileId = ref('')
 
@@ -699,7 +698,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     newOverseasLocationTag.value = ''
     jobTypePreference.value = ['Full-Time']
     referredPrograms.value = ['GIP']
-    assessedByName.value = 'Provincial PESO Evaluator'
+    assessedByName.value = 'JUNEL LIBRES'
     assessmentDate.value = new Date().toISOString().split('T')[0]
     profileId.value = ''
   }
