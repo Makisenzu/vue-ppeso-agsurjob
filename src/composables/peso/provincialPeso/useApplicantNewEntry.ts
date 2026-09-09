@@ -261,7 +261,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       job_title: '',
       inclusive_dates: '',
       monthly_salary: '',
-      status_of_appointment: 'Permanent',
+      status_of_appointment: '',
     },
   ])
 
@@ -272,7 +272,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       job_title: '',
       inclusive_dates: '',
       monthly_salary: '',
-      status_of_appointment: 'Permanent',
+      status_of_appointment: '',
     })
   }
 
@@ -313,8 +313,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
 
   // Skills tags
   const otherSkills = ref<string[]>([
-    'Computer Literacy',
-    'Customer Service',
+    '',
   ])
   const newSkillTag = ref('')
   const otherSkillsSpecified = ref('')

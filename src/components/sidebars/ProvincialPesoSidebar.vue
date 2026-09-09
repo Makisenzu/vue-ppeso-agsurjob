@@ -166,7 +166,7 @@ const companyItems = [
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />
-          <SidebarGroupLabel>Administrative</SidebarGroupLabel>
+          <SidebarGroupLabel>Administrative Support Unit</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
