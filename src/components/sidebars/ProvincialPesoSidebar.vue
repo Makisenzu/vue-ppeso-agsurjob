@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BetweenHorizontalEnd,Blocks,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned} from '@lucide/vue'
+import { BetweenHorizontalEnd,Blocks,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned, IdCardLanyard} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -53,6 +53,7 @@ const settingsSubItems = [
 ]
 
 const employmentItems = [
+  { title: 'Job Fair', to: {name: 'provincial-peso-job-fair'}, icon: IdCardLanyard },
   { title: 'FNPLP / OFW', to: {name: 'provincial-peso-fnplp'}, icon: Plane },
   { title: 'GIP', to: {name: 'provincial-peso-gip'}, icon: SquareUser },
   { title: 'TUPAD', to: {name: 'provincial-peso-tupad'}, icon: Hammer },

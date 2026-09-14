@@ -52,6 +52,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'provincial_peso' }
       },
       {
+        path: 'job-fair',
+        name: 'provincial-peso-job-fair',
+        component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFair.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso' }
+      },
+      {
         path: 'tupad',
         name: 'provincial-peso-tupad',
         component: TupadDashboard,

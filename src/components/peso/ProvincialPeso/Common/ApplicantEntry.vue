@@ -66,7 +66,7 @@ const {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">
-          Applicant Master Registry
+          Applicant Registry
         </h1>
         <p class="text-sm text-muted-foreground">
           Comprehensive database of registered jobseekers across Agusan del Sur.

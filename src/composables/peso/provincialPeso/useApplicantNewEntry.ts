@@ -417,7 +417,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
-  const referredPrograms = ref<string[]>(['GIP'])
+  const referredPrograms = ref<string[]>(['PESO Job Fair'])
 
   const toggleProgram = (p: string) => {
     const idx = referredPrograms.value.indexOf(p)
@@ -428,7 +428,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
-  const assessedByName = ref('JUNEL LIBRES')
+  const assessedByName = ref('Denmark Rivera')
   const assessmentDate = ref(new Date().toISOString().split('T')[0])
   const profileId = ref('')
 
@@ -696,8 +696,8 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     preferredOverseasLocations.value = []
     newOverseasLocationTag.value = ''
     jobTypePreference.value = ['Full-Time']
-    referredPrograms.value = ['GIP']
-    assessedByName.value = 'JUNEL LIBRES'
+    referredPrograms.value = ['PESO Job Fair']
+    assessedByName.value = 'Denmark Rivera'
     assessmentDate.value = new Date().toISOString().split('T')[0]
     profileId.value = ''
   }
