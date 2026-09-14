@@ -19,8 +19,6 @@ import {
   Trash2,
   TreePine,
   UploadCloud,
-  User,
-  Users,
   UserX,
   Waves,
   X,
@@ -195,9 +193,6 @@ const handleUploadBatchClick = () => {
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-md border bg-primary/10 text-primary">
-                  <Users class="h-4 w-4" />
-                </div>
                 <div>
                   <CardTitle class="text-base font-semibold">Combined Applicant LPII</CardTitle>
                   <CardDescription class="text-xs">All Registered GIP Applicants</CardDescription>
@@ -256,9 +251,6 @@ const handleUploadBatchClick = () => {
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-md border bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <User class="h-4 w-4" />
-                </div>
                 <div>
                   <CardTitle class="text-base font-semibold">Male Applicants</CardTitle>
                   <CardDescription class="text-xs">LPII Breakdown by Zone</CardDescription>
@@ -317,9 +309,6 @@ const handleUploadBatchClick = () => {
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-md border bg-pink-500/10 text-pink-600 dark:text-pink-400">
-                  <User class="h-4 w-4" />
-                </div>
                 <div>
                   <CardTitle class="text-base font-semibold">Female Applicants</CardTitle>
                   <CardDescription class="text-xs">LPII Breakdown by Zone</CardDescription>

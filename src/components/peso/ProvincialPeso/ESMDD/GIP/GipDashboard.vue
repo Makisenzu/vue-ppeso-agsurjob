@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
-import { Building2, ChevronRight, Landmark, Loader2, RefreshCw, Users } from '@lucide/vue'
+import { ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 
@@ -64,9 +64,6 @@ const {
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <Card class="p-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Landmark class="h-5 w-5" />
-          </div>
           <div>
             <p class="text-xs text-muted-foreground">GIP PGAS Total</p>
             <p class="text-xl font-bold font-mono">
@@ -77,9 +74,6 @@ const {
       </Card>
       <Card class="p-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Building2 class="h-5 w-5" />
-          </div>
           <div>
             <p class="text-xs text-muted-foreground">GIP DOLE Total</p>
             <p class="text-xl font-bold font-mono">
@@ -90,9 +84,6 @@ const {
       </Card>
       <Card class="p-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Users class="h-5 w-5" />
-          </div>
           <div>
             <p class="text-xs text-muted-foreground">Overall Male Interns</p>
             <p class="text-xl font-bold font-mono">
@@ -103,9 +94,6 @@ const {
       </Card>
       <Card class="p-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Users class="h-5 w-5" />
-          </div>
           <div>
             <p class="text-xs text-muted-foreground">Overall Female Interns</p>
             <p class="text-xl font-bold font-mono">
