@@ -192,6 +192,29 @@ export function mapToGipInternRecord(
     status = 'Resigned'
   }
 
+  let assignedOffice = program === 'PGAS' ? 'Provincial PESO / PGAS Office' : 'DOLE AgSur Field Office'
+  let supervisor = 'Assigned Coordinator'
+  let stipend = program === 'DOLE' ? '₱475.00 / day' : '₱479.35 / day'
+  let period = `Jan ${batchYear} - Jun ${batchYear}`
+
+  if (gip.remarks) {
+    const cleaned = gip.remarks.replace(/^\[(PGAS|DOLE)\]\s*/i, '').trim()
+    const parts = cleaned.split('|').map((p) => p.trim())
+    if (parts[0]) {
+      assignedOffice = parts[0]
+    }
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i]
+      if (part.toLowerCase().startsWith('supervisor:')) {
+        supervisor = part.replace(/^supervisor:\s*/i, '').trim()
+      } else if (part.toLowerCase().startsWith('stipend:')) {
+        stipend = part.replace(/^stipend:\s*/i, '').trim()
+      } else if (part.toLowerCase().startsWith('period:')) {
+        period = part.replace(/^period:\s*/i, '').trim()
+      }
+    }
+  }
+
   return {
     id: gip.id,
     code,
@@ -201,12 +224,12 @@ export function mapToGipInternRecord(
     municipality: address.municipality,
     barangay: address.barangay,
     lpiiTag,
-    assignedOffice: gip.remarks || (program === 'PGAS' ? 'Provincial PESO / PGAS Office' : 'DOLE AgSur Field Office'),
-    supervisor: 'Assigned Coordinator',
+    assignedOffice,
+    supervisor,
     course,
-    stipend: program === 'DOLE' ? '₱450.00 / day' : '₱420.00 / day',
+    stipend,
     batchYear,
-    period: `Jan ${batchYear} - Jun ${batchYear}`,
+    period,
     status,
     contact,
     rawGip: gip,

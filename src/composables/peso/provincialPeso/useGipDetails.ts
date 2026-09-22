@@ -23,6 +23,8 @@ export function useGipDetails() {
     errorMessage,
     selectedIntern,
     isDetailsModalOpen,
+    isAddInternModalOpen,
+    applicants,
     searchQuery,
     selectedProgram,
     selectedLpiiFilter,
@@ -43,12 +45,17 @@ export function useGipDetails() {
 
   const {
     fetchDetailsData,
+    fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
+    deployInternFromApplicant,
     setSelectedProgram,
     resetFilters,
     openInternDetails,
     closeInternDetails,
+    openAddInternModal,
+    closeAddInternModal,
+    openBatchUploadModal,
     exportCsv,
   } = store
 
@@ -105,6 +112,7 @@ export function useGipDetails() {
     availableYears,
     selectedIntern,
     isDetailsModalOpen,
+    isAddInternModalOpen,
     isLoading,
     isSubmitting,
     errorMessage,
@@ -120,6 +128,9 @@ export function useGipDetails() {
     currentPage,
     pageSize,
 
+    // Applicants pool
+    applicants,
+
     // Visual Helpers & Configs
     LPII_CONFIG,
     donutTooltipTriggers,
@@ -130,8 +141,13 @@ export function useGipDetails() {
     resetFilters,
     openInternDetails,
     closeInternDetails,
+    openAddInternModal,
+    closeAddInternModal,
+    deployInternFromApplicant,
+    openBatchUploadModal,
     exportCsv,
     fetchDetailsData,
+    fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
   }

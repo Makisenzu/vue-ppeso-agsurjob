@@ -40,6 +40,7 @@ export const useGipStore = defineStore('gipStore', () => {
   const errorMessage = ref<string | null>(null)
   const selectedIntern = ref<GipInternRecord | null>(null)
   const isDetailsModalOpen = ref<boolean>(false)
+  const isAddInternModalOpen = ref<boolean>(false)
 
   // ─── Filter & Pagination State ───
   const searchQuery = ref<string>('')
@@ -298,6 +299,38 @@ export const useGipStore = defineStore('gipStore', () => {
     isDetailsModalOpen.value = false
   }
 
+  const openAddInternModal = () => {
+    isAddInternModalOpen.value = true
+  }
+
+  const closeAddInternModal = () => {
+    isAddInternModalOpen.value = false
+  }
+
+  const deployInternFromApplicant = async (payload: {
+    applicationId: string
+    program: 'PGAS' | 'DOLE'
+    assignedOffice: string
+    supervisor?: string
+    stipend?: string
+    period?: string
+    status?: string
+    remarks?: string
+  }) => {
+    isSubmitting.value = true
+    try {
+      await gipService.deployGipIntern(payload)
+      toastAlert.success('GIP Intern Deployed', 'Intern has been successfully deployed and registered.')
+      isAddInternModalOpen.value = false
+      await Promise.all([fetchDetailsData(), fetchApplicantsData()])
+    } catch (err: any) {
+      toastAlert.error('Deployment Failed', err.message || 'Could not deploy GIP intern.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const exportCsv = () => {
     try {
       exportGipInternsCsv(filteredInterns.value, selectedProgram.value)
@@ -551,6 +584,7 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedIntern,
     selectedApplicant,
     isDetailsModalOpen,
+    isAddInternModalOpen,
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,
@@ -608,6 +642,9 @@ export const useGipStore = defineStore('gipStore', () => {
     resetApplicantFilters,
     openInternDetails,
     closeInternDetails,
+    openAddInternModal,
+    closeAddInternModal,
+    deployInternFromApplicant,
     openApplicantDetails,
     closeApplicantDetails,
     openAddApplicantModal,

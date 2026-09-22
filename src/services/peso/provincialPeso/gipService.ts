@@ -498,4 +498,42 @@ export const gipService = {
       errors,
     }
   },
+
+  /**
+   * Deploys an applicant as a GIP intern by creating a record in esmdd.gips
+   * and updating the application status in esmdd.gip_applicants.
+   */
+  async deployGipIntern(deploymentData: {
+    applicationId: string
+    program: 'PGAS' | 'DOLE'
+    assignedOffice: string
+    supervisor?: string
+    stipend?: string
+    period?: string
+    status?: string
+    remarks?: string
+  }): Promise<GipRow> {
+    const parts = [`[${deploymentData.program}] ${deploymentData.assignedOffice}`]
+    if (deploymentData.supervisor) parts.push(`Supervisor: ${deploymentData.supervisor}`)
+    if (deploymentData.period) parts.push(`Period: ${deploymentData.period}`)
+    if (deploymentData.stipend) parts.push(`Stipend: ${deploymentData.stipend}`)
+    if (deploymentData.remarks) parts.push(`Notes: ${deploymentData.remarks}`)
+    const fullRemarks = parts.join(' | ')
+
+    const gip = await this.createGip({
+      application_id: deploymentData.applicationId,
+      status: deploymentData.status || 'Active',
+      remarks: fullRemarks,
+    })
+
+    try {
+      await this.updateGipApplicant(deploymentData.applicationId, {
+        status: deploymentData.status === 'Active' ? 'Approved' : deploymentData.status || 'Approved',
+      })
+    } catch (err) {
+      console.warn('[gipService] Could not update applicant status:', err)
+    }
+
+    return gip
+  },
 }
