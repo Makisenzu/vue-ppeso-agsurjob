@@ -101,7 +101,7 @@ export type Database = {
           profile_id: string | null
           remarks: string | null
           requirement_id: number | null
-          status: Database["public"]["Enums"]["status_type"] | null
+          status: Database["core"]["Enums"]["status_type"] | null
           updated_at: string | null
         }
         Insert: {
@@ -110,7 +110,7 @@ export type Database = {
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -119,7 +119,7 @@ export type Database = {
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -605,16 +605,16 @@ export type Database = {
           company_contact: string | null
           company_description: string | null
           company_email: string | null
-          company_name: string | null
+          company_name: string
           created_at: string
           employee_count: number | null
-          id: number
+          id: string
           industry: string | null
           latitude: number | null
           longitude: number | null
           profile_id: string | null
           registration_number: string | null
-          updated_at: string | null
+          updated_at: string
           verification_status: Database["public"]["Enums"]["status_type"] | null
           website: string | null
         }
@@ -624,16 +624,16 @@ export type Database = {
           company_contact?: string | null
           company_description?: string | null
           company_email?: string | null
-          company_name?: string | null
+          company_name: string
           created_at?: string
           employee_count?: number | null
-          id?: never
+          id?: string
           industry?: string | null
           latitude?: number | null
           longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
-          updated_at?: string | null
+          updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["status_type"]
             | null
@@ -645,16 +645,16 @@ export type Database = {
           company_contact?: string | null
           company_description?: string | null
           company_email?: string | null
-          company_name?: string | null
+          company_name?: string
           created_at?: string
           employee_count?: number | null
-          id?: never
+          id?: string
           industry?: string | null
           latitude?: number | null
           longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
-          updated_at?: string | null
+          updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["status_type"]
             | null
@@ -664,31 +664,31 @@ export type Database = {
       }
       company_members: {
         Row: {
-          company_id: number | null
-          created_at: string | null
+          company_id: string | null
+          created_at: string
           id: number
           profile_id: string | null
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database["public"]["Enums"]["user_role"] | null
           status: Database["public"]["Enums"]["status_type"] | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          company_id?: number | null
-          created_at?: string | null
-          id?: never
+          company_id?: string | null
+          created_at?: string
+          id?: number
           profile_id?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          company_id?: number | null
-          created_at?: string | null
-          id?: never
+          company_id?: string | null
+          created_at?: string
+          id?: number
           profile_id?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -700,49 +700,49 @@ export type Database = {
           },
         ]
       }
-      employer_requirement_media: {
+      employer_requirement_files: {
         Row: {
           alt_text: string | null
           created_at: string
           description: string | null
           employer_requirement_id: number | null
-          filename: string | null
+          filename: string
           id: number
           mime_type: string | null
-          path: string | null
+          path: string
           profile_id: string | null
           size: number | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           alt_text?: string | null
           created_at?: string
           description?: string | null
           employer_requirement_id?: number | null
-          filename?: string | null
-          id?: never
+          filename: string
+          id?: number
           mime_type?: string | null
-          path?: string | null
+          path: string
           profile_id?: string | null
           size?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           alt_text?: string | null
           created_at?: string
           description?: string | null
           employer_requirement_id?: number | null
-          filename?: string | null
-          id?: never
+          filename?: string
+          id?: number
           mime_type?: string | null
-          path?: string | null
+          path?: string
           profile_id?: string | null
           size?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "employer_requirement_media_employer_requirement_id_fkey"
+            foreignKeyName: "employer_requirement_files_employer_requirement_id_fkey"
             columns: ["employer_requirement_id"]
             isOneToOne: false
             referencedRelation: "employer_requirements"
@@ -752,28 +752,28 @@ export type Database = {
       }
       employer_requirements: {
         Row: {
-          employer_id: number | null
+          employer_id: string | null
           id: number
           remarks: string | null
           requirement_id: number | null
           status: Database["public"]["Enums"]["status_type"] | null
-          submitted_at: string
+          submitted_at: string | null
         }
         Insert: {
-          employer_id?: number | null
-          id?: never
+          employer_id?: string | null
+          id?: number
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
-          submitted_at?: string
+          submitted_at?: string | null
         }
         Update: {
-          employer_id?: number | null
-          id?: never
+          employer_id?: string | null
+          id?: number
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
-          submitted_at?: string
+          submitted_at?: string | null
         }
         Relationships: [
           {
@@ -866,6 +866,200 @@ export type Database = {
           },
         ]
       }
+      hots: {
+        Row: {
+          applicant_contact_phone: string | null
+          applicant_email: string | null
+          applicant_first_name: string
+          applicant_last_name: string
+          applicant_middle_name: string | null
+          applicant_profile_id: string | null
+          company_id: string | null
+          company_name: string
+          created_at: string
+          hired_date: string
+          id: string
+          job_fair_id: string
+          job_vacancy_id: string | null
+          position_hired: string
+          remarks: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_contact_phone?: string | null
+          applicant_email?: string | null
+          applicant_first_name: string
+          applicant_last_name: string
+          applicant_middle_name?: string | null
+          applicant_profile_id?: string | null
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          hired_date?: string
+          id?: string
+          job_fair_id: string
+          job_vacancy_id?: string | null
+          position_hired: string
+          remarks?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_contact_phone?: string | null
+          applicant_email?: string | null
+          applicant_first_name?: string
+          applicant_last_name?: string
+          applicant_middle_name?: string | null
+          applicant_profile_id?: string | null
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          hired_date?: string
+          id?: string
+          job_fair_id?: string
+          job_vacancy_id?: string | null
+          position_hired?: string
+          remarks?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hots_job_fair_id_fkey"
+            columns: ["job_fair_id"]
+            isOneToOne: false
+            referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hots_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_fairs: {
+        Row: {
+          company_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          location: string
+          organizer_name: string | null
+          registration_link: string | null
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+          venue_address: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          location: string
+          organizer_name?: string | null
+          registration_link?: string | null
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+          venue_address?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          location?: string
+          organizer_name?: string | null
+          registration_link?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          venue_address?: string | null
+        }
+        Relationships: []
+      }
+      job_vacancies: {
+        Row: {
+          application_deadline: string | null
+          company_id: string | null
+          company_name: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          job_fair_id: string | null
+          job_type: Database["esmdd"]["Enums"]["job_type"] | null
+          location_type: Database["esmdd"]["Enums"]["location_type"] | null
+          qualifications: string[] | null
+          salary_max: number | null
+          salary_min: number | null
+          slots_available: number | null
+          status: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_deadline?: string | null
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          job_fair_id?: string | null
+          job_type?: Database["esmdd"]["Enums"]["job_type"] | null
+          location_type?: Database["esmdd"]["Enums"]["location_type"] | null
+          qualifications?: string[] | null
+          salary_max?: number | null
+          salary_min?: number | null
+          slots_available?: number | null
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_deadline?: string | null
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          job_fair_id?: string | null
+          job_type?: Database["esmdd"]["Enums"]["job_type"] | null
+          location_type?: Database["esmdd"]["Enums"]["location_type"] | null
+          qualifications?: string[] | null
+          salary_max?: number | null
+          salary_min?: number | null
+          slots_available?: number | null
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancies_job_fair_id_fkey"
+            columns: ["job_fair_id"]
+            isOneToOne: false
+            referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spes: {
         Row: {
           application_id: string | null
@@ -942,7 +1136,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      job_type:
+        | "full_time"
+        | "part_time"
+        | "contract"
+        | "internship"
+        | "temporary"
+      job_vacancy_status: "open" | "closed" | "filled" | "cancelled"
+      location_type: "onsite" | "remote" | "hybrid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1006,7 +1207,7 @@ export type Database = {
             | null
           id: number
           job_posting_id: number | null
-          status: Database["public"]["Enums"]["status_type"] | null
+          status: Database["core"]["Enums"]["status_type"] | null
           updated_at: string | null
         }
         Insert: {
@@ -1017,7 +1218,7 @@ export type Database = {
             | null
           id?: never
           job_posting_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -1028,7 +1229,7 @@ export type Database = {
             | null
           id?: never
           job_posting_id?: number | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1042,7 +1243,7 @@ export type Database = {
           job_application_id: number | null
           meeting_link: string | null
           scheduled_time: string | null
-          status: Database["public"]["Enums"]["status_type"] | null
+          status: Database["core"]["Enums"]["status_type"] | null
           updated_at: string | null
         }
         Insert: {
@@ -1053,7 +1254,7 @@ export type Database = {
           job_application_id?: number | null
           meeting_link?: string | null
           scheduled_time?: string | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -1064,7 +1265,7 @@ export type Database = {
           job_application_id?: number | null
           meeting_link?: string | null
           scheduled_time?: string | null
-          status?: Database["public"]["Enums"]["status_type"] | null
+          status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1603,12 +1804,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1632,11 +1833,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1657,11 +1858,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1682,11 +1883,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1699,11 +1900,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1750,7 +1951,17 @@ export const Constants = {
     Enums: {},
   },
   esmdd: {
-    Enums: {},
+    Enums: {
+      job_type: [
+        "full_time",
+        "part_time",
+        "contract",
+        "internship",
+        "temporary",
+      ],
+      job_vacancy_status: ["open", "closed", "filled", "cancelled"],
+      location_type: ["onsite", "remote", "hybrid"],
+    },
   },
   jobs: {
     Enums: {
