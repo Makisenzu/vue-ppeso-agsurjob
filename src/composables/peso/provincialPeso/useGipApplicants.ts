@@ -44,6 +44,7 @@ export function useGipApplicants() {
 
   const {
     fetchApplicantsData,
+    refreshApplicantsData,
     openApplicantDetails,
     closeApplicantDetails,
     openAddApplicantModal,
@@ -143,5 +144,6 @@ export function useGipApplicants() {
     closeBatchUploadModal,
     exportCsv: exportApplicantsCsv,
     fetchApplicantsData,
+    refreshApplicantsData,
   }
 }

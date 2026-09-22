@@ -9,7 +9,15 @@ import type {
   GipProgram,
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
-import { gipService } from '@/services/peso/provincialPeso/gipService'
+import {
+  gipService,
+  GIP_INTERNS_CACHE_KEY,
+  GIP_APPLICANTS_CACHE_KEY,
+  GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY,
+  GIP_LPII_INTERNS_CACHE_KEY,
+  GIP_LPII_APPLICANTS_CACHE_KEY,
+} from '@/services/peso/provincialPeso/gipService'
+import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import {
   LPII_CONFIG,
   exportGipApplicantsCsv,
@@ -215,14 +223,35 @@ export const useGipStore = defineStore('gipStore', () => {
   })
 
   // ─── Actions ───
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (forceRefresh = false) => {
     errorMessage.value = null
-    isLoading.value = true
+
+    // 1. Instant Cache Hydration (stale-while-revalidate)
+    if (!forceRefresh) {
+      const cached = getPersistentCacheValue<{
+        pgas: GenderDataPoint[]
+        dole: GenderDataPoint[]
+        applicants: GenderDataPoint[]
+      }>(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+
+      if (cached !== null) {
+        pgasYearlyData.value = cached.pgas
+        doleYearlyData.value = cached.dole
+        applicantsYearlyData.value = cached.applicants
+      }
+      isLoading.value = cached === null
+    } else {
+      isLoading.value = true
+    }
+
     try {
-      const yearly = await gipService.fetchYearlyDemographics()
-      pgasYearlyData.value = yearly.pgas
-      doleYearlyData.value = yearly.dole
-      applicantsYearlyData.value = yearly.applicants
+      const yearly = await gipService.fetchYearlyDemographics(forceRefresh)
+      pgasYearlyData.value = [...yearly.pgas]
+      doleYearlyData.value = [...yearly.dole]
+      applicantsYearlyData.value = [...yearly.applicants]
+      if (forceRefresh) {
+        toastAlert.success('Data Refreshed', 'GIP demographic data has been refreshed.')
+      }
     } catch (err: any) {
       const msg = err.message || 'Failed to load GIP dashboard demographic data.'
       errorMessage.value = msg
@@ -232,17 +261,44 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
-  const fetchDetailsData = async () => {
+  const refreshDashboardData = async () => {
+    await fetchDashboardData(true)
+  }
+
+  const fetchDetailsData = async (forceRefresh = false) => {
     errorMessage.value = null
-    isLoading.value = true
+
+    // 1. Instant Cache Hydration (stale-while-revalidate)
+    if (!forceRefresh) {
+      const cachedInterns = getPersistentCacheValue<GipInternRecord[]>(GIP_INTERNS_CACHE_KEY)
+      const cachedLpii = getPersistentCacheValue<{
+        pgas: LpiiDataPoint[]
+        dole: LpiiDataPoint[]
+      }>(GIP_LPII_INTERNS_CACHE_KEY)
+
+      if (cachedInterns !== null) {
+        interns.value = cachedInterns
+      }
+      if (cachedLpii !== null) {
+        pgasLpiiData.value = cachedLpii.pgas
+        doleLpiiData.value = cachedLpii.dole
+      }
+      isLoading.value = cachedInterns === null || cachedLpii === null
+    } else {
+      isLoading.value = true
+    }
+
     try {
       const [lpii, list] = await Promise.all([
-        gipService.fetchLpiiData(),
-        gipService.fetchInterns(),
+        gipService.fetchLpiiData(forceRefresh),
+        gipService.fetchInterns(forceRefresh),
       ])
-      pgasLpiiData.value = lpii.pgas
-      doleLpiiData.value = lpii.dole
-      interns.value = list
+      pgasLpiiData.value = [...lpii.pgas]
+      doleLpiiData.value = [...lpii.dole]
+      interns.value = [...list]
+      if (forceRefresh) {
+        toastAlert.success('Data Refreshed', 'GIP details and registry data refreshed.')
+      }
     } catch (err: any) {
       const msg = err.message || 'Failed to load GIP details and registry data.'
       errorMessage.value = msg
@@ -250,6 +306,10 @@ export const useGipStore = defineStore('gipStore', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  const refreshDetailsData = async () => {
+    await fetchDetailsData(true)
   }
 
   const createGipApplication = async (payload: GipApplicantInsert) => {
@@ -525,18 +585,43 @@ export const useGipStore = defineStore('gipStore', () => {
     return filteredApplicants.value.slice(start, start + applicantPageSize.value)
   })
 
-  const fetchApplicantsData = async () => {
+  const fetchApplicantsData = async (forceRefresh = false) => {
     errorMessage.value = null
-    isLoading.value = true
+
+    // 1. Instant Cache Hydration (stale-while-revalidate)
+    if (!forceRefresh) {
+      const cachedApplicants = getPersistentCacheValue<GipApplicantRecord[]>(GIP_APPLICANTS_CACHE_KEY)
+      const cachedLpii = getPersistentCacheValue<{
+        overall: LpiiDataPoint[]
+        male: LpiiDataPoint[]
+        female: LpiiDataPoint[]
+      }>(GIP_LPII_APPLICANTS_CACHE_KEY)
+
+      if (cachedApplicants !== null) {
+        applicants.value = cachedApplicants
+      }
+      if (cachedLpii !== null) {
+        applicantOverallLpiiData.value = cachedLpii.overall
+        applicantMaleLpiiData.value = cachedLpii.male
+        applicantFemaleLpiiData.value = cachedLpii.female
+      }
+      isLoading.value = cachedApplicants === null || cachedLpii === null
+    } else {
+      isLoading.value = true
+    }
+
     try {
       const [lpiiBreakdown, list] = await Promise.all([
-        gipService.fetchApplicantLpiiData(),
-        gipService.fetchApplicants(),
+        gipService.fetchApplicantLpiiData(forceRefresh),
+        gipService.fetchApplicants(forceRefresh),
       ])
-      applicantOverallLpiiData.value = lpiiBreakdown.overall
-      applicantMaleLpiiData.value = lpiiBreakdown.male
-      applicantFemaleLpiiData.value = lpiiBreakdown.female
-      applicants.value = list
+      applicantOverallLpiiData.value = [...lpiiBreakdown.overall]
+      applicantMaleLpiiData.value = [...lpiiBreakdown.male]
+      applicantFemaleLpiiData.value = [...lpiiBreakdown.female]
+      applicants.value = [...list]
+      if (forceRefresh) {
+        toastAlert.success('Data Refreshed', 'GIP applicants registry refreshed.')
+      }
     } catch (err: any) {
       const msg = err.message || 'Failed to load GIP applicants and demographic registry.'
       errorMessage.value = msg
@@ -544,6 +629,10 @@ export const useGipStore = defineStore('gipStore', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  const refreshApplicantsData = async () => {
+    await fetchApplicantsData(true)
   }
 
   const openApplicantDetails = (app: GipApplicantRecord) => {
@@ -698,8 +787,11 @@ export const useGipStore = defineStore('gipStore', () => {
 
     // Actions
     fetchDashboardData,
+    refreshDashboardData,
     fetchDetailsData,
+    refreshDetailsData,
     fetchApplicantsData,
+    refreshApplicantsData,
     createGipApplication,
     createGipDeployment,
     createSingleApplicant,

@@ -95,7 +95,7 @@ const {
   closeInternDetails,
   openAddInternModal,
   exportCsv,
-  fetchDetailsData,
+  refreshDetailsData,
 } = useGipDetails()
 </script>
 
@@ -367,7 +367,7 @@ const {
               size="sm"
               class="gap-1.5 text-xs cursor-pointer"
               :disabled="isLoading"
-              @click="fetchDetailsData"
+              @click="refreshDetailsData"
             >
               <RefreshCw :class="['h-3.5 w-3.5', isLoading && 'animate-spin']" />
               <span>Refresh</span>

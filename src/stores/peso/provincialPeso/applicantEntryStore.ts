@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
+import { applicantEntryService, APPLICANT_ENTRY_CACHE_KEY } from '@/services/peso/provincialPeso/applicantEntryService'
+import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import type { ApplicantEntryRecord, ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
+import type { ApplicantEntryRecord, ApplicantInsert, ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
@@ -30,14 +31,23 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
 
   // ─── Actions ───
   const fetchApplicants = async (isManualRefresh: boolean = false, silent: boolean = false) => {
-    if (!silent) {
+    // 1. Instant Cache Hydration (stale-while-revalidate)
+    if (!silent && !isManualRefresh) {
+      const cached = getPersistentCacheValue<ApplicantRow[]>(APPLICANT_ENTRY_CACHE_KEY)
+      if (cached !== null) {
+        applicants.value = cached.map(mapToApplicantEntryRecord)
+      }
+      isLoading.value = cached === null
+    } else if (isManualRefresh) {
       isLoading.value = true
     }
+
     try {
-      const data = await applicantEntryService.fetchAllApplicants()
-      applicants.value = data.map(mapToApplicantEntryRecord)
+      const data = await applicantEntryService.fetchAllApplicants(isManualRefresh)
+      // Fresh array reference ensures table and charts react immediately
+      applicants.value = [...data.map(mapToApplicantEntryRecord)]
       if (isManualRefresh) {
-        toastAlert.success('Success', `Refreshed ${data.length} applicant records`)
+        toastAlert.success('Data Refreshed', `Refreshed ${data.length} applicant records.`)
       }
     } catch (error: any) {
       console.error('[applicantEntryStore] Failed to fetch applicants:', error)
@@ -47,6 +57,10 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
         isLoading.value = false
       }
     }
+  }
+
+  const refreshApplicants = async () => {
+    await fetchApplicants(true)
   }
 
   const openDetails = (applicant: ApplicantEntryRecord) => {
@@ -122,6 +136,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     currentPage,
     pageSize,
     fetchApplicants,
+    refreshApplicants,
     openDetails,
     closeDetails,
     openAddApplicant,

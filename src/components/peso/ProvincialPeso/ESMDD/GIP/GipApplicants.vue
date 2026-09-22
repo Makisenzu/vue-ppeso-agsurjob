@@ -92,7 +92,7 @@ const {
   openApplicantDetails,
   closeApplicantDetails,
   exportCsv,
-  fetchApplicantsData,
+  refreshApplicantsData,
 } = useGipApplicants()
 
 const {
@@ -407,7 +407,7 @@ const handleUploadBatchClick = () => {
               size="sm"
               class="gap-1.5 text-xs cursor-pointer"
               :disabled="isLoading"
-              @click="fetchApplicantsData"
+              @click="refreshApplicantsData"
             >
               <RefreshCw :class="['h-3.5 w-3.5', isLoading && 'animate-spin']" />
               <span>Refresh</span>

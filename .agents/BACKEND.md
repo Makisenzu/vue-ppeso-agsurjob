@@ -363,6 +363,14 @@ removePersistentCacheValue(CACHE_KEY)
 | Cache Key                          | TTL     | Used By                     |
 | ---------------------------------- | ------- | --------------------------- |
 | `admin:user-accounts:profiles`     | 15 min  | `userAccountService`        |
+| `admin:system-directory:records`   | 15 min  | `systemDirectoryService`    |
+| `document-templates:list`          | 12 hrs  | `documentTemplateService`   |
+| `peso:applicant-entry:applicants`  | 15 min  | `applicantEntryService`     |
+| `peso:gip:interns`                 | 15 min  | `gipService`                |
+| `peso:gip:applicants`              | 15 min  | `gipService`                |
+| `peso:gip:yearly-demographics`     | 15 min  | `gipService`                |
+| `peso:gip:lpii-interns`            | 15 min  | `gipService`                |
+| `peso:gip:lpii-applicants`         | 15 min  | `gipService`                |
 
 ---
 

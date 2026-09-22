@@ -34,7 +34,7 @@ const {
   formatTooltipLabel,
   navigateToDetails,
   navigateToApplicants,
-  fetchDashboardData,
+  refreshDashboardData,
 } = useGipDashboard()
 </script>
 
@@ -53,7 +53,7 @@ const {
         size="sm"
         class="gap-1.5 self-start sm:self-auto cursor-pointer"
         :disabled="isLoading"
-        @click="fetchDashboardData"
+        @click="refreshDashboardData"
       >
         <RefreshCw :class="['h-4 w-4', isLoading && 'animate-spin']" />
         <span>Refresh Data</span>

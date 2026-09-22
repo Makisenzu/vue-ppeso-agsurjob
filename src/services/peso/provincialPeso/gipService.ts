@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
+import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
+import { invalidateApplicantEntryCache } from '@/services/peso/provincialPeso/applicantEntryService'
 import type {
   GipInternRecord,
   GipApplicantRecord,
@@ -21,6 +23,26 @@ import {
   computeLpiiBreakdown,
   computeApplicantLpiiBreakdown,
 } from '@/helpers/peso/provincialPeso/gipHelper'
+
+export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
+export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants'
+export const GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY = 'peso:gip:yearly-demographics'
+export const GIP_LPII_INTERNS_CACHE_KEY = 'peso:gip:lpii-interns'
+export const GIP_LPII_APPLICANTS_CACHE_KEY = 'peso:gip:lpii-applicants'
+const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
+
+export function invalidateGipCaches(options?: { interns?: boolean; applicants?: boolean; all?: boolean }): void {
+  if (options?.all || options?.interns) {
+    removePersistentCacheValue(GIP_INTERNS_CACHE_KEY)
+    removePersistentCacheValue(GIP_LPII_INTERNS_CACHE_KEY)
+    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+  }
+  if (options?.all || options?.applicants) {
+    removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+  }
+}
 
 type BarangayRow = {
   name: string
@@ -76,172 +98,202 @@ export const gipService = {
    * 3. applicants.applicants
    * 4. public.barangays (for LPII classification tagging)
    */
-  async fetchInterns(): Promise<GipInternRecord[]> {
-    // 1. Fetch GIPs and GIP applicants
-    const [gips, gipApps, barangaysRes] = await Promise.all([
-      fetchGipsQuery(),
-      fetchGipApplicantsQuery(),
-      supabase
-        .schema('public')
-        .from('barangays')
-        .select('name, lpii_tag'),
-    ])
+  async fetchInterns(forceRefresh = false): Promise<GipInternRecord[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_INTERNS_CACHE_KEY)
+    }
 
-    const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+    return getOrSetPersistentCache(GIP_INTERNS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      // 1. Fetch GIPs and GIP applicants
+      const [gips, gipApps, barangaysRes] = await Promise.all([
+        fetchGipsQuery(),
+        fetchGipApplicantsQuery(),
+        supabase
+          .schema('public')
+          .from('barangays')
+          .select('name, lpii_tag'),
+      ])
 
-    // Build Barangay -> LPII tag lookup map
-    const barangayTagMap = new Map<string, LpiiCategory>()
-    for (const b of barangays) {
-      if (b.name && b.lpii_tag) {
-        barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+      const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+
+      // Build Barangay -> LPII tag lookup map
+      const barangayTagMap = new Map<string, LpiiCategory>()
+      for (const b of barangays) {
+        if (b.name && b.lpii_tag) {
+          barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+        }
       }
-    }
 
-    // Build map of application_id -> GipApplicantRow
-    const appMap = new Map<string, GipApplicantRow>()
-    for (const app of gipApps) {
-      appMap.set(app.id, app)
-    }
-
-    // If there are no deployed interns in esmdd.gips, return empty list
-    if (gips.length === 0) {
-      return []
-    }
-
-    // Collect all applicant IDs needed for only deployed interns
-    const applicantIds = new Set<string>()
-    for (const gip of gips) {
-      if (gip.application_id) {
-        const app = appMap.get(gip.application_id)
-        if (app?.applicant_id) applicantIds.add(app.applicant_id)
+      // Build map of application_id -> GipApplicantRow
+      const appMap = new Map<string, GipApplicantRow>()
+      for (const app of gipApps) {
+        appMap.set(app.id, app)
       }
-    }
 
-    // 2. Fetch corresponding applicant profile records
-    let applicantsList: ApplicantRow[] = []
-    if (applicantIds.size > 0) {
-      const { data: applicantsData, error: applicantsError } = await supabase
-        .schema('applicants')
-        .from('applicants')
-        .select('*')
-        .in('id', Array.from(applicantIds))
-
-      if (!applicantsError && applicantsData) {
-        applicantsList = applicantsData as ApplicantRow[]
+      // If there are no deployed interns in esmdd.gips, return empty list
+      if (gips.length === 0) {
+        return []
       }
-    }
 
-    const applicantMap = new Map<string, ApplicantRow>()
-    for (const applicant of applicantsList) {
-      applicantMap.set(applicant.id, applicant)
-      if (applicant.profile_id) {
-        applicantMap.set(applicant.profile_id, applicant)
+      // Collect all applicant IDs needed for only deployed interns
+      const applicantIds = new Set<string>()
+      for (const gip of gips) {
+        if (gip.application_id) {
+          const app = appMap.get(gip.application_id)
+          if (app?.applicant_id) applicantIds.add(app.applicant_id)
+        }
       }
-    }
 
-    // 3. Map GIP records strictly from esmdd.gips
-    const records: GipInternRecord[] = []
+      // 2. Fetch corresponding applicant profile records
+      let applicantsList: ApplicantRow[] = []
+      if (applicantIds.size > 0) {
+        const { data: applicantsData, error: applicantsError } = await supabase
+          .schema('applicants')
+          .from('applicants')
+          .select('*')
+          .in('id', Array.from(applicantIds))
 
-    for (const gip of gips) {
-      const app = gip.application_id ? appMap.get(gip.application_id) || null : null
-      const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-      records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
-    }
+        if (!applicantsError && applicantsData) {
+          applicantsList = applicantsData as ApplicantRow[]
+        }
+      }
 
-    return records
+      const applicantMap = new Map<string, ApplicantRow>()
+      for (const applicant of applicantsList) {
+        applicantMap.set(applicant.id, applicant)
+        if (applicant.profile_id) {
+          applicantMap.set(applicant.profile_id, applicant)
+        }
+      }
+
+      // 3. Map GIP records strictly from esmdd.gips
+      const records: GipInternRecord[] = []
+
+      for (const gip of gips) {
+        const app = gip.application_id ? appMap.get(gip.application_id) || null : null
+        const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+        records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
+      }
+
+      return records
+    })
   },
 
   /**
    * Fetches all GIP applicant records from esmdd.gip_applicants and applicants.applicants.
    */
-  async fetchApplicants(): Promise<GipApplicantRecord[]> {
-    const [gipApps, barangaysRes] = await Promise.all([
-      fetchGipApplicantsQuery(),
-      supabase
-        .schema('public')
-        .from('barangays')
-        .select('name, lpii_tag'),
-    ])
+  async fetchApplicants(forceRefresh = false): Promise<GipApplicantRecord[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
+    }
 
-    const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+    return getOrSetPersistentCache(GIP_APPLICANTS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      const [gipApps, barangaysRes] = await Promise.all([
+        fetchGipApplicantsQuery(),
+        supabase
+          .schema('public')
+          .from('barangays')
+          .select('name, lpii_tag'),
+      ])
 
-    const barangayTagMap = new Map<string, LpiiCategory>()
-    for (const b of barangays) {
-      if (b.name && b.lpii_tag) {
-        barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+      const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+
+      const barangayTagMap = new Map<string, LpiiCategory>()
+      for (const b of barangays) {
+        if (b.name && b.lpii_tag) {
+          barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+        }
       }
-    }
 
-    const applicantIds = new Set<string>()
-    for (const app of gipApps) {
-      if (app.applicant_id) applicantIds.add(app.applicant_id)
-    }
-
-    let applicantsList: ApplicantRow[] = []
-    if (applicantIds.size > 0) {
-      const { data: applicantsData, error: applicantsError } = await supabase
-        .schema('applicants')
-        .from('applicants')
-        .select('*')
-        .in('id', Array.from(applicantIds))
-
-      if (!applicantsError && applicantsData) {
-        applicantsList = applicantsData as ApplicantRow[]
+      const applicantIds = new Set<string>()
+      for (const app of gipApps) {
+        if (app.applicant_id) applicantIds.add(app.applicant_id)
       }
-    }
 
-    const applicantMap = new Map<string, ApplicantRow>()
-    for (const applicant of applicantsList) {
-      applicantMap.set(applicant.id, applicant)
-      if (applicant.profile_id) {
-        applicantMap.set(applicant.profile_id, applicant)
+      let applicantsList: ApplicantRow[] = []
+      if (applicantIds.size > 0) {
+        const { data: applicantsData, error: applicantsError } = await supabase
+          .schema('applicants')
+          .from('applicants')
+          .select('*')
+          .in('id', Array.from(applicantIds))
+
+        if (!applicantsError && applicantsData) {
+          applicantsList = applicantsData as ApplicantRow[]
+        }
       }
-    }
 
-    return gipApps.map((app) => {
-      const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-      return mapToGipApplicantRecord(app, applicant, barangayTagMap)
+      const applicantMap = new Map<string, ApplicantRow>()
+      for (const applicant of applicantsList) {
+        applicantMap.set(applicant.id, applicant)
+        if (applicant.profile_id) {
+          applicantMap.set(applicant.profile_id, applicant)
+        }
+      }
+
+      return gipApps.map((app) => {
+        const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+        return mapToGipApplicantRecord(app, applicant, barangayTagMap)
+      })
     })
   },
 
   /**
    * Computes yearly demographics from live database intern records and applicant records.
    */
-  async fetchYearlyDemographics(): Promise<{
+  async fetchYearlyDemographics(forceRefresh = false): Promise<{
     pgas: GenderDataPoint[]
     dole: GenderDataPoint[]
     applicants: GenderDataPoint[]
   }> {
-    const [interns, applicants] = await Promise.all([
-      this.fetchInterns(),
-      this.fetchApplicants(),
-    ])
-    const { pgas, dole } = computeYearlyDemographics(interns)
-    const applicantsData = computeApplicantsDemographics(applicants)
-    return { pgas, dole, applicants: applicantsData }
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+    }
+
+    return getOrSetPersistentCache(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      const [interns, applicants] = await Promise.all([
+        this.fetchInterns(forceRefresh),
+        this.fetchApplicants(forceRefresh),
+      ])
+      const { pgas, dole } = computeYearlyDemographics(interns)
+      const applicantsData = computeApplicantsDemographics(applicants)
+      return { pgas, dole, applicants: applicantsData }
+    })
   },
 
   /**
    * Computes LPII ecosystem distribution from live database intern records.
    */
-  async fetchLpiiData(): Promise<{
+  async fetchLpiiData(forceRefresh = false): Promise<{
     pgas: LpiiDataPoint[]
     dole: LpiiDataPoint[]
   }> {
-    const records = await this.fetchInterns()
-    return computeLpiiBreakdown(records)
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_LPII_INTERNS_CACHE_KEY)
+    }
+
+    return getOrSetPersistentCache(GIP_LPII_INTERNS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      const records = await this.fetchInterns(forceRefresh)
+      return computeLpiiBreakdown(records)
+    })
   },
 
   /**
    * Computes LPII ecosystem distribution from live database applicant records.
    */
-  async fetchApplicantLpiiData(): Promise<{
+  async fetchApplicantLpiiData(forceRefresh = false): Promise<{
     overall: LpiiDataPoint[]
     male: LpiiDataPoint[]
     female: LpiiDataPoint[]
   }> {
-    const records = await this.fetchApplicants()
-    return computeApplicantLpiiBreakdown(records)
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
+    }
+
+    return getOrSetPersistentCache(GIP_LPII_APPLICANTS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      const records = await this.fetchApplicants(forceRefresh)
+      return computeApplicantLpiiBreakdown(records)
+    })
   },
 
   /**
@@ -257,6 +309,7 @@ export const gipService = {
         .single()
 
       if (error) throw error
+      invalidateGipCaches({ applicants: true })
       return data as GipApplicantRow
     } catch (err: any) {
       // Fallback if esmdd schema is not exposed
@@ -266,6 +319,7 @@ export const gipService = {
         .single()
 
       if (error) throw new Error(error.message || 'Failed to create GIP application.')
+      invalidateGipCaches({ applicants: true })
       return data as GipApplicantRow
     }
   },
@@ -283,6 +337,7 @@ export const gipService = {
         .single()
 
       if (error) throw error
+      invalidateGipCaches({ interns: true })
       return data as GipRow
     } catch (err: any) {
       const { data, error } = await (supabase.from('gips' as any) as any)
@@ -291,6 +346,7 @@ export const gipService = {
         .single()
 
       if (error) throw new Error(error.message || 'Failed to create GIP record.')
+      invalidateGipCaches({ interns: true })
       return data as GipRow
     }
   },
@@ -309,6 +365,7 @@ export const gipService = {
         .single()
 
       if (error) throw error
+      invalidateGipCaches({ interns: true })
       return data as GipRow
     } catch (err: any) {
       const { data, error } = await (supabase.from('gips' as any) as any)
@@ -318,6 +375,7 @@ export const gipService = {
         .single()
 
       if (error) throw new Error(error.message || 'Failed to update GIP record.')
+      invalidateGipCaches({ interns: true })
       return data as GipRow
     }
   },
@@ -336,6 +394,7 @@ export const gipService = {
         .single()
 
       if (error) throw error
+      invalidateGipCaches({ applicants: true })
       return data as GipApplicantRow
     } catch (err: any) {
       const { data, error } = await (supabase.from('gip_applicants' as any) as any)
@@ -345,6 +404,7 @@ export const gipService = {
         .single()
 
       if (error) throw new Error(error.message || 'Failed to update GIP application.')
+      invalidateGipCaches({ applicants: true })
       return data as GipApplicantRow
     }
   },
@@ -440,6 +500,9 @@ export const gipService = {
       remarks,
     })
 
+    invalidateApplicantEntryCache()
+    invalidateGipCaches({ applicants: true })
+
     return {
       applicantId: (applicant as any).id,
       applicationId: gipApp.id,
@@ -492,6 +555,11 @@ export const gipService = {
       }
     }
 
+    if (successCount > 0) {
+      invalidateApplicantEntryCache()
+      invalidateGipCaches({ applicants: true })
+    }
+
     return {
       total: applicantsList.length,
       successCount,
@@ -533,6 +601,8 @@ export const gipService = {
     } catch (err) {
       console.warn('[gipService] Could not update applicant status:', err)
     }
+
+    invalidateGipCaches({ all: true })
 
     return gip
   },

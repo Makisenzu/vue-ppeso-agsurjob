@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type {
   ApplicantInsert,
   ApplicantRow,
@@ -7,22 +8,35 @@ import type {
 import type { GipApplicantInsert, GipApplicantRow } from '@/types/peso/provincialPeso/gip'
 import type { SpesApplicantInsert, SpesApplicantRow } from '@/types/peso/provincialPeso/spes'
 
+export const APPLICANT_ENTRY_CACHE_KEY = 'peso:applicant-entry:applicants'
+const APPLICANT_ENTRY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
+
+export function invalidateApplicantEntryCache(): void {
+  removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+}
+
 export const applicantEntryService = {
   /**
-   * Fetch all applicant records from applicants.applicants schema
+   * Fetch all applicant records from applicants.applicants schema with persistent cache
    */
-  async fetchAllApplicants(): Promise<ApplicantRow[]> {
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('applicants')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      throw new Error(error.message || 'Failed to fetch applicants registry data')
+  async fetchAllApplicants(forceRefresh = false): Promise<ApplicantRow[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
     }
 
-    return (data ?? []) as ApplicantRow[]
+    return getOrSetPersistentCache(APPLICANT_ENTRY_CACHE_KEY, APPLICANT_ENTRY_CACHE_TTL_MS, async () => {
+      const { data, error } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch applicants registry data')
+      }
+
+      return (data ?? []) as ApplicantRow[]
+    })
   },
 
   /**
@@ -192,6 +206,9 @@ export const applicantEntryService = {
     }
 
     const createdApplicant = data as ApplicantRow
+
+    // Invalidate cached applicant list on mutation
+    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
 
     // Automatically check what the applicant has been referred to and insert into ESMDD tables
     try {

@@ -48,6 +48,7 @@ export function useGipDetails() {
 
   const {
     fetchDetailsData,
+    refreshDetailsData,
     fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
@@ -246,6 +247,7 @@ export function useGipDetails() {
     openBatchUploadModal,
     exportCsv,
     fetchDetailsData,
+    refreshDetailsData,
     fetchApplicantsData,
     createGipApplication,
     createGipDeployment,

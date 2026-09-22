@@ -27,7 +27,7 @@ export function useGipDashboard() {
     errorMessage,
   } = storeToRefs(store)
 
-  const { fetchDashboardData } = store
+  const { fetchDashboardData, refreshDashboardData } = store
 
   function navigateToDetails(program?: 'pgas' | 'dole') {
     router.push({
@@ -71,5 +71,6 @@ export function useGipDashboard() {
     navigateToDetails,
     navigateToApplicants,
     fetchDashboardData,
+    refreshDashboardData,
   }
 }
