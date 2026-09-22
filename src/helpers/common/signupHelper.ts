@@ -243,7 +243,7 @@ export function buildCompanyInsert(
 ): CompanyInsert {
   return {
     profile_id: userId,
-    company_name: form.company_name || null,
+    company_name: form.company_name || '',
     company_email: form.company_email || null,
     company_contact: form.company_contact || null,
     business_type: form.business_type || null,

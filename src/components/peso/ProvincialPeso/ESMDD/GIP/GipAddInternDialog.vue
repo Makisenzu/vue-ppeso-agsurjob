@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import {
-  ArrowLeft,
-  Briefcase,
-  Building2,
-  Calendar,
+  CalendarDays,
   CheckCircle2,
-  Coins,
+  CheckIcon,
+  ChevronsUpDownIcon,
   Filter,
+  ListRestart,
   Loader2,
   MapPin,
   Mountain,
   Plus,
   Search,
-  Sparkles,
   TreePine,
   Waves,
   X,
@@ -25,7 +23,6 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -39,6 +36,25 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxViewport,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxGroup,
+  ComboboxItemIndicator,
+} from '@/components/ui/combobox'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 const {
   // State & Flags
@@ -57,13 +73,21 @@ const {
   assignedOffice,
   supervisor,
   stipend,
-  period,
   status,
   deploymentNotes,
 
-  // Configs & Presets
-  officePresets,
-  periodPresets,
+  // Office directory
+  officeSearchQuery,
+  filteredOffices,
+  selectedOffice,
+  isLoadingOffices,
+
+  // Date range
+  deploymentStartDate,
+  deploymentEndDate,
+  formattedPeriod,
+
+  // Configs
   pgasLogo,
   doleLogo,
   LPII_CONFIG,
@@ -90,31 +114,6 @@ const {
             <DialogTitle class="text-lg font-bold flex items-center gap-2">
               <span>Add GIP Intern from Applicant Registry</span>
             </DialogTitle>
-            <DialogDescription class="text-xs text-muted-foreground">
-              Deploy registered GIP candidates into provincial government (PGAS) or DOLE stations.
-            </DialogDescription>
-          </div>
-
-          <!-- Step Indicator -->
-          <div class="flex items-center gap-2 text-xs">
-            <Badge
-              :variant="activeStep === 'select-applicant' ? 'default' : 'secondary'"
-              class="cursor-pointer gap-1"
-              @click="activeStep = 'select-applicant'"
-            >
-              <span>1</span>
-              <span>Select Applicant</span>
-            </Badge>
-            <span class="text-muted-foreground">→</span>
-            <Badge
-              :variant="activeStep === 'configure-deployment' ? 'default' : 'secondary'"
-              :class="!selectedApplicant ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-              class="gap-1"
-              @click="selectedApplicant && (activeStep = 'configure-deployment')"
-            >
-              <span>2</span>
-              <span>Deployment Details</span>
-            </Badge>
           </div>
         </div>
       </DialogHeader>
@@ -364,7 +363,7 @@ const {
             class="text-xs cursor-pointer self-start sm:self-auto gap-1 text-muted-foreground hover:text-foreground"
             @click="activeStep = 'select-applicant'"
           >
-            <ArrowLeft class="h-3.5 w-3.5" />
+            <ListRestart class="h-3.5 w-3.5" />
             <span>Change Candidate</span>
           </Button>
         </div>
@@ -413,38 +412,69 @@ const {
 
         <!-- Deployment Fields Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- Assigned Office / Station -->
+          <!-- Assigned Office / Station — Searchable Combobox -->
           <div class="space-y-2 sm:col-span-2">
-            <Label for="assignedOffice" class="text-xs font-semibold flex items-center gap-1.5">
-              <Building2 class="h-3.5 w-3.5 text-muted-foreground" />
+            <Label class="text-xs font-semibold flex items-center gap-1.5">
               <span>Assigned Station / Office</span>
               <span class="text-destructive">*</span>
             </Label>
-            <Input
-              id="assignedOffice"
-              v-model="assignedOffice"
-              placeholder="e.g. Provincial PESO, PAGRO, HRMO..."
-              class="text-xs h-9"
-            />
-            <!-- Quick Chips for common stations -->
-            <div class="flex flex-wrap items-center gap-1.5 pt-1">
-              <span class="text-[11px] text-muted-foreground">Quick pick:</span>
-              <button
-                v-for="preset in officePresets"
-                :key="preset"
-                type="button"
-                class="rounded border bg-muted/40 hover:bg-muted px-2 py-0.5 text-[10px] text-foreground transition cursor-pointer"
-                @click="assignedOffice = preset"
-              >
-                {{ preset }}
-              </button>
-            </div>
+            <Combobox
+              v-model="selectedOffice"
+              v-model:search-term="officeSearchQuery"
+              :ignore-filter="true"
+              by="id"
+            >
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button
+                    variant="outline"
+                    class="w-full justify-between overflow-hidden h-9 text-xs"
+                    :class="isLoadingOffices ? 'opacity-60' : ''"
+                  >
+                    <span class="truncate text-left flex-1">
+                      <template v-if="isLoadingOffices">Loading offices...</template>
+                      <template v-else-if="selectedOffice">{{ selectedOffice.office_name }}</template>
+                      <template v-else>{{ assignedOffice || 'Select office...' }}</template>
+                    </span>
+                    <ChevronsUpDownIcon class="h-3.5 w-3.5 opacity-50 shrink-0" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+
+              <ComboboxList>
+                <ComboboxInput
+                  placeholder="Search offices..."
+                  class="text-xs"
+                  @input="officeSearchQuery = ($event.target as HTMLInputElement).value"
+                />
+                <ComboboxViewport>
+                  <ComboboxEmpty class="text-xs">No office found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="office in filteredOffices"
+                      :key="office.id"
+                      :value="office"
+                      class="text-xs"
+                    >
+                      <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="truncate">{{ office.office_name }}</span>
+                        <Badge variant="secondary" class="text-[10px] py-0 px-1.5 shrink-0">
+                          {{ office.office_code }}
+                        </Badge>
+                      </div>
+                      <ComboboxItemIndicator>
+                        <CheckIcon class="h-3.5 w-3.5" />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
           </div>
 
-          <!-- Designated Supervisor -->
+          <!-- Designated Supervisor — Read-only when auto-filled -->
           <div class="space-y-2">
             <Label for="supervisor" class="text-xs font-semibold flex items-center gap-1.5">
-              <Briefcase class="h-3.5 w-3.5 text-muted-foreground" />
               <span>Designated Supervisor / Station Head</span>
             </Label>
             <Input
@@ -452,13 +482,18 @@ const {
               v-model="supervisor"
               placeholder="e.g. Maria Santos, Division Head"
               class="text-xs h-9"
+              :class="selectedOffice?.office_head ? 'bg-muted/40' : ''"
+              :readonly="!!selectedOffice?.office_head"
             />
+            <p v-if="selectedOffice?.office_head" class="text-[11px] text-muted-foreground flex items-center gap-1">
+              <CheckCircle2 class="h-3 w-3 text-emerald-500 shrink-0" />
+              Auto-filled from office directory
+            </p>
           </div>
 
           <!-- Daily Allowance / Stipend -->
           <div class="space-y-2">
             <Label for="stipend" class="text-xs font-semibold flex items-center gap-1.5">
-              <Coins class="h-3.5 w-3.5 text-muted-foreground" />
               <span>Daily Allowance / Stipend Rate</span>
             </Label>
             <Input
@@ -469,29 +504,62 @@ const {
             />
           </div>
 
-          <!-- Deployment Period -->
+          <!-- Deployment Period — Calendar Date Range Picker -->
           <div class="space-y-2 sm:col-span-2">
-            <Label for="period" class="text-xs font-semibold flex items-center gap-1.5">
-              <Calendar class="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Deployment Period / Batch</span>
+            <Label class="text-xs font-semibold flex items-center gap-1.5">
+              <span>Deployment Period</span>
             </Label>
-            <Input
-              id="period"
-              v-model="period"
-              placeholder="e.g. Jan 2026 - Jun 2026"
-              class="text-xs h-9"
-            />
-            <div class="flex flex-wrap items-center gap-1.5 pt-1">
-              <span class="text-[11px] text-muted-foreground">Preset:</span>
-              <button
-                v-for="pPreset in periodPresets"
-                :key="pPreset"
-                type="button"
-                class="rounded border bg-muted/40 hover:bg-muted px-2 py-0.5 text-[10px] text-foreground transition cursor-pointer"
-                @click="period = pPreset"
-              >
-                {{ pPreset }}
-              </button>
+
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Start Date -->
+              <div class="space-y-1">
+                <span class="text-[11px] text-muted-foreground font-medium">Start Date</span>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <Button
+                      variant="outline"
+                      :class="cn('w-full justify-start text-left font-normal h-9 text-xs', !deploymentStartDate && 'text-muted-foreground')"
+                    >
+                      <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
+                      <template v-if="deploymentStartDate">
+                        {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentStartDate.month - 1]} ${deploymentStartDate.day}, ${deploymentStartDate.year}` }}
+                      </template>
+                      <template v-else>Pick start date</template>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-auto p-0" align="start">
+                    <Calendar v-model="deploymentStartDate" initial-focus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <!-- End Date -->
+              <div class="space-y-1">
+                <span class="text-[11px] text-muted-foreground font-medium">End Date</span>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <Button
+                      variant="outline"
+                      :class="cn('w-full justify-start text-left font-normal h-9 text-xs', !deploymentEndDate && 'text-muted-foreground')"
+                    >
+                      <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
+                      <template v-if="deploymentEndDate">
+                        {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentEndDate.month - 1]} ${deploymentEndDate.day}, ${deploymentEndDate.year}` }}
+                      </template>
+                      <template v-else>Pick end date</template>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-auto p-0" align="start">
+                    <Calendar v-model="deploymentEndDate" initial-focus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <!-- Formatted period preview -->
+            <div v-if="formattedPeriod" class="rounded-md border bg-muted/30 px-3 py-2 text-xs text-foreground flex items-center gap-2">
+              <CalendarDays class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span class="font-medium">{{ formattedPeriod }}</span>
             </div>
           </div>
 
@@ -553,7 +621,6 @@ const {
             @click="activeStep = 'configure-deployment'"
           >
             <span>Continue</span>
-            <span>→</span>
           </Button>
 
           <Button
@@ -565,8 +632,7 @@ const {
             @click="handleDeployIntern"
           >
             <Loader2 v-if="isSubmitting" class="h-3.5 w-3.5 animate-spin" />
-            <Sparkles v-else class="h-3.5 w-3.5" />
-            <span>Confirm & Deploy Intern</span>
+            <span>Deploy Intern</span>
           </Button>
         </div>
       </DialogFooter>

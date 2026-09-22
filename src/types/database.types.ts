@@ -1372,6 +1372,33 @@ export type Database = {
           },
         ]
       }
+      directories: {
+        Row: {
+          created_at: string
+          id: string
+          office_code: string
+          office_head: string | null
+          office_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          office_code: string
+          office_head?: string | null
+          office_name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          office_code?: string
+          office_head?: string | null
+          office_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       document_templates: {
         Row: {
           category: string | null

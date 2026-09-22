@@ -111,7 +111,7 @@ export const systemDirectoryService = {
         Promise.resolve(supabase.schema('applicants').from('applicant_requirements').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('employers').from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
+        Promise.resolve((supabase.schema('employers') as any).from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
         Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
       ])
       const emailMap = new Map<string, string>()
@@ -191,7 +191,7 @@ export const systemDirectoryService = {
       }
 
       // Process Employer Documents SYNCHRONOUSLY
-      const employerDocsMap = new Map<number, SubmittedDocument[]>()
+      const employerDocsMap = new Map<string, SubmittedDocument[]>()
       const employerProfileDocsMap = new Map<string, SubmittedDocument[]>()
       const empReqs = empReqsRes.data || []
       const empMedia = empMediaRes.data || []
@@ -327,13 +327,13 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('applicants')
         .from('applicant_requirements')
-        .update({ status: normalizedStatus })
+        .update({ status: normalizedStatus as any })
         .eq('id', docData.applicant_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')
     } else {
-      const { data: docData, error: docError } = await supabase
-        .schema('employers')
+      const { data: docData, error: docError } = await (supabase
+        .schema('employers') as any)
         .from('employer_requirement_media')
         .select('employer_requirement_id')
         .eq('id', documentId)
@@ -346,7 +346,7 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('employers')
         .from('employer_requirements')
-        .update({ status: normalizedStatus })
+        .update({ status: normalizedStatus as any })
         .eq('id', docData.employer_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')

@@ -40,6 +40,8 @@ export const useGipStore = defineStore('gipStore', () => {
   const errorMessage = ref<string | null>(null)
   const selectedIntern = ref<GipInternRecord | null>(null)
   const isDetailsModalOpen = ref<boolean>(false)
+  const isEditingIntern = ref<boolean>(false)
+  const isUpdatingIntern = ref<boolean>(false)
   const isAddInternModalOpen = ref<boolean>(false)
 
   // ─── Filter & Pagination State ───
@@ -292,11 +294,74 @@ export const useGipStore = defineStore('gipStore', () => {
 
   const openInternDetails = (intern: GipInternRecord) => {
     selectedIntern.value = intern
+    isEditingIntern.value = false
     isDetailsModalOpen.value = true
   }
 
   const closeInternDetails = () => {
     isDetailsModalOpen.value = false
+    isEditingIntern.value = false
+  }
+
+  const toggleEditMode = () => {
+    isEditingIntern.value = !isEditingIntern.value
+  }
+
+  const cancelEditMode = () => {
+    isEditingIntern.value = false
+  }
+
+  const updateGipIntern = async (payload: {
+    id: string
+    program: 'PGAS' | 'DOLE'
+    assignedOffice: string
+    supervisor?: string
+    stipend?: string
+    period?: string
+    status: string
+    applicationId?: string
+  }) => {
+    isUpdatingIntern.value = true
+    try {
+      const parts = [`[${payload.program}] ${payload.assignedOffice}`]
+      if (payload.supervisor) parts.push(`Supervisor: ${payload.supervisor}`)
+      if (payload.period) parts.push(`Period: ${payload.period}`)
+      if (payload.stipend) parts.push(`Stipend: ${payload.stipend}`)
+      const fullRemarks = parts.join(' | ')
+
+      await gipService.updateGip(payload.id, {
+        status: payload.status,
+        remarks: fullRemarks,
+      })
+
+      if (payload.applicationId) {
+        try {
+          await gipService.updateGipApplicant(payload.applicationId, {
+            status: payload.status === 'Active' ? 'Approved' : payload.status,
+          })
+        } catch (appErr) {
+          console.warn('[gipStore] Could not update applicant status:', appErr)
+        }
+      }
+
+      toastAlert.success('Intern Updated', 'Intern deployment details updated successfully.')
+
+      // Refresh records so the table and details reflect the change
+      await fetchDetailsData()
+
+      // Re-select the updated intern so the modal displays updated data
+      const updated = interns.value.find((i) => i.id === payload.id)
+      if (updated) {
+        selectedIntern.value = updated
+      }
+
+      isEditingIntern.value = false
+    } catch (err: any) {
+      toastAlert.error('Update Failed', err.message || 'Could not update GIP intern.')
+      throw err
+    } finally {
+      isUpdatingIntern.value = false
+    }
   }
 
   const openAddInternModal = () => {
@@ -584,6 +649,8 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedIntern,
     selectedApplicant,
     isDetailsModalOpen,
+    isEditingIntern,
+    isUpdatingIntern,
     isAddInternModalOpen,
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
@@ -642,6 +709,9 @@ export const useGipStore = defineStore('gipStore', () => {
     resetApplicantFilters,
     openInternDetails,
     closeInternDetails,
+    toggleEditMode,
+    cancelEditMode,
+    updateGipIntern,
     openAddInternModal,
     closeAddInternModal,
     deployInternFromApplicant,

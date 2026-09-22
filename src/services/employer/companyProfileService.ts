@@ -38,7 +38,7 @@ export async function fetchCompanyProfileByProfileId(
  * Only fields present in `updates` are patched.
  */
 export async function updateCompanyProfile(
-  employerId: number,
+  employerId: string,
   updates: Partial<TablesUpdate<{ schema: 'employers' }, 'companies'>>,
 ): Promise<void> {
   const { error } = await supabase

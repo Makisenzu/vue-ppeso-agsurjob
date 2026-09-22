@@ -1,8 +1,11 @@
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
+import { directoryService } from '@/services/common/directoryService'
 import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
+import type { DirectoryRow } from '@/types/common/directory'
 import { LPII_CONFIG, getInitials } from '@/helpers/peso/provincialPeso/gipHelper'
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 
@@ -22,13 +25,77 @@ export function useGipAddIntern() {
   const { isAddInternModalOpen, applicants, interns, isSubmitting } = storeToRefs(gipStore)
 
   const currentYear = new Date().getFullYear()
-
   const periodPresets = [
     `Jan ${currentYear} - Jun ${currentYear}`,
     `Jul ${currentYear} - Dec ${currentYear}`,
     `Batch ${currentYear} (3 Months)`,
     `Batch ${currentYear} (6 Months)`,
   ]
+
+  // ─── Office Directory State ───
+  const offices = ref<DirectoryRow[]>([])
+  const officeSearchQuery = ref<string>('')
+  const selectedOffice = ref<DirectoryRow | null>(null)
+  const isLoadingOffices = ref<boolean>(false)
+
+  const filteredOffices = computed(() => {
+    if (!officeSearchQuery.value.trim()) return offices.value
+    const q = officeSearchQuery.value.toLowerCase().trim()
+    return offices.value.filter(
+      (o) =>
+        o.office_name.toLowerCase().includes(q) ||
+        o.office_code.toLowerCase().includes(q) ||
+        (o.office_head && o.office_head.toLowerCase().includes(q)),
+    )
+  })
+
+  // ─── Date Range State ───
+  const todayDate = today(getLocalTimeZone())
+  const deploymentStartDate = ref<any>(
+    new CalendarDate(todayDate.year, todayDate.month, 1),
+  )
+  const deploymentEndDate = ref<any>(
+    (todayDate.month === 12
+      ? new CalendarDate(todayDate.year + 1, 1, 1)
+      : new CalendarDate(todayDate.year, todayDate.month + 1, 1)
+    ).subtract({ days: 1 }),
+  )
+
+  // Initialize deploymentEndDate to last day of current month
+  const initEndDate = () => {
+    const start = deploymentStartDate.value
+    if (!start) return
+    const nextMonth = start.month === 12
+      ? new CalendarDate(start.year + 1, 1, 1)
+      : new CalendarDate(start.year, start.month + 1, 1)
+    deploymentEndDate.value = nextMonth.subtract({ days: 1 })
+  }
+  initEndDate()
+
+  /**
+   * Format a date value as "MMM D" (e.g., "Sep 1")
+   */
+  function formatShortDate(d: any): string {
+    if (!d || typeof d.month !== 'number' || typeof d.day !== 'number') return ''
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${months[d.month - 1]} ${d.day}`
+  }
+
+  const formattedPeriod = computed<string>(() => {
+    const start = deploymentStartDate.value
+    const end = deploymentEndDate.value
+    if (!start || !end) return ''
+
+    const startStr = formatShortDate(start)
+    const endStr = formatShortDate(end)
+
+    // If same year, show year once at the end
+    if (start.year === end.year) {
+      return `${startStr} - ${endStr}, ${end.year}`
+    }
+    // Different years
+    return `${startStr}, ${start.year} - ${endStr}, ${end.year}`
+  })
 
   // Step management: 'select-applicant' | 'configure-deployment'
   const activeStep = ref<'select-applicant' | 'configure-deployment'>('select-applicant')
@@ -47,10 +114,23 @@ export function useGipAddIntern() {
   const assignedOffice = ref<string>('Provincial PESO / PGAS Office')
   const supervisor = ref<string>('')
   const stipend = ref<string>('₱479.35 / day')
-  const period = ref<string>(`Jan ${currentYear} - Jun ${currentYear}`)
+  const period = ref<string>('')
   const status = ref<string>('Active')
   const deploymentNotes = ref<string>('')
   const validationError = ref<string | null>(null)
+
+  // Sync period from formatted date range
+  watch(formattedPeriod, (fp) => {
+    period.value = fp
+  }, { immediate: true })
+
+  // ─── Auto-fill supervisor when office is selected ───
+  watch(selectedOffice, (office) => {
+    if (office) {
+      assignedOffice.value = office.office_name
+      supervisor.value = office.office_head || ''
+    }
+  })
 
   // Check if an applicant is already deployed to GIP
   function isApplicantDeployed(applicant: GipApplicantRecord): boolean {
@@ -99,21 +179,60 @@ export function useGipAddIntern() {
     })
   })
 
+  // ─── Fetch offices from directory ───
+  async function fetchOffices() {
+    if (offices.value.length > 0) return // Already loaded
+    isLoadingOffices.value = true
+    try {
+      offices.value = await directoryService.fetchActiveOffices()
+    } catch (err: any) {
+      console.error('Failed to fetch offices:', err.message)
+    } finally {
+      isLoadingOffices.value = false
+    }
+  }
+
   // Program stipend sync
   watch(program, (newProg) => {
     if (newProg === 'DOLE') {
       if (stipend.value === '₱479.35 / day' || !stipend.value) {
         stipend.value = '₱475.00 / day'
       }
-      if (assignedOffice.value === 'Provincial PESO / PGAS Office') {
-        assignedOffice.value = 'DOLE AgSur Provincial Field Office'
+      // Try to auto-select the DOLE office from directories
+      if (
+        assignedOffice.value === 'Provincial PESO / PGAS Office' ||
+        selectedOffice.value?.office_name === 'Provincial PESO / PGAS Office'
+      ) {
+        const doleOffice = offices.value.find((o) =>
+          o.office_name.toUpperCase().includes('DOLE'),
+        )
+        if (doleOffice) {
+          selectedOffice.value = doleOffice
+        } else {
+          assignedOffice.value = 'DOLE AgSur Provincial Field Office'
+          supervisor.value = ''
+        }
       }
     } else {
       if (stipend.value === '₱475.00 / day' || !stipend.value) {
         stipend.value = '₱479.35 / day'
       }
-      if (assignedOffice.value === 'DOLE AgSur Provincial Field Office') {
-        assignedOffice.value = 'Provincial PESO / PGAS Office'
+      // Try to auto-select the PESO/PGAS office from directories
+      if (
+        assignedOffice.value === 'DOLE AgSur Provincial Field Office' ||
+        selectedOffice.value?.office_name?.toUpperCase().includes('DOLE')
+      ) {
+        const pgasOffice = offices.value.find(
+          (o) =>
+            o.office_name.toUpperCase().includes('PESO') ||
+            o.office_name.toUpperCase().includes('PGAS'),
+        )
+        if (pgasOffice) {
+          selectedOffice.value = pgasOffice
+        } else {
+          assignedOffice.value = 'Provincial PESO / PGAS Office'
+          supervisor.value = ''
+        }
       }
     }
   })
@@ -126,19 +245,26 @@ export function useGipAddIntern() {
     onlyAvailable.value = true
     selectedApplicant.value = null
     program.value = 'PGAS'
+    selectedOffice.value = null
+    officeSearchQuery.value = ''
     assignedOffice.value = 'Provincial PESO / PGAS Office'
     supervisor.value = ''
     stipend.value = '₱479.35 / day'
-    period.value = `Jan ${currentYear} - Jun ${currentYear}`
     status.value = 'Active'
     deploymentNotes.value = ''
     validationError.value = null
+
+    // Reset date range to current month
+    const td = today(getLocalTimeZone())
+    deploymentStartDate.value = new CalendarDate(td.year, td.month, 1)
+    initEndDate()
   }
 
-  // Watch modal opening to load applicants data
+  // Watch modal opening to load applicants data and offices
   watch(isAddInternModalOpen, (isOpen) => {
     if (isOpen) {
       gipStore.fetchApplicantsData()
+      fetchOffices()
       resetForm()
     }
   })
@@ -152,11 +278,29 @@ export function useGipAddIntern() {
     if (appRemarks.includes('DOLE')) {
       program.value = 'DOLE'
       stipend.value = '₱475.00 / day'
-      assignedOffice.value = 'DOLE AgSur Provincial Field Office'
+      // Try to auto-select the DOLE office from directories
+      const doleOffice = offices.value.find((o) =>
+        o.office_name.toUpperCase().includes('DOLE'),
+      )
+      if (doleOffice) {
+        selectedOffice.value = doleOffice
+      } else {
+        assignedOffice.value = 'DOLE AgSur Provincial Field Office'
+      }
     } else {
       program.value = 'PGAS'
       stipend.value = '₱479.35 / day'
-      assignedOffice.value = 'Provincial PESO / PGAS Office'
+      // Try to auto-select the PESO/PGAS office from directories
+      const pgasOffice = offices.value.find(
+        (o) =>
+          o.office_name.toUpperCase().includes('PESO') ||
+          o.office_name.toUpperCase().includes('PGAS'),
+      )
+      if (pgasOffice) {
+        selectedOffice.value = pgasOffice
+      } else {
+        assignedOffice.value = 'Provincial PESO / PGAS Office'
+      }
     }
 
     activeStep.value = 'configure-deployment'
@@ -222,6 +366,18 @@ export function useGipAddIntern() {
     period,
     status,
     deploymentNotes,
+
+    // Office directory
+    offices,
+    officeSearchQuery,
+    filteredOffices,
+    selectedOffice,
+    isLoadingOffices,
+
+    // Date range
+    deploymentStartDate,
+    deploymentEndDate,
+    formattedPeriod,
 
     // Configs & Presets
     officePresets: GIP_OFFICE_PRESETS,

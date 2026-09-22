@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
+  Briefcase,
+  Building2,
+  Calendar,
   CheckCircle2,
   Clock,
+  Coins,
   Download,
   Eye,
   Filter,
   Loader2,
   MapPin,
   Mountain,
+  Pencil,
+  Plus,
   RefreshCw,
+  Save,
   Search,
   TreePine,
   UserX,
   Waves,
-  Plus,
   X,
 } from '@lucide/vue'
 import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
@@ -22,6 +28,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -60,6 +67,15 @@ const {
   availableYears,
   selectedIntern,
   isDetailsModalOpen,
+  isEditingIntern,
+  isUpdatingIntern,
+  editForm,
+  officePresets,
+  periodPresets,
+  startEdit,
+  cancelEdit,
+  saveEdit,
+  setEditProgram,
   isLoading,
   searchQuery,
   programTab,
@@ -75,6 +91,8 @@ const {
   goBack,
   resetFilters,
   openInternDetails,
+  openInternEdit,
+  closeInternDetails,
   openAddInternModal,
   exportCsv,
   fetchDetailsData,
@@ -569,15 +587,27 @@ const {
 
                   <!-- Action -->
                   <TableCell class="py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-8 gap-1.5 text-xs cursor-pointer"
-                      @click="openInternDetails(intern)"
-                    >
-                      <Eye class="h-3.5 w-3.5" />
-                      <span>Details</span>
-                    </Button>
+                    <div class="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 gap-1.5 text-xs cursor-pointer"
+                        @click="openInternDetails(intern)"
+                      >
+                        <Eye class="h-3.5 w-3.5" />
+                        <span>Details</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                        title="Edit Deployment Details"
+                        @click="openInternEdit(intern)"
+                      >
+                        <Pencil class="h-3.5 w-3.5" />
+                        <span>Edit</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </template>
@@ -647,29 +677,38 @@ const {
 
     <!-- ─── INTERN DETAILS DIALOG ─── -->
     <Dialog v-model:open="isDetailsModalOpen">
-      <DialogContent class="sm:max-w-137.5">
-        <DialogHeader>
-          <div class="flex items-center gap-2.5">
-            <Avatar class="h-10 w-10 border bg-muted">
-              <AvatarFallback class="font-semibold text-sm text-primary">
-                {{ selectedIntern ? getInitials(selectedIntern.fullName) : '' }}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <DialogTitle class="text-base font-semibold">{{ selectedIntern?.fullName }}</DialogTitle>
-              <DialogDescription class="text-xs flex items-center gap-1.5 mt-0.5">
-                <span>{{ selectedIntern?.code }}</span>
-                <span>•</span>
-                <span>GIP {{ selectedIntern?.program }} Intern</span>
-                <span>•</span>
-                <span class="font-semibold text-foreground">{{ selectedIntern?.status }}</span>
-              </DialogDescription>
+      <DialogContent class="sm:max-w-140 max-h-[92vh] overflow-y-auto">
+        <DialogHeader class="pr-6">
+          <div class="flex items-center justify-between gap-3 w-full">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <Avatar class="h-10 w-10 border bg-muted shrink-0">
+                <AvatarFallback class="font-semibold text-sm text-primary">
+                  {{ selectedIntern ? getInitials(selectedIntern.fullName) : '' }}
+                </AvatarFallback>
+              </Avatar>
+              <div class="min-w-0">
+                <DialogTitle class="text-base font-semibold truncate">{{ selectedIntern?.fullName }}</DialogTitle>
+                <DialogDescription class="text-xs flex items-center gap-1.5 mt-0.5">
+                  <span class="font-mono">{{ selectedIntern?.code }}</span>
+                  <span>•</span>
+                  <template v-if="!isEditingIntern">
+                    <span>GIP {{ selectedIntern?.program }} Intern</span>
+                    <span>•</span>
+                    <span class="font-semibold text-foreground">{{ selectedIntern?.status }}</span>
+                  </template>
+                  <template v-else>
+                    <Badge variant="secondary" class="text-[10px] py-0 px-1.5 font-medium">
+                      Edit Mode
+                    </Badge>
+                  </template>
+                </DialogDescription>
+              </div>
             </div>
           </div>
         </DialogHeader>
 
         <div v-if="selectedIntern" class="grid gap-4 py-2 text-xs">
-          <!-- Ecosystem Banner -->
+          <!-- Ecosystem Banner (Always Read-Only) -->
           <div
             :class="[
               'flex items-center justify-between rounded-lg p-3 border',
@@ -695,8 +734,23 @@ const {
             </Badge>
           </div>
 
-          <!-- Key Details Grid -->
-          <div class="grid grid-cols-2 gap-3">
+          <!-- Section Title with Contextual Action -->
+          <div class="flex items-center justify-between pt-0.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <span>{{ isEditingIntern ? 'Deployment Configuration' : 'Deployment Information' }}</span>
+            </h4>
+            <Button
+              v-if="!isEditingIntern"
+              variant="ghost"
+              size="sm"
+              class="h-6 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 px-2 cursor-pointer"
+              @click="startEdit"
+            >
+            </Button>
+          </div>
+
+          <!-- ─── Read-Only Details Mode ─── -->
+          <div v-if="!isEditingIntern" class="grid grid-cols-2 gap-3">
             <div class="rounded-lg border p-2.5 bg-muted/20">
               <span class="text-muted-foreground block text-[11px]">Assigned Office / Station</span>
               <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.assignedOffice }}</span>
@@ -722,12 +776,191 @@ const {
               <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.contact }}</span>
             </div>
           </div>
+
+          <!-- ─── Edit Mode Inputs ─── -->
+          <div v-else class="space-y-3.5">
+            <!-- Program Funding Selection -->
+            <div class="space-y-1.5">
+              <Label class="text-xs font-semibold">Funding Program</Label>
+              <div class="grid grid-cols-2 gap-2">
+                <!-- PGAS Card -->
+                <div
+                  class="flex items-center gap-2.5 rounded-lg border p-2 cursor-pointer transition-all"
+                  :class="editForm.program === 'PGAS' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/40 border-border'"
+                  @click="setEditProgram('PGAS')"
+                >
+                  <Avatar class="h-6 w-6 rounded-md border bg-background shrink-0">
+                    <img :src="pgasLogo" alt="PGAS" class="object-cover" />
+                  </Avatar>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-xs flex items-center justify-between">
+                      <span>PGAS</span>
+                      <CheckCircle2 v-if="editForm.program === 'PGAS'" class="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p class="text-[10px] text-muted-foreground">Provincial • ₱479.35/day</p>
+                  </div>
+                </div>
+
+                <!-- DOLE Card -->
+                <div
+                  class="flex items-center gap-2.5 rounded-lg border p-2 cursor-pointer transition-all"
+                  :class="editForm.program === 'DOLE' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/40 border-border'"
+                  @click="setEditProgram('DOLE')"
+                >
+                  <Avatar class="h-6 w-6 rounded-md border bg-background shrink-0">
+                    <img :src="doleLogo" alt="DOLE" class="object-cover" />
+                  </Avatar>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-xs flex items-center justify-between">
+                      <span>DOLE</span>
+                      <CheckCircle2 v-if="editForm.program === 'DOLE'" class="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p class="text-[10px] text-muted-foreground">National • ₱475/day</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assigned Office / Station -->
+            <div class="space-y-1.5">
+              <Label for="editAssignedOffice" class="text-xs font-semibold flex items-center gap-1.5">
+                <Building2 class="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Assigned Office / Station</span>
+                <span class="text-destructive">*</span>
+              </Label>
+              <Input
+                id="editAssignedOffice"
+                v-model="editForm.assignedOffice"
+                placeholder="e.g. Provincial PESO, PAGRO, HRMO..."
+                class="text-xs h-8.5"
+              />
+              <div class="flex flex-wrap items-center gap-1 pt-0.5">
+                <span class="text-[10px] text-muted-foreground">Quick pick:</span>
+                <button
+                  v-for="preset in officePresets"
+                  :key="preset"
+                  type="button"
+                  class="rounded border bg-muted/40 hover:bg-muted px-1.5 py-0.5 text-[10px] text-foreground transition cursor-pointer"
+                  @click="editForm.assignedOffice = preset"
+                >
+                  {{ preset }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Supervisor & Stipend -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <Label for="editSupervisor" class="text-xs font-semibold flex items-center gap-1.5">
+                  <Briefcase class="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Designated Supervisor</span>
+                </Label>
+                <Input
+                  id="editSupervisor"
+                  v-model="editForm.supervisor"
+                  placeholder="e.g. Maria Santos"
+                  class="text-xs h-8.5"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <Label for="editStipend" class="text-xs font-semibold flex items-center gap-1.5">
+                  <Coins class="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Stipend Rate</span>
+                </Label>
+                <Input
+                  id="editStipend"
+                  v-model="editForm.stipend"
+                  placeholder="e.g. ₱479.35 / day"
+                  class="text-xs h-8.5 font-mono"
+                />
+              </div>
+            </div>
+
+            <!-- Period & Status -->
+            <div class="space-y-1.5">
+              <Label for="editPeriod" class="text-xs font-semibold flex items-center gap-1.5">
+                <Calendar class="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Deployment Period</span>
+              </Label>
+              <Input
+                id="editPeriod"
+                v-model="editForm.period"
+                placeholder="e.g. Jan 2026 - Jun 2026"
+                class="text-xs h-8.5"
+              />
+              <div class="flex flex-wrap items-center gap-1 pt-0.5">
+                <span class="text-[10px] text-muted-foreground">Presets:</span>
+                <button
+                  v-for="pPreset in periodPresets"
+                  :key="pPreset"
+                  type="button"
+                  class="rounded border bg-muted/40 hover:bg-muted px-1.5 py-0.5 text-[10px] text-foreground transition cursor-pointer"
+                  @click="editForm.period = pPreset"
+                >
+                  {{ pPreset }}
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <Label for="editStatus" class="text-xs font-semibold">Deployment Status</Label>
+                <select
+                  id="editStatus"
+                  v-model="editForm.status"
+                  class="w-full h-8.5 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="Active">Active (Ongoing Deployment)</option>
+                  <option value="Hired">Hired (Absorbed / Employed)</option>
+                  <option value="Resigned">Resigned (Completed / Resigned)</option>
+                </select>
+              </div>
+
+              <!-- Read-only Academic & Contact preview -->
+              <div class="space-y-1.5">
+                <span class="text-xs font-semibold text-muted-foreground block">Degree & Contact</span>
+                <div class="text-[11px] bg-muted/30 border rounded-md px-2.5 py-1 truncate text-muted-foreground">
+                  <span class="text-foreground font-medium block truncate">{{ selectedIntern.course }}</span>
+                  <span class="font-mono text-[10px] truncate block">{{ selectedIntern.contact }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" class="text-xs cursor-pointer" @click="isDetailsModalOpen = false">
-            Close
-          </Button>
+        <DialogFooter class="flex flex-row items-center justify-end sm:justify-end gap-2 pt-3 border-t mt-2">
+          <template v-if="!isEditingIntern">
+            <Button
+              variant="outline"
+              size="sm"
+              class="text-xs cursor-pointer"
+              @click="closeInternDetails"
+            >
+              Close
+            </Button>
+          </template>
+          <template v-else>
+            <Button
+              variant="outline"
+              size="sm"
+              class="text-xs cursor-pointer"
+              :disabled="isUpdatingIntern"
+              @click="cancelEdit"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              class="text-xs cursor-pointer gap-1.5"
+              :disabled="isUpdatingIntern"
+              @click="saveEdit"
+            >
+              <Loader2 v-if="isUpdatingIntern" class="h-3.5 w-3.5 animate-spin" />
+              <Save v-else class="h-3.5 w-3.5" />
+              <span>{{ isUpdatingIntern ? 'Saving...' : 'Save Changes' }}</span>
+            </Button>
+          </template>
         </DialogFooter>
       </DialogContent>
     </Dialog>
