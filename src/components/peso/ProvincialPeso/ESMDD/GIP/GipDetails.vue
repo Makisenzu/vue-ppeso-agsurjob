@@ -592,20 +592,20 @@ const {
                         variant="ghost"
                         size="sm"
                         class="h-8 gap-1.5 text-xs cursor-pointer"
-                        @click="openInternDetails(intern)"
-                      >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Details</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
                         title="Edit Deployment Details"
                         @click="openInternEdit(intern)"
                       >
                         <Pencil class="h-3.5 w-3.5" />
                         <span>Edit</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 gap-1.5 text-xs cursor-pointer"
+                        @click="openInternDetails(intern)"
+                      >
+                        <Eye class="h-3.5 w-3.5" />
+                        <span>Details</span>
                       </Button>
                     </div>
                   </TableCell>
