@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import {
-  BookMarked,
   CheckCircle2,
   Download,
   Eye,
   Filter,
-  Hammer,
   Loader2,
   MapPin,
   Phone,
   RefreshCw,
   Search,
-  Users,
   UserX,
   UserPlus,
   X,
@@ -123,9 +120,6 @@ const {
               All Registered Applicants
             </p>
           </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Users class="h-5 w-5" />
-          </div>
         </CardContent>
       </Card>
 
@@ -144,9 +138,6 @@ const {
             <p class="text-[11px] text-muted-foreground truncate">
               Government Internship Program
             </p>
-          </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Users class="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
@@ -167,9 +158,6 @@ const {
               TUPAD Applicants
             </p>
           </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Hammer class="h-5 w-5" />
-          </div>
         </CardContent>
       </Card>
 
@@ -188,9 +176,6 @@ const {
             <p class="text-[11px] text-muted-foreground truncate">
               Student Employment
             </p>
-          </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <BookMarked class="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
