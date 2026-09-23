@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type {
+  ApplicantStatusDataPoint,
   GenderDataPoint,
   GipApplicantInsert,
   GipApplicantRecord,
@@ -20,6 +21,7 @@ import {
 import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import {
   LPII_CONFIG,
+  computeApplicantStatusBreakdown,
   exportGipApplicantsCsv,
   exportGipInternsCsv,
   extractApplicantAvailableYears,
@@ -505,6 +507,14 @@ export const useGipStore = defineStore('gipStore', () => {
     extractApplicantAvailableYears(applicants.value)
   )
 
+  const applicantStatusData = computed<ApplicantStatusDataPoint[]>(() =>
+    computeApplicantStatusBreakdown(applicants.value)
+  )
+
+  const totalApplicantStatus = computed<number>(() =>
+    applicantStatusData.value.reduce((sum, item) => sum + item.count, 0)
+  )
+
   const totalOverallApplicantLpii = computed<number>(() =>
     applicantOverallLpiiData.value.reduce((sum, item) => sum + item.count, 0)
   )
@@ -729,6 +739,7 @@ export const useGipStore = defineStore('gipStore', () => {
     doleLpiiData,
     interns,
     applicants,
+    applicantStatusData,
     applicantOverallLpiiData,
     applicantMaleLpiiData,
     applicantFemaleLpiiData,
@@ -775,6 +786,7 @@ export const useGipStore = defineStore('gipStore', () => {
     totalOverallLpii,
     totalPgasLpii,
     totalDoleLpii,
+    totalApplicantStatus,
     totalOverallApplicantLpii,
     totalMaleApplicantLpii,
     totalFemaleApplicantLpii,

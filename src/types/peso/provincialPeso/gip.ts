@@ -19,6 +19,16 @@ export type LpiiCategory = 'LOWLAND' | 'UPLAND' | 'WETLAND'
 
 export type GipInternStatus = 'Active' | 'Hired' | 'Resigned' | 'Completed' | 'Pending' | string
 
+export type ApplicantStatus = 'Hired' | 'Pending' | 'Approved' | 'Rejected'
+
+export interface ApplicantStatusDataPoint {
+  status: ApplicantStatus
+  label: string
+  count: number
+  color: string
+  description: string
+}
+
 export interface GenderDataPoint {
   year: number
   male: number

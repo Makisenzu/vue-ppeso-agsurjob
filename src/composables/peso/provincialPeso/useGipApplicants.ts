@@ -6,6 +6,7 @@ import {
   LPII_CONFIG,
   donutTooltipTriggers,
   getInitials,
+  statusDonutTooltipTriggers,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
 export function useGipApplicants() {
@@ -15,9 +16,11 @@ export function useGipApplicants() {
 
   const {
     applicants,
+    applicantStatusData,
     applicantOverallLpiiData,
     applicantMaleLpiiData,
     applicantFemaleLpiiData,
+    totalApplicantStatus,
     totalOverallApplicantLpii,
     totalMaleApplicantLpii,
     totalFemaleApplicantLpii,
@@ -100,9 +103,11 @@ export function useGipApplicants() {
   return {
     // Data & Computed
     applicants,
+    applicantStatusData,
     applicantOverallLpiiData,
     applicantMaleLpiiData,
     applicantFemaleLpiiData,
+    totalApplicantStatus,
     totalOverallApplicantLpii,
     totalMaleApplicantLpii,
     totalFemaleApplicantLpii,
@@ -131,6 +136,7 @@ export function useGipApplicants() {
     // Visual Helpers & Configs
     LPII_CONFIG,
     donutTooltipTriggers,
+    statusDonutTooltipTriggers,
     getInitials,
 
     // Actions & Navigation

@@ -3,8 +3,6 @@ import { ref } from 'vue'
 import {
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
-  Clock,
   Download,
   Eye,
   FileCheck,
@@ -46,7 +44,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
+import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
@@ -64,10 +62,10 @@ const triggerFileInput = () => {
 
 const {
   applicants,
-  applicantOverallLpiiData,
+  applicantStatusData,
   applicantMaleLpiiData,
   applicantFemaleLpiiData,
-  totalOverallApplicantLpii,
+  totalApplicantStatus,
   totalMaleApplicantLpii,
   totalFemaleApplicantLpii,
   filteredApplicants,
@@ -86,6 +84,7 @@ const {
   currentPage,
   pageSize,
   donutTooltipTriggers,
+  statusDonutTooltipTriggers,
   getInitials,
   goBack,
   resetFilters,
@@ -94,6 +93,14 @@ const {
   exportCsv,
   refreshApplicantsData,
 } = useGipApplicants()
+
+const toggleStatusTab = (status: string) => {
+  if (statusTab.value.toLowerCase() === status.toLowerCase()) {
+    statusTab.value = 'ALL'
+  } else {
+    statusTab.value = status
+  }
+}
 
 const {
   isDragging,
@@ -182,24 +189,32 @@ const handleUploadBatchClick = () => {
         >
           Hired
         </Button>
+        <Button
+          size="sm"
+          :variant="statusTab === 'Rejected' ? 'default' : 'ghost'"
+          class="h-8 px-3 text-xs cursor-pointer"
+          @click="statusTab = 'Rejected'"
+        >
+          Rejected
+        </Button>
       </div>
     </div>
 
-    <!-- ─── 1 ROW OF PIE / DONUT CHARTS: APPLICANT LPII (Lowland, Upland, Wetland) ─── -->
+    <!-- ─── 1 ROW OF PIE / DONUT CHARTS: APPLICANT STATUS & LPII BREAKDOWN ─── -->
     <div class="space-y-3">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- ─── Pie Chart 1: Combined Applicant LPII Distribution ─── -->
+        <!-- ─── Pie Chart 1: Combined Applicant Status Breakdown ─── -->
         <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
           <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <div>
-                  <CardTitle class="text-base font-semibold">Combined Applicant LPII</CardTitle>
-                  <CardDescription class="text-xs">All Registered GIP Applicants</CardDescription>
+                  <CardTitle class="text-base font-semibold">Combined Applicant Status</CardTitle>
+                  <CardDescription class="text-xs">Hired, Pending, Approved & Rejected</CardDescription>
                 </div>
               </div>
               <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalOverallApplicantLpii.toLocaleString() }}
+                Total: {{ totalApplicantStatus.toLocaleString() }}
               </Badge>
             </div>
           </CardHeader>
@@ -208,38 +223,45 @@ const handleUploadBatchClick = () => {
             <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
               <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div v-else-if="totalOverallApplicantLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="applicantOverallLpiiData" :height="220">
+            <div v-else-if="totalApplicantStatus > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
+              <VisSingleContainer :data="applicantStatusData" :height="220">
                 <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
+                  :value="(d: ApplicantStatusDataPoint) => d.count"
+                  :color="(d: ApplicantStatusDataPoint) => d.color"
                   :pad-angle="0.03"
                   :corner-radius="4"
                   :arc-width="38"
-                  :central-label="`${totalOverallApplicantLpii.toLocaleString()}`"
+                  :central-label="`${totalApplicantStatus.toLocaleString()}`"
                   central-sub-label="Total Applicants"
                 />
-                <VisTooltip :triggers="donutTooltipTriggers" />
+                <VisTooltip :triggers="statusDonutTooltipTriggers" />
               </VisSingleContainer>
             </div>
             <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
               <p>No applicant records yet</p>
             </div>
 
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
+            <!-- Legend and counts (Hired, Pending, Approved, Rejected) -->
+            <div class="w-full mt-3 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-1.5 pt-3 border-t text-center">
               <div
-                v-for="item in applicantOverallLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
+                v-for="item in applicantStatusData"
+                :key="item.status"
+                class="flex flex-col items-center rounded-lg p-2 transition cursor-pointer select-none"
+                :class="[
+                  statusTab.toLowerCase() === item.status.toLowerCase()
+                    ? 'bg-muted ring-1 ring-primary/40 font-semibold'
+                    : 'bg-muted/40 hover:bg-muted/70',
+                ]"
+                :title="`Filter applicants by ${item.label}`"
+                @click="toggleStatusTab(item.status)"
               >
                 <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
+                  <span class="h-2 w-2 rounded-full shrink-0" :style="{ backgroundColor: item.color }" />
+                  <span class="truncate">{{ item.label }}</span>
                 </div>
                 <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
                 <span class="text-[10px] text-muted-foreground">
-                  {{ totalOverallApplicantLpii ? ((item.count / totalOverallApplicantLpii) * 100).toFixed(1) : 0 }}%
+                  {{ totalApplicantStatus ? ((item.count / totalApplicantStatus) * 100).toFixed(1) : 0 }}%
                 </span>
               </div>
             </div>
@@ -498,7 +520,7 @@ const handleUploadBatchClick = () => {
                 <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
                 <TableHead class="text-xs font-semibold">LPII Classification</TableHead>
                 <TableHead class="text-xs font-semibold">Academic Course</TableHead>
-                <TableHead class="text-xs font-semibold">Batch Year</TableHead>
+                <TableHead class="text-xs font-semibold">Date Applied</TableHead>
                 <TableHead class="text-xs font-semibold">Documents Submitted</TableHead>
                 <TableHead class="text-xs font-semibold">Status</TableHead>
                 <TableHead class="text-right text-xs font-semibold">Action</TableHead>
@@ -577,7 +599,7 @@ const handleUploadBatchClick = () => {
                     </div>
                   </TableCell>
 
-                  <!-- Batch Year -->
+                  <!-- Date Applied -->
                   <TableCell class="py-3">
                     <div class="flex flex-col text-xs">
                       <span class="font-mono text-foreground">{{ applicant.batchYear }}</span>
@@ -619,7 +641,6 @@ const handleUploadBatchClick = () => {
                       variant="outline"
                       class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] gap-1"
                     >
-                      <CheckCircle2 class="h-3 w-3" />
                       Approved
                     </Badge>
                     <Badge
@@ -627,7 +648,6 @@ const handleUploadBatchClick = () => {
                       variant="outline"
                       class="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[11px] gap-1"
                     >
-                      <CheckCircle2 class="h-3 w-3" />
                       Hired
                     </Badge>
                     <Badge
@@ -635,7 +655,6 @@ const handleUploadBatchClick = () => {
                       variant="outline"
                       class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px] gap-1"
                     >
-                      <Clock class="h-3 w-3" />
                       Pending
                     </Badge>
                     <Badge
@@ -748,7 +767,6 @@ const handleUploadBatchClick = () => {
                           File: {{ uploadedFile?.name }}
                         </Badge>
                         <Badge variant="outline" class="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                          <CheckCircle2 class="h-3 w-3 mr-1" />
                           {{ validApplicantsCount }} Ready
                         </Badge>
                         <Badge
@@ -768,7 +786,6 @@ const handleUploadBatchClick = () => {
                           @click="confirmImport"
                         >
                           <Loader2 v-if="isSubmitting" class="h-3.5 w-3.5 animate-spin" />
-                          <CheckCircle2 v-else class="h-3.5 w-3.5" />
                           <span>Import {{ validApplicantsCount }} Applicants</span>
                         </Button>
                         <Button

@@ -2,6 +2,7 @@ import type { ChartConfig } from '@/components/ui/chart'
 import { VisDonutSelectors } from '@unovis/vue'
 import type {
   ApplicantRow,
+  ApplicantStatusDataPoint,
   GenderDataPoint,
   GipApplicantRecord,
   GipApplicantRow,
@@ -92,6 +93,23 @@ export const donutTooltipTriggers = {
       </div>
       <div style="margin-top: 4px; color: #cbd5e1;">
         Interns: <span style="font-weight: 700; color: #fff;">${d.data.count.toLocaleString()}</span>
+      </div>
+      <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
+        ${d.data.description}
+      </div>
+    </div>
+  `,
+}
+
+export const statusDonutTooltipTriggers = {
+  [VisDonutSelectors.segment]: (d: { data: ApplicantStatusDataPoint }): string => `
+    <div style="background: rgba(15, 23, 42, 0.92); color: #fff; padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);">
+      <div style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${d.data.color};"></span>
+        ${d.data.label} Status
+      </div>
+      <div style="margin-top: 4px; color: #cbd5e1;">
+        Applicants: <span style="font-weight: 700; color: #fff;">${d.data.count.toLocaleString()}</span>
       </div>
       <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
         ${d.data.description}
@@ -606,5 +624,52 @@ export const GIP_DOCUMENT_OPTIONS = [
   'Valid Government ID',
   'Certificate of Indigency',
 ]
+
+// ─── Applicant Status Breakdown Helper ───
+export function computeApplicantStatusBreakdown(
+  records: GipApplicantRecord[]
+): ApplicantStatusDataPoint[] {
+  const countStatus = (statusName: string) => {
+    const target = statusName.toLowerCase()
+    return records.filter((r) => {
+      const s = (r.status || '').trim().toLowerCase()
+      if (target === 'hired') {
+        return s === 'hired' || s === 'deployed'
+      }
+      return s === target
+    }).length
+  }
+
+  return [
+    {
+      status: 'Hired',
+      label: 'Hired',
+      count: countStatus('hired'),
+      color: '#3b82f6', // Blue 500
+      description: 'Candidates hired and actively deployed',
+    },
+    {
+      status: 'Pending',
+      label: 'Pending',
+      count: countStatus('pending'),
+      color: '#f59e0b', // Amber 500
+      description: 'Applications pending evaluation and review',
+    },
+    {
+      status: 'Approved',
+      label: 'Approved',
+      count: countStatus('approved'),
+      color: '#10b981', // Emerald 500
+      description: 'Approved applicants qualified for deployment',
+    },
+    {
+      status: 'Rejected',
+      label: 'Rejected',
+      count: countStatus('rejected'),
+      color: '#f43f5e', // Rose 500
+      description: 'Applications rejected or disqualified',
+    },
+  ]
+}
 
 
