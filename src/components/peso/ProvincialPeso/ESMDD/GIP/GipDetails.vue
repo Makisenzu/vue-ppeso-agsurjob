@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
-  Briefcase,
-  Building2,
-  Calendar,
+  CalendarDays,
   CheckCircle2,
+  CheckIcon,
+  ChevronsUpDownIcon,
   Clock,
   Coins,
   Download,
@@ -45,7 +45,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxViewport,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxGroup,
+  ComboboxItemIndicator,
+} from '@/components/ui/combobox'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
@@ -70,8 +89,6 @@ const {
   isEditingIntern,
   isUpdatingIntern,
   editForm,
-  officePresets,
-  periodPresets,
   startEdit,
   cancelEdit,
   saveEdit,
@@ -96,6 +113,17 @@ const {
   openAddInternModal,
   exportCsv,
   refreshDetailsData,
+
+  // Office directory (edit mode)
+  officeSearchQuery,
+  filteredOffices,
+  selectedOffice,
+  isLoadingOffices,
+
+  // Date range (edit mode)
+  deploymentStartDate,
+  deploymentEndDate,
+  formattedPeriod,
 } = useGipDetails()
 </script>
 
@@ -111,10 +139,10 @@ const {
           </Button>
         </div>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-          GIP — LPII Analytics & Records
+          GIP Records
         </h1>
         <p class="text-sm text-muted-foreground">
-          Ecosystem and geographic distribution monitoring across Agusan del Sur (Lowland, Upland, Wetland) with intern registry.
+          Geographic distribution monitoring across Agusan del Sur with intern registry.
         </p>
       </div>
 
@@ -160,7 +188,7 @@ const {
                   Combined LPII Distribution
                 </CardTitle>
                 <CardDescription class="text-xs">
-                  Overall AgSur GIP (PGAS + DOLE)
+                  Overall Agsur GIP (PGAS + DOLE)
                 </CardDescription>
               </div>
               <Badge variant="outline" class="font-mono text-xs">
@@ -730,7 +758,7 @@ const {
               </div>
             </div>
             <Badge variant="outline" class="bg-background text-foreground font-mono text-[10px]">
-              AgSur LPII
+              Agsur LPII
             </Badge>
           </div>
 
@@ -821,38 +849,70 @@ const {
               </div>
             </div>
 
-            <!-- Assigned Office / Station -->
+            <!-- Assigned Office / Station — Searchable Combobox -->
             <div class="space-y-1.5">
-              <Label for="editAssignedOffice" class="text-xs font-semibold flex items-center gap-1.5">
-                <Building2 class="h-3.5 w-3.5 text-muted-foreground" />
+              <Label class="text-xs font-semibold flex items-center gap-1.5">
                 <span>Assigned Office / Station</span>
                 <span class="text-destructive">*</span>
               </Label>
-              <Input
-                id="editAssignedOffice"
-                v-model="editForm.assignedOffice"
-                placeholder="e.g. Provincial PESO, PAGRO, HRMO..."
-                class="text-xs h-8.5"
-              />
-              <div class="flex flex-wrap items-center gap-1 pt-0.5">
-                <span class="text-[10px] text-muted-foreground">Quick pick:</span>
-                <button
-                  v-for="preset in officePresets"
-                  :key="preset"
-                  type="button"
-                  class="rounded border bg-muted/40 hover:bg-muted px-1.5 py-0.5 text-[10px] text-foreground transition cursor-pointer"
-                  @click="editForm.assignedOffice = preset"
-                >
-                  {{ preset }}
-                </button>
-              </div>
+              <Combobox
+                v-model="selectedOffice"
+                v-model:search-term="officeSearchQuery"
+                :ignore-filter="true"
+                by="id"
+              >
+                <ComboboxAnchor as-child>
+                  <ComboboxTrigger as-child>
+                    <Button
+                      variant="outline"
+                      class="w-full justify-between overflow-hidden h-8.5 text-xs"
+                      :class="isLoadingOffices ? 'opacity-60' : ''"
+                    >
+                      <span class="truncate text-left flex-1">
+                        <template v-if="isLoadingOffices">Loading offices...</template>
+                        <template v-else-if="selectedOffice">{{ selectedOffice.office_name }}</template>
+                        <template v-else>{{ editForm.assignedOffice || 'Select office...' }}</template>
+                      </span>
+                      <ChevronsUpDownIcon class="h-3.5 w-3.5 opacity-50 shrink-0" />
+                    </Button>
+                  </ComboboxTrigger>
+                </ComboboxAnchor>
+
+                <ComboboxList>
+                  <ComboboxInput
+                    placeholder="Search offices..."
+                    class="text-xs"
+                    @input="officeSearchQuery = ($event.target as HTMLInputElement).value"
+                  />
+                  <ComboboxViewport>
+                    <ComboboxEmpty class="text-xs">No office found.</ComboboxEmpty>
+                    <ComboboxGroup>
+                      <ComboboxItem
+                        v-for="office in filteredOffices"
+                        :key="office.id"
+                        :value="office"
+                        class="text-xs"
+                      >
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                          <span class="truncate">{{ office.office_name }}</span>
+                          <Badge variant="secondary" class="text-[10px] py-0 px-1.5 shrink-0">
+                            {{ office.office_code }}
+                          </Badge>
+                        </div>
+                        <ComboboxItemIndicator>
+                          <CheckIcon class="h-3.5 w-3.5" />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxGroup>
+                  </ComboboxViewport>
+                </ComboboxList>
+              </Combobox>
             </div>
 
             <!-- Supervisor & Stipend -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="space-y-1.5">
                 <Label for="editSupervisor" class="text-xs font-semibold flex items-center gap-1.5">
-                  <Briefcase class="h-3.5 w-3.5 text-muted-foreground" />
                   <span>Designated Supervisor</span>
                 </Label>
                 <Input
@@ -860,7 +920,13 @@ const {
                   v-model="editForm.supervisor"
                   placeholder="e.g. Maria Santos"
                   class="text-xs h-8.5"
+                  :class="selectedOffice?.office_head ? 'bg-muted/40' : ''"
+                  :readonly="!!selectedOffice?.office_head"
                 />
+                <p v-if="selectedOffice?.office_head" class="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <CheckCircle2 class="h-3 w-3 text-emerald-500 shrink-0" />
+                  Auto-filled from office directory
+                </p>
               </div>
 
               <div class="space-y-1.5">
@@ -877,29 +943,62 @@ const {
               </div>
             </div>
 
-            <!-- Period & Status -->
+            <!-- Deployment Period — Calendar Date Range Picker -->
             <div class="space-y-1.5">
-              <Label for="editPeriod" class="text-xs font-semibold flex items-center gap-1.5">
-                <Calendar class="h-3.5 w-3.5 text-muted-foreground" />
+              <Label class="text-xs font-semibold flex items-center gap-1.5">
                 <span>Deployment Period</span>
               </Label>
-              <Input
-                id="editPeriod"
-                v-model="editForm.period"
-                placeholder="e.g. Jan 2026 - Jun 2026"
-                class="text-xs h-8.5"
-              />
-              <div class="flex flex-wrap items-center gap-1 pt-0.5">
-                <span class="text-[10px] text-muted-foreground">Presets:</span>
-                <button
-                  v-for="pPreset in periodPresets"
-                  :key="pPreset"
-                  type="button"
-                  class="rounded border bg-muted/40 hover:bg-muted px-1.5 py-0.5 text-[10px] text-foreground transition cursor-pointer"
-                  @click="editForm.period = pPreset"
-                >
-                  {{ pPreset }}
-                </button>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <!-- Start Date -->
+                <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground font-medium">Start Date</span>
+                  <Popover>
+                    <PopoverTrigger as-child>
+                      <Button
+                        variant="outline"
+                        :class="cn('w-full justify-start text-left font-normal h-8.5 text-xs', !deploymentStartDate && 'text-muted-foreground')"
+                      >
+                        <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
+                        <template v-if="deploymentStartDate">
+                          {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentStartDate.month - 1]} ${deploymentStartDate.day}, ${deploymentStartDate.year}` }}
+                        </template>
+                        <template v-else>Pick start date</template>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0" align="start">
+                      <Calendar v-model="deploymentStartDate" initial-focus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <!-- End Date -->
+                <div class="space-y-1">
+                  <span class="text-[11px] text-muted-foreground font-medium">End Date</span>
+                  <Popover>
+                    <PopoverTrigger as-child>
+                      <Button
+                        variant="outline"
+                        :class="cn('w-full justify-start text-left font-normal h-8.5 text-xs', !deploymentEndDate && 'text-muted-foreground')"
+                      >
+                        <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
+                        <template v-if="deploymentEndDate">
+                          {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentEndDate.month - 1]} ${deploymentEndDate.day}, ${deploymentEndDate.year}` }}
+                        </template>
+                        <template v-else>Pick end date</template>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0" align="start">
+                      <Calendar v-model="deploymentEndDate" initial-focus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <!-- Formatted period preview -->
+              <div v-if="formattedPeriod" class="rounded-md border bg-muted/30 px-2.5 py-1.5 text-xs text-foreground flex items-center gap-2">
+                <CalendarDays class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span class="font-medium">{{ formattedPeriod }}</span>
               </div>
             </div>
 
