@@ -75,14 +75,11 @@ const {
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
           <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-            GIP Candidate Priority Ranking
+            GIP Applicants Priority Ranking
           </h1>
-          <Badge variant="outline" class="border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs">
-            Auto-Scored (100 Pts Max)
-          </Badge>
         </div>
         <p class="text-sm text-muted-foreground">
-          Auto-calculated priority rankings based on working student status, academic awards, TESDA/certifications, and LPII poverty & unemployment indices.
+          Auto-calculated priority rankings based on applicants submitted documents.
         </p>
       </div>
 
@@ -114,7 +111,7 @@ const {
     <!-- ─── KPI Metric Cards ─── -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <Card class="p-3.5 sm:p-4 shadow-2xs">
-        <span class="text-xs font-medium text-muted-foreground">Total Ranked Candidates</span>
+        <span class="text-xs font-medium text-muted-foreground">Total Ranked Applicants</span>
         <div class="mt-1 text-2xl font-bold font-mono">{{ stats.total }}</div>
         <p class="text-[11px] text-muted-foreground mt-0.5">Assessed across all municipalities</p>
       </Card>
@@ -137,7 +134,7 @@ const {
         <div class="mt-1 text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
           {{ stats.highCount }}
         </div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Top-recommendation candidates</p>
+        <p class="text-[11px] text-muted-foreground mt-0.5">Top-recommendation applicants</p>
       </Card>
     </div>
 
@@ -149,7 +146,7 @@ const {
           <Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             v-model="searchQuery"
-            placeholder="Search candidate name, course, municipality, code..."
+            placeholder="Search applicant name, course, municipality, code..."
             class="pl-8 text-xs h-9"
           />
           <button
@@ -210,11 +207,10 @@ const {
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Trophy class="h-4.5 w-4.5 text-amber-500" />
-              <span>Ranked Candidate Registry</span>
+              <span>Ranked Applicant Registry</span>
             </CardTitle>
             <CardDescription class="text-xs">
-              Showing <span class="font-semibold text-foreground">{{ filteredPriorityList.length }}</span> of {{ priorityApplicants.length }} candidates
+              Showing <span class="font-semibold text-foreground">{{ filteredPriorityList.length }}</span> of {{ priorityApplicants.length }} applicants
             </CardDescription>
           </div>
           <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -235,7 +231,7 @@ const {
         <!-- Loading State -->
         <div v-if="isPriorityLoading" class="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
           <Loader2 class="h-8 w-8 animate-spin text-primary" />
-          <p class="text-xs">Computing priority candidate scores...</p>
+          <p class="text-xs">Computing priority applicant scores...</p>
         </div>
 
         <!-- Empty State -->
@@ -262,7 +258,7 @@ const {
             <TableHeader class="bg-muted/40">
               <TableRow>
                 <TableHead class="w-16 text-center text-xs font-semibold">Rank</TableHead>
-                <TableHead class="text-xs font-semibold">Candidate Information</TableHead>
+                <TableHead class="text-xs font-semibold">Applicant Information</TableHead>
                 <TableHead class="text-xs font-semibold">Municipality & LPII</TableHead>
                 <TableHead class="text-xs font-semibold">Course / Attainment</TableHead>
                 <TableHead class="w-40 text-xs font-semibold">Priority Score</TableHead>
@@ -282,8 +278,7 @@ const {
                     variant="outline"
                     :class="['h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs font-mono mx-auto', getRankBadgeClass(record.rank)]"
                   >
-                    <Trophy v-if="record.rank === 1" class="h-3 w-3 text-amber-500" />
-                    <span v-else>{{ record.rank }}</span>
+                    <span>{{ record.rank }}</span>
                   </Badge>
                 </TableCell>
 
@@ -310,7 +305,7 @@ const {
                         <span class="font-mono">{{ record.code }}</span>
                         <span>•</span>
                         <span>{{ record.gender }}</span>
-                        <span v-if="record.age">• {{ record.age }} yrs</span>
+                        <span v-if="record.age">• {{ record.age }} y.o</span>
                       </div>
                     </div>
                   </div>
@@ -340,7 +335,7 @@ const {
 
                 <!-- Course -->
                 <TableCell class="py-3">
-                  <div class="flex items-center gap-1.5 text-xs text-foreground max-w-[200px]">
+                  <div class="flex items-center gap-1.5 text-xs text-foreground max-w-50">
                     <GraduationCap class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span class="truncate" :title="record.course">{{ record.course }}</span>
                   </div>
@@ -348,7 +343,7 @@ const {
 
                 <!-- Priority Score & Progress -->
                 <TableCell class="py-3">
-                  <div class="flex flex-col gap-1.5 max-w-[140px]">
+                  <div class="flex flex-col gap-1.5 max-w-35">
                     <div class="flex items-center justify-between text-xs">
                       <span :class="['font-mono font-bold', getScoreColorClass(record.totalPriorityScore)]">
                         {{ record.totalPriorityScore }}
@@ -444,7 +439,7 @@ const {
           <div>
             Showing <span class="font-medium text-foreground">{{ filteredPriorityList.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
             to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredPriorityList.length) }}</span>
-            of <span class="font-medium text-foreground">{{ filteredPriorityList.length }}</span> candidates
+            of <span class="font-medium text-foreground">{{ filteredPriorityList.length }}</span> applicants
           </div>
 
           <div class="flex items-center gap-2">
