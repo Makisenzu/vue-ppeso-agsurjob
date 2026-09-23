@@ -12,6 +12,8 @@ import type {
   LpiiCategoryConfig,
   LpiiDataPoint,
 } from '@/types/peso/provincialPeso/gip'
+import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
+import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 
 // ─── LPII Visual & Theme Configurations ───
 export const LPII_CONFIG: Record<LpiiCategory, LpiiCategoryConfig> = {
@@ -671,5 +673,104 @@ export function computeApplicantStatusBreakdown(
     },
   ]
 }
+
+// ─── Convert GipApplicantRecord to full ApplicantEntryRecord ───
+export function convertGipApplicantToEntryRecord(gipApp: GipApplicantRecord): ApplicantEntryRecord {
+  if (gipApp.rawApplicant) {
+    const entry = mapToApplicantEntryRecord(gipApp.rawApplicant as ApplicantRow)
+    // Ensure GIP program is included in referred programs
+    if (!entry.referredPrograms.some((p) => (p || '').toUpperCase().includes('GIP'))) {
+      entry.referredPrograms = ['GIP', ...entry.referredPrograms]
+    }
+    // Ensure address fields fallback to GIP application if missing
+    if ((!entry.address.municipality || entry.address.municipality === 'N/A') && gipApp.municipality) {
+      entry.address.municipality = gipApp.municipality
+    }
+    if ((!entry.address.barangay || entry.address.barangay === 'N/A') && gipApp.barangay) {
+      entry.address.barangay = gipApp.barangay
+    }
+    // Ensure course fallback
+    if ((!entry.highestEducationalAttainment || entry.highestEducationalAttainment === 'Not Specified') && gipApp.course) {
+      entry.highestEducationalAttainment = gipApp.course
+    }
+    return entry
+  }
+
+  // Fallback if rawApplicant is not available
+  const nameParts = gipApp.fullName.trim().split(/\s+/)
+  const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || 'Applicant'
+  const surname = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+
+  return {
+    id: gipApp.applicantId || gipApp.id,
+    profileId: null,
+    firstName,
+    middleName: null,
+    surname,
+    suffix: null,
+    fullName: gipApp.fullName,
+    email: gipApp.contact.includes('@') ? gipApp.contact : null,
+    contactNumber: gipApp.contact,
+    allContactNumbers: gipApp.contact && gipApp.contact !== 'N/A' ? [gipApp.contact] : [],
+    dateOfBirth: `${gipApp.batchYear - 22}-01-01`,
+    age: 22,
+    sex: gipApp.gender || 'Not Specified',
+    civilStatus: 'Single',
+    religion: null,
+    heightFt: null,
+    tin: null,
+    address: {
+      barangay: gipApp.barangay,
+      municipality: gipApp.municipality,
+      province: 'Agusan del Sur',
+      region: 'Caraga (Region XIII)',
+    },
+    fullAddressString: `Brgy. ${gipApp.barangay}, ${gipApp.municipality}, Agusan del Sur`,
+    employmentStatus: gipApp.status === 'Hired' ? 'Employed' : 'Unemployed',
+    employmentType: null,
+    unemployedReason: 'Looking for Internship',
+    selfEmployedType: null,
+    monthsLookingForWork: 1,
+    is4psBeneficiary: false,
+    householdId4ps: null,
+    hasDisability: false,
+    disabilities: [],
+    disabilityOthers: null,
+    isOfw: false,
+    ofwCountry: null,
+    isFormerOfw: false,
+    formerOfwCountry: null,
+    formerOfwReturnDate: null,
+    currentlyInSchool: false,
+    highestEducationalAttainment: gipApp.course || 'College Graduate',
+    educationalBackground: [
+      {
+        level: 'Tertiary / College',
+        course: gipApp.course || 'College Degree',
+        school: 'College / University',
+        year_graduated: `${gipApp.batchYear}`,
+      },
+    ],
+    workExperiences: [],
+    vocationalTrainings: [],
+    eligibilities: [],
+    languageProficiencies: [
+      { language: 'English', read: true, write: true, speak: true, understand: true },
+      { language: 'Filipino', read: true, write: true, speak: true, understand: true },
+    ],
+    preferredOccupations: [gipApp.course || 'Government Intern'],
+    preferredLocalLocations: [gipApp.municipality || 'Agusan del Sur'],
+    preferredOverseasLocations: [],
+    jobTypePreference: ['Full-time'],
+    otherSkills: ['Computer Literacy', 'Administrative Support'],
+    otherSkillsSpecified: null,
+    referredPrograms: ['GIP'],
+    assessedByName: 'Provincial PESO Officer',
+    assessmentDate: gipApp.createdAt,
+    createdAt: gipApp.createdAt,
+    updatedAt: gipApp.createdAt,
+  }
+}
+
 
 

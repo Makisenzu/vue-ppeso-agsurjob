@@ -8,6 +8,7 @@ import {
   getInitials,
   statusDonutTooltipTriggers,
 } from '@/helpers/peso/provincialPeso/gipHelper'
+import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
 
 export function useGipApplicants() {
   const route = useRoute()
@@ -48,8 +49,6 @@ export function useGipApplicants() {
   const {
     fetchApplicantsData,
     refreshApplicantsData,
-    openApplicantDetails,
-    closeApplicantDetails,
     openAddApplicantModal,
     closeAddApplicantModal,
     openBatchUploadModal,
@@ -57,6 +56,59 @@ export function useGipApplicants() {
     resetApplicantFilters,
     exportApplicantsCsv,
   } = store
+
+  // ─── Selected Applicant for Details (Component & Route Sync) ───
+  const selectedApplicantForDetails = computed<GipApplicantRecord | null>(() => {
+    if (selectedApplicant.value) return selectedApplicant.value
+
+    const paramId = route.params.id as string | undefined
+    if (paramId) {
+      return applicants.value.find((a) => a.id === paramId || a.applicantId === paramId) ?? null
+    }
+
+    const queryId = route.query.applicantId as string | undefined
+    if (queryId) {
+      return applicants.value.find((a) => a.id === queryId || a.applicantId === queryId) ?? null
+    }
+
+    return null
+  })
+
+  const openApplicantDetails = (app: GipApplicantRecord) => {
+    selectedApplicant.value = app
+    isApplicantDetailsModalOpen.value = false
+    router.push({
+      query: { ...route.query, applicantId: app.id },
+    })
+  }
+
+  const closeApplicantDetails = () => {
+    selectedApplicant.value = null
+    const query = { ...route.query }
+    delete query.applicantId
+    if (route.params.id) {
+      router.push({ name: 'provincial-peso-gip-applicants', query })
+    } else {
+      router.push({ query })
+    }
+  }
+
+  // Synchronize route query/params on load or URL navigation
+  watch(
+    [() => route.query.applicantId, () => route.params.id, applicants],
+    ([queryId, paramId, list]) => {
+      const targetId = (paramId as string) || (queryId as string)
+      if (targetId && list.length > 0) {
+        const found = list.find((a) => a.id === targetId || a.applicantId === targetId)
+        if (found) {
+          selectedApplicant.value = found
+        }
+      } else if (!targetId) {
+        selectedApplicant.value = null
+      }
+    },
+    { immediate: true }
+  )
 
   // ─── Route Query Synchronization for Status Tab ───
   const statusTab = computed({
@@ -116,6 +168,7 @@ export function useGipApplicants() {
     totalApplicantPages,
     availableYears: applicantAvailableYears,
     selectedApplicant,
+    selectedApplicantForDetails,
     isDetailsModalOpen: isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,

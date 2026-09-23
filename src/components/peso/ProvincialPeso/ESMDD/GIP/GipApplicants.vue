@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Download,
   Eye,
-  FileCheck,
   Filter,
   Loader2,
   MapPin,
@@ -35,15 +34,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
@@ -51,6 +41,7 @@ import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
 import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
+import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicantNsrpDetails.vue'
 
 const gipStore = useGipStore()
 
@@ -72,8 +63,7 @@ const {
   paginatedApplicants,
   totalApplicantPages,
   availableYears,
-  selectedApplicant,
-  isDetailsModalOpen,
+  selectedApplicantForDetails,
   isLoading,
   searchQuery,
   statusTab,
@@ -137,7 +127,15 @@ const handleUploadBatchClick = () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 pb-12">
+  <!-- ─── APPLICANT NSRP DETAILS VIEW ─── -->
+  <GipApplicantNsrpDetails
+    v-if="selectedApplicantForDetails"
+    :applicant="selectedApplicantForDetails"
+    @back="closeApplicantDetails"
+  />
+
+  <!-- ─── REGISTRY MASTER VIEW (CHARTS & TABLE) ─── -->
+  <div v-else class="flex flex-col gap-6 pb-12">
     <!-- ─── Header & Breadcrumb ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
@@ -949,135 +947,19 @@ const handleUploadBatchClick = () => {
         </div>
       </CardContent>
     </Card>
-
-    <!-- ─── APPLICANT DETAILS DIALOG ─── -->
-    <Dialog v-model:open="isDetailsModalOpen">
-      <DialogContent class="sm:max-w-137.5">
-        <DialogHeader>
-          <div class="flex items-center gap-2.5">
-            <Avatar class="h-10 w-10 border bg-muted">
-              <AvatarFallback class="font-semibold text-sm text-primary">
-                {{ selectedApplicant ? getInitials(selectedApplicant.fullName) : '' }}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <DialogTitle class="text-base font-semibold">{{ selectedApplicant?.fullName }}</DialogTitle>
-              <DialogDescription class="text-xs flex items-center gap-1.5 mt-0.5">
-                <span>{{ selectedApplicant?.code }}</span>
-                <span>•</span>
-                <span>GIP Applicant</span>
-                <span>•</span>
-                <span class="font-semibold text-foreground">{{ selectedApplicant?.status }}</span>
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div v-if="selectedApplicant" class="grid gap-4 py-2 text-xs">
-          <!-- Ecosystem Banner -->
-          <div
-            :class="[
-              'flex items-center justify-between rounded-lg p-3 border',
-              LPII_CONFIG[selectedApplicant.lpiiTag].bgClass,
-              LPII_CONFIG[selectedApplicant.lpiiTag].badgeClass,
-            ]"
-          >
-            <div class="flex items-center gap-2">
-              <TreePine v-if="selectedApplicant.lpiiTag === 'LOWLAND'" class="h-4 w-4" />
-              <Mountain v-else-if="selectedApplicant.lpiiTag === 'UPLAND'" class="h-4 w-4" />
-              <Waves v-else class="h-4 w-4" />
-              <div>
-                <span class="font-bold uppercase tracking-wider">
-                  {{ LPII_CONFIG[selectedApplicant.lpiiTag].label }} Ecosystem Tagging
-                </span>
-                <p class="text-[11px] opacity-90">
-                  Barangay {{ selectedApplicant.barangay }}, {{ selectedApplicant.municipality }}
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline" class="bg-background text-foreground font-mono text-[10px]">
-              AgSur LPII
-            </Badge>
-          </div>
-
-          <!-- Key Details Grid -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Permanent Address</span>
-              <span class="font-medium text-foreground mt-0.5 block">
-                Brgy. {{ selectedApplicant.barangay }}, {{ selectedApplicant.municipality }}
-              </span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Academic Background / Degree</span>
-              <span class="font-medium text-foreground mt-0.5 block">{{ selectedApplicant.course }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Contact Information</span>
-              <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedApplicant.contact }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Batch Year / Date Applied</span>
-              <span class="font-medium text-foreground mt-0.5 block font-mono">
-                Batch {{ selectedApplicant.batchYear }} ({{ selectedApplicant.createdAt ? selectedApplicant.createdAt.slice(0, 10) : 'N/A' }})
-              </span>
-            </div>
-          </div>
-
-          <!-- Documents Submitted Section -->
-          <div class="rounded-lg border p-3 bg-muted/10 space-y-2">
-            <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <FileCheck class="h-3.5 w-3.5 text-primary" />
-              Documents Submitted
-            </span>
-            <div v-if="selectedApplicant.documentsSubmitted && selectedApplicant.documentsSubmitted.length > 0" class="flex flex-wrap gap-1.5">
-              <Badge
-                v-for="doc in selectedApplicant.documentsSubmitted"
-                :key="doc"
-                variant="secondary"
-                class="text-xs font-normal"
-              >
-                {{ doc }}
-              </Badge>
-            </div>
-            <p v-else class="text-[11px] text-muted-foreground italic">
-              No documentary attachments uploaded yet.
-            </p>
-          </div>
-
-          <!-- Remarks / Assessment Notes Section -->
-          <div v-if="selectedApplicant.remarks && selectedApplicant.remarks.length > 0" class="rounded-lg border p-3 bg-muted/10 space-y-1.5">
-            <span class="text-xs font-semibold text-foreground">Evaluation Remarks</span>
-            <ul class="list-disc list-inside text-[11px] text-muted-foreground space-y-0.5">
-              <li v-for="(rem, idx) in selectedApplicant.remarks" :key="idx">
-                {{ rem }}
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" size="sm" class="text-xs cursor-pointer" @click="closeApplicantDetails">
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-
-
-    <!-- ─── ADD SINGLE APPLICANT DIALOG ─── -->
-    <GipAddApplicantDialog />
-
-    <!-- ─── BATCH IMPORT APPLICANTS DIALOG ─── -->
-    <GipBatchUploadDialog />
-
-    <!-- ─── EDIT SCANNED CANDIDATE DIALOG (INLINE TABLE SUPPORT) ─── -->
-    <GipEditCandidateDialog
-      v-model:open="isEditModalOpen"
-      :candidate="editingCandidate"
-      :index="editingCandidateIndex"
-      @save="saveEditedCandidate"
-    />
   </div>
+
+  <!-- ─── ADD SINGLE APPLICANT DIALOG ─── -->
+  <GipAddApplicantDialog />
+
+  <!-- ─── BATCH IMPORT APPLICANTS DIALOG ─── -->
+  <GipBatchUploadDialog />
+
+  <!-- ─── EDIT SCANNED CANDIDATE DIALOG (INLINE TABLE SUPPORT) ─── -->
+  <GipEditCandidateDialog
+    v-model:open="isEditModalOpen"
+    :candidate="editingCandidate"
+    :index="editingCandidateIndex"
+    @save="saveEditedCandidate"
+  />
 </template>
