@@ -33,6 +33,9 @@ export function useGipApplicants() {
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,
+    priorityApplicants,
+    isPriorityModalOpen,
+    isPriorityLoading,
     isLoading,
     isSubmitting,
     errorMessage,
@@ -55,6 +58,10 @@ export function useGipApplicants() {
     closeBatchUploadModal,
     resetApplicantFilters,
     exportApplicantsCsv,
+    fetchPriorityApplicants,
+    openPriorityModal,
+    closePriorityModal,
+    exportPriorityCsv,
   } = store
 
   // ─── Selected Applicant for Details (Component & Route Sync) ───
@@ -148,6 +155,10 @@ export function useGipApplicants() {
     router.push({ name: 'provincial-peso-gip' })
   }
 
+  function navigateToPriority() {
+    router.push({ name: 'provincial-peso-gip-priority' })
+  }
+
   onMounted(() => {
     fetchApplicantsData()
   })
@@ -194,6 +205,7 @@ export function useGipApplicants() {
 
     // Actions & Navigation
     goBack,
+    navigateToPriority,
     resetFilters: resetApplicantFilters,
     openApplicantDetails,
     closeApplicantDetails,
@@ -204,5 +216,13 @@ export function useGipApplicants() {
     exportCsv: exportApplicantsCsv,
     fetchApplicantsData,
     refreshApplicantsData,
+    priorityApplicants,
+    isPriorityModalOpen,
+    isPriorityLoading,
+    openPriorityModal,
+    closePriorityModal,
+    fetchPriorityApplicants,
+    exportPriorityCsv,
   }
 }
+

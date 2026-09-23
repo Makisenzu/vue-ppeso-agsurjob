@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
-import { ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
+import { Award, ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 
@@ -34,6 +34,7 @@ const {
   formatTooltipLabel,
   navigateToDetails,
   navigateToApplicants,
+  navigateToPriority,
   refreshDashboardData,
 } = useGipDashboard()
 </script>
@@ -48,16 +49,27 @@ const {
           Monitoring and comparative demographic distribution of deployed interns for PGAS and DOLE.
         </p>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        class="gap-1.5 self-start sm:self-auto cursor-pointer"
-        :disabled="isLoading"
-        @click="refreshDashboardData"
-      >
-        <RefreshCw :class="['h-4 w-4', isLoading && 'animate-spin']" />
-        <span>Refresh Data</span>
-      </Button>
+      <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          class="gap-1.5 cursor-pointer border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/20"
+          @click="navigateToPriority"
+        >
+          <Award class="h-4 w-4 text-amber-500 shrink-0" />
+          <span>Priority Applicants</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          class="gap-1.5 cursor-pointer"
+          :disabled="isLoading"
+          @click="refreshDashboardData"
+        >
+          <RefreshCw :class="['h-4 w-4', isLoading && 'animate-spin']" />
+          <span>Refresh Data</span>
+        </Button>
+      </div>
     </div>
 
     <!-- Quick Stats -->

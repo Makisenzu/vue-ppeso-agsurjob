@@ -829,7 +829,15 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gip_applicants_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+        ]
       }
       gips: {
         Row: {
@@ -857,6 +865,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "gips_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["gip_applicant_id"]
+          },
           {
             foreignKeyName: "gips_application_id_fkey"
             columns: ["application_id"]
@@ -1126,11 +1141,81 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spes_applicants_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      gip_applicant_priority_scores: {
+        Row: {
+          academic_score: number | null
+          address: Json | null
+          age: number | null
+          applicant_id: string | null
+          assessed_by_name: string | null
+          assessment_date: string | null
+          cert_score: number | null
+          civil_status: string | null
+          contact_numbers: string[] | null
+          currently_in_school: boolean | null
+          date_of_birth: string | null
+          disabilities: string[] | null
+          disability_others: string | null
+          document_submitted: string[] | null
+          educational_background: Json | null
+          eligibilities: Json | null
+          email: string | null
+          employment_status: string | null
+          employment_type: string | null
+          first_name: string | null
+          former_ofw_country: string | null
+          former_ofw_return_date: string | null
+          gip_applicant_id: string | null
+          gip_created_at: string | null
+          gip_status: string | null
+          gip_updated_at: string | null
+          has_disability: boolean | null
+          height_ft: number | null
+          household_id_4ps: string | null
+          is_4ps_beneficiary: boolean | null
+          is_former_ofw: boolean | null
+          is_ofw: boolean | null
+          job_type_preference: string[] | null
+          language_proficiencies: Json | null
+          middle_name: string | null
+          months_looking_for_work: number | null
+          ofw_country: string | null
+          other_skills: string[] | null
+          other_skills_specified: string | null
+          poverty_score: number | null
+          preferred_local_locations: string[] | null
+          preferred_occupations: string[] | null
+          preferred_overseas_locations: string[] | null
+          profile_id: string | null
+          referred_programs: string[] | null
+          religion: string | null
+          remarks: string[] | null
+          self_employed_type: string | null
+          sex: string | null
+          status_score: number | null
+          suffix: string | null
+          surname: string | null
+          tin: string | null
+          total_priority_score: number | null
+          unemployed_reason: string | null
+          unemployment_score: number | null
+          vocational_trainings: Json | null
+          work_experiences: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

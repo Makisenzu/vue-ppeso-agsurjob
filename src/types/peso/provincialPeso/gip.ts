@@ -95,8 +95,50 @@ export interface GipApplicantRecord {
   documentsSubmitted: string[]
   remarks: string[]
   createdAt: string
+  totalPriorityScore?: number | null
+  priorityRank?: number | null
+  statusScore?: number | null
+  academicScore?: number | null
+  certScore?: number | null
+  povertyScore?: number | null
+  unemploymentScore?: number | null
   rawApplication?: Record<string, any> | null
   rawApplicant?: Record<string, any> | null
+}
+
+export type GipPriorityScoreRow = Database['esmdd']['Views']['gip_applicant_priority_scores']['Row']
+
+export interface GipPriorityApplicantRecord {
+  applicantId: string
+  gipApplicantId: string
+  rank: number
+  code: string
+  fullName: string
+  firstName: string
+  surname: string
+  middleName?: string | null
+  suffix?: string | null
+  gender: 'Male' | 'Female' | string
+  age: number | null
+  municipality: string
+  barangay: string
+  lpiiTag: LpiiCategory
+  course: string
+  status: string
+  contact: string
+  email: string | null
+  dateOfBirth?: string | null
+  civilStatus?: string | null
+  currentlyInSchool?: boolean | null
+  unemployedReason?: string | null
+  // Sub-scores & Total
+  statusScore: number
+  academicScore: number
+  certScore: number
+  povertyScore: number
+  unemploymentScore: number
+  totalPriorityScore: number
+  rawScoreRow?: Record<string, any> | null
 }
 
 export interface GipJoinedRecord {

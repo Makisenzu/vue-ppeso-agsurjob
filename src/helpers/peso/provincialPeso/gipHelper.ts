@@ -7,6 +7,8 @@ import type {
   GipApplicantRecord,
   GipApplicantRow,
   GipInternRecord,
+  GipPriorityApplicantRecord,
+  GipPriorityScoreRow,
   GipRow,
   LpiiCategory,
   LpiiCategoryConfig,
@@ -771,6 +773,134 @@ export function convertGipApplicantToEntryRecord(gipApp: GipApplicantRecord): Ap
     updatedAt: gipApp.createdAt,
   }
 }
+
+// ─── Priority Applicants Mapping Helper ───
+export function mapToGipPriorityApplicantRecord(
+  row: GipPriorityScoreRow,
+  rank: number,
+  barangayTagMap?: Map<string, LpiiCategory>
+): GipPriorityApplicantRecord {
+  const address = parseApplicantAddress(row.address)
+  const course = parseApplicantCourse(row.educational_background)
+
+  const rawGender = (row.sex || '').trim().toLowerCase()
+  const gender: 'Male' | 'Female' = rawGender.startsWith('f') || rawGender === 'woman' ? 'Female' : 'Male'
+
+  const normalizedBrgy = address.barangay.trim().toLowerCase()
+  let lpiiTag: LpiiCategory = 'LOWLAND'
+  if (barangayTagMap && barangayTagMap.has(normalizedBrgy)) {
+    lpiiTag = barangayTagMap.get(normalizedBrgy)!
+  }
+
+  const nameParts = [
+    row.first_name,
+    row.middle_name ? `${row.middle_name.charAt(0)}.` : '',
+    row.surname,
+    row.suffix,
+  ].filter(Boolean)
+  const fullName = nameParts.length > 0 ? nameParts.join(' ') : `Applicant ${(row.applicant_id || '').slice(0, 6)}`
+
+  const batchYear = row.gip_created_at ? new Date(row.gip_created_at).getFullYear() : new Date().getFullYear()
+  const code = `GIP-PRIO-${batchYear}-${(row.applicant_id || '').slice(0, 4).toUpperCase()}`
+
+  const contact =
+    (row.contact_numbers && row.contact_numbers.length > 0 ? row.contact_numbers[0] : null) ||
+    row.email ||
+    'N/A'
+
+  return {
+    applicantId: row.applicant_id || '',
+    gipApplicantId: row.gip_applicant_id || '',
+    rank,
+    code,
+    fullName,
+    firstName: row.first_name || '',
+    surname: row.surname || '',
+    middleName: row.middle_name,
+    suffix: row.suffix,
+    gender,
+    age: row.age || null,
+    municipality: address.municipality,
+    barangay: address.barangay,
+    lpiiTag,
+    course,
+    status: row.gip_status || 'Pending',
+    contact,
+    email: row.email || null,
+    dateOfBirth: row.date_of_birth,
+    civilStatus: row.civil_status,
+    currentlyInSchool: row.currently_in_school,
+    unemployedReason: row.unemployed_reason,
+    statusScore: Number(row.status_score) || 0,
+    academicScore: Number(row.academic_score) || 0,
+    certScore: Number(row.cert_score) || 0,
+    povertyScore: Number(row.poverty_score) || 0,
+    unemploymentScore: Number(row.unemployment_score) || 0,
+    totalPriorityScore: Number(row.total_priority_score) || 0,
+    rawScoreRow: row,
+  }
+}
+
+// ─── Priority Applicants CSV Export Helper ───
+export function exportPriorityApplicantsCsv(records: GipPriorityApplicantRecord[]): void {
+  const headers = [
+    'Rank',
+    'Candidate Code',
+    'Full Name',
+    'Gender',
+    'Age',
+    'Municipality',
+    'Barangay',
+    'LPII Zone',
+    'Course / Education',
+    'Contact Number',
+    'Email',
+    'Status Score (15 max)',
+    'Academic Score (20 max)',
+    'Certifications Score (15 max)',
+    'Poverty Score (25 max)',
+    'Unemployment Score (25 max)',
+    'Total Priority Score (100 max)',
+    'Status',
+  ]
+
+  const rows = records.map((r) => [
+    `#${r.rank}`,
+    `"${r.code}"`,
+    `"${r.fullName}"`,
+    `"${r.gender}"`,
+    r.age ?? 'N/A',
+    `"${r.municipality}"`,
+    `"${r.barangay}"`,
+    `"${r.lpiiTag}"`,
+    `"${r.course}"`,
+    `"${r.contact}"`,
+    `"${r.email || 'N/A'}"`,
+    r.statusScore,
+    r.academicScore,
+    r.certScore,
+    r.povertyScore,
+    r.unemploymentScore,
+    r.totalPriorityScore,
+    `"${r.status}"`,
+  ])
+
+  const csvContent =
+    'data:text/csv;charset=utf-8,' +
+    [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute(
+    'download',
+    `GIP_Priority_Applicants_Ranking_${new Date().toISOString().slice(0, 10)}.csv`
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 
 
 

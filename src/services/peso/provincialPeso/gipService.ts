@@ -4,6 +4,8 @@ import { invalidateApplicantEntryCache } from '@/services/peso/provincialPeso/ap
 import type {
   GipInternRecord,
   GipApplicantRecord,
+  GipPriorityApplicantRecord,
+  GipPriorityScoreRow,
   GenderDataPoint,
   LpiiDataPoint,
   LpiiCategory,
@@ -18,6 +20,7 @@ import type {
 import {
   mapToGipInternRecord,
   mapToGipApplicantRecord,
+  mapToGipPriorityApplicantRecord,
   computeYearlyDemographics,
   computeApplicantsDemographics,
   computeLpiiBreakdown,
@@ -26,6 +29,7 @@ import {
 
 export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
 export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants'
+export const GIP_PRIORITY_APPLICANTS_CACHE_KEY = 'peso:gip:priority-applicants'
 export const GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY = 'peso:gip:yearly-demographics'
 export const GIP_LPII_INTERNS_CACHE_KEY = 'peso:gip:lpii-interns'
 export const GIP_LPII_APPLICANTS_CACHE_KEY = 'peso:gip:lpii-applicants'
@@ -39,6 +43,7 @@ export function invalidateGipCaches(options?: { interns?: boolean; applicants?: 
   }
   if (options?.all || options?.applicants) {
     removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
     removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
     removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
   }
@@ -231,10 +236,88 @@ export const gipService = {
         }
       }
 
+      // Query priority scores to attach to applicants if available
+      const scoreMap = new Map<string, { total: number; rank: number; status: number; academic: number; cert: number; poverty: number; unemployment: number }>()
+      try {
+        const { data: scoreData } = await supabase
+          .schema('esmdd')
+          .from('gip_applicant_priority_scores')
+          .select('applicant_id, total_priority_score, status_score, academic_score, cert_score, poverty_score, unemployment_score')
+          .order('total_priority_score', { ascending: false })
+
+        if (scoreData) {
+          scoreData.forEach((row, idx) => {
+            if (row.applicant_id) {
+              scoreMap.set(row.applicant_id, {
+                total: Number(row.total_priority_score) || 0,
+                rank: idx + 1,
+                status: Number(row.status_score) || 0,
+                academic: Number(row.academic_score) || 0,
+                cert: Number(row.cert_score) || 0,
+                poverty: Number(row.poverty_score) || 0,
+                unemployment: Number(row.unemployment_score) || 0,
+              })
+            }
+          })
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+
       return gipApps.map((app) => {
         const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-        return mapToGipApplicantRecord(app, applicant, barangayTagMap)
+        const rec = mapToGipApplicantRecord(app, applicant, barangayTagMap)
+        if (app.applicant_id && scoreMap.has(app.applicant_id)) {
+          const s = scoreMap.get(app.applicant_id)!
+          rec.totalPriorityScore = s.total
+          rec.priorityRank = s.rank
+          rec.statusScore = s.status
+          rec.academicScore = s.academic
+          rec.certScore = s.cert
+          rec.povertyScore = s.poverty
+          rec.unemploymentScore = s.unemployment
+        }
+        return rec
       })
+    })
+  },
+
+  /**
+   * Fetches all GIP priority applicants ranked by total priority score.
+   */
+  async fetchPriorityApplicants(forceRefresh = false): Promise<GipPriorityApplicantRecord[]> {
+    if (forceRefresh) {
+      removePersistentCacheValue(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
+    }
+
+    return getOrSetPersistentCache(GIP_PRIORITY_APPLICANTS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
+      const [priorityScoresRes, barangaysRes] = await Promise.all([
+        supabase
+          .schema('esmdd')
+          .from('gip_applicant_priority_scores')
+          .select('*')
+          .order('total_priority_score', { ascending: false }),
+        supabase
+          .schema('public')
+          .from('barangays')
+          .select('name, lpii_tag'),
+      ])
+
+      if (priorityScoresRes.error) {
+        console.error('[gipService] Error fetching priority applicants:', priorityScoresRes.error)
+        return []
+      }
+
+      const barangays = (barangaysRes.data ?? []) as BarangayRow[]
+      const barangayTagMap = new Map<string, LpiiCategory>()
+      for (const b of barangays) {
+        if (b.name && b.lpii_tag) {
+          barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+        }
+      }
+
+      const rows = (priorityScoresRes.data ?? []) as GipPriorityScoreRow[]
+      return rows.map((row, index) => mapToGipPriorityApplicantRecord(row, index + 1, barangayTagMap))
     })
   },
 

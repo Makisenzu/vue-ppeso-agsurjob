@@ -5,6 +5,7 @@ import type {
   GenderDataPoint,
   GipApplicantInsert,
   GipApplicantRecord,
+  GipPriorityApplicantRecord,
   GipInsert,
   GipInternRecord,
   GipProgram,
@@ -14,6 +15,7 @@ import {
   gipService,
   GIP_INTERNS_CACHE_KEY,
   GIP_APPLICANTS_CACHE_KEY,
+  GIP_PRIORITY_APPLICANTS_CACHE_KEY,
   GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY,
   GIP_LPII_INTERNS_CACHE_KEY,
   GIP_LPII_APPLICANTS_CACHE_KEY,
@@ -24,6 +26,7 @@ import {
   computeApplicantStatusBreakdown,
   exportGipApplicantsCsv,
   exportGipInternsCsv,
+  exportPriorityApplicantsCsv,
   extractApplicantAvailableYears,
   extractAvailableYears,
 } from '@/helpers/peso/provincialPeso/gipHelper'
@@ -477,6 +480,11 @@ export const useGipStore = defineStore('gipStore', () => {
   const isAddApplicantModalOpen = ref<boolean>(false)
   const isBatchUploadModalOpen = ref<boolean>(false)
 
+  // ─── Priority Applicants Ranking State ───
+  const priorityApplicants = ref<GipPriorityApplicantRecord[]>([])
+  const isPriorityModalOpen = ref<boolean>(false)
+  const isPriorityLoading = ref<boolean>(false)
+
   // ─── Applicant Filter & Pagination State ───
   const applicantSearchQuery = ref<string>('')
   const applicantStatusTab = ref<string>('ALL')
@@ -601,6 +609,7 @@ export const useGipStore = defineStore('gipStore', () => {
     // 1. Instant Cache Hydration (stale-while-revalidate)
     if (!forceRefresh) {
       const cachedApplicants = getPersistentCacheValue<GipApplicantRecord[]>(GIP_APPLICANTS_CACHE_KEY)
+      const cachedPriority = getPersistentCacheValue<GipPriorityApplicantRecord[]>(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
       const cachedLpii = getPersistentCacheValue<{
         overall: LpiiDataPoint[]
         male: LpiiDataPoint[]
@@ -609,6 +618,9 @@ export const useGipStore = defineStore('gipStore', () => {
 
       if (cachedApplicants !== null) {
         applicants.value = cachedApplicants
+      }
+      if (cachedPriority !== null) {
+        priorityApplicants.value = cachedPriority
       }
       if (cachedLpii !== null) {
         applicantOverallLpiiData.value = cachedLpii.overall
@@ -621,14 +633,16 @@ export const useGipStore = defineStore('gipStore', () => {
     }
 
     try {
-      const [lpiiBreakdown, list] = await Promise.all([
+      const [lpiiBreakdown, list, priorityList] = await Promise.all([
         gipService.fetchApplicantLpiiData(forceRefresh),
         gipService.fetchApplicants(forceRefresh),
+        gipService.fetchPriorityApplicants(forceRefresh),
       ])
       applicantOverallLpiiData.value = [...lpiiBreakdown.overall]
       applicantMaleLpiiData.value = [...lpiiBreakdown.male]
       applicantFemaleLpiiData.value = [...lpiiBreakdown.female]
       applicants.value = [...list]
+      priorityApplicants.value = [...priorityList]
       if (forceRefresh) {
         toastAlert.success('Data Refreshed', 'GIP applicants registry refreshed.')
       }
@@ -638,6 +652,39 @@ export const useGipStore = defineStore('gipStore', () => {
       toastAlert.error('Error Loading Applicants', msg)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const fetchPriorityApplicants = async (forceRefresh = false) => {
+    isPriorityLoading.value = true
+    try {
+      const list = await gipService.fetchPriorityApplicants(forceRefresh)
+      priorityApplicants.value = [...list]
+    } catch (err: any) {
+      console.error('[gipStore] Failed to load priority applicants:', err)
+      toastAlert.error('Error Loading Priority Applicants', err.message || 'Could not load priority applicants.')
+    } finally {
+      isPriorityLoading.value = false
+    }
+  }
+
+  const openPriorityModal = async () => {
+    isPriorityModalOpen.value = true
+    if (priorityApplicants.value.length === 0) {
+      await fetchPriorityApplicants()
+    }
+  }
+
+  const closePriorityModal = () => {
+    isPriorityModalOpen.value = false
+  }
+
+  const exportPriorityCsv = () => {
+    try {
+      exportPriorityApplicantsCsv(priorityApplicants.value)
+      toastAlert.success('Export Successful', 'GIP Priority Applicants Ranking exported as CSV.')
+    } catch {
+      toastAlert.error('Export Failed', 'Failed to export GIP Priority Applicants Ranking.')
     }
   }
 
@@ -755,6 +802,9 @@ export const useGipStore = defineStore('gipStore', () => {
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,
+    priorityApplicants,
+    isPriorityModalOpen,
+    isPriorityLoading,
     searchQuery,
     selectedProgram,
     selectedLpiiFilter,
@@ -827,5 +877,9 @@ export const useGipStore = defineStore('gipStore', () => {
     closeBatchUploadModal,
     exportCsv,
     exportApplicantsCsv,
+    fetchPriorityApplicants,
+    openPriorityModal,
+    closePriorityModal,
+    exportPriorityCsv,
   }
 })

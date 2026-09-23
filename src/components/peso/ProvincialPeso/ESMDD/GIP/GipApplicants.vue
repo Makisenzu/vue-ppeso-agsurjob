@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import {
   AlertCircle,
   ArrowLeft,
+  Award,
   Download,
   Eye,
   Filter,
@@ -15,6 +16,7 @@ import {
   Search,
   Trash2,
   TreePine,
+  Trophy,
   UploadCloud,
   UserX,
   Waves,
@@ -82,6 +84,8 @@ const {
   closeApplicantDetails,
   exportCsv,
   refreshApplicantsData,
+  priorityApplicants,
+  navigateToPriority,
 } = useGipApplicants()
 
 const toggleStatusTab = (status: string) => {
@@ -403,6 +407,24 @@ const handleUploadBatchClick = () => {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <!-- Priority Applicants Button -->
+            <Button
+              variant="outline"
+              size="sm"
+              class="gap-1.5 text-xs font-medium cursor-pointer border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/20"
+              @click="navigateToPriority"
+            >
+              <Award class="h-3.5 w-3.5 text-amber-500" />
+              <span>Priority Applicants</span>
+              <Badge
+                v-if="priorityApplicants.length > 0"
+                variant="secondary"
+                class="ml-0.5 px-1.5 py-0 text-[10px] font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border-0"
+              >
+                {{ priorityApplicants.length }}
+              </Badge>
+            </Button>
+
             <Button
               size="sm"
               class="gap-1.5 text-xs cursor-pointer"
@@ -550,9 +572,21 @@ const handleUploadBatchClick = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div class="flex flex-col">
-                        <span class="font-semibold text-xs sm:text-sm text-foreground">
-                          {{ applicant.fullName }}
-                        </span>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <span class="font-semibold text-xs sm:text-sm text-foreground">
+                            {{ applicant.fullName }}
+                          </span>
+                          <Badge
+                            v-if="applicant.totalPriorityScore !== undefined && applicant.totalPriorityScore !== null"
+                            variant="secondary"
+                            class="text-[10px] px-1.5 py-0 font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border-0 cursor-pointer"
+                            :title="`Priority Score: ${applicant.totalPriorityScore} pts (Rank #${applicant.priorityRank || '—'})`"
+                            @click.stop="navigateToPriority"
+                          >
+                            <Trophy class="h-2.5 w-2.5 mr-0.5 text-amber-500" />
+                            {{ applicant.totalPriorityScore }} pts
+                          </Badge>
+                        </div>
                         <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                           <span>{{ applicant.gender }}</span>
                           <span>•</span>

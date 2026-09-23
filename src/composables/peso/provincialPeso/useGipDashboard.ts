@@ -43,6 +43,12 @@ export function useGipDashboard() {
     })
   }
 
+  function navigateToPriority() {
+    router.push({
+      name: 'provincial-peso-gip-priority',
+    })
+  }
+
   onMounted(() => {
     fetchDashboardData()
   })
@@ -70,6 +76,7 @@ export function useGipDashboard() {
     // Navigation & Actions
     navigateToDetails,
     navigateToApplicants,
+    navigateToPriority,
     fetchDashboardData,
     refreshDashboardData,
   }
