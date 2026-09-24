@@ -74,6 +74,7 @@ export interface GipInternRecord {
   period: string
   status: GipInternStatus
   contact: string
+  documentsSubmitted?: string[]
   rawGip?: Record<string, any> | null
   rawApplication?: Record<string, any> | null
   rawApplicant?: Record<string, any> | null

@@ -624,9 +624,9 @@ const handleUploadBatchClick = () => {
                   <!-- Documents Submitted -->
                   <TableCell class="py-3">
                     <div class="flex flex-wrap items-center gap-1 max-w-50">
-                      <template v-if="applicant.documentsSubmitted && applicant.documentsSubmitted.length > 0">
+                      <template v-if="(applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length > 0">
                         <Badge
-                          v-for="doc in applicant.documentsSubmitted.slice(0, 2)"
+                          v-for="doc in (applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).slice(0, 2)"
                           :key="doc"
                           variant="secondary"
                           class="text-[10px] px-1.5 py-0 font-normal truncate max-w-25"
@@ -635,11 +635,11 @@ const handleUploadBatchClick = () => {
                           {{ doc }}
                         </Badge>
                         <Badge
-                          v-if="applicant.documentsSubmitted.length > 2"
+                          v-if="(applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length > 2"
                           variant="outline"
                           class="text-[10px] px-1.5 py-0 font-mono"
                         >
-                          +{{ applicant.documentsSubmitted.length - 2 }}
+                          +{{ (applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length - 2 }}
                         </Badge>
                       </template>
                       <span v-else class="text-[11px] text-muted-foreground">None submitted</span>

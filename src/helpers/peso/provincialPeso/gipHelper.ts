@@ -254,6 +254,9 @@ export function mapToGipInternRecord(
     period,
     status,
     contact,
+    documentsSubmitted: (applicant?.documents_submitted && applicant.documents_submitted.length > 0)
+      ? applicant.documents_submitted
+      : (application?.document_submitted || []),
     rawGip: gip,
     rawApplication: application,
     rawApplicant: applicant,
@@ -309,7 +312,9 @@ export function mapToGipApplicantRecord(
     batchYear,
     status: application.status || 'Pending',
     contact,
-    documentsSubmitted: application.document_submitted || [],
+    documentsSubmitted: (applicant?.documents_submitted && applicant.documents_submitted.length > 0)
+      ? applicant.documents_submitted
+      : (application.document_submitted || []),
     remarks: application.remarks || [],
     createdAt: createdDate,
     rawApplication: application,

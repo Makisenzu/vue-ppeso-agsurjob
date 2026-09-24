@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   ArrowLeft,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   Coins,
   Download,
   Eye,
+  FileCheck,
   Filter,
   Loader2,
   MapPin,
@@ -124,6 +126,17 @@ const {
   deploymentEndDate,
   formattedPeriod,
 } = useGipDetails()
+
+const internDocumentsSubmitted = computed<string[]>(() => {
+  if (!selectedIntern.value) return []
+  if (selectedIntern.value.rawApplicant?.documents_submitted && selectedIntern.value.rawApplicant.documents_submitted.length > 0) {
+    return selectedIntern.value.rawApplicant.documents_submitted
+  }
+  if (selectedIntern.value.documentsSubmitted && selectedIntern.value.documentsSubmitted.length > 0) {
+    return selectedIntern.value.documentsSubmitted
+  }
+  return []
+})
 </script>
 
 <template>
@@ -777,30 +790,57 @@ const {
           </div>
 
           <!-- ─── Read-Only Details Mode ─── -->
-          <div v-if="!isEditingIntern" class="grid grid-cols-2 gap-3">
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Assigned Office / Station</span>
-              <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.assignedOffice }}</span>
+          <div v-if="!isEditingIntern" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Assigned Office / Station</span>
+                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.assignedOffice }}</span>
+              </div>
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Designated Supervisor</span>
+                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.supervisor }}</span>
+              </div>
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Academic Background / Degree</span>
+                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.course }}</span>
+              </div>
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Daily Allowance / Stipend</span>
+                <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.stipend }}</span>
+              </div>
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Deployment Period</span>
+                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.period }}</span>
+              </div>
+              <div class="rounded-lg border p-2.5 bg-muted/20">
+                <span class="text-muted-foreground block text-[11px]">Contact Information</span>
+                <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.contact }}</span>
+              </div>
             </div>
+
+            <!-- Documents Submitted -->
             <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Designated Supervisor</span>
-              <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.supervisor }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Academic Background / Degree</span>
-              <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.course }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Daily Allowance / Stipend</span>
-              <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.stipend }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Deployment Period</span>
-              <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.period }}</span>
-            </div>
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px]">Contact Information</span>
-              <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.contact }}</span>
+              <span class="text-muted-foreground block text-[11px] font-semibold mb-1.5 flex items-center gap-1.5">
+                <FileCheck class="h-3.5 w-3.5 text-primary" />
+                <span>Documents Submitted</span>
+              </span>
+              <div
+                v-if="internDocumentsSubmitted.length > 0"
+                class="flex flex-wrap gap-1.5 pt-0.5"
+              >
+                <Badge
+                  v-for="doc in internDocumentsSubmitted"
+                  :key="doc"
+                  variant="secondary"
+                  class="text-[11px] font-medium"
+                >
+                  <FileCheck class="h-3 w-3 mr-1 text-primary" />
+                  {{ doc }}
+                </Badge>
+              </div>
+              <p v-else class="text-[11px] text-muted-foreground italic">
+                No documents uploaded yet.
+              </p>
             </div>
           </div>
 

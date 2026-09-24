@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import {
   ArrowLeft,
   Award,
@@ -34,18 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
-import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
-import {
-  LPII_CONFIG,
-  convertGipApplicantToEntryRecord,
-  getInitials,
-} from '@/helpers/peso/provincialPeso/gipHelper'
-import { formatDateDisplay } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import {
-  downloadNsrpFormPdf,
-  printNsrpForm,
-} from '@/helpers/peso/provincialPeso/nsrpTemplateHelper'
-import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useGipApplicantNsrpDetails } from '@/composables/peso/provincialPeso/useGipApplicantNsrpDetails'
 
 interface Props {
   applicant: GipApplicantRecord
@@ -57,48 +45,22 @@ const emit = defineEmits<{
   (e: 'back'): void
 }>()
 
-const toastAlert = useToastAlert()
-
-const isGeneratingPdf = ref(false)
-const isPrintingPdf = ref(false)
-
-const applicantRecord = computed<ApplicantEntryRecord>(() => {
-  return convertGipApplicantToEntryRecord(props.applicant)
-})
-
-const handleBack = () => {
-  emit('back')
-}
-
-const handleDownloadForm = async () => {
-  try {
-    isGeneratingPdf.value = true
-    await downloadNsrpFormPdf(applicantRecord.value)
-    toastAlert.success('PDF Downloaded', 'The NSRP Form 1 PDF has been generated and downloaded.')
-  } catch (error: any) {
-    console.error('Failed to generate NSRP PDF:', error)
-    toastAlert.error('PDF Generation Failed', error?.message || 'Unable to generate PDF. Please try again.')
-  } finally {
-    isGeneratingPdf.value = false
-  }
-}
-
-const handlePrint = async () => {
-  try {
-    isPrintingPdf.value = true
-    await printNsrpForm(applicantRecord.value)
-  } catch (error: any) {
-    console.error('Failed to prepare NSRP print:', error)
-    toastAlert.error('Print Preparation Failed', error?.message || 'Unable to prepare PDF for printing.')
-  } finally {
-    isPrintingPdf.value = false
-  }
-}
-
-const formattedDob = computed(() => formatDateDisplay(applicantRecord.value.dateOfBirth))
-const formattedRegisteredDate = computed(() => formatDateDisplay(props.applicant.createdAt || applicantRecord.value.createdAt))
-const formattedUpdatedDate = computed(() => formatDateDisplay(applicantRecord.value.updatedAt))
-const formattedAssessmentDate = computed(() => formatDateDisplay(applicantRecord.value.assessmentDate))
+const {
+  applicantRecord,
+  isGeneratingPdf,
+  isPrintingPdf,
+  handleBack,
+  handleDownloadForm,
+  handlePrint,
+  formattedDob,
+  formattedRegisteredDate,
+  formattedAssessmentDate,
+  formattedUpdatedDate,
+  displayDocumentsSubmitted,
+  getInitials,
+  formatDateDisplay,
+  LPII_CONFIG,
+} = useGipApplicantNsrpDetails({ props, emit })
 </script>
 
 <template>
@@ -662,9 +624,9 @@ const formattedAssessmentDate = computed(() => formatDateDisplay(applicantRecord
               <span class="text-muted-foreground block text-[11px] font-semibold">
                 Documents Submitted
               </span>
-              <div v-if="applicant.documentsSubmitted && applicant.documentsSubmitted.length > 0" class="flex flex-wrap gap-1.5 pt-0.5">
+              <div v-if="displayDocumentsSubmitted.length > 0" class="flex flex-wrap gap-1.5 pt-0.5">
                 <Badge
-                  v-for="doc in applicant.documentsSubmitted"
+                  v-for="doc in displayDocumentsSubmitted"
                   :key="doc"
                   variant="secondary"
                   class="text-[11px] font-medium"
