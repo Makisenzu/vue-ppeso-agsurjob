@@ -55,6 +55,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
             component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipPriorityApplicants.vue'),
             meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Priority Ranking' },
           },
+          {
+            path: 'deploy',
+            name: 'provincial-peso-gip-add',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddIntern.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Deploy Intern' },
+          },
         ],
       },
       {

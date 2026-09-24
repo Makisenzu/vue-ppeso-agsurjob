@@ -1,4 +1,5 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { directoryService } from '@/services/common/directoryService'
@@ -21,6 +22,8 @@ export const GIP_OFFICE_PRESETS = [
 ]
 
 export function useGipAddIntern() {
+  const router = useRouter()
+  const route = useRoute()
   const gipStore = useGipStore()
   const { isAddInternModalOpen, applicants, interns, isSubmitting } = storeToRefs(gipStore)
 
@@ -100,11 +103,16 @@ export function useGipAddIntern() {
   // Step management: 'select-applicant' | 'configure-deployment'
   const activeStep = ref<'select-applicant' | 'configure-deployment'>('select-applicant')
 
-  // Search & filtering inside dialog
+  // Search & filtering inside page/dialog
   const searchQuery = ref<string>('')
   const selectedLpiiFilter = ref<string>('ALL')
   const selectedStatusFilter = ref<string>('ALL')
   const onlyAvailable = ref<boolean>(true)
+  const isPriorityFilter = ref<boolean>(false)
+
+  // Pagination
+  const currentPage = ref<number>(1)
+  const pageSize = ref<number>(10)
 
   // Selected applicant
   const selectedApplicant = ref<GipApplicantRecord | null>(null)
@@ -146,12 +154,27 @@ export function useGipAddIntern() {
     })
   }
 
+  // Count available high-priority applicants
+  const priorityApplicantsCount = computed(() => {
+    return applicants.value.filter(
+      (app) => (app.totalPriorityScore ?? 0) >= 70 && (!onlyAvailable.value || !isApplicantDeployed(app)),
+    ).length
+  })
+
   // Filtered applicants list
   const filteredApplicants = computed(() => {
-    return applicants.value.filter((app) => {
+    const list = applicants.value.filter((app) => {
       // Only available toggle
       if (onlyAvailable.value && isApplicantDeployed(app)) {
         return false
+      }
+
+      // Priority filter toggle (Score >= 70 or has priority score)
+      if (isPriorityFilter.value) {
+        const score = app.totalPriorityScore ?? 0
+        if (score < 70) {
+          return false
+        }
       }
 
       // LPII Filter
@@ -177,7 +200,39 @@ export function useGipAddIntern() {
 
       return true
     })
+
+    // When priority filter is active, sort by priority score descending
+    if (isPriorityFilter.value) {
+      return [...list].sort(
+        (a, b) => (b.totalPriorityScore ?? 0) - (a.totalPriorityScore ?? 0),
+      )
+    }
+
+    return list
   })
+
+  // Total pages
+  const totalPages = computed(() => {
+    return Math.ceil(filteredApplicants.value.length / pageSize.value) || 1
+  })
+
+  // Paginated records
+  const paginatedApplicants = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return filteredApplicants.value.slice(start, start + pageSize.value)
+  })
+
+  // Reset page when any filter changes
+  watch(
+    [searchQuery, selectedLpiiFilter, selectedStatusFilter, onlyAvailable, isPriorityFilter],
+    () => {
+      currentPage.value = 1
+    },
+  )
+
+  function togglePriorityFilter() {
+    isPriorityFilter.value = !isPriorityFilter.value
+  }
 
   // ─── Fetch offices from directory ───
   async function fetchOffices() {
@@ -243,6 +298,8 @@ export function useGipAddIntern() {
     selectedLpiiFilter.value = 'ALL'
     selectedStatusFilter.value = 'ALL'
     onlyAvailable.value = true
+    isPriorityFilter.value = false
+    currentPage.value = 1
     selectedApplicant.value = null
     program.value = 'PGAS'
     selectedOffice.value = null
@@ -260,12 +317,31 @@ export function useGipAddIntern() {
     initEndDate()
   }
 
-  // Watch modal opening to load applicants data and offices
+  // Watch modal opening to load applicants data and offices (legacy modal support)
   watch(isAddInternModalOpen, (isOpen) => {
     if (isOpen) {
       gipStore.fetchApplicantsData()
       fetchOffices()
       resetForm()
+    }
+  })
+
+  // Page lifecycle initialization
+  onMounted(async () => {
+    if (applicants.value.length === 0) {
+      await gipStore.fetchApplicantsData()
+    }
+    await fetchOffices()
+
+    // Support deep-linking with ?applicantId=...
+    const targetApplicantId = route.query.applicantId as string | undefined
+    if (targetApplicantId) {
+      const found = applicants.value.find(
+        (a) => a.id === targetApplicantId || a.applicantId === targetApplicantId,
+      )
+      if (found) {
+        selectApplicant(found)
+      }
     }
   })
 
@@ -306,8 +382,13 @@ export function useGipAddIntern() {
     activeStep.value = 'configure-deployment'
   }
 
+  function goBack() {
+    router.push({ name: 'provincial-peso-gip-details' })
+  }
+
   function handleClose() {
     gipStore.closeAddInternModal()
+    goBack()
   }
 
   async function handleDeployIntern() {
@@ -335,6 +416,8 @@ export function useGipAddIntern() {
         status: status.value,
         remarks: deploymentNotes.value.trim() || undefined,
       })
+      // Navigate to details page upon successful deployment
+      router.push({ name: 'provincial-peso-gip-details' })
     } catch (err: any) {
       validationError.value = err.message || 'Failed to deploy intern.'
     }
@@ -355,6 +438,12 @@ export function useGipAddIntern() {
     selectedLpiiFilter,
     selectedStatusFilter,
     onlyAvailable,
+    isPriorityFilter,
+    priorityApplicantsCount,
+    currentPage,
+    pageSize,
+    totalPages,
+    paginatedApplicants,
     selectedApplicant,
     validationError,
 
@@ -393,7 +482,9 @@ export function useGipAddIntern() {
 
     // Handlers
     selectApplicant,
+    togglePriorityFilter,
     resetForm,
+    goBack,
     handleClose,
     handleDeployIntern,
   }

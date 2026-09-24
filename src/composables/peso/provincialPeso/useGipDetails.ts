@@ -103,6 +103,10 @@ export function useGipDetails() {
     router.push({ name: 'provincial-peso-gip' })
   }
 
+  function navigateToAddIntern() {
+    router.push({ name: 'provincial-peso-gip-add' })
+  }
+
   // ─── Office Directory State ───
   const offices = ref<DirectoryRow[]>([])
   const officeSearchQuery = ref<string>('')
@@ -462,6 +466,7 @@ export function useGipDetails() {
 
     // Actions & Navigation
     goBack,
+    navigateToAddIntern,
     resetFilters,
     openInternDetails,
     openInternEdit,

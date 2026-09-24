@@ -69,7 +69,6 @@ import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDetails } from '@/composables/peso/provincialPeso/useGipDetails'
-import GipAddInternDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddInternDialog.vue'
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
 
 const {
@@ -106,11 +105,11 @@ const {
   donutTooltipTriggers,
   getInitials,
   goBack,
+  navigateToAddIntern,
   resetFilters,
   openInternDetails,
   openInternEdit,
   closeInternDetails,
-  openAddInternModal,
   exportCsv,
   refreshDetailsData,
 
@@ -382,7 +381,7 @@ const {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2">
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90" @click="openAddInternModal">
+            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90" @click="navigateToAddIntern">
               <Plus class="h-3.5 w-3.5" />
               <span>Add GIP</span>
             </Button>
@@ -1063,9 +1062,6 @@ const {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
-    <!-- ─── ADD GIP INTERN MODAL (FROM APPLICANTS) ─── -->
-    <GipAddInternDialog />
 
     <!-- ─── BATCH UPLOAD / OCR MODAL (ACCESSIBLE VIA OCR SCAN) ─── -->
     <GipBatchUploadDialog />

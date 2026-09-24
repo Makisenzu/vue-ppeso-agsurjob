@@ -56,7 +56,6 @@ const {
           class="gap-1.5 cursor-pointer border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/20"
           @click="navigateToPriority"
         >
-          <Award class="h-4 w-4 text-amber-500 shrink-0" />
           <span>Priority Applicants</span>
         </Button>
         <Button

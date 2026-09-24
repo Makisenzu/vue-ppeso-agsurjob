@@ -9,10 +9,10 @@ import {
   Loader2,
   MapPin,
   Mountain,
+  Plus,
   RefreshCw,
   Search,
   TreePine,
-  Trophy,
   Waves,
   X,
 } from '@lucide/vue'
@@ -55,6 +55,7 @@ const {
   exportPriorityCsv,
   goBack,
   navigateToProfile,
+  navigateToDeploy,
   getRankBadgeClass,
   getScoreColorClass,
   getInitials,
@@ -419,15 +420,25 @@ const {
 
                 <!-- Action -->
                 <TableCell class="py-3 text-right pr-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="h-7 text-xs gap-1 cursor-pointer"
-                    @click="navigateToProfile(record)"
-                  >
-                    <Eye class="h-3 w-3" />
-                    <span>Profile</span>
-                  </Button>
+                  <div class="flex items-center justify-end gap-1.5">
+                    <Button
+                      size="sm"
+                      class="h-7 text-xs gap-1 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                      @click="navigateToDeploy(record)"
+                    >
+                      <Plus class="h-3 w-3" />
+                      <span>Deploy</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="h-7 text-xs gap-1 cursor-pointer"
+                      @click="navigateToProfile(record)"
+                    >
+                      <Eye class="h-3 w-3" />
+                      <span>Profile</span>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>

@@ -118,6 +118,13 @@ export function useGipPriorityApplicants() {
     })
   }
 
+  const navigateToDeploy = (record: GipPriorityApplicantRecord) => {
+    router.push({
+      name: 'provincial-peso-gip-add',
+      query: { applicantId: record.applicantId || record.gipApplicantId },
+    })
+  }
+
   // Visual helpers
   const getRankBadgeClass = (rank: number) => {
     if (rank === 1) {
@@ -168,6 +175,7 @@ export function useGipPriorityApplicants() {
     exportPriorityCsv,
     goBack,
     navigateToProfile,
+    navigateToDeploy,
 
     // Visual Helpers
     getRankBadgeClass,
