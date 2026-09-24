@@ -623,6 +623,43 @@ export function getInitials(fullName: string): string {
     .toUpperCase()
 }
 
+// ─── GIP Month Options for Filtering ───
+export interface MonthOption {
+  value: string
+  label: string
+}
+
+export const GIP_MONTH_OPTIONS: MonthOption[] = [
+  { value: 'ALL', label: 'All Months' },
+  { value: '1', label: 'January' },
+  { value: '2', label: 'February' },
+  { value: '3', label: 'March' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'May' },
+  { value: '6', label: 'June' },
+  { value: '7', label: 'July' },
+  { value: '8', label: 'August' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+]
+
+export function formatDateDisplay(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'N/A'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch {
+    return dateStr
+  }
+}
+
 // ─── GIP Standard Document Options ───
 export const GIP_DOCUMENT_OPTIONS = [
   'NSRP Form 1',

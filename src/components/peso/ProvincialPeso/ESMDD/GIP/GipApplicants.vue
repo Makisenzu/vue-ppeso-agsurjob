@@ -62,13 +62,13 @@ const {
   filteredApplicants,
   paginatedApplicants,
   totalApplicantPages,
-  availableYears,
+  availableMonths,
   selectedApplicantForDetails,
   isLoading,
   searchQuery,
   statusTab,
   selectedLpiiFilter,
-  selectedYearFilter,
+  selectedMonthFilter,
   selectedGenderFilter,
   selectedStatusFilter,
   currentPage,
@@ -76,6 +76,7 @@ const {
   donutTooltipTriggers,
   statusDonutTooltipTriggers,
   getInitials,
+  formatDateDisplay,
   goBack,
   resetFilters,
   openApplicantDetails,
@@ -478,15 +479,14 @@ const handleUploadBatchClick = () => {
             </select>
           </div>
 
-          <!-- Year Filter -->
+          <!-- Month Filter -->
           <div>
             <select
-              v-model="selectedYearFilter"
+              v-model="selectedMonthFilter"
               class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="ALL">All Batch Years</option>
-              <option v-for="y in availableYears" :key="y" :value="y.toString()">
-                Batch {{ y }}
+              <option v-for="m in availableMonths" :key="m.value" :value="m.value">
+                {{ m.label }}
               </option>
             </select>
           </div>
@@ -614,9 +614,11 @@ const handleUploadBatchClick = () => {
                   <!-- Date Applied -->
                   <TableCell class="py-3">
                     <div class="flex flex-col text-xs">
-                      <span class="font-mono text-foreground">{{ applicant.batchYear }}</span>
-                      <span class="text-[11px] text-muted-foreground">
-                        {{ applicant.createdAt ? applicant.createdAt.slice(0, 10) : 'N/A' }}
+                      <span class="font-medium text-foreground">
+                        {{ formatDateDisplay(applicant.createdAt) }}
+                      </span>
+                      <span class="text-[11px] text-muted-foreground font-mono">
+                        Batch {{ applicant.batchYear }}
                       </span>
                     </div>
                   </TableCell>

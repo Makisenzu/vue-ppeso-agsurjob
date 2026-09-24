@@ -489,6 +489,7 @@ export const useGipStore = defineStore('gipStore', () => {
   const applicantSearchQuery = ref<string>('')
   const applicantStatusTab = ref<string>('ALL')
   const applicantLpiiFilter = ref<string>('ALL')
+  const applicantMonthFilter = ref<string>('ALL')
   const applicantYearFilter = ref<string>('ALL')
   const applicantGenderFilter = ref<string>('ALL')
   const applicantStatusFilter = ref<string>('ALL')
@@ -501,6 +502,7 @@ export const useGipStore = defineStore('gipStore', () => {
       applicantSearchQuery,
       applicantStatusTab,
       applicantLpiiFilter,
+      applicantMonthFilter,
       applicantYearFilter,
       applicantGenderFilter,
       applicantStatusFilter,
@@ -550,6 +552,16 @@ export const useGipStore = defineStore('gipStore', () => {
         app.lpiiTag.trim().toUpperCase() !== applicantLpiiFilter.value.trim().toUpperCase()
       ) {
         return false
+      }
+      // Month filter
+      if (applicantMonthFilter.value !== 'ALL') {
+        if (!app.createdAt) return false
+        const d = new Date(app.createdAt)
+        if (isNaN(d.getTime())) return false
+        const month = (d.getMonth() + 1).toString()
+        if (month !== applicantMonthFilter.value.trim()) {
+          return false
+        }
       }
       // Year filter
       if (
@@ -705,6 +717,7 @@ export const useGipStore = defineStore('gipStore', () => {
     applicantSearchQuery.value = ''
     applicantStatusTab.value = 'ALL'
     applicantLpiiFilter.value = 'ALL'
+    applicantMonthFilter.value = 'ALL'
     applicantYearFilter.value = 'ALL'
     applicantGenderFilter.value = 'ALL'
     applicantStatusFilter.value = 'ALL'
@@ -818,6 +831,7 @@ export const useGipStore = defineStore('gipStore', () => {
     applicantSearchQuery,
     applicantStatusTab,
     applicantLpiiFilter,
+    applicantMonthFilter,
     applicantYearFilter,
     applicantGenderFilter,
     applicantStatusFilter,

@@ -3,8 +3,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import {
+  GIP_MONTH_OPTIONS,
   LPII_CONFIG,
   donutTooltipTriggers,
+  formatDateDisplay,
   getInitials,
   statusDonutTooltipTriggers,
 } from '@/helpers/peso/provincialPeso/gipHelper'
@@ -42,6 +44,7 @@ export function useGipApplicants() {
     applicantSearchQuery,
     applicantStatusTab,
     applicantLpiiFilter,
+    applicantMonthFilter,
     applicantYearFilter,
     applicantGenderFilter,
     applicantStatusFilter,
@@ -191,9 +194,11 @@ export function useGipApplicants() {
     searchQuery: applicantSearchQuery,
     statusTab,
     selectedLpiiFilter: applicantLpiiFilter,
+    selectedMonthFilter: applicantMonthFilter,
     selectedYearFilter: applicantYearFilter,
     selectedGenderFilter: applicantGenderFilter,
     selectedStatusFilter: applicantStatusFilter,
+    availableMonths: GIP_MONTH_OPTIONS,
     currentPage: applicantCurrentPage,
     pageSize: applicantPageSize,
 
@@ -202,6 +207,7 @@ export function useGipApplicants() {
     donutTooltipTriggers,
     statusDonutTooltipTriggers,
     getInitials,
+    formatDateDisplay,
 
     // Actions & Navigation
     goBack,
