@@ -218,7 +218,6 @@ function getScoreBadgeClass(score?: number | null) {
               ]"
               @click="togglePriorityFilter"
             >
-              <Award class="h-3.5 w-3.5" :class="isPriorityFilter ? 'text-white' : 'text-amber-500'" />
               <span>Priority Applicants</span>
               <Badge
                 :variant="isPriorityFilter ? 'secondary' : 'outline'"

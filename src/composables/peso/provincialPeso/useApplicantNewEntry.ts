@@ -51,6 +51,14 @@ export const PROGRAM_OPTIONS: readonly string[] = [
   'PESO Job Fair',
 ]
 
+export const DOCUMENT_OPTIONS: readonly string[] = [
+  'NSRP',
+  'Resume',
+  'Application Letter',
+  'TOR/Form 137/Form 138/Diploma',
+  'Certificates'
+]
+
 export interface UseApplicantNewEntryProps {
   isSubmitting?: boolean
 }
@@ -428,6 +436,20 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
+  // Documents submitted (NSRP is always auto-checked since it's integrated)
+  const documentsSubmitted = ref<string[]>(['NSRP'])
+
+  const toggleDocument = (doc: string) => {
+    // NSRP cannot be unchecked — it's always submitted via the integrated system
+    if (doc === 'NSRP') return
+    const idx = documentsSubmitted.value.indexOf(doc)
+    if (idx >= 0) {
+      documentsSubmitted.value.splice(idx, 1)
+    } else {
+      documentsSubmitted.value.push(doc)
+    }
+  }
+
   const assessedByName = ref('Denmark Rivera')
   const assessmentDate = ref(new Date().toISOString().split('T')[0])
   const profileId = ref('')
@@ -620,6 +642,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       preferred_overseas_locations: preferredOverseasLocations.value.length > 0 ? preferredOverseasLocations.value : null,
       job_type_preference: jobTypePreference.value.length > 0 ? jobTypePreference.value : null,
       referred_programs: referredPrograms.value.length > 0 ? referredPrograms.value : null,
+      documents_submitted: documentsSubmitted.value.length > 0 ? documentsSubmitted.value : null,
 
       // Assessment & Metadata
       assessed_by_name: assessedByName.value.trim() || 'Provincial PESO Staff',
@@ -697,6 +720,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     newOverseasLocationTag.value = ''
     jobTypePreference.value = ['Full-Time']
     referredPrograms.value = ['PESO Job Fair']
+    documentsSubmitted.value = ['NSRP']
     assessedByName.value = 'Denmark Rivera'
     assessmentDate.value = new Date().toISOString().split('T')[0]
     profileId.value = ''
@@ -838,6 +862,9 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     referredPrograms,
     toggleProgram,
     programOptions: PROGRAM_OPTIONS,
+    documentsSubmitted,
+    toggleDocument,
+    documentOptions: DOCUMENT_OPTIONS,
     assessedByName,
     assessmentDate,
     profileId,

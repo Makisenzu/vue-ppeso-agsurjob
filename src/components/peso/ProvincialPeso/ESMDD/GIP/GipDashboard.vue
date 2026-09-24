@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
-import { Award, ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
+import { ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 

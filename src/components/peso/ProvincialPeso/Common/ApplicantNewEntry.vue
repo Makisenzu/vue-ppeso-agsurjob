@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   FileCheck,
+  FileText,
   Languages,
   Loader2,
   MapPin,
@@ -148,6 +149,9 @@ const {
   referredPrograms,
   toggleProgram,
   programOptions,
+  documentsSubmitted,
+  toggleDocument,
+  documentOptions,
   assessedByName,
   assessmentDate,
   profileId,
@@ -1209,6 +1213,47 @@ const {
                     @change="toggleProgram(prog)"
                   />
                   <span class="text-xs">{{ prog }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Documents Submitted -->
+            <div class="space-y-2 pt-4 border-t">
+              <span class="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                <FileText class="h-3.5 w-3.5 text-primary" />
+                Documents Submitted
+              </span>
+              <p class="text-[11px] text-muted-foreground">
+                Select all documents submitted by the applicant. NSRP is auto-checked (integrated).
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <label
+                  v-for="doc in documentOptions"
+                  :key="doc"
+                  class="flex items-center gap-2 p-2.5 rounded-lg border transition-colors"
+                  :class="[
+                    documentsSubmitted.includes(doc)
+                      ? 'bg-primary/15 border-primary/40 font-bold text-primary'
+                      : 'hover:bg-muted/40',
+                    doc === 'NSRP' ? 'cursor-default opacity-90' : 'cursor-pointer',
+                  ]"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="documentsSubmitted.includes(doc)"
+                    :disabled="doc === 'NSRP'"
+                    class="h-3.5 w-3.5 rounded accent-primary text-primary"
+                    :class="doc === 'NSRP' ? 'cursor-default' : 'cursor-pointer'"
+                    @change="toggleDocument(doc)"
+                  />
+                  <span class="text-xs">{{ doc }}</span>
+                  <Badge
+                    v-if="doc === 'NSRP'"
+                    variant="secondary"
+                    class="text-[9px] px-1.5 py-0 font-semibold"
+                  >
+                    Auto
+                  </Badge>
                 </label>
               </div>
             </div>

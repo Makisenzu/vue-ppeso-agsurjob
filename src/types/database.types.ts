@@ -205,6 +205,7 @@ export type Database = {
           date_of_birth: string
           disabilities: string[] | null
           disability_others: string | null
+          documents_submitted: string[] | null
           educational_background: Json | null
           eligibilities: Json | null
           email: string | null
@@ -255,6 +256,7 @@ export type Database = {
           date_of_birth: string
           disabilities?: string[] | null
           disability_others?: string | null
+          documents_submitted?: string[] | null
           educational_background?: Json | null
           eligibilities?: Json | null
           email?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           date_of_birth?: string
           disabilities?: string[] | null
           disability_others?: string | null
+          documents_submitted?: string[] | null
           educational_background?: Json | null
           eligibilities?: Json | null
           email?: string | null
