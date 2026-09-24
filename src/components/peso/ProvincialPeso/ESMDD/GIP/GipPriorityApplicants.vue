@@ -389,14 +389,21 @@ const {
                         <div class="flex items-center justify-between">
                           <span class="text-muted-foreground">Academic Awards:</span>
                           <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.academicScore }} / 20 pts
+                            {{ record.academicScore }} / 15 pts
+                          </Badge>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                          <span class="text-muted-foreground">Civil Service / Board:</span>
+                          <Badge variant="outline" class="font-mono text-[10px]">
+                            {{ record.eligibilityScore }} / 10 pts
                           </Badge>
                         </div>
 
                         <div class="flex items-center justify-between">
                           <span class="text-muted-foreground">Certifications / TESDA:</span>
                           <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.certScore }} / 15 pts
+                            {{ record.certScore }} / 10 pts
                           </Badge>
                         </div>
 

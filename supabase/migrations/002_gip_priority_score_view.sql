@@ -5,6 +5,8 @@
 -- Joins:     esmdd.gip_applicants → applicants.applicants (on applicant_id = id)
 -- =============================================================================
 
+DROP VIEW IF EXISTS esmdd.gip_applicant_priority_scores CASCADE;
+
 CREATE OR REPLACE VIEW esmdd.gip_applicant_priority_scores AS
 SELECT
   -- ── Applicant identity columns ──
@@ -84,8 +86,8 @@ SELECT
     ELSE 0
   END AS status_score,
 
-  -- 2. Academic Awards Score (max 20 pts)
-  --    20 pts if ANY element in educational_background jsonb array
+  -- 2. Academic Awards Score (max 15 pts)
+  --    15 pts if ANY element in educational_background jsonb array
   --    has a non-empty 'awards' field
   CASE
     WHEN a.educational_background IS NOT NULL
@@ -95,32 +97,40 @@ SELECT
            WHERE elem->>'awards' IS NOT NULL
              AND TRIM(elem->>'awards') <> ''
          )
-    THEN 20
+    THEN 15
     ELSE 0
   END AS academic_score,
 
-  -- 3. TESDA / Certifications Score (max 15 pts)
-  --    15 pts if ANY vocational_training has non-empty certificates_received
-  --    OR ANY eligibility record exists
+  -- 3. Civil Service / Board Exam Score (max 10 pts)
+  --    10 pts if civil service eligibility or professional board license is present in eligibilities
   CASE
-    WHEN (
-      a.vocational_trainings IS NOT NULL
-      AND EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
-        WHERE vt->>'certificates_received' IS NOT NULL
-          AND TRIM(vt->>'certificates_received') <> ''
-      )
-    )
-    OR (
-      a.eligibilities IS NOT NULL
-      AND jsonb_array_length(a.eligibilities::jsonb) > 0
-    )
-    THEN 15
+    WHEN a.eligibilities IS NOT NULL
+         AND jsonb_array_length(a.eligibilities::jsonb) > 0
+         AND EXISTS (
+           SELECT 1
+           FROM jsonb_array_elements(a.eligibilities::jsonb) AS el
+           WHERE el->>'eligibility_title' IS NOT NULL
+             AND TRIM(el->>'eligibility_title') <> ''
+         )
+    THEN 10
+    ELSE 0
+  END AS eligibility_score,
+
+  -- 4. TESDA Certifications Score (max 10 pts)
+  --    10 pts if ANY vocational_training has non-empty certificates_received or training course
+  CASE
+    WHEN a.vocational_trainings IS NOT NULL
+         AND EXISTS (
+           SELECT 1
+           FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
+           WHERE (vt->>'certificates_received' IS NOT NULL AND TRIM(vt->>'certificates_received') <> '')
+              OR (vt->>'course_training_title' IS NOT NULL AND TRIM(vt->>'course_training_title') <> '')
+         )
+    THEN 10
     ELSE 0
   END AS cert_score,
 
-  -- 4. Poverty Incidence — LPII (max 25 pts)
+  -- 5. Poverty Incidence — LPII (max 25 pts)
   --    25 pts if municipality IN Top 5 poverty LGUs
   --    else 10 pts (baseline for all GIP applicants)
   CASE
@@ -130,7 +140,7 @@ SELECT
     ELSE 10
   END AS poverty_score,
 
-  -- 5. Unemployment Rate — LPII (max 25 pts)
+  -- 6. Unemployment Rate — LPII (max 25 pts)
   --    25 pts if municipality IN Top 5 unemployment LGUs
   --    else 10 pts (baseline for all GIP applicants)
   CASE
@@ -144,14 +154,14 @@ SELECT
   -- TOTAL PRIORITY SCORE (sum of all sub-scores, max 100)
   -- ═══════════════════════════════════════════════════════════════════════════
   (
-    -- status_score
+    -- status_score (15 pts)
     CASE
       WHEN a.currently_in_school = true THEN 15
       WHEN a.unemployed_reason ILIKE '%fresh grad%' THEN 15
       ELSE 0
     END
     +
-    -- academic_score
+    -- academic_score (15 pts)
     CASE
       WHEN a.educational_background IS NOT NULL
            AND EXISTS (
@@ -160,30 +170,38 @@ SELECT
              WHERE elem->>'awards' IS NOT NULL
                AND TRIM(elem->>'awards') <> ''
            )
-      THEN 20
-      ELSE 0
-    END
-    +
-    -- cert_score
-    CASE
-      WHEN (
-        a.vocational_trainings IS NOT NULL
-        AND EXISTS (
-          SELECT 1
-          FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
-          WHERE vt->>'certificates_received' IS NOT NULL
-            AND TRIM(vt->>'certificates_received') <> ''
-        )
-      )
-      OR (
-        a.eligibilities IS NOT NULL
-        AND jsonb_array_length(a.eligibilities::jsonb) > 0
-      )
       THEN 15
       ELSE 0
     END
     +
-    -- poverty_score
+    -- eligibility_score (10 pts)
+    CASE
+      WHEN a.eligibilities IS NOT NULL
+           AND jsonb_array_length(a.eligibilities::jsonb) > 0
+           AND EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(a.eligibilities::jsonb) AS el
+             WHERE el->>'eligibility_title' IS NOT NULL
+               AND TRIM(el->>'eligibility_title') <> ''
+           )
+      THEN 10
+      ELSE 0
+    END
+    +
+    -- cert_score (10 pts)
+    CASE
+      WHEN a.vocational_trainings IS NOT NULL
+           AND EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
+             WHERE (vt->>'certificates_received' IS NOT NULL AND TRIM(vt->>'certificates_received') <> '')
+                OR (vt->>'course_training_title' IS NOT NULL AND TRIM(vt->>'course_training_title') <> '')
+           )
+      THEN 10
+      ELSE 0
+    END
+    +
+    -- poverty_score (25 pts)
     CASE
       WHEN a.address->>'municipality' IN (
         'Loreto', 'Bayugan', 'Esperanza', 'San Francisco', 'La Paz'
@@ -191,7 +209,7 @@ SELECT
       ELSE 10
     END
     +
-    -- unemployment_score
+    -- unemployment_score (25 pts)
     CASE
       WHEN a.address->>'municipality' IN (
         'Talacogon', 'Rosario', 'Veruela', 'Sibagat', 'San Francisco'
@@ -218,25 +236,32 @@ ORDER BY (
              WHERE elem->>'awards' IS NOT NULL
                AND TRIM(elem->>'awards') <> ''
            )
-      THEN 20
+      THEN 15
       ELSE 0
     END
     +
     CASE
-      WHEN (
-        a.vocational_trainings IS NOT NULL
-        AND EXISTS (
-          SELECT 1
-          FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
-          WHERE vt->>'certificates_received' IS NOT NULL
-            AND TRIM(vt->>'certificates_received') <> ''
-        )
-      )
-      OR (
-        a.eligibilities IS NOT NULL
-        AND jsonb_array_length(a.eligibilities::jsonb) > 0
-      )
-      THEN 15
+      WHEN a.eligibilities IS NOT NULL
+           AND jsonb_array_length(a.eligibilities::jsonb) > 0
+           AND EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(a.eligibilities::jsonb) AS el
+             WHERE el->>'eligibility_title' IS NOT NULL
+               AND TRIM(el->>'eligibility_title') <> ''
+           )
+      THEN 10
+      ELSE 0
+    END
+    +
+    CASE
+      WHEN a.vocational_trainings IS NOT NULL
+           AND EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(a.vocational_trainings::jsonb) AS vt
+             WHERE (vt->>'certificates_received' IS NOT NULL AND TRIM(vt->>'certificates_received') <> '')
+                OR (vt->>'course_training_title' IS NOT NULL AND TRIM(vt->>'course_training_title') <> '')
+           )
+      THEN 10
       ELSE 0
     END
     +
@@ -254,3 +279,9 @@ ORDER BY (
       ELSE 10
     END
   ) DESC;
+
+-- Grant permissions to Supabase roles
+GRANT SELECT ON esmdd.gip_applicant_priority_scores TO authenticated;
+GRANT SELECT ON esmdd.gip_applicant_priority_scores TO anon;
+GRANT SELECT ON esmdd.gip_applicant_priority_scores TO service_role;
+

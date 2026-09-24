@@ -237,22 +237,23 @@ export const gipService = {
       }
 
       // Query priority scores to attach to applicants if available
-      const scoreMap = new Map<string, { total: number; rank: number; status: number; academic: number; cert: number; poverty: number; unemployment: number }>()
+      const scoreMap = new Map<string, { total: number; rank: number; status: number; academic: number; eligibility: number; cert: number; poverty: number; unemployment: number }>()
       try {
         const { data: scoreData } = await supabase
           .schema('esmdd')
           .from('gip_applicant_priority_scores')
-          .select('applicant_id, total_priority_score, status_score, academic_score, cert_score, poverty_score, unemployment_score')
+          .select('applicant_id, total_priority_score, status_score, academic_score, eligibility_score, cert_score, poverty_score, unemployment_score')
           .order('total_priority_score', { ascending: false })
 
         if (scoreData) {
-          scoreData.forEach((row, idx) => {
+          scoreData.forEach((row: any, idx) => {
             if (row.applicant_id) {
               scoreMap.set(row.applicant_id, {
                 total: Number(row.total_priority_score) || 0,
                 rank: idx + 1,
                 status: Number(row.status_score) || 0,
                 academic: Number(row.academic_score) || 0,
+                eligibility: Number(row.eligibility_score) || 0,
                 cert: Number(row.cert_score) || 0,
                 poverty: Number(row.poverty_score) || 0,
                 unemployment: Number(row.unemployment_score) || 0,
@@ -273,6 +274,7 @@ export const gipService = {
           rec.priorityRank = s.rank
           rec.statusScore = s.status
           rec.academicScore = s.academic
+          rec.eligibilityScore = s.eligibility
           rec.certScore = s.cert
           rec.povertyScore = s.poverty
           rec.unemploymentScore = s.unemployment

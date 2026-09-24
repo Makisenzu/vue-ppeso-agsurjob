@@ -100,6 +100,7 @@ export interface GipApplicantRecord {
   priorityRank?: number | null
   statusScore?: number | null
   academicScore?: number | null
+  eligibilityScore?: number | null
   certScore?: number | null
   povertyScore?: number | null
   unemploymentScore?: number | null
@@ -107,7 +108,9 @@ export interface GipApplicantRecord {
   rawApplicant?: Record<string, any> | null
 }
 
-export type GipPriorityScoreRow = Database['esmdd']['Views']['gip_applicant_priority_scores']['Row']
+export type GipPriorityScoreRow = Database['esmdd']['Views']['gip_applicant_priority_scores']['Row'] & {
+  eligibility_score?: number | null
+}
 
 export interface GipPriorityApplicantRecord {
   applicantId: string
@@ -135,6 +138,7 @@ export interface GipPriorityApplicantRecord {
   // Sub-scores & Total
   statusScore: number
   academicScore: number
+  eligibilityScore: number
   certScore: number
   povertyScore: number
   unemploymentScore: number
