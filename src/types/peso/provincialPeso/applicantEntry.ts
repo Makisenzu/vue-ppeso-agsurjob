@@ -25,9 +25,11 @@ export interface EducationalBackgroundItem {
 
 export interface WorkExperienceItem {
   company_name?: string
+  address?: string
   position?: string
   job_title?: string
   inclusive_dates?: string
+  number_of_months?: string | number
   monthly_salary?: string | number
   status_of_appointment?: string
 }
@@ -36,6 +38,7 @@ export interface VocationalTrainingItem {
   course_training_title?: string
   duration?: string
   training_institution?: string
+  skills_acquired?: string
   certificates_received?: string
 }
 

@@ -100,9 +100,11 @@ export function parseWorkExperiences(workJson: any): WorkExperienceItem[] {
   if (Array.isArray(workJson)) {
     return workJson.map((item) => ({
       company_name: item.company_name || item.employer || item.company || 'N/A',
+      address: item.address || item.location || item.city || undefined,
       position: item.position || item.job_title || item.title || 'N/A',
       job_title: item.job_title || item.position || 'N/A',
       inclusive_dates: item.inclusive_dates || item.dates || (item.start_date ? `${item.start_date} - ${item.end_date || 'Present'}` : 'N/A'),
+      number_of_months: item.number_of_months || item.months || undefined,
       monthly_salary: item.monthly_salary || item.salary || undefined,
       status_of_appointment: item.status_of_appointment || item.status || undefined,
     }))
@@ -118,6 +120,7 @@ export function parseVocationalTrainings(vocJson: any): VocationalTrainingItem[]
       course_training_title: item.course_training_title || item.course || item.title || 'N/A',
       duration: item.duration || item.hours || 'N/A',
       training_institution: item.training_institution || item.institution || item.school || 'N/A',
+      skills_acquired: item.skills_acquired || item.skills || undefined,
       certificates_received: item.certificates_received || item.certificate || undefined,
     }))
   }

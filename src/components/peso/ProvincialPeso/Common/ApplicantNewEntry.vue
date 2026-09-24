@@ -125,6 +125,8 @@ const {
   otherSkillsSpecified,
   addSkillTag,
   removeSkillTag,
+  toggleSkillOption,
+  skillOptions,
   languageProficiencies,
   newLanguageName,
   addLanguage,
@@ -808,15 +810,26 @@ const {
                       <Input v-model="work.company_name" placeholder="e.g. San Francisco Agro-Industrial Corp." class="h-8 text-xs" />
                     </div>
                     <div class="space-y-1">
+                      <span class="text-[11px] text-muted-foreground">Address (City / Municipality)</span>
+                      <Input v-model="work.address" placeholder="e.g. Prosperidad, Agusan del Sur" class="h-8 text-xs" />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Job Position / Title</span>
                       <Input v-model="work.position" placeholder="e.g. Administrative Officer" class="h-8 text-xs" />
+                    </div>
+                    <div class="space-y-1">
+                      <span class="text-[11px] text-muted-foreground">Inclusive Dates</span>
+                      <Input v-model="work.inclusive_dates" placeholder="e.g. Jan 2022 - Dec 2023" class="h-8 text-xs" />
                     </div>
                   </div>
 
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="space-y-1">
-                      <span class="text-[11px] text-muted-foreground">Inclusive Dates</span>
-                      <Input v-model="work.inclusive_dates" placeholder="e.g. Jan 2022 - Dec 2023" class="h-8 text-xs" />
+                      <span class="text-[11px] text-muted-foreground">Number of Months</span>
+                      <Input v-model="work.number_of_months" type="number" min="0" placeholder="e.g. 24" class="h-8 text-xs font-mono" />
                     </div>
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Monthly Salary (PHP)</span>
@@ -891,6 +904,13 @@ const {
                       <span class="text-[11px] text-muted-foreground">Duration (Hours / Months)</span>
                       <Input v-model="voc.duration" placeholder="e.g. 268 Hours" class="h-8 text-xs" />
                     </div>
+                    <div class="space-y-1">
+                      <span class="text-[11px] text-muted-foreground">Skills Acquired</span>
+                      <Input v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" class="h-8 text-xs" />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Certificates Received</span>
                       <Input v-model="voc.certificates_received" placeholder="e.g. National Certificate II (NC II)" class="h-8 text-xs" />
@@ -975,36 +995,60 @@ const {
               </div>
             </div>
 
-            <!-- Acquired Skills Tags -->
+            <!-- Other Skills Acquired Without Certificate (NSRP Section VIII) -->
             <div class="space-y-2.5 pt-4 border-t">
-              <span class="font-semibold text-foreground text-xs block">Other Acquired Skills</span>
-              <div class="flex items-center gap-2 max-w-sm">
-                <Input
-                  v-model="newSkillTag"
-                  placeholder="e.g. Driving (Prof), Welding, Cooking"
-                  class="h-8 text-xs"
-                  @keyup.enter="addSkillTag"
-                />
-                <Button size="sm" variant="outline" class="h-8 text-xs gap-1 cursor-pointer" @click="addSkillTag">
-                  <Plus class="h-3 w-3" />
-                  <span>Add</span>
-                </Button>
+              <span class="font-semibold text-foreground text-xs block">Other Skills Acquired Without Certificate</span>
+              <span class="text-[11px] text-muted-foreground block -mt-1">Select all applicable skills from the NSRP standard list below.</span>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <label
+                  v-for="skill in skillOptions"
+                  :key="skill"
+                  class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-muted/40"
+                  :class="otherSkills.includes(skill) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="otherSkills.includes(skill)"
+                    class="h-3.5 w-3.5 rounded accent-primary text-primary"
+                    @change="toggleSkillOption(skill)"
+                  />
+                  <span class="text-[11px]">{{ skill }}</span>
+                </label>
               </div>
 
-              <div class="flex flex-wrap gap-1.5 pt-1">
-                <Badge
-                  v-for="(skill, idx) in otherSkills"
-                  :key="idx"
-                  variant="secondary"
-                  class="text-[11px] gap-1 py-0.5"
-                >
-                  <span>{{ skill }}</span>
-                  <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeSkillTag(idx)" />
-                </Badge>
+              <!-- Additional custom skill tags -->
+              <div class="pt-2 space-y-2">
+                <span class="text-[11px] text-muted-foreground">Additional Skills (Not Listed Above)</span>
+                <div class="flex items-center gap-2 max-w-sm">
+                  <Input
+                    v-model="newSkillTag"
+                    placeholder="e.g. Welding, Cooking, IT Support"
+                    class="h-8 text-xs"
+                    @keyup.enter="addSkillTag"
+                  />
+                  <Button size="sm" variant="outline" class="h-8 text-xs gap-1 cursor-pointer" @click="addSkillTag">
+                    <Plus class="h-3 w-3" />
+                    <span>Add</span>
+                  </Button>
+                </div>
+
+                <!-- Show only non-standard skill tags (custom ones) -->
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  <Badge
+                    v-for="(skill, idx) in otherSkills.filter(s => s && !skillOptions.includes(s))"
+                    :key="idx"
+                    variant="secondary"
+                    class="text-[11px] gap-1 py-0.5"
+                  >
+                    <span>{{ skill }}</span>
+                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeSkillTag(otherSkills.indexOf(skill))" />
+                  </Badge>
+                </div>
               </div>
 
               <div class="pt-2 space-y-1">
-                <span class="text-[11px] text-muted-foreground">Other Specific Skills / Description</span>
+                <span class="text-[11px] text-muted-foreground">Others (Specify)</span>
                 <Input v-model="otherSkillsSpecified" placeholder="Additional specialized talents, tools, or machinery operated" class="h-8 text-xs" />
               </div>
             </div>

@@ -961,7 +961,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           <td class="field-val">${escapeHtml(voc1.course_training_title || '')}</td>
           <td style="text-align: center;" class="field-val">${escapeHtml(voc1.duration || '')}</td>
           <td class="field-val">${escapeHtml(voc1.training_institution || '')}</td>
-          <td class="field-val">${escapeHtml(voc1.certificates_received || '')}</td>
+          <td class="field-val">${escapeHtml(voc1.skills_acquired || '')}</td>
           <td style="border-right: none;" class="field-val">${escapeHtml(voc1.certificates_received || '')}</td>
         </tr>
         <tr>
@@ -969,7 +969,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           <td class="field-val">${escapeHtml(voc2.course_training_title || '')}</td>
           <td style="text-align: center;" class="field-val">${escapeHtml(voc2.duration || '')}</td>
           <td class="field-val">${escapeHtml(voc2.training_institution || '')}</td>
-          <td class="field-val">${escapeHtml(voc2.certificates_received || '')}</td>
+          <td class="field-val">${escapeHtml(voc2.skills_acquired || '')}</td>
           <td style="border-right: none;" class="field-val">${escapeHtml(voc2.certificates_received || '')}</td>
         </tr>
         <tr>
@@ -977,7 +977,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           <td class="field-val">${escapeHtml(voc3.course_training_title || '')}</td>
           <td style="text-align: center;" class="field-val">${escapeHtml(voc3.duration || '')}</td>
           <td class="field-val">${escapeHtml(voc3.training_institution || '')}</td>
-          <td class="field-val">${escapeHtml(voc3.certificates_received || '')}</td>
+          <td class="field-val">${escapeHtml(voc3.skills_acquired || '')}</td>
           <td style="border-right: none;" class="field-val">${escapeHtml(voc3.certificates_received || '')}</td>
         </tr>
       </tbody>
@@ -1049,23 +1049,23 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       <tbody>
         <tr>
           <td style="border-left: none;" class="field-val">${escapeHtml(work1.company_name || '')}</td>
-          <td class="field-val"></td>
+          <td class="field-val">${escapeHtml(work1.address || '')}</td>
           <td class="field-val">${escapeHtml(work1.position || work1.job_title || '')}</td>
-          <td style="text-align: center;" class="field-val"></td>
+          <td style="text-align: center;" class="field-val">${work1.number_of_months != null ? escapeHtml(work1.number_of_months) : ''}</td>
           <td style="border-right: none; text-align: center;" class="field-val">${escapeHtml(work1.status_of_appointment || '')}</td>
         </tr>
         <tr>
           <td style="border-left: none;" class="field-val">${escapeHtml(work2.company_name || '')}</td>
-          <td class="field-val"></td>
+          <td class="field-val">${escapeHtml(work2.address || '')}</td>
           <td class="field-val">${escapeHtml(work2.position || work2.job_title || '')}</td>
-          <td style="text-align: center;" class="field-val"></td>
+          <td style="text-align: center;" class="field-val">${work2.number_of_months != null ? escapeHtml(work2.number_of_months) : ''}</td>
           <td style="border-right: none; text-align: center;" class="field-val">${escapeHtml(work2.status_of_appointment || '')}</td>
         </tr>
         <tr>
           <td style="border-left: none;" class="field-val">${escapeHtml(work3.company_name || '')}</td>
-          <td class="field-val"></td>
+          <td class="field-val">${escapeHtml(work3.address || '')}</td>
           <td class="field-val">${escapeHtml(work3.position || work3.job_title || '')}</td>
-          <td style="text-align: center;" class="field-val"></td>
+          <td style="text-align: center;" class="field-val">${work3.number_of_months != null ? escapeHtml(work3.number_of_months) : ''}</td>
           <td style="border-right: none; text-align: center;" class="field-val">${escapeHtml(work3.status_of_appointment || '')}</td>
         </tr>
       </tbody>

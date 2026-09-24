@@ -59,6 +59,26 @@ export const DOCUMENT_OPTIONS: readonly string[] = [
   'Certificates'
 ]
 
+export const SKILL_OPTIONS: readonly string[] = [
+  'Auto Mechanic',
+  'Beautician',
+  'Carpentry Work',
+  'Computer Literate',
+  'Domestic Chores',
+  'Driver',
+  'Electrician',
+  'Embroidery',
+  'Gardening',
+  'Masonry',
+  'Painter/Artist',
+  'Painting Jobs',
+  'Photography',
+  'Plumbing',
+  'Sewing Dresses',
+  'Stenography',
+  'Tailoring',
+]
+
 export interface UseApplicantNewEntryProps {
   isSubmitting?: boolean
 }
@@ -265,9 +285,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const workExperiences = ref<WorkExperienceItem[]>([
     {
       company_name: '',
+      address: '',
       position: '',
       job_title: '',
       inclusive_dates: '',
+      number_of_months: '',
       monthly_salary: '',
       status_of_appointment: '',
     },
@@ -276,9 +298,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const addWorkRow = () => {
     workExperiences.value.push({
       company_name: '',
+      address: '',
       position: '',
       job_title: '',
       inclusive_dates: '',
+      number_of_months: '',
       monthly_salary: '',
       status_of_appointment: '',
     })
@@ -295,6 +319,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       course_training_title: '',
       duration: '',
       training_institution: '',
+      skills_acquired: '',
       certificates_received: '',
     })
   }
@@ -319,12 +344,20 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     eligibilities.value.splice(index, 1)
   }
 
-  // Skills tags
   const otherSkills = ref<string[]>([
     '',
   ])
   const newSkillTag = ref('')
   const otherSkillsSpecified = ref('')
+
+  const toggleSkillOption = (skill: string) => {
+    const idx = otherSkills.value.indexOf(skill)
+    if (idx >= 0) {
+      otherSkills.value.splice(idx, 1)
+    } else {
+      otherSkills.value.push(skill)
+    }
+  }
 
   const addSkillTag = () => {
     const s = newSkillTag.value.trim()
@@ -554,9 +587,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       .filter((w) => w.company_name?.trim() || w.position?.trim() || w.job_title?.trim())
       .map((w) => ({
         company_name: w.company_name?.trim() || '',
+        address: w.address?.trim() || '',
         position: w.position?.trim() || w.job_title?.trim() || 'Staff',
         job_title: w.job_title?.trim() || w.position?.trim() || 'Staff',
         inclusive_dates: w.inclusive_dates?.trim() || 'N/A',
+        number_of_months: w.number_of_months ? Number(w.number_of_months) : null,
         monthly_salary: w.monthly_salary ? Number(w.monthly_salary) : null,
         status_of_appointment: w.status_of_appointment?.trim() || 'Permanent',
       }))
@@ -567,6 +602,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
         course_training_title: v.course_training_title?.trim() || '',
         duration: v.duration?.trim() || '',
         training_institution: v.training_institution?.trim() || '',
+        skills_acquired: v.skills_acquired?.trim() || '',
         certificates_received: v.certificates_received?.trim() || '',
       }))
 
@@ -838,6 +874,8 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     otherSkillsSpecified,
     addSkillTag,
     removeSkillTag,
+    toggleSkillOption,
+    skillOptions: SKILL_OPTIONS,
     languageProficiencies,
     newLanguageName,
     addLanguage,

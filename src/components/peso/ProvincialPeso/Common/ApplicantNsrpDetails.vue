@@ -470,7 +470,14 @@ const {
                   <Building2 class="h-3.5 w-3.5 shrink-0" />
                   <span class="font-medium text-foreground">{{ work.company_name }}</span>
                 </p>
+                <p v-if="work.address" class="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <MapPin class="h-3.5 w-3.5 shrink-0" />
+                  <span>{{ work.address }}</span>
+                </p>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
+                  <span v-if="work.number_of_months">
+                    Duration: <span class="font-mono text-foreground font-medium">{{ work.number_of_months }} month(s)</span>
+                  </span>
                   <span v-if="work.monthly_salary">
                     Monthly Salary: <span class="font-mono text-foreground font-medium">₱{{ Number(work.monthly_salary).toLocaleString() }}</span>
                   </span>
@@ -515,6 +522,9 @@ const {
                 </div>
                 <p class="text-xs text-muted-foreground">
                   Institution: <span class="text-foreground font-medium">{{ voc.training_institution }}</span>
+                </p>
+                <p v-if="voc.skills_acquired" class="text-xs text-muted-foreground">
+                  Skills Acquired: <span class="text-foreground font-medium">{{ voc.skills_acquired }}</span>
                 </p>
                 <p v-if="voc.certificates_received" class="text-xs text-primary font-medium">
                   Certificate: {{ voc.certificates_received }}
