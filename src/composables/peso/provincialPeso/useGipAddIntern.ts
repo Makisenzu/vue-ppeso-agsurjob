@@ -119,7 +119,7 @@ export function useGipAddIntern() {
 
   // Deployment form fields (PGAS ₱479.35/day, DOLE ₱475.00/day)
   const program = ref<'PGAS' | 'DOLE'>('PGAS')
-  const assignedOffice = ref<string>('Provincial PESO / PGAS Office')
+  const assignedOffice = ref<string>('')
   const supervisor = ref<string>('')
   const stipend = ref<string>('₱479.35 / day')
   const period = ref<string>('')
@@ -247,47 +247,15 @@ export function useGipAddIntern() {
     }
   }
 
-  // Program stipend sync
+  // Program stipend sync (program affiliation only affects payroll stipend, not office assignment)
   watch(program, (newProg) => {
     if (newProg === 'DOLE') {
       if (stipend.value === '₱479.35 / day' || !stipend.value) {
         stipend.value = '₱475.00 / day'
       }
-      // Try to auto-select the DOLE office from directories
-      if (
-        assignedOffice.value === 'Provincial PESO / PGAS Office' ||
-        selectedOffice.value?.office_name === 'Provincial PESO / PGAS Office'
-      ) {
-        const doleOffice = offices.value.find((o) =>
-          o.office_name.toUpperCase().includes('DOLE'),
-        )
-        if (doleOffice) {
-          selectedOffice.value = doleOffice
-        } else {
-          assignedOffice.value = 'DOLE AgSur Provincial Field Office'
-          supervisor.value = ''
-        }
-      }
     } else {
       if (stipend.value === '₱475.00 / day' || !stipend.value) {
         stipend.value = '₱479.35 / day'
-      }
-      // Try to auto-select the PESO/PGAS office from directories
-      if (
-        assignedOffice.value === 'DOLE AgSur Provincial Field Office' ||
-        selectedOffice.value?.office_name?.toUpperCase().includes('DOLE')
-      ) {
-        const pgasOffice = offices.value.find(
-          (o) =>
-            o.office_name.toUpperCase().includes('PESO') ||
-            o.office_name.toUpperCase().includes('PGAS'),
-        )
-        if (pgasOffice) {
-          selectedOffice.value = pgasOffice
-        } else {
-          assignedOffice.value = 'Provincial PESO / PGAS Office'
-          supervisor.value = ''
-        }
       }
     }
   })
@@ -304,7 +272,7 @@ export function useGipAddIntern() {
     program.value = 'PGAS'
     selectedOffice.value = null
     officeSearchQuery.value = ''
-    assignedOffice.value = 'Provincial PESO / PGAS Office'
+    assignedOffice.value = ''
     supervisor.value = ''
     stipend.value = '₱479.35 / day'
     status.value = 'Active'
@@ -349,34 +317,19 @@ export function useGipAddIntern() {
     selectedApplicant.value = applicant
     validationError.value = null
 
+    // Reset station assignment for new candidate
+    selectedOffice.value = null
+    assignedOffice.value = ''
+    supervisor.value = ''
+
     // If applicant has DOLE in remarks, auto-suggest DOLE
     const appRemarks = (applicant.remarks || []).join(' ').toUpperCase()
     if (appRemarks.includes('DOLE')) {
       program.value = 'DOLE'
       stipend.value = '₱475.00 / day'
-      // Try to auto-select the DOLE office from directories
-      const doleOffice = offices.value.find((o) =>
-        o.office_name.toUpperCase().includes('DOLE'),
-      )
-      if (doleOffice) {
-        selectedOffice.value = doleOffice
-      } else {
-        assignedOffice.value = 'DOLE AgSur Provincial Field Office'
-      }
     } else {
       program.value = 'PGAS'
       stipend.value = '₱479.35 / day'
-      // Try to auto-select the PESO/PGAS office from directories
-      const pgasOffice = offices.value.find(
-        (o) =>
-          o.office_name.toUpperCase().includes('PESO') ||
-          o.office_name.toUpperCase().includes('PGAS'),
-      )
-      if (pgasOffice) {
-        selectedOffice.value = pgasOffice
-      } else {
-        assignedOffice.value = 'Provincial PESO / PGAS Office'
-      }
     }
 
     activeStep.value = 'configure-deployment'

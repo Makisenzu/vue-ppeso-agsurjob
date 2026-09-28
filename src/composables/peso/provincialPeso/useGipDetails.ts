@@ -333,43 +333,6 @@ export function useGipDetails() {
     } else if (prog === 'DOLE' && editForm.value.stipend === '₱479.35 / day') {
       editForm.value.stipend = '₱475.00 / day'
     }
-
-    // Auto-suggest matching office from directory when switching programs
-    if (prog === 'DOLE') {
-      if (
-        editForm.value.assignedOffice === 'Provincial PESO / PGAS Office' ||
-        selectedOffice.value?.office_name === 'Provincial PESO / PGAS Office'
-      ) {
-        const doleOffice = offices.value.find((o) =>
-          o.office_name.toUpperCase().includes('DOLE'),
-        )
-        if (doleOffice) {
-          selectedOffice.value = doleOffice
-        } else {
-          editForm.value.assignedOffice = 'DOLE AgSur Provincial Field Office'
-          editForm.value.supervisor = ''
-          selectedOffice.value = null
-        }
-      }
-    } else {
-      if (
-        editForm.value.assignedOffice === 'DOLE AgSur Provincial Field Office' ||
-        selectedOffice.value?.office_name?.toUpperCase().includes('DOLE')
-      ) {
-        const pgasOffice = offices.value.find(
-          (o) =>
-            o.office_name.toUpperCase().includes('PESO') ||
-            o.office_name.toUpperCase().includes('PGAS'),
-        )
-        if (pgasOffice) {
-          selectedOffice.value = pgasOffice
-        } else {
-          editForm.value.assignedOffice = 'Provincial PESO / PGAS Office'
-          editForm.value.supervisor = ''
-          selectedOffice.value = null
-        }
-      }
-    }
   }
 
   async function saveEdit() {

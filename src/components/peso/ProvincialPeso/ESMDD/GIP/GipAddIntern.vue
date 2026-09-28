@@ -134,36 +134,10 @@ function getScoreBadgeClass(score?: number | null) {
           <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
             Deploy GIP Intern
           </h1>
-          <Badge variant="outline" class="font-mono text-xs">
-            Step {{ activeStep === 'select-applicant' ? '1 of 2' : '2 of 2' }}
-          </Badge>
         </div>
         <p class="text-sm text-muted-foreground">
           Select an applicant candidate from the registry and assign them to an official government station or office.
         </p>
-      </div>
-
-      <!-- Step Progress Navigation Pills -->
-      <div class="flex items-center gap-2 self-start sm:self-auto rounded-lg border bg-muted/40 p-1">
-        <Button
-          size="sm"
-          :variant="activeStep === 'select-applicant' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer gap-1.5"
-          @click="activeStep = 'select-applicant'"
-        >
-          <span class="flex h-4 w-4 items-center justify-center rounded-full bg-background/30 text-[10px] font-bold">1</span>
-          <span>Select Candidate</span>
-        </Button>
-        <Button
-          size="sm"
-          :variant="activeStep === 'configure-deployment' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer gap-1.5"
-          :disabled="!selectedApplicant"
-          @click="activeStep = 'configure-deployment'"
-        >
-          <span class="flex h-4 w-4 items-center justify-center rounded-full bg-background/30 text-[10px] font-bold">2</span>
-          <span>Deployment Station</span>
-        </Button>
       </div>
     </div>
 
