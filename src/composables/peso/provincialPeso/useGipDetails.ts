@@ -37,6 +37,7 @@ export function useGipDetails() {
     selectedYearFilter,
     selectedGenderFilter,
     selectedStatusFilter,
+    selectedAppointmentFilter,
     currentPage,
     pageSize,
     availableYears,
@@ -47,6 +48,12 @@ export function useGipDetails() {
     filteredInterns,
     totalPages,
     paginatedInterns,
+    selectedInternForRenewal,
+    isRenewalDialogOpen,
+    isSubmittingRenewal,
+    expiringAppointmentsCount,
+    expiredAppointmentsCount,
+    pendingDecisionCount,
   } = storeToRefs(store)
 
   const {
@@ -67,6 +74,10 @@ export function useGipDetails() {
     closeAddInternModal,
     openBatchUploadModal,
     exportCsv,
+    openRenewalDialog,
+    closeRenewalDialog,
+    renewInternAppointment,
+    concludeInternAppointment,
   } = store
 
   // ─── Query Sync ───
@@ -416,8 +427,17 @@ export function useGipDetails() {
     selectedYearFilter,
     selectedGenderFilter,
     selectedStatusFilter,
+    selectedAppointmentFilter,
     currentPage,
     pageSize,
+
+    // Appointment renewal & metrics
+    selectedInternForRenewal,
+    isRenewalDialogOpen,
+    isSubmittingRenewal,
+    expiringAppointmentsCount,
+    expiredAppointmentsCount,
+    pendingDecisionCount,
 
     // Applicants pool
     applicants,
@@ -434,6 +454,10 @@ export function useGipDetails() {
     openInternDetails,
     openInternEdit,
     closeInternDetails,
+    openRenewalDialog,
+    closeRenewalDialog,
+    renewInternAppointment,
+    concludeInternAppointment,
     openAddInternModal,
     closeAddInternModal,
     deployInternFromApplicant,

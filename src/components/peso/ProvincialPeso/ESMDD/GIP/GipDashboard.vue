@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import pgasLogo from '@/assets/images/agsur.png'
 import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
-import { ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
+import { AlertTriangle, ChevronRight, Loader2, RefreshCw } from '@lucide/vue'
 import type { GenderDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDashboard } from '@/composables/peso/provincialPeso/useGipDashboard'
 
@@ -26,6 +26,9 @@ const {
   totalApplicantsYearly,
   overallMaleInterns,
   overallFemaleInterns,
+  pendingDecisionCount,
+  expiringAppointmentsCount,
+  expiredAppointmentsCount,
   isLoading,
   pgasConfig,
   doleConfig,
@@ -33,6 +36,7 @@ const {
   formatTickYear,
   formatTooltipLabel,
   navigateToDetails,
+  navigateToPendingAppointments,
   navigateToApplicants,
   navigateToPriority,
   refreshDashboardData,
@@ -69,6 +73,41 @@ const {
           <span>Refresh Data</span>
         </Button>
       </div>
+    </div>
+
+    <!-- ─── Appointment Renewal Attention Banner ─── -->
+    <div
+      v-if="pendingDecisionCount > 0"
+      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+    >
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+          <AlertTriangle class="h-5 w-5" />
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold">
+            {{ pendingDecisionCount }} Intern Appointment{{ pendingDecisionCount > 1 ? 's' : '' }} Require Provincial PESO Renewal Decision
+          </h3>
+          <p class="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+            <span v-if="expiredAppointmentsCount > 0">
+              <strong class="font-semibold">{{ expiredAppointmentsCount }}</strong> appointment{{ expiredAppointmentsCount > 1 ? 's have' : ' has' }} reached the end of their term
+            </span>
+            <span v-if="expiredAppointmentsCount > 0 && expiringAppointmentsCount > 0"> and </span>
+            <span v-if="expiringAppointmentsCount > 0">
+              <strong class="font-semibold">{{ expiringAppointmentsCount }}</strong> expiring within 30 days
+            </span>
+            . Evaluate interns to renew their appointment or conclude service.
+          </p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        class="h-8 gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 shrink-0 cursor-pointer"
+        @click="navigateToPendingAppointments"
+      >
+        <span>Manage Appointments</span>
+        <ChevronRight class="h-3.5 w-3.5" />
+      </Button>
     </div>
 
     <!-- Quick Stats -->

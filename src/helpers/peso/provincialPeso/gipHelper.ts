@@ -6,6 +6,8 @@ import type {
   GenderDataPoint,
   GipApplicantRecord,
   GipApplicantRow,
+  GipAppointmentRecord,
+  GipAppointmentStatus,
   GipInternRecord,
   GipPriorityApplicantRecord,
   GipPriorityScoreRow,
@@ -155,12 +157,138 @@ export function parseApplicantCourse(educationalBackgroundJson: any): string {
   return 'General Course'
 }
 
+// ─── Helpers: Appointment Lifecycle & Parsing ───
+const MONTH_MAP: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+}
+
+export function parsePeriodDates(
+  period: string,
+  fallbackYear: number = new Date().getFullYear(),
+): { startDate: string; endDate: string } {
+  if (!period || !period.trim()) {
+    return {
+      startDate: `${fallbackYear}-01-01`,
+      endDate: `${fallbackYear}-06-30`,
+    }
+  }
+
+  const p = period.trim()
+  // Pattern: "Jan 1 - Jun 30, 2026" or "Jan 1, 2026 - Jun 30, 2026"
+  const rangeMatch = p.match(
+    /^([A-Za-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?\s*[-–]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/,
+  )
+  if (rangeMatch) {
+    const [, sm, sd, sy, em, ed, ey] = rangeMatch
+    const sMonth = MONTH_MAP[sm.toLowerCase().slice(0, 3)] || 1
+    const eMonth = MONTH_MAP[em.toLowerCase().slice(0, 3)] || 6
+    const sYear = sy ? parseInt(sy) : parseInt(ey)
+    const eYear = parseInt(ey)
+    const sDay = String(parseInt(sd)).padStart(2, '0')
+    const eDay = String(parseInt(ed)).padStart(2, '0')
+    return {
+      startDate: `${sYear}-${String(sMonth).padStart(2, '0')}-${sDay}`,
+      endDate: `${eYear}-${String(eMonth).padStart(2, '0')}-${eDay}`,
+    }
+  }
+
+  // Pattern: "Jan 2026 - Jun 2026"
+  const monthYearMatch = p.match(/^([A-Za-z]+)\s+(\d{4})\s*[-–]\s*([A-Za-z]+)\s+(\d{4})$/)
+  if (monthYearMatch) {
+    const [, sm, sy, em, ey] = monthYearMatch
+    const sMonth = MONTH_MAP[sm.toLowerCase().slice(0, 3)] || 1
+    const eMonth = MONTH_MAP[em.toLowerCase().slice(0, 3)] || 6
+    const sYear = parseInt(sy)
+    const eYear = parseInt(ey)
+    const lastDay = new Date(eYear, eMonth, 0).getDate()
+    return {
+      startDate: `${sYear}-${String(sMonth).padStart(2, '0')}-01`,
+      endDate: `${eYear}-${String(eMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+    }
+  }
+
+  return {
+    startDate: `${fallbackYear}-01-01`,
+    endDate: `${fallbackYear}-06-30`,
+  }
+}
+
+export function calculateAppointmentStatus(
+  endDateStr: string,
+  rawStatus: string = 'Active',
+): {
+  status: GipAppointmentStatus
+  daysRemaining: number
+  isExpired: boolean
+  isExpiringSoon: boolean
+} {
+  const norm = rawStatus.trim().toLowerCase()
+  if (norm === 'completed' || norm === 'hired' || norm === 'resigned' || norm === 'terminated' || norm === 'renewed') {
+    return {
+      status: (norm.charAt(0).toUpperCase() + norm.slice(1)) as GipAppointmentStatus,
+      daysRemaining: 0,
+      isExpired: false,
+      isExpiringSoon: false,
+    }
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const endDate = new Date(endDateStr)
+  endDate.setHours(0, 0, 0, 0)
+
+  if (isNaN(endDate.getTime())) {
+    return {
+      status: 'Active',
+      daysRemaining: 999,
+      isExpired: false,
+      isExpiringSoon: false,
+    }
+  }
+
+  const diffTime = endDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (daysRemaining < 0) {
+    return {
+      status: 'Expired',
+      daysRemaining,
+      isExpired: true,
+      isExpiringSoon: false,
+    }
+  }
+
+  if (daysRemaining <= 30) {
+    return {
+      status: 'Expiring Soon',
+      daysRemaining,
+      isExpired: false,
+      isExpiringSoon: true,
+    }
+  }
+
+  return {
+    status: 'Active',
+    daysRemaining,
+    isExpired: false,
+    isExpiringSoon: false,
+  }
+}
+
+export function generateAppointmentCode(batchYear: number, gipId: string, term: number): string {
+  const shortId = gipId.slice(0, 4).toUpperCase()
+  return `GIP-APPT-${batchYear}-${shortId}-T${term}`
+}
+
 // ─── Transform DB Records into Domain GipInternRecord ───
 export function mapToGipInternRecord(
   gip: GipRow,
   application: GipApplicantRow | null,
   applicant: ApplicantRow | null,
-  barangayTagMap?: Map<string, LpiiCategory>
+  barangayTagMap?: Map<string, LpiiCategory>,
+  appointmentsMap?: Map<string, GipAppointmentRecord[]>,
 ): GipInternRecord {
   const address = parseApplicantAddress(applicant?.address)
   const course = parseApplicantCourse(applicant?.educational_background)
@@ -237,6 +365,48 @@ export function mapToGipInternRecord(
     }
   }
 
+  // ─── Attach Appointments & Expiration Status ───
+  const internAppointments = (appointmentsMap && appointmentsMap.get(gip.id)) ? [...appointmentsMap.get(gip.id)!] : []
+  let currentAppointment: GipAppointmentRecord | null = null
+
+  if (internAppointments.length > 0) {
+    // Sort descending by term_number
+    internAppointments.sort((a, b) => b.termNumber - a.termNumber)
+    currentAppointment = internAppointments[0]
+  } else {
+    // Synthesize initial Term 1 appointment from period string
+    const parsedDates = parsePeriodDates(period, batchYear)
+    const apptCalc = calculateAppointmentStatus(parsedDates.endDate, status)
+    currentAppointment = {
+      id: `synthetic-${gip.id}-t1`,
+      gipId: gip.id,
+      termNumber: 1,
+      appointmentCode: generateAppointmentCode(batchYear, gip.id, 1),
+      program,
+      assignedOffice,
+      supervisor,
+      dailyStipend: stipend,
+      startDate: parsedDates.startDate,
+      endDate: parsedDates.endDate,
+      status: apptCalc.status,
+      daysRemaining: apptCalc.daysRemaining,
+      isExpired: apptCalc.isExpired,
+      isExpiringSoon: apptCalc.isExpiringSoon,
+      createdAt: createdDate,
+    }
+    internAppointments.push(currentAppointment)
+  }
+
+  // Recalculate dynamic flags on current appointment
+  const currentCalc = calculateAppointmentStatus(
+    currentAppointment.endDate,
+    currentAppointment.status,
+  )
+  currentAppointment.status = currentCalc.status
+  currentAppointment.daysRemaining = currentCalc.daysRemaining
+  currentAppointment.isExpired = currentCalc.isExpired
+  currentAppointment.isExpiringSoon = currentCalc.isExpiringSoon
+
   return {
     id: gip.id,
     code,
@@ -257,11 +427,16 @@ export function mapToGipInternRecord(
     documentsSubmitted: (applicant?.documents_submitted && applicant.documents_submitted.length > 0)
       ? applicant.documents_submitted
       : (application?.document_submitted || []),
+    currentAppointment,
+    appointmentHistory: internAppointments,
+    appointmentStatus: currentAppointment.status,
+    daysRemaining: currentAppointment.daysRemaining,
     rawGip: gip,
     rawApplication: application,
     rawApplicant: applicant,
   }
 }
+
 
 // ─── Transform DB Records into Domain GipApplicantRecord ───
 export function mapToGipApplicantRecord(

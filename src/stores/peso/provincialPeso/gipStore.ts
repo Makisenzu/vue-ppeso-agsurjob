@@ -10,6 +10,8 @@ import type {
   GipInternRecord,
   GipProgram,
   LpiiDataPoint,
+  GipRenewAppointmentPayload,
+  GipConcludeAppointmentPayload,
 } from '@/types/peso/provincialPeso/gip'
 import {
   gipService,
@@ -57,6 +59,11 @@ export const useGipStore = defineStore('gipStore', () => {
   const isUpdatingIntern = ref<boolean>(false)
   const isAddInternModalOpen = ref<boolean>(false)
 
+  // ─── Appointment Renewal Dialog State ───
+  const selectedInternForRenewal = ref<GipInternRecord | null>(null)
+  const isRenewalDialogOpen = ref<boolean>(false)
+  const isSubmittingRenewal = ref<boolean>(false)
+
   // ─── Filter & Pagination State ───
   const searchQuery = ref<string>('')
   const selectedProgram = ref<GipProgram>('ALL')
@@ -64,6 +71,7 @@ export const useGipStore = defineStore('gipStore', () => {
   const selectedYearFilter = ref<string>('ALL')
   const selectedGenderFilter = ref<string>('ALL')
   const selectedStatusFilter = ref<string>('ALL')
+  const selectedAppointmentFilter = ref<string>('ALL')
   const currentPage = ref<number>(1)
   const pageSize = ref<number>(8)
 
@@ -76,6 +84,7 @@ export const useGipStore = defineStore('gipStore', () => {
       selectedYearFilter,
       selectedGenderFilter,
       selectedStatusFilter,
+      selectedAppointmentFilter,
     ],
     () => {
       currentPage.value = 1
@@ -196,6 +205,21 @@ export const useGipStore = defineStore('gipStore', () => {
       ) {
         return false
       }
+      // Appointment status filter
+      if (selectedAppointmentFilter.value !== 'ALL') {
+        if (selectedAppointmentFilter.value === 'EXPIRING' && !intern.currentAppointment?.isExpiringSoon) {
+          return false
+        }
+        if (selectedAppointmentFilter.value === 'EXPIRED' && !intern.currentAppointment?.isExpired) {
+          return false
+        }
+        if (selectedAppointmentFilter.value === 'ACTIVE' && intern.status !== 'Active') {
+          return false
+        }
+        if (selectedAppointmentFilter.value === 'COMPLETED' && intern.status !== 'Completed' && intern.status !== 'Hired') {
+          return false
+        }
+      }
       // Search query
       if (searchQuery.value.trim()) {
         const q = searchQuery.value.toLowerCase().trim()
@@ -216,6 +240,23 @@ export const useGipStore = defineStore('gipStore', () => {
       }
       return true
     })
+  })
+
+  // ─── Computed: Appointment Expiration & Action Metrics ───
+  const expiringAppointmentsCount = computed(() => {
+    return interns.value.filter(
+      (i) => i.currentAppointment?.isExpiringSoon && i.status === 'Active',
+    ).length
+  })
+
+  const expiredAppointmentsCount = computed(() => {
+    return interns.value.filter(
+      (i) => i.currentAppointment?.isExpired && i.status === 'Active',
+    ).length
+  })
+
+  const pendingDecisionCount = computed(() => {
+    return expiringAppointmentsCount.value + expiredAppointmentsCount.value
   })
 
   const totalPages = computed(
@@ -790,6 +831,55 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  // ─── Appointment Renewal Actions ───
+  const openRenewalDialog = (intern: GipInternRecord) => {
+    selectedInternForRenewal.value = intern
+    isRenewalDialogOpen.value = true
+  }
+
+  const closeRenewalDialog = () => {
+    isRenewalDialogOpen.value = false
+    selectedInternForRenewal.value = null
+  }
+
+  const renewInternAppointment = async (payload: GipRenewAppointmentPayload) => {
+    isSubmittingRenewal.value = true
+    try {
+      await gipService.renewAppointment(payload)
+      toastAlert.success(
+        'Appointment Renewed',
+        `Intern appointment renewed to Term #${payload.nextTermNumber}.`,
+      )
+      isRenewalDialogOpen.value = false
+      selectedInternForRenewal.value = null
+      await fetchDetailsData(true)
+    } catch (err: any) {
+      toastAlert.error('Renewal Failed', err.message || 'Could not renew appointment.')
+      throw err
+    } finally {
+      isSubmittingRenewal.value = false
+    }
+  }
+
+  const concludeInternAppointment = async (payload: GipConcludeAppointmentPayload) => {
+    isSubmittingRenewal.value = true
+    try {
+      await gipService.concludeAppointment(payload)
+      toastAlert.success(
+        'Appointment Concluded',
+        `Internship status set to ${payload.action}.`,
+      )
+      isRenewalDialogOpen.value = false
+      selectedInternForRenewal.value = null
+      await fetchDetailsData(true)
+    } catch (err: any) {
+      toastAlert.error('Action Failed', err.message || 'Could not update appointment status.')
+      throw err
+    } finally {
+      isSubmittingRenewal.value = false
+    }
+  }
+
   return {
     // State
     pgasYearlyData,
@@ -815,6 +905,9 @@ export const useGipStore = defineStore('gipStore', () => {
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,
+    selectedInternForRenewal,
+    isRenewalDialogOpen,
+    isSubmittingRenewal,
     priorityApplicants,
     isPriorityModalOpen,
     isPriorityLoading,
@@ -824,6 +917,7 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedYearFilter,
     selectedGenderFilter,
     selectedStatusFilter,
+    selectedAppointmentFilter,
     currentPage,
     pageSize,
 
@@ -860,6 +954,9 @@ export const useGipStore = defineStore('gipStore', () => {
     totalApplicantPages,
     paginatedInterns,
     paginatedApplicants,
+    expiringAppointmentsCount,
+    expiredAppointmentsCount,
+    pendingDecisionCount,
 
     // Actions
     fetchDashboardData,
@@ -895,5 +992,9 @@ export const useGipStore = defineStore('gipStore', () => {
     openPriorityModal,
     closePriorityModal,
     exportPriorityCsv,
+    openRenewalDialog,
+    closeRenewalDialog,
+    renewInternAppointment,
+    concludeInternAppointment,
   }
 })

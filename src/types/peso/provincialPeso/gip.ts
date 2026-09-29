@@ -57,6 +57,56 @@ export interface GipTotals {
   total: number
 }
 
+export interface GipAppointmentRecord {
+  id: string
+  gipId: string
+  termNumber: number
+  appointmentCode: string
+  program: 'PGAS' | 'DOLE'
+  assignedOffice: string
+  supervisor: string
+  dailyStipend: string
+  startDate: string // YYYY-MM-DD
+  endDate: string   // YYYY-MM-DD
+  status: GipAppointmentStatus
+  daysRemaining?: number
+  isExpired?: boolean
+  isExpiringSoon?: boolean
+  decisionNotes?: string | null
+  decidedBy?: string | null
+  decidedAt?: string | null
+  createdAt?: string | null
+}
+
+export type GipAppointmentStatus =
+  | 'Active'
+  | 'Expiring Soon'
+  | 'Expired'
+  | 'Renewed'
+  | 'Completed'
+  | 'Terminated'
+  | 'Hired'
+
+export interface GipRenewAppointmentPayload {
+  gipId: string
+  currentAppointmentId?: string
+  nextTermNumber: number
+  program: 'PGAS' | 'DOLE'
+  assignedOffice: string
+  supervisor?: string
+  stipend: string
+  startDate: string
+  endDate: string
+  remarks?: string
+}
+
+export interface GipConcludeAppointmentPayload {
+  gipId: string
+  appointmentId?: string
+  action: 'Completed' | 'Hired' | 'Terminated'
+  remarks?: string
+}
+
 export interface GipInternRecord {
   id: string
   code: string
@@ -75,6 +125,10 @@ export interface GipInternRecord {
   status: GipInternStatus
   contact: string
   documentsSubmitted?: string[]
+  currentAppointment?: GipAppointmentRecord | null
+  appointmentHistory?: GipAppointmentRecord[]
+  appointmentStatus?: GipAppointmentStatus
+  daysRemaining?: number
   rawGip?: Record<string, any> | null
   rawApplication?: Record<string, any> | null
   rawApplicant?: Record<string, any> | null
@@ -159,4 +213,6 @@ export interface GipFilterState {
   selectedYearFilter: string
   selectedGenderFilter: string
   selectedStatusFilter: string
+  selectedAppointmentFilter?: string
 }
+

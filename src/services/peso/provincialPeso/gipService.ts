@@ -16,6 +16,9 @@ import type {
   GipApplicantUpdate,
   GipInsert,
   GipUpdate,
+  GipAppointmentRecord,
+  GipRenewAppointmentPayload,
+  GipConcludeAppointmentPayload,
 } from '@/types/peso/provincialPeso/gip'
 import {
   mapToGipInternRecord,
@@ -25,6 +28,9 @@ import {
   computeApplicantsDemographics,
   computeLpiiBreakdown,
   computeApplicantLpiiBreakdown,
+  parsePeriodDates,
+  generateAppointmentCode,
+  calculateAppointmentStatus,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
 export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
@@ -52,6 +58,51 @@ export function invalidateGipCaches(options?: { interns?: boolean; applicants?: 
 type BarangayRow = {
   name: string
   lpii_tag: string
+}
+
+/**
+ * Resilient query helper for esmdd.gip_appointments.
+ */
+async function fetchGipAppointmentsQuery(): Promise<GipAppointmentRecord[]> {
+  try {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('gip_appointments' as any)
+      .select('*')
+      .order('term_number', { ascending: false })
+
+    if (error) {
+      console.warn('[gipService] Could not query esmdd.gip_appointments (using fallback):', error.message)
+      return []
+    }
+
+    return (data || []).map((row: any) => {
+      const calc = calculateAppointmentStatus(row.end_date, row.status)
+      return {
+        id: row.id,
+        gipId: row.gip_id,
+        termNumber: row.term_number || 1,
+        appointmentCode: row.appointment_code,
+        program: row.program || 'PGAS',
+        assignedOffice: row.assigned_office || 'Provincial PESO / PGAS Office',
+        supervisor: row.supervisor || 'Assigned Coordinator',
+        dailyStipend: row.daily_stipend || '₱479.35 / day',
+        startDate: row.start_date,
+        endDate: row.end_date,
+        status: calc.status,
+        daysRemaining: calc.daysRemaining,
+        isExpired: calc.isExpired,
+        isExpiringSoon: calc.isExpiringSoon,
+        decisionNotes: row.decision_notes,
+        decidedBy: row.decided_by,
+        decidedAt: row.decided_at,
+        createdAt: row.created_at,
+      } as GipAppointmentRecord
+    })
+  } catch (err: any) {
+    console.warn('[gipService] Exception querying esmdd.gip_appointments:', err?.message)
+    return []
+  }
 }
 
 /**
@@ -109,14 +160,15 @@ export const gipService = {
     }
 
     return getOrSetPersistentCache(GIP_INTERNS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
-      // 1. Fetch GIPs and GIP applicants
-      const [gips, gipApps, barangaysRes] = await Promise.all([
+      // 1. Fetch GIPs, GIP applicants, barangays, and appointments
+      const [gips, gipApps, barangaysRes, appointments] = await Promise.all([
         fetchGipsQuery(),
         fetchGipApplicantsQuery(),
         supabase
           .schema('public')
           .from('barangays')
           .select('name, lpii_tag'),
+        fetchGipAppointmentsQuery(),
       ])
 
       const barangays = (barangaysRes.data ?? []) as BarangayRow[]
@@ -133,6 +185,15 @@ export const gipService = {
       const appMap = new Map<string, GipApplicantRow>()
       for (const app of gipApps) {
         appMap.set(app.id, app)
+      }
+
+      // Build gip_id -> GipAppointmentRecord[] map
+      const appointmentsMap = new Map<string, GipAppointmentRecord[]>()
+      for (const apt of appointments) {
+        if (!appointmentsMap.has(apt.gipId)) {
+          appointmentsMap.set(apt.gipId, [])
+        }
+        appointmentsMap.get(apt.gipId)!.push(apt)
       }
 
       // If there are no deployed interns in esmdd.gips, return empty list
@@ -177,7 +238,7 @@ export const gipService = {
       for (const gip of gips) {
         const app = gip.application_id ? appMap.get(gip.application_id) || null : null
         const applicant = app?.applicant_id ? applicantMap.get(app.applicant_id) || null : null
-        records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap))
+        records.push(mapToGipInternRecord(gip, app, applicant, barangayTagMap, appointmentsMap))
       }
 
       return records
@@ -679,6 +740,26 @@ export const gipService = {
       remarks: fullRemarks,
     })
 
+    // Create initial Term 1 appointment
+    try {
+      const dates = parsePeriodDates(deploymentData.period || '')
+      const code = generateAppointmentCode(new Date().getFullYear(), gip.id, 1)
+      await (supabase.schema('esmdd').from('gip_appointments' as any) as any).insert({
+        gip_id: gip.id,
+        term_number: 1,
+        appointment_code: code,
+        program: deploymentData.program,
+        assigned_office: deploymentData.assignedOffice,
+        supervisor: deploymentData.supervisor || 'Assigned Coordinator',
+        daily_stipend: deploymentData.stipend || (deploymentData.program === 'DOLE' ? '₱475.00 / day' : '₱479.35 / day'),
+        start_date: dates.startDate,
+        end_date: dates.endDate,
+        status: deploymentData.status || 'Active',
+      })
+    } catch (apptErr) {
+      console.warn('[gipService] Could not insert initial appointment row:', apptErr)
+    }
+
     try {
       await this.updateGipApplicant(deploymentData.applicationId, {
         status: deploymentData.status === 'Active' ? 'Approved' : deploymentData.status || 'Approved',
@@ -690,5 +771,102 @@ export const gipService = {
     invalidateGipCaches({ all: true })
 
     return gip
+  },
+
+  /**
+   * Provincial PESO: Renews a GIP intern's appointment for another term.
+   */
+  async renewAppointment(payload: GipRenewAppointmentPayload): Promise<void> {
+    const { data: authData } = await supabase.auth.getUser()
+    const userId = authData?.user?.id || null
+
+    // 1. Mark previous appointment as Renewed if valid
+    if (payload.currentAppointmentId && !payload.currentAppointmentId.startsWith('synthetic-')) {
+      try {
+        await (supabase.schema('esmdd').from('gip_appointments' as any) as any)
+          .update({
+            status: 'Renewed',
+            decision_notes: `Renewed to Term #${payload.nextTermNumber}. Notes: ${payload.remarks || 'None'}`,
+            decided_by: userId,
+            decided_at: new Date().toISOString(),
+          })
+          .eq('id', payload.currentAppointmentId)
+      } catch (err: any) {
+        console.warn('[gipService] Could not update previous appointment:', err.message)
+      }
+    }
+
+    // 2. Insert new appointment term
+    const appointmentCode = generateAppointmentCode(
+      new Date(payload.startDate).getFullYear() || new Date().getFullYear(),
+      payload.gipId,
+      payload.nextTermNumber,
+    )
+
+    try {
+      await (supabase.schema('esmdd').from('gip_appointments' as any) as any).insert({
+        gip_id: payload.gipId,
+        term_number: payload.nextTermNumber,
+        appointment_code: appointmentCode,
+        program: payload.program,
+        assigned_office: payload.assignedOffice,
+        supervisor: payload.supervisor || 'Assigned Coordinator',
+        daily_stipend: payload.stipend,
+        start_date: payload.startDate,
+        end_date: payload.endDate,
+        status: 'Active',
+        decision_notes: payload.remarks || null,
+        decided_by: userId,
+        decided_at: new Date().toISOString(),
+      })
+    } catch (err: any) {
+      console.warn('[gipService] Could not insert renewed appointment record:', err.message)
+    }
+
+    // 3. Update master gips table status & remarks
+    const parts = [`[${payload.program}] ${payload.assignedOffice}`]
+    if (payload.supervisor) parts.push(`Supervisor: ${payload.supervisor}`)
+    parts.push(`Period: ${payload.startDate} to ${payload.endDate}`)
+    parts.push(`Stipend: ${payload.stipend}`)
+    parts.push(`Term: #${payload.nextTermNumber}`)
+    if (payload.remarks) parts.push(`Notes: ${payload.remarks}`)
+    const fullRemarks = parts.join(' | ')
+
+    await this.updateGip(payload.gipId, {
+      status: 'Active',
+      remarks: fullRemarks,
+    })
+
+    invalidateGipCaches({ all: true })
+  },
+
+  /**
+   * Provincial PESO: Concludes an intern's appointment (Completed, Hired, Terminated).
+   */
+  async concludeAppointment(payload: GipConcludeAppointmentPayload): Promise<void> {
+    const { data: authData } = await supabase.auth.getUser()
+    const userId = authData?.user?.id || null
+
+    if (payload.appointmentId && !payload.appointmentId.startsWith('synthetic-')) {
+      try {
+        await (supabase.schema('esmdd').from('gip_appointments' as any) as any)
+          .update({
+            status: payload.action,
+            decision_notes: payload.remarks || null,
+            decided_by: userId,
+            decided_at: new Date().toISOString(),
+          })
+          .eq('id', payload.appointmentId)
+      } catch (err: any) {
+        console.warn('[gipService] Could not update appointment status on conclude:', err.message)
+      }
+    }
+
+    // Update master GIP record
+    await this.updateGip(payload.gipId, {
+      status: payload.action,
+    })
+
+    invalidateGipCaches({ all: true })
   },
 }

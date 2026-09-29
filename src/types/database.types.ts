@@ -842,6 +842,71 @@ export type Database = {
           },
         ]
       }
+      gip_appointments: {
+        Row: {
+          appointment_code: string
+          assigned_office: string
+          created_at: string
+          daily_stipend: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          end_date: string
+          gip_id: string
+          id: string
+          program: string
+          start_date: string
+          status: string
+          supervisor: string | null
+          term_number: number
+          updated_at: string
+        }
+        Insert: {
+          appointment_code: string
+          assigned_office: string
+          created_at?: string
+          daily_stipend?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          end_date: string
+          gip_id: string
+          id?: string
+          program: string
+          start_date: string
+          status?: string
+          supervisor?: string | null
+          term_number?: number
+          updated_at?: string
+        }
+        Update: {
+          appointment_code?: string
+          assigned_office?: string
+          created_at?: string
+          daily_stipend?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          end_date?: string
+          gip_id?: string
+          id?: string
+          program?: string
+          start_date?: string
+          status?: string
+          supervisor?: string | null
+          term_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gip_appointments_gip_id_fkey"
+            columns: ["gip_id"]
+            isOneToOne: false
+            referencedRelation: "gips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gips: {
         Row: {
           application_id: string | null
@@ -1174,6 +1239,7 @@ export type Database = {
           document_submitted: string[] | null
           educational_background: Json | null
           eligibilities: Json | null
+          eligibility_score: number | null
           email: string | null
           employment_status: string | null
           employment_type: string | null

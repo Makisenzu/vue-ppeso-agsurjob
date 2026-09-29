@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
@@ -72,6 +73,7 @@ import doleLogo from '@/assets/images/dole.png'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDetails } from '@/composables/peso/provincialPeso/useGipDetails'
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
+import GipRenewAppointmentDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipRenewAppointmentDialog.vue'
 
 const {
   pgasLpiiData,
@@ -101,6 +103,7 @@ const {
   selectedYearFilter,
   selectedGenderFilter,
   selectedStatusFilter,
+  selectedAppointmentFilter,
   currentPage,
   pageSize,
   LPII_CONFIG,
@@ -112,8 +115,12 @@ const {
   openInternDetails,
   openInternEdit,
   closeInternDetails,
+  openRenewalDialog,
   exportCsv,
   refreshDetailsData,
+  expiringAppointmentsCount,
+  expiredAppointmentsCount,
+  pendingDecisionCount,
 
   // Office directory (edit mode)
   officeSearchQuery,
@@ -375,6 +382,53 @@ const internDocumentsSubmitted = computed<string[]>(() => {
       </div>
     </div>
 
+    <!-- ─── APPOINTMENT RENEWAL ATTENTION BANNER ─── -->
+    <div
+      v-if="pendingDecisionCount > 0"
+      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+    >
+      <div class="flex items-center gap-2.5">
+        <div class="p-1.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+          <AlertTriangle class="h-4 w-4" />
+        </div>
+        <div>
+          <p class="text-xs font-semibold">
+            Action Required: {{ pendingDecisionCount }} Intern Appointment{{ pendingDecisionCount > 1 ? 's' : '' }} Pending Provincial PESO Decision
+          </p>
+          <p class="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+            <span v-if="expiredAppointmentsCount > 0">
+              <strong class="font-semibold">{{ expiredAppointmentsCount }}</strong> term{{ expiredAppointmentsCount > 1 ? 's' : '' }} expired
+            </span>
+            <span v-if="expiredAppointmentsCount > 0 && expiringAppointmentsCount > 0"> and </span>
+            <span v-if="expiringAppointmentsCount > 0">
+              <strong class="font-semibold">{{ expiringAppointmentsCount }}</strong> expiring within 30 days
+            </span>
+            — Provincial PESO renewal or conclusion needed.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+        <Button
+          v-if="selectedAppointmentFilter === 'ALL'"
+          size="sm"
+          variant="outline"
+          class="h-7 text-xs border-amber-500/40 bg-background/80 hover:bg-amber-500/15 cursor-pointer text-amber-900 dark:text-amber-200"
+          @click="selectedAppointmentFilter = 'EXPIRING'"
+        >
+          View Pending Interns
+        </Button>
+        <Button
+          v-else
+          size="sm"
+          variant="outline"
+          class="h-7 text-xs border-amber-500/40 bg-background/80 hover:bg-amber-500/15 cursor-pointer text-amber-900 dark:text-amber-200"
+          @click="selectedAppointmentFilter = 'ALL'"
+        >
+          Show All Interns
+        </Button>
+      </div>
+    </div>
+
     <!-- ─── DATA TABLE COMPONENT (Below Pie Chart Row) ─── -->
     <Card class="border shadow-xs">
       <CardHeader class="pb-4">
@@ -416,7 +470,7 @@ const internDocumentsSubmitted = computed<string[]>(() => {
         </div>
 
         <!-- ─── Search & Multi-Filter Bar ─── -->
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
           <!-- Search input -->
           <div class="sm:col-span-2 relative">
             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -432,6 +486,20 @@ const internDocumentsSubmitted = computed<string[]>(() => {
             >
               <X class="h-4 w-4" />
             </button>
+          </div>
+
+          <!-- Appointment Term Filter -->
+          <div>
+            <select
+              v-model="selectedAppointmentFilter"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="ALL">All Appointments</option>
+              <option value="EXPIRING">Expiring Soon (≤ 30d)</option>
+              <option value="EXPIRED">Expired Terms</option>
+              <option value="ACTIVE">Active Appointments</option>
+              <option value="COMPLETED">Completed / Concluded</option>
+            </select>
           </div>
 
           <!-- LPII Filter -->
@@ -589,11 +657,38 @@ const internDocumentsSubmitted = computed<string[]>(() => {
                     </div>
                   </TableCell>
 
-                  <!-- Period / Batch -->
+                  <!-- Period / Batch & Appointment Term -->
                   <TableCell class="py-3">
-                    <div class="flex flex-col text-xs">
-                      <span class="font-mono text-foreground">{{ intern.batchYear }}</span>
+                    <div class="flex flex-col gap-1 text-xs">
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-mono text-foreground font-medium">{{ intern.batchYear }}</span>
+                        <Badge
+                          variant="outline"
+                          class="text-[10px] py-0 px-1 font-mono bg-muted/50"
+                        >
+                          Term #{{ intern.currentAppointment?.termNumber || 1 }}
+                        </Badge>
+                      </div>
                       <span class="text-[11px] text-muted-foreground">{{ intern.period }}</span>
+                      <!-- Relative Expiration Badge -->
+                      <div v-if="intern.currentAppointment" class="pt-0.5">
+                        <Badge
+                          v-if="intern.currentAppointment.isExpired && intern.status === 'Active'"
+                          variant="destructive"
+                          class="text-[10px] py-0 px-1.5 gap-1 font-medium"
+                        >
+                          <Clock class="h-2.5 w-2.5" />
+                          Term Expired
+                        </Badge>
+                        <Badge
+                          v-else-if="intern.currentAppointment.isExpiringSoon && intern.status === 'Active'"
+                          variant="outline"
+                          class="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] py-0 px-1.5 gap-1 font-medium"
+                        >
+                          <Clock class="h-2.5 w-2.5" />
+                          Ends in {{ intern.daysRemaining }}d
+                        </Badge>
+                      </div>
                     </div>
                   </TableCell>
 
@@ -628,6 +723,17 @@ const internDocumentsSubmitted = computed<string[]>(() => {
                   <!-- Action -->
                   <TableCell class="py-3 text-right">
                     <div class="flex items-center justify-end gap-1">
+                      <Button
+                        v-if="intern.status === 'Active'"
+                        variant="outline"
+                        size="sm"
+                        class="h-8 gap-1 text-xs cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+                        title="Renew or Conclude Appointment"
+                        @click="openRenewalDialog(intern)"
+                      >
+                        <RefreshCw class="h-3.5 w-3.5" />
+                        <span>Renew</span>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1067,8 +1173,19 @@ const internDocumentsSubmitted = computed<string[]>(() => {
           </div>
         </div>
 
-        <DialogFooter class="flex flex-row items-center justify-end sm:justify-end gap-2 pt-3 border-t mt-2">
+        <DialogFooter class="flex flex-row items-center justify-between sm:justify-between gap-2 pt-3 border-t mt-2">
           <template v-if="!isEditingIntern">
+            <Button
+              v-if="selectedIntern?.status === 'Active'"
+              variant="outline"
+              size="sm"
+              class="text-xs cursor-pointer gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+              @click="openRenewalDialog(selectedIntern); closeInternDetails()"
+            >
+              <RefreshCw class="h-3.5 w-3.5" />
+              <span>Renew / Conclude Term</span>
+            </Button>
+            <div v-else></div>
             <Button
               variant="outline"
               size="sm"
@@ -1102,6 +1219,9 @@ const internDocumentsSubmitted = computed<string[]>(() => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- ─── APPOINTMENT RENEWAL / CONCLUSION DIALOG ─── -->
+    <GipRenewAppointmentDialog />
 
     <!-- ─── BATCH UPLOAD / OCR MODAL (ACCESSIBLE VIA OCR SCAN) ─── -->
     <GipBatchUploadDialog />

@@ -25,14 +25,23 @@ export function useGipDashboard() {
     overallFemaleInterns,
     isLoading,
     errorMessage,
+    pendingDecisionCount,
+    expiringAppointmentsCount,
+    expiredAppointmentsCount,
   } = storeToRefs(store)
 
-  const { fetchDashboardData, refreshDashboardData } = store
+  const { fetchDashboardData, refreshDashboardData, fetchDetailsData } = store
 
   function navigateToDetails(program?: 'pgas' | 'dole') {
     router.push({
       name: 'provincial-peso-gip-details',
       query: program ? { program } : undefined,
+    })
+  }
+
+  function navigateToPendingAppointments() {
+    router.push({
+      name: 'provincial-peso-gip-details',
     })
   }
 
@@ -51,6 +60,7 @@ export function useGipDashboard() {
 
   onMounted(() => {
     fetchDashboardData()
+    fetchDetailsData()
   })
 
   return {
@@ -63,6 +73,9 @@ export function useGipDashboard() {
     totalApplicantsYearly,
     overallMaleInterns,
     overallFemaleInterns,
+    pendingDecisionCount,
+    expiringAppointmentsCount,
+    expiredAppointmentsCount,
     isLoading,
     errorMessage,
 
@@ -75,6 +88,7 @@ export function useGipDashboard() {
 
     // Navigation & Actions
     navigateToDetails,
+    navigateToPendingAppointments,
     navigateToApplicants,
     navigateToPriority,
     fetchDashboardData,
