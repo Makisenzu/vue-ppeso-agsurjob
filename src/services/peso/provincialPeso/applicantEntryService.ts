@@ -3,6 +3,8 @@ import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/c
 import type {
   ApplicantInsert,
   ApplicantRow,
+  ApplicantUpdate,
+  ExistingApplicantMatch,
   ProgramReferralSummary,
 } from '@/types/peso/provincialPeso/applicantEntry'
 import type { GipApplicantInsert, GipApplicantRow } from '@/types/peso/provincialPeso/gip'
@@ -218,5 +220,208 @@ export const applicantEntryService = {
     }
 
     return createdApplicant
+  },
+
+  /**
+   * Check if an applicant already exists in applicants.applicants by first name, surname, and optional DOB/middle name
+   */
+  async checkApplicantExists(criteria: {
+    firstName: string
+    surname: string
+    middleName?: string
+    dateOfBirth?: string
+  }): Promise<ExistingApplicantMatch | null> {
+    const fName = criteria.firstName?.trim()
+    const sName = criteria.surname?.trim()
+    if (!fName || !sName) return null
+
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .select('*')
+      .ilike('first_name', fName)
+      .ilike('surname', sName)
+
+    if (error || !data || data.length === 0) {
+      return null
+    }
+
+    const targetDob = criteria.dateOfBirth ? criteria.dateOfBirth.trim().split('T')[0] : ''
+    const targetMiddle = (criteria.middleName || '').trim().toLowerCase()
+
+    // 1. Exact match with date_of_birth
+    if (targetDob) {
+      const exactDobMatch = data.find((row) => (row.date_of_birth || '').trim().split('T')[0] === targetDob)
+      if (exactDobMatch) {
+        return {
+          existingApplicant: exactDobMatch as ApplicantRow,
+          matchedBy: 'name_and_dob',
+          confidence: 'exact',
+          existingPrograms: (exactDobMatch.referred_programs || []) as string[],
+        }
+      }
+    }
+
+    // 2. Match with middle name
+    if (targetMiddle) {
+      const middleMatch = data.find((row) => (row.middle_name || '').trim().toLowerCase() === targetMiddle)
+      if (middleMatch) {
+        return {
+          existingApplicant: middleMatch as ApplicantRow,
+          matchedBy: 'name_only',
+          confidence: 'high',
+          existingPrograms: (middleMatch.referred_programs || []) as string[],
+        }
+      }
+    }
+
+    // 3. Fallback to first name match
+    const candidateRow = data[0] as ApplicantRow
+    return {
+      existingApplicant: candidateRow,
+      matchedBy: 'name_only',
+      confidence: targetDob ? 'possible' : 'high',
+      existingPrograms: (candidateRow.referred_programs || []) as string[],
+    }
+  },
+
+  /**
+   * Batch check candidate list against applicants.applicants
+   */
+  async checkApplicantsBatchExists(
+    candidates: Array<{ firstName: string; surname: string; middleName?: string; dateOfBirth?: string }>
+  ): Promise<Map<number, ExistingApplicantMatch>> {
+    const resultMap = new Map<number, ExistingApplicantMatch>()
+    if (!candidates || candidates.length === 0) return resultMap
+
+    const uniqueSurnames = Array.from(
+      new Set(candidates.map((c) => c.surname?.trim()).filter(Boolean))
+    )
+
+    if (uniqueSurnames.length === 0) return resultMap
+
+    const { data: existingRows, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .select('*')
+      .in('surname', uniqueSurnames)
+
+    if (error || !existingRows || existingRows.length === 0) {
+      return resultMap
+    }
+
+    candidates.forEach((cand, idx) => {
+      const cFirst = (cand.firstName || '').trim().toLowerCase()
+      const cSur = (cand.surname || '').trim().toLowerCase()
+      const cDob = cand.dateOfBirth ? cand.dateOfBirth.trim().split('T')[0] : ''
+      const cMid = (cand.middleName || '').trim().toLowerCase()
+
+      if (!cFirst || !cSur) return
+
+      const nameMatches = existingRows.filter(
+        (r) => (r.first_name || '').trim().toLowerCase() === cFirst && (r.surname || '').trim().toLowerCase() === cSur
+      )
+
+      if (nameMatches.length === 0) return
+
+      let bestMatch: ApplicantRow | null = null
+      let matchedBy: 'name_and_dob' | 'name_only' = 'name_only'
+      let confidence: 'exact' | 'high' | 'possible' = 'possible'
+
+      if (cDob) {
+        const dobMatch = nameMatches.find((r) => (r.date_of_birth || '').trim().split('T')[0] === cDob)
+        if (dobMatch) {
+          bestMatch = dobMatch as ApplicantRow
+          matchedBy = 'name_and_dob'
+          confidence = 'exact'
+        }
+      }
+
+      if (!bestMatch && cMid) {
+        const midMatch = nameMatches.find((r) => (r.middle_name || '').trim().toLowerCase() === cMid)
+        if (midMatch) {
+          bestMatch = midMatch as ApplicantRow
+          confidence = 'high'
+        }
+      }
+
+      if (!bestMatch) {
+        bestMatch = nameMatches[0] as ApplicantRow
+        confidence = cDob ? 'possible' : 'high'
+      }
+
+      resultMap.set(idx, {
+        existingApplicant: bestMatch,
+        matchedBy,
+        confidence,
+        existingPrograms: (bestMatch.referred_programs || []) as string[],
+      })
+    })
+
+    return resultMap
+  },
+
+  /**
+   * Link an existing applicant to a new program or offer (e.g. GIP, SPES, Job Fair),
+   * updates referred_programs in applicants.applicants, and routes to ESMDD tables.
+   */
+  async linkApplicantToProgram(
+    applicantId: string,
+    newProgram: string,
+    options?: {
+      additionalRemarks?: string
+      updateData?: Partial<ApplicantUpdate>
+    }
+  ): Promise<{ applicant: ApplicantRow; referralResults: ProgramReferralSummary[] }> {
+    const existing = await this.fetchApplicantById(applicantId)
+    if (!existing) {
+      throw new Error(`Applicant with ID ${applicantId} not found`)
+    }
+
+    const currentPrograms = (existing.referred_programs || []) as string[]
+    const formattedNewProgram = newProgram.trim()
+
+    // Add new program if not already present (case-insensitive check)
+    const existsAlready = currentPrograms.some(
+      (p) => p.toUpperCase() === formattedNewProgram.toUpperCase()
+    )
+    const updatedPrograms = existsAlready
+      ? currentPrograms
+      : [...currentPrograms, formattedNewProgram]
+
+    const updatePayload: ApplicantUpdate = {
+      ...(options?.updateData || {}),
+      referred_programs: updatedPrograms,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .update(updatePayload)
+      .eq('id', applicantId)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(error.message || `Failed to link applicant to ${formattedNewProgram}`)
+    }
+
+    const updatedApplicant = data as ApplicantRow
+    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+    removePersistentCacheValue('peso:gip:applicants')
+
+    // Automatically check what the applicant has been referred to and route to ESMDD tables
+    let referralResults: ProgramReferralSummary[] = []
+    try {
+      referralResults = await this.processReferrals(updatedApplicant)
+    } catch (referralErr: unknown) {
+      console.error('[applicantEntryService] Non-blocking referral dispatch error:', referralErr)
+    }
+
+    return {
+      applicant: updatedApplicant,
+      referralResults,
+    }
   },
 }

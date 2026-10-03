@@ -127,3 +127,38 @@ export interface ProgramReferralSummary {
   error?: string
 }
 
+export interface ApplicantMatchProfile {
+  id: string
+  surname: string
+  first_name: string
+  middle_name?: string | null
+  suffix?: string | null
+  sex?: string | null
+  date_of_birth?: string | null
+  age?: number | null
+  civil_status?: string | null
+  address?: any
+  contact_numbers?: any
+  email?: string | null
+  referred_programs?: string[] | null
+  created_at?: string | null
+  updated_at?: string | null
+  [key: string]: any
+}
+
+export interface ExistingApplicantMatch {
+  existingApplicant: ApplicantMatchProfile
+  matchedBy: 'name_and_dob' | 'name_only'
+  confidence: 'exact' | 'high' | 'possible'
+  existingPrograms: string[]
+}
+
+export type DuplicateResolutionAction = 'link_program' | 'create_new' | 'skip'
+
+export interface DuplicateResolutionChoice {
+  applicantIndex?: number
+  action: DuplicateResolutionAction
+  targetProgram: string
+  updateProfileInfo?: boolean
+  existingApplicantId: string
+}

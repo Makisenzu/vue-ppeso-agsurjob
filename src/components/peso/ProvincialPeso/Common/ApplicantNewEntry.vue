@@ -15,11 +15,30 @@ import {
   Save,
   Trash2,
   X,
+  AlertTriangle,
+  Link2,
+  UserPlus,
 } from '@lucide/vue'
+import { ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -28,7 +47,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { ApplicantInsert } from '@/types/peso/provincialPeso/applicantEntry'
+import type {
+  ApplicantInsert,
+  DuplicateResolutionAction,
+} from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 
 const props = defineProps<{
@@ -44,6 +66,9 @@ const {
   isFormSubmitting,
   handleCancel,
   handleSubmit,
+  duplicateMatch,
+  isDuplicateModalOpen,
+  handleDuplicateResolution,
   steps,
   currentStep,
   nextStep,
@@ -158,6 +183,28 @@ const {
   assessmentDate,
   profileId,
 } = useApplicantNewEntry({ props, emit })
+
+const duplicateAction = ref<DuplicateResolutionAction>('link_program')
+const duplicateProgram = ref<string>('GIP')
+
+watch(
+  () => duplicateMatch.value,
+  (match) => {
+    if (match) {
+      duplicateAction.value = 'link_program'
+      duplicateProgram.value = referredPrograms.value[0] || 'GIP'
+    }
+  }
+)
+
+const confirmDuplicateResolution = () => {
+  if (!duplicateMatch.value) return
+  handleDuplicateResolution({
+    action: duplicateAction.value,
+    targetProgram: duplicateProgram.value,
+    existingApplicantId: duplicateMatch.value.existingApplicant.id,
+  })
+}
 </script>
 
 <template>
@@ -1359,5 +1406,137 @@ const {
         </div>
       </div>
     </div>
+
+    <!-- ─── Existing Applicant Match Modal (shadcn Dialog) ─── -->
+    <Dialog v-model:open="isDuplicateModalOpen">
+      <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+            <AlertTriangle class="h-5 w-5 shrink-0" />
+            <DialogTitle class="text-base font-semibold">Existing Applicant Record Found</DialogTitle>
+          </div>
+          <DialogDescription class="text-xs">
+            An applicant matching <strong class="text-foreground">{{ firstName }} {{ surname }}</strong> already exists in the provincial database.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div v-if="duplicateMatch" class="space-y-3 py-2 text-xs">
+          <!-- Existing Record Details Card -->
+          <div class="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-foreground">
+                {{ duplicateMatch.existingApplicant.surname }}, {{ duplicateMatch.existingApplicant.first_name }} {{ duplicateMatch.existingApplicant.middle_name || '' }}
+              </span>
+              <Badge variant="outline" class="text-[10px]">
+                {{ duplicateMatch.confidence === 'exact' ? 'Exact Match' : duplicateMatch.confidence === 'high' ? 'High Match' : 'Possible Match' }}
+              </Badge>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+              <div>
+                <span>DOB:</span> <strong class="text-foreground">{{ duplicateMatch.existingApplicant.date_of_birth || 'N/A' }}</strong>
+              </div>
+              <div>
+                <span>Sex:</span> <strong class="text-foreground">{{ duplicateMatch.existingApplicant.sex || 'N/A' }}</strong>
+              </div>
+              <div class="col-span-2">
+                <span>Existing Programs:</span>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <template v-if="duplicateMatch.existingPrograms?.length">
+                    <Badge v-for="p in duplicateMatch.existingPrograms" :key="p" variant="secondary" class="text-[10px] py-0">
+                      {{ p }}
+                    </Badge>
+                  </template>
+                  <span v-else class="italic text-[10px]">None</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Chooser -->
+          <div class="space-y-2 pt-1">
+            <label class="font-semibold text-xs text-foreground block">Select Action:</label>
+
+            <!-- Option 1: Link to program -->
+            <label
+              :class="[
+                'flex flex-col p-3 rounded-lg border-2 cursor-pointer transition-colors space-y-2',
+                duplicateAction === 'link_program' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/30',
+              ]"
+            >
+              <div class="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="applicant-duplicate-action"
+                  value="link_program"
+                  v-model="duplicateAction"
+                  class="mt-0.5 text-primary"
+                />
+                <div>
+                  <span class="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                    <Link2 class="h-3.5 w-3.5 text-primary" />
+                    Link Existing Applicant to Program
+                    <Badge variant="outline" class="text-[9px] py-0 px-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                      Recommended
+                    </Badge>
+                  </span>
+                  <p class="text-[11px] text-muted-foreground">
+                    Connects this application to their existing profile and registers them in the program queue without duplicating records.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Program Selector -->
+              <div v-if="duplicateAction === 'link_program'" class="pl-6 pt-1 flex items-center gap-2" @click.stop>
+                <span class="text-[11px] font-medium text-foreground whitespace-nowrap">Target Program:</span>
+                <Select v-model="duplicateProgram">
+                  <SelectTrigger class="h-8 text-xs w-48">
+                    <SelectValue placeholder="Select program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="prog in programOptions" :key="prog" :value="prog">
+                      {{ prog }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </label>
+
+            <!-- Option 2: Create new anyway -->
+            <label
+              :class="[
+                'flex items-start gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors',
+                duplicateAction === 'create_new' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/30',
+              ]"
+            >
+              <input
+                type="radio"
+                name="applicant-duplicate-action"
+                value="create_new"
+                v-model="duplicateAction"
+                class="mt-0.5 text-primary"
+              />
+              <div>
+                <span class="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                  <UserPlus class="h-3.5 w-3.5 text-muted-foreground" />
+                  Create New Master Profile Anyway
+                </span>
+                <p class="text-[11px] text-muted-foreground">
+                  Creates a separate new entry (use only if verified to be a different individual with the same name).
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <DialogFooter class="gap-2 sm:gap-0">
+          <Button variant="outline" size="sm" class="text-xs cursor-pointer" @click="isDuplicateModalOpen = false">
+            Cancel
+          </Button>
+          <Button size="sm" class="text-xs font-semibold cursor-pointer" @click="confirmDuplicateResolution">
+            {{ duplicateAction === 'link_program' ? `Link to ${duplicateProgram}` : 'Create New Record' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

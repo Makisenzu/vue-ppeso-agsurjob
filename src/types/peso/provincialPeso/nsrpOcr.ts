@@ -1,4 +1,8 @@
 import type { LpiiCategory } from '@/types/peso/provincialPeso/gip'
+import type {
+  ExistingApplicantMatch,
+  DuplicateResolutionAction,
+} from '@/types/peso/provincialPeso/applicantEntry'
 
 export interface NsrpParsedApplicant {
   id?: string
@@ -33,6 +37,9 @@ export interface NsrpParsedApplicant {
   rawOcrText?: string
   validationErrors?: string[]
   isValid?: boolean
+  existingMatch?: ExistingApplicantMatch | null
+  resolutionAction?: DuplicateResolutionAction
+  selectedProgram?: string
 }
 
 export interface OcrProgressState {

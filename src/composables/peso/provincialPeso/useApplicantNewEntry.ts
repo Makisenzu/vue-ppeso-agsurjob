@@ -1,4 +1,4 @@
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, shallowRef, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
@@ -19,6 +19,8 @@ import type {
   LanguageProficiencyItem,
   VocationalTrainingItem,
   WorkExperienceItem,
+  ExistingApplicantMatch,
+  DuplicateResolutionChoice,
 } from '@/types/peso/provincialPeso/applicantEntry'
 
 export interface PsgcLocationEntity {
@@ -760,11 +762,39 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     assessedByName.value = 'Denmark Rivera'
     assessmentDate.value = new Date().toISOString().split('T')[0]
     profileId.value = ''
+    duplicateMatch.value = null
+    pendingPayload.value = null
+    isDuplicateModalOpen.value = false
   }
+
+  // ─── Duplicate Checker State ───
+  const duplicateMatch = shallowRef<ExistingApplicantMatch | null>(null)
+  const isDuplicateModalOpen = ref<boolean>(false)
+  const pendingPayload = shallowRef<ApplicantInsert | null>(null)
 
   const handleSubmit = async () => {
     const payload = buildPayload()
     if (!payload) return null
+
+    // Check if applicant already exists in applicants.applicants
+    const match = await store.checkApplicantDuplicate({
+      firstName: payload.first_name,
+      surname: payload.surname,
+      middleName: payload.middle_name || undefined,
+      dateOfBirth: payload.date_of_birth,
+    })
+
+    if (match) {
+      pendingPayload.value = payload
+      duplicateMatch.value = match
+      isDuplicateModalOpen.value = true
+      return null
+    }
+
+    return await executeSubmission(payload)
+  }
+
+  const executeSubmission = async (payload: ApplicantInsert) => {
     if (options?.emit) {
       options.emit('submit', payload)
     }
@@ -775,6 +805,25 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       // Toast error handled in store
     }
     return payload
+  }
+
+  const handleDuplicateResolution = async (choice: DuplicateResolutionChoice) => {
+    if (choice.action === 'link_program') {
+      try {
+        await store.linkApplicantToProgram(choice.existingApplicantId, choice.targetProgram)
+        isDuplicateModalOpen.value = false
+        router.push({ name: 'provincial-peso-entry' })
+      } catch {
+        // Error toast handled in store
+      }
+    } else if (choice.action === 'create_new') {
+      isDuplicateModalOpen.value = false
+      if (pendingPayload.value) {
+        await executeSubmission(pendingPayload.value)
+      }
+    } else {
+      isDuplicateModalOpen.value = false
+    }
   }
 
   const handleCancel = () => {
@@ -906,5 +955,10 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     assessedByName,
     assessmentDate,
     profileId,
+
+    // Duplicate Check & Resolution
+    duplicateMatch,
+    isDuplicateModalOpen,
+    handleDuplicateResolution,
   }
 }

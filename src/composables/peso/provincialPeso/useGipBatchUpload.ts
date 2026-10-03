@@ -1,15 +1,20 @@
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type {
   NsrpParsedApplicant,
   OcrProgressState,
 } from '@/types/peso/provincialPeso/nsrpOcr'
+import type {
+  DuplicateResolutionAction,
+  DuplicateResolutionChoice,
+} from '@/types/peso/provincialPeso/applicantEntry'
 import {
   downloadGipApplicantsExcelTemplate,
   parseApplicantsExcelFile,
 } from '@/helpers/peso/provincialPeso/excelImportHelper'
 import { ocrService } from '@/services/peso/provincialPeso/ocrService'
+import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
 
 export function useGipBatchUpload() {
   const store = useGipStore()
@@ -18,8 +23,13 @@ export function useGipBatchUpload() {
   const isDragging = ref<boolean>(false)
   const isParsing = ref<boolean>(false)
   const uploadedFile = ref<File | null>(null)
-  const parsedApplicants = ref<NsrpParsedApplicant[]>([])
-  const selectedCandidate = ref<NsrpParsedApplicant | null>(null)
+  const parsedApplicants = shallowRef<NsrpParsedApplicant[]>([])
+  const selectedCandidate = shallowRef<NsrpParsedApplicant | null>(null)
+
+  // Duplicate Resolution Modal State
+  const duplicateCandidate = shallowRef<NsrpParsedApplicant | null>(null)
+  const duplicateCandidateIndex = ref<number>(-1)
+  const isDuplicateModalOpen = ref<boolean>(false)
 
   const ocrProgress = ref<OcrProgressState>({
     isProcessing: false,
@@ -32,11 +42,17 @@ export function useGipBatchUpload() {
   })
 
   // Computed summary metrics
-  const validApplicantsCount = computed(
-    () => parsedApplicants.value.filter((a) => a.isValid !== false).length
+  const validApplicantsCount = computed<number>(
+    () => parsedApplicants.value.filter((a) => a.isValid !== false && a.resolutionAction !== 'skip').length
   )
-  const invalidApplicantsCount = computed(
+  const invalidApplicantsCount = computed<number>(
     () => parsedApplicants.value.filter((a) => a.isValid === false).length
+  )
+  const duplicatesCount = computed<number>(
+    () => parsedApplicants.value.filter((a) => !!a.existingMatch).length
+  )
+  const skippedCount = computed<number>(
+    () => parsedApplicants.value.filter((a) => a.resolutionAction === 'skip').length
   )
 
   const hasParsedData = computed(() => parsedApplicants.value.length > 0)
@@ -73,6 +89,41 @@ export function useGipBatchUpload() {
   }
 
   /**
+   * Run duplicate check against applicants.applicants table for extracted candidate batch
+   */
+  const checkBatchDuplicates = async (candidates: NsrpParsedApplicant[]) => {
+    try {
+      const matchMap = await applicantEntryService.checkApplicantsBatchExists(
+        candidates.map((c) => ({
+          firstName: c.firstName,
+          surname: c.surname,
+          middleName: c.middleName,
+          dateOfBirth: c.dateOfBirth,
+        }))
+      )
+
+      candidates.forEach((cand, idx) => {
+        const match = matchMap.get(idx)
+        if (match) {
+          cand.existingMatch = match
+          // Default action is to link program to GIP
+          cand.resolutionAction = 'link_program'
+          cand.selectedProgram = 'GIP'
+        }
+      })
+
+      if (matchMap.size > 0) {
+        toastAlert.info(
+          'Existing Records Detected',
+          `Found ${matchMap.size} applicant(s) already registered. Set to link to GIP by default.`
+        )
+      }
+    } catch (checkErr: any) {
+      console.error('[useGipBatchUpload] Batch duplicate check error:', checkErr)
+    }
+  }
+
+  /**
    * Dispatches file to Excel parser or NSRP PDF OCR engine based on extension.
    */
   const processSelectedFile = async (file: File) => {
@@ -92,12 +143,13 @@ export function useGipBatchUpload() {
   }
 
   /**
-   * Parses Excel file rows into structured applicants.
+   * Parses Excel file rows into structured applicants and checks duplicates.
    */
   const processExcel = async (file: File) => {
     isParsing.value = true
     try {
       const result = await parseApplicantsExcelFile(file)
+      await checkBatchDuplicates(result)
       parsedApplicants.value = result
       toastAlert.success(
         'Excel File Parsed',
@@ -111,7 +163,7 @@ export function useGipBatchUpload() {
   }
 
   /**
-   * Runs OCR on multi-page NSRP Form 1 PDF document.
+   * Runs OCR on multi-page NSRP Form 1 PDF document and checks duplicates.
    */
   const processPdfOcr = async (file: File) => {
     isParsing.value = true
@@ -120,6 +172,7 @@ export function useGipBatchUpload() {
       const result = await ocrService.processNsrpPdf(file, (prog) => {
         ocrProgress.value = { ...prog }
       })
+      await checkBatchDuplicates(result)
       parsedApplicants.value = result
       toastAlert.success(
         'OCR Completed',
@@ -149,10 +202,29 @@ export function useGipBatchUpload() {
     editingCandidateIndex.value = -1
   }
 
-  const saveEditedCandidate = (updated: NsrpParsedApplicant, index: number) => {
+  const saveEditedCandidate = async (updated: NsrpParsedApplicant, index: number) => {
     if (parsedApplicants.value[index]) {
+      // Re-check single duplicate if names or DOB changed
+      const oldCand = parsedApplicants.value[index]
+      if (
+        oldCand.firstName !== updated.firstName ||
+        oldCand.surname !== updated.surname ||
+        oldCand.dateOfBirth !== updated.dateOfBirth
+      ) {
+        const match = await applicantEntryService.checkApplicantExists({
+          firstName: updated.firstName,
+          surname: updated.surname,
+          middleName: updated.middleName,
+          dateOfBirth: updated.dateOfBirth,
+        })
+        updated.existingMatch = match
+        if (match && !updated.resolutionAction) {
+          updated.resolutionAction = 'link_program'
+          updated.selectedProgram = 'GIP'
+        }
+      }
+
       parsedApplicants.value[index] = { ...updated }
-      // Trigger reactive update
       parsedApplicants.value = [...parsedApplicants.value]
       toastAlert.success('Candidate Updated', `Information for ${updated.firstName} ${updated.surname} has been updated.`)
     }
@@ -167,9 +239,66 @@ export function useGipBatchUpload() {
     saveEditedCandidate(updated, index)
   }
 
+  // Duplicate Resolution Dialog Handlers
+  const openDuplicateModal = (candidate: NsrpParsedApplicant, index: number) => {
+    duplicateCandidate.value = candidate
+    duplicateCandidateIndex.value = index
+    isDuplicateModalOpen.value = true
+  }
+
+  const closeDuplicateModal = () => {
+    isDuplicateModalOpen.value = false
+    duplicateCandidate.value = null
+    duplicateCandidateIndex.value = -1
+  }
+
+  const resolveDuplicate = (choice: DuplicateResolutionChoice) => {
+    const idx = duplicateCandidateIndex.value
+    if (idx >= 0 && parsedApplicants.value[idx]) {
+      parsedApplicants.value[idx].resolutionAction = choice.action
+      parsedApplicants.value[idx].selectedProgram = choice.targetProgram
+      parsedApplicants.value = [...parsedApplicants.value]
+
+      const cand = parsedApplicants.value[idx]
+      const actionLabels: Record<DuplicateResolutionAction, string> = {
+        link_program: `Link to ${choice.targetProgram}`,
+        create_new: 'Create New Record',
+        skip: 'Skipped from Import',
+      }
+      toastAlert.info(
+        'Resolution Set',
+        `${cand.firstName} ${cand.surname}: ${actionLabels[choice.action] || choice.action}.`
+      )
+    }
+    closeDuplicateModal()
+  }
+
+  /**
+   * Set bulk action for all detected duplicates (e.g. bulk link or bulk skip)
+   */
+  const setAllDuplicatesAction = (action: DuplicateResolutionAction, program = 'GIP') => {
+    parsedApplicants.value.forEach((cand) => {
+      if (cand.existingMatch) {
+        cand.resolutionAction = action
+        cand.selectedProgram = program
+      }
+    })
+    parsedApplicants.value = [...parsedApplicants.value]
+    toastAlert.success(
+      'Bulk Resolution Applied',
+      `All duplicate candidates set to ${action === 'link_program' ? `Link to ${program}` : action}.`
+    )
+  }
+
   const confirmImport = async () => {
     if (parsedApplicants.value.length === 0) return
-    await store.batchImportApplicants(parsedApplicants.value)
+    // Only import records that are not skipped
+    const toImport = parsedApplicants.value.filter((a) => a.resolutionAction !== 'skip')
+    if (toImport.length === 0) {
+      toastAlert.info('No Applicants to Import', 'All candidates were skipped.')
+      return
+    }
+    await store.batchImportApplicants(toImport)
     resetBatchState()
   }
 
@@ -180,6 +309,9 @@ export function useGipBatchUpload() {
     editingCandidate.value = null
     editingCandidateIndex.value = -1
     isEditModalOpen.value = false
+    duplicateCandidate.value = null
+    duplicateCandidateIndex.value = -1
+    isDuplicateModalOpen.value = false
     ocrProgress.value = {
       isProcessing: false,
       stage: 'idle',
@@ -209,9 +341,14 @@ export function useGipBatchUpload() {
     editingCandidate,
     editingCandidateIndex,
     isEditModalOpen,
+    duplicateCandidate,
+    duplicateCandidateIndex,
+    isDuplicateModalOpen,
     ocrProgress,
     validApplicantsCount,
     invalidApplicantsCount,
+    duplicatesCount,
+    skippedCount,
     hasParsedData,
     isSubmitting: store.isSubmitting,
     isOpen: computed({
@@ -235,6 +372,10 @@ export function useGipBatchUpload() {
     openEditCandidateModal,
     closeEditCandidateModal,
     saveEditedCandidate,
+    openDuplicateModal,
+    closeDuplicateModal,
+    resolveDuplicate,
+    setAllDuplicatesAction,
     confirmImport,
     resetBatchState,
     downloadTemplate,

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
-import { invalidateApplicantEntryCache } from '@/services/peso/provincialPeso/applicantEntryService'
+import { invalidateApplicantEntryCache, applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
 import type {
   GipInternRecord,
   GipApplicantRecord,
@@ -20,6 +20,10 @@ import type {
   GipRenewAppointmentPayload,
   GipConcludeAppointmentPayload,
 } from '@/types/peso/provincialPeso/gip'
+import type {
+  ExistingApplicantMatch,
+  DuplicateResolutionAction,
+} from '@/types/peso/provincialPeso/applicantEntry'
 import {
   mapToGipInternRecord,
   mapToGipApplicantRecord,
@@ -657,6 +661,8 @@ export const gipService = {
 
   /**
    * Batch creates applicant records and links them to esmdd.gip_applicants.
+   * If a candidate is flagged as an existing duplicate and marked with 'link_program',
+   * the applicant's record is linked to GIP instead of creating a redundant master record.
    */
   async batchCreateGipApplicants(
     applicantsList: Array<{
@@ -686,6 +692,9 @@ export const gipService = {
       is4ps?: boolean
       hasDisability?: boolean
       skills?: string[]
+      existingMatch?: ExistingApplicantMatch | null
+      resolutionAction?: DuplicateResolutionAction
+      selectedProgram?: string
     }>
   ): Promise<{ total: number; successCount: number; errors: string[] }> {
     let successCount = 0
@@ -693,6 +702,33 @@ export const gipService = {
 
     for (let i = 0; i < applicantsList.length; i++) {
       const item = applicantsList[i]
+
+      // 1. If candidate marked as skip, bypass
+      if (item.resolutionAction === 'skip') {
+        continue
+      }
+
+      // 2. If candidate is resolved to link to program and has existing applicant record
+      if (
+        item.resolutionAction === 'link_program' &&
+        item.existingMatch?.existingApplicant?.id
+      ) {
+        try {
+          const prog = item.selectedProgram || 'GIP'
+          await applicantEntryService.linkApplicantToProgram(
+            item.existingMatch.existingApplicant.id,
+            prog
+          )
+          successCount++
+        } catch (err: any) {
+          errors.push(
+            `Row ${i + 1} (${item.firstName} ${item.surname}): Linking failed - ${err.message || 'Error'}`
+          )
+        }
+        continue
+      }
+
+      // 3. Otherwise standard single creation
       try {
         await this.createSingleApplicantWithGipApplication(item)
         successCount++

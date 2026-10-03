@@ -4,7 +4,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantEntryService, APPLICANT_ENTRY_CACHE_KEY } from '@/services/peso/provincialPeso/applicantEntryService'
 import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import type { ApplicantEntryRecord, ApplicantInsert, ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
+import type { ApplicantEntryRecord, ApplicantInsert, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
@@ -113,6 +113,66 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     }
   }
 
+  /**
+   * Check if an applicant already exists in the registry by name and DOB.
+   * Returns match info or null if no duplicate found.
+   */
+  const checkApplicantDuplicate = async (criteria: {
+    firstName: string
+    surname: string
+    middleName?: string
+    dateOfBirth?: string
+  }): Promise<ExistingApplicantMatch | null> => {
+    try {
+      return await applicantEntryService.checkApplicantExists(criteria)
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Duplicate check failed:', error)
+      return null
+    }
+  }
+
+  /**
+   * Link an existing applicant to a new program/offer instead of creating a duplicate record.
+   */
+  const linkApplicantToProgram = async (
+    applicantId: string,
+    newProgram: string
+  ): Promise<ApplicantEntryRecord | null> => {
+    isSubmitting.value = true
+    try {
+      const result = await applicantEntryService.linkApplicantToProgram(applicantId, newProgram)
+      const updatedRecord = mapToApplicantEntryRecord(result.applicant)
+
+      // Update local state with the modified record
+      applicants.value = applicants.value.map((a) =>
+        a.id === updatedRecord.id ? updatedRecord : a
+      )
+
+      const referralInfo = result.referralResults
+        .filter((r) => r.success)
+        .map((r) => r.program)
+        .join(', ')
+
+      toastAlert.success(
+        'Applicant Linked to Program',
+        `${updatedRecord.fullName} has been linked to ${newProgram}.${referralInfo ? ` Routed to: ${referralInfo}.` : ''}`
+      )
+
+      // Silent background sync
+      fetchApplicants(false, true).catch((err) => {
+        console.error('[applicantEntryStore] Background sync failed:', err)
+      })
+
+      return updatedRecord
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to link applicant to program:', error)
+      toastAlert.error('Link Error', error.message || `Failed to link applicant to ${newProgram}.`)
+      return null
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const resetFilters = () => {
     searchQuery.value = ''
     selectedGenderFilter.value = 'ALL'
@@ -142,6 +202,8 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     openAddApplicant,
     closeAddApplicant,
     createApplicant,
+    checkApplicantDuplicate,
+    linkApplicantToProgram,
     resetFilters,
   }
 })
