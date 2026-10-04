@@ -20,6 +20,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         name: 'provincial-peso-dashboard',
         component: PPESODashboard
       },
+      {
+        path: 'skills-repository',
+        name: 'provincial-peso-skills-repository',
+        component: () => import('@/components/peso/ProvincialPeso/Common/SkillRepository/SkillRepository.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso' }
+      },
       // ─── GIP (nested group for breadcrumb hierarchy: GIP > Details / Applicants) ───
       {
         path: 'gip',

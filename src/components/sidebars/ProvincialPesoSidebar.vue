@@ -165,7 +165,7 @@ const companyItems = [
                   </RouterLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Skill Repository'">
-                  <RouterLink :to="{ name: 'provincial-peso-entry' }">
+                  <RouterLink :to="{ name: 'provincial-peso-skills-repository' }">
                     <Database />
                     <span>Skill Repository</span>
                   </RouterLink>
