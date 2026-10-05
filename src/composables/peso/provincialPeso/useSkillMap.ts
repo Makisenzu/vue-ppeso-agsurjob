@@ -116,19 +116,33 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     coordinates: MapCoordinates
   ): MarkerHandle {
     const el = document.createElement('div')
-    el.className = 'group pointer-events-auto cursor-pointer transition-transform duration-200 hover:scale-105 select-none'
+    el.className = 'group pointer-events-auto cursor-pointer select-none'
 
     const app = createApp({
       render() {
         const hasApplicants = row.totalApplicants > 0
         const isSelected = matchesGeographicLabel(selectedMunicipality.value, row.name)
 
+        // Dominant terrain dot indicator
+        let dotColorClass = 'bg-muted-foreground/40'
+        if (
+          row.lowlandApplicants >= row.uplandApplicants &&
+          row.lowlandApplicants >= row.wetlandApplicants &&
+          row.lowlandApplicants > 0
+        ) {
+          dotColorClass = 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+        } else if (row.uplandApplicants >= row.wetlandApplicants && row.uplandApplicants > 0) {
+          dotColorClass = 'bg-amber-500 shadow-xs shadow-amber-500/50'
+        } else if (row.wetlandApplicants > 0) {
+          dotColorClass = 'bg-sky-500 shadow-xs shadow-sky-500/50'
+        }
+
         return h(
           'div',
           {
             class: [
-              'flex flex-col items-center',
-              isSelected ? 'scale-110 z-30' : 'z-10',
+              'relative flex flex-col items-center transition-transform duration-150',
+              isSelected ? 'scale-105 z-40' : 'z-10 group-hover:z-30',
             ],
             onClick: (e: MouseEvent) => {
               e.stopPropagation()
@@ -140,33 +154,76 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
             },
           },
           [
-            // Main marker card pill
+            // Hover micro-tooltip preview (smooth opacity & translate transition, avoiding reflow glitches)
+            hasApplicants
+              ? h(
+                  'div',
+                  {
+                    class: [
+                      'pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-50',
+                      'flex items-center gap-1.5 rounded-md bg-foreground/95 px-2 py-0.5 text-[9px] font-semibold text-background shadow-lg backdrop-blur-xs whitespace-nowrap',
+                      'opacity-0 translate-y-1 transition-all duration-150 ease-out',
+                      'group-hover:opacity-100 group-hover:translate-y-0',
+                    ],
+                  },
+                  [
+                    h('span', { class: 'text-emerald-400 font-bold' }, `${row.lowlandApplicants}L`),
+                    h('span', { class: 'opacity-40' }, '•'),
+                    h('span', { class: 'text-amber-400 font-bold' }, `${row.uplandApplicants}U`),
+                    h('span', { class: 'opacity-40' }, '•'),
+                    h('span', { class: 'text-sky-400 font-bold' }, `${row.wetlandApplicants}W`),
+                    row.topSkills.length > 0
+                      ? h('span', { class: 'opacity-60 ml-0.5' }, `| ${row.topSkills[0].name}`)
+                      : null,
+                  ].filter(Boolean)
+                )
+              : null,
+
+            // Single unified, sleek marker pill with hit-box buffer to prevent border jitter
             h(
               'div',
               {
                 class: [
-                  'flex items-center gap-2 rounded-xl px-2.5 py-1.5 shadow-md backdrop-blur-md transition-all border',
+                  'relative flex items-center gap-1.5 rounded-full px-2.5 py-1 shadow-md backdrop-blur-md border transition-all duration-150',
+                  'before:absolute before:-inset-1 before:rounded-full before:content-[\'\']',
                   isSelected
-                    ? 'bg-primary text-primary-foreground border-primary shadow-primary/30 ring-2 ring-primary/40'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 ring-2 ring-primary/40'
                     : hasApplicants
-                    ? 'bg-background/95 text-foreground border-border/80 hover:border-primary/50 hover:bg-background'
-                    : 'bg-background/80 text-muted-foreground border-border/50 opacity-80',
+                    ? 'bg-card/95 text-card-foreground border-border/80 group-hover:border-primary/50 group-hover:bg-card group-hover:shadow-lg'
+                    : 'bg-muted/80 text-muted-foreground border-border/40 opacity-70 group-hover:opacity-100',
                 ],
               },
               [
+                // Terrain dot
+                h('span', {
+                  class: [
+                    'size-2 shrink-0 rounded-full transition-transform',
+                    isSelected ? 'bg-primary-foreground' : dotColorClass,
+                  ],
+                }),
+
                 // Municipality Name
-                h('span', { class: 'text-xs font-bold whitespace-nowrap' }, row.name),
+                h(
+                  'span',
+                  {
+                    class: [
+                      'text-[11px] font-bold tracking-tight whitespace-nowrap',
+                      isSelected ? 'text-primary-foreground' : 'text-foreground',
+                    ],
+                  },
+                  row.name
+                ),
 
                 // Applicants Count Pill
                 h(
                   'span',
                   {
                     class: [
-                      'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-extrabold leading-none',
+                      'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-black leading-none tabular-nums',
                       isSelected
                         ? 'bg-primary-foreground text-primary'
                         : hasApplicants
-                        ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                        ? 'bg-primary/10 text-primary dark:bg-primary/25'
                         : 'bg-muted text-muted-foreground',
                     ],
                   },
@@ -175,53 +232,10 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
               ]
             ),
 
-            // LPII breakdown indicator bar (Lowland / Upland / Wetland)
-            hasApplicants
-              ? h(
-                  'div',
-                  {
-                    class:
-                      'mt-1 flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 shadow-xs border border-border/60 text-[9px] font-semibold text-muted-foreground',
-                  },
-                  [
-                    row.lowlandApplicants > 0
-                      ? h('span', { class: 'flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400' }, [
-                          h('span', { class: 'size-1.5 rounded-full bg-emerald-500' }),
-                          `${row.lowlandApplicants}L`,
-                        ])
-                      : null,
-                    row.uplandApplicants > 0
-                      ? h('span', { class: 'flex items-center gap-0.5 text-amber-600 dark:text-amber-400' }, [
-                          h('span', { class: 'size-1.5 rounded-full bg-amber-500' }),
-                          `${row.uplandApplicants}U`,
-                        ])
-                      : null,
-                    row.wetlandApplicants > 0
-                      ? h('span', { class: 'flex items-center gap-0.5 text-sky-600 dark:text-sky-400' }, [
-                          h('span', { class: 'size-1.5 rounded-full bg-sky-500' }),
-                          `${row.wetlandApplicants}W`,
-                        ])
-                      : null,
-                  ].filter(Boolean)
-                )
-              : null,
-
-            // Top skill tag teaser
-            row.topSkills.length > 0
-              ? h(
-                  'div',
-                  {
-                    class:
-                      'mt-0.5 max-w-32 truncate rounded-md bg-secondary/90 px-1.5 py-0.5 text-[9px] font-medium text-secondary-foreground shadow-xs hidden group-hover:block',
-                  },
-                  `Top: ${row.topSkills[0].name}`
-                )
-              : null,
-
-            // Pin triangle stem
+            // Subtle stem pointer
             h('div', {
               class: [
-                'size-0 border-x-4 border-x-transparent border-t-4',
+                'size-0 border-x-4 border-x-transparent border-t-[5px] -mt-px pointer-events-none',
                 isSelected ? 'border-t-primary' : 'border-t-border',
               ],
             }),
@@ -238,55 +252,87 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     }
 
     const popupContent = document.createElement('div')
-    popupContent.className = 'p-3 space-y-2 text-foreground font-sans'
+    popupContent.className = 'w-72 overflow-hidden text-foreground font-sans'
 
     const topSkillsHtml =
       row.topSkills.length > 0
         ? row.topSkills
-            .slice(0, 3)
+            .slice(0, 4)
             .map(
               (s) =>
-                `<span class="inline-block rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium">${s.name} (${s.count})</span>`
+                `<span class="inline-flex items-center gap-1 rounded-md bg-muted/60 dark:bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-foreground border border-border/50">
+                  <span>${s.name}</span>
+                  <span class="rounded bg-primary/10 dark:bg-primary/25 px-1 font-bold text-primary text-[9px]">${s.count}</span>
+                </span>`
             )
             .join(' ')
         : '<span class="text-xs text-muted-foreground italic">No registered skills yet</span>'
 
     popupContent.innerHTML = `
-      <div class="border-b pb-2">
-        <h3 class="font-bold text-sm text-foreground">${row.name}</h3>
-        <p class="text-xs text-muted-foreground">${row.barangays} Barangays in Agusan del Sur</p>
-      </div>
-      <div class="space-y-1 text-xs">
-        <div class="flex justify-between font-medium">
-          <span>Total Applicants:</span>
-          <span class="font-bold text-primary">${row.totalApplicants}</span>
+      <div class="border-b border-border/60 bg-muted/30 px-3.5 py-2.5">
+        <div class="flex items-center justify-between gap-2 pr-6">
+          <h3 class="font-bold text-sm tracking-tight text-foreground">${row.name}</h3>
+          <span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-secondary-foreground border border-border/60">
+            ${row.barangays} Barangays
+          </span>
         </div>
-        <div class="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span class="text-emerald-600 font-semibold">Lowland: ${row.lowlandApplicants}</span> •
-          <span class="text-amber-600 font-semibold">Upland: ${row.uplandApplicants}</span> •
-          <span class="text-sky-600 font-semibold">Wetland: ${row.wetlandApplicants}</span>
-        </div>
+        <p class="text-[11px] text-muted-foreground mt-0.5">Agusan del Sur Municipality</p>
       </div>
-      <div class="space-y-1 pt-1">
-        <span class="text-[11px] font-semibold text-muted-foreground block">Top Skills in Municipality:</span>
-        <div class="flex flex-wrap gap-1">${topSkillsHtml}</div>
+
+      <div class="p-3.5 space-y-3">
+        <!-- Applicant breakdown metric box -->
+        <div class="rounded-lg border border-border/60 bg-card p-2.5 shadow-2xs space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-muted-foreground">Total Applicants</span>
+            <span class="text-base font-extrabold text-foreground tracking-tight">${row.totalApplicants}</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 pt-1 border-t border-border/40 text-center">
+            <div class="rounded-md bg-emerald-500/10 px-1 py-1 border border-emerald-500/20">
+              <span class="block text-[9px] font-bold text-emerald-700 dark:text-emerald-300">Lowland</span>
+              <span class="block text-xs font-black text-emerald-700 dark:text-emerald-300 tabular-nums">${row.lowlandApplicants}</span>
+            </div>
+            <div class="rounded-md bg-amber-500/10 px-1 py-1 border border-amber-500/20">
+              <span class="block text-[9px] font-bold text-amber-700 dark:text-amber-300">Upland</span>
+              <span class="block text-xs font-black text-amber-700 dark:text-amber-300 tabular-nums">${row.uplandApplicants}</span>
+            </div>
+            <div class="rounded-md bg-sky-500/10 px-1 py-1 border border-sky-500/20">
+              <span class="block text-[9px] font-bold text-sky-700 dark:text-sky-300">Wetland</span>
+              <span class="block text-xs font-black text-sky-700 dark:text-sky-300 tabular-nums">${row.wetlandApplicants}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Skills -->
+        <div class="space-y-1.5">
+          <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Top Skills in LGU</span>
+          <div class="flex flex-wrap gap-1">${topSkillsHtml}</div>
+        </div>
       </div>
     `
 
+    const buttonWrapper = document.createElement('div')
+    buttonWrapper.className = 'px-3.5 pb-3.5 pt-0'
+
     const viewBtn = document.createElement('button')
     viewBtn.className =
-      'mt-2.5 w-full rounded-lg bg-primary py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5'
-    viewBtn.innerHTML = '<span>View Municipality Skills</span>'
+      'w-full rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]'
+    viewBtn.innerHTML = '<span>Explore Municipality Skills</span><svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
     viewBtn.addEventListener('click', () => {
       if (options.onViewMunicipality) {
         options.onViewMunicipality(row.name)
       }
     })
-    popupContent.appendChild(viewBtn)
+    buttonWrapper.appendChild(viewBtn)
+    popupContent.appendChild(buttonWrapper)
 
-    const popup = new mapboxgl.Popup({ offset: 20, closeButton: true, maxWidth: '280px' }).setDOMContent(
-      popupContent
-    )
+    const popup = new mapboxgl.Popup({
+      offset: 14,
+      closeButton: true,
+      closeOnClick: false,
+      maxWidth: '290px',
+      focusAfterOpen: false,
+    }).setDOMContent(popupContent)
 
     const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
       .setLngLat([coordinates.longitude, coordinates.latitude])

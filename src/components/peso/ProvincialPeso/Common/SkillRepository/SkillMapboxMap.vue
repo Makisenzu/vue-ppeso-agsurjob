@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { MapPin, RotateCcw } from '@lucide/vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { ref } from 'vue'
 import { useSkillMap } from '@/composables/peso/provincialPeso/useSkillMap'
 import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
 
@@ -22,15 +26,16 @@ const emit = defineEmits<{
   (e: 'view-municipality', name: string): void
 }>()
 
+const mapContainer = ref<HTMLDivElement | null>(null)
+
 const {
-  mapContainer,
   mapboxToken,
-  selectedProvince,
   selectedMunicipality: internalSelectedMunicipality,
   municipalitiesList,
   resetView,
   handleMunicipalityChange,
 } = useSkillMap({
+  mapContainer,
   municipalityRows: () => props.municipalityRows,
   selectedMunicipality: () => props.selectedMunicipality,
   onSelectMunicipality: (name) => emit('select-municipality', name),
@@ -40,70 +45,89 @@ const {
 
 <template>
   <div :class="['flex w-full flex-col min-h-0', heightClass === 'h-full' ? 'h-full' : '']">
-    <!-- Top Filter Controls Bar -->
-    <div class="mb-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-      <div class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-muted-foreground">Province</span>
-        <NativeSelect v-model="selectedProvince" disabled class="w-full">
-          <NativeSelectOption value="Agusan del Sur">Agusan del Sur</NativeSelectOption>
-        </NativeSelect>
+    <!-- Top Filter & Navigation Toolbar -->
+    <div class="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Province Context Identifier -->
+      <div class="flex items-center gap-2">
+        <div class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <MapPin class="size-3.5" />
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-foreground">Agusan del Sur</span>
+          <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-medium text-muted-foreground">
+            {{ municipalitiesList.length }} Municipalities
+          </Badge>
+        </div>
       </div>
 
-      <div class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-muted-foreground">Municipality Focus</span>
-        <NativeSelect
-          :model-value="props.selectedMunicipality || internalSelectedMunicipality"
-          class="w-full"
-          @change="handleMunicipalityChange"
-        >
-          <NativeSelectOption value="">All municipalities (Overview)</NativeSelectOption>
-          <NativeSelectOption
-            v-for="muni in municipalitiesList"
-            :key="muni.name"
-            :value="muni.name"
+      <!-- Municipality Focus Dropdown & Reset Action -->
+      <div class="flex items-center gap-2">
+        <div class="w-full sm:w-60">
+          <NativeSelect
+            :model-value="props.selectedMunicipality || internalSelectedMunicipality"
+            class="h-8 w-full text-xs font-medium"
+            @change="handleMunicipalityChange"
           >
-            {{ muni.name }} ({{ muni.applicants }} Applicants)
-          </NativeSelectOption>
-        </NativeSelect>
+            <NativeSelectOption value="">All Municipalities (Overview)</NativeSelectOption>
+            <NativeSelectOption
+              v-for="muni in municipalitiesList"
+              :key="muni.name"
+              :value="muni.name"
+            >
+              {{ muni.name }} ({{ muni.applicants }} Applicants)
+            </NativeSelectOption>
+          </NativeSelect>
+        </div>
+
+        <Button
+          v-if="props.selectedMunicipality || internalSelectedMunicipality"
+          variant="outline"
+          size="sm"
+          class="h-8 shrink-0 gap-1.5 px-2.5 text-xs cursor-pointer hover:bg-muted"
+          @click="resetView"
+        >
+          <RotateCcw class="size-3" />
+          <span>Reset</span>
+        </Button>
       </div>
     </div>
 
-    <!-- Mapbox Canvas Container -->
+    <!-- Mapbox Canvas Container with Integrated HUD Elements -->
     <div
       ref="mapContainer"
-      class="min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-border bg-muted/20 shadow-xs relative"
+      class="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-border bg-muted/20 shadow-xs"
     >
-      <!-- Optional quick reset button on map -->
+      <!-- Floating Quick Reset Button on Map Canvas -->
       <button
         v-if="props.selectedMunicipality || internalSelectedMunicipality"
-        class="absolute top-2 left-2 z-10 rounded-lg bg-background/90 px-2.5 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-md border border-border hover:bg-background cursor-pointer transition"
+        class="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur-md transition hover:bg-background active:scale-95 cursor-pointer"
         @click="resetView"
       >
-        ← Reset Overview
+        <RotateCcw class="size-3.5 text-muted-foreground" />
+        <span>Reset Overview</span>
       </button>
-    </div>
 
-    <!-- Map Legend -->
-    <div class="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-[11px] text-muted-foreground">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="font-bold uppercase tracking-wider text-muted-foreground/80">LPII Legend</span>
-        <span class="inline-flex items-center gap-1.5 font-medium">
-          <span class="size-2.5 rounded-full bg-emerald-500"></span>
-          <span>Lowland (L)</span>
-        </span>
-        <span class="inline-flex items-center gap-1.5 font-medium">
-          <span class="size-2.5 rounded-full bg-amber-500"></span>
-          <span>Upland (U)</span>
-        </span>
-        <span class="inline-flex items-center gap-1.5 font-medium">
-          <span class="size-2.5 rounded-full bg-sky-500"></span>
-          <span>Wetland (W)</span>
-        </span>
+      <!-- Floating Bottom-Left HUD Legend Card -->
+      <div class="pointer-events-auto absolute bottom-3 left-3 z-10 rounded-xl border border-border/80 bg-background/90 p-2.5 shadow-md backdrop-blur-md">
+        <div class="flex items-center justify-between gap-3 mb-1.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">LPII Terrain Zones</span>
+          <span class="text-[10px] font-medium text-muted-foreground/60">AgSur</span>
+        </div>
+        <div class="flex items-center gap-2.5 text-xs">
+          <span class="inline-flex items-center gap-1.5 font-medium">
+            <span class="size-2 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50"></span>
+            <span class="text-[11px] text-foreground">Lowland</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 font-medium">
+            <span class="size-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50"></span>
+            <span class="text-[11px] text-foreground">Upland</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 font-medium">
+            <span class="size-2 rounded-full bg-sky-500 shadow-xs shadow-sky-500/50"></span>
+            <span class="text-[11px] text-foreground">Wetland</span>
+          </span>
+        </div>
       </div>
-
-      <span class="text-[10px] text-muted-foreground/70">
-        Click marker to preview top skills or navigate
-      </span>
     </div>
 
     <!-- Missing Token Warning -->
@@ -115,3 +139,4 @@ const {
     </div>
   </div>
 </template>
+
