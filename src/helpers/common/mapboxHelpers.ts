@@ -11,6 +11,28 @@ export const DEFAULT_MAP_CENTER: MapCoordinates = {
 	longitude: 125.94684817739258,
 }
 
+export interface AgusanMunicipalityCoordinate extends MapCoordinates {
+	province: string
+	municipality: string
+}
+
+export const AGUSAN_DEL_SUR_MUNICIPALITIES: AgusanMunicipalityCoordinate[] = [
+	{ province: 'Agusan del Sur', municipality: 'City of Bayugan', latitude: 8.714579545754654, longitude: 125.74815761294684 },
+	{ province: 'Agusan del Sur', municipality: 'Bunawan', latitude: 8.175856177177328, longitude: 125.99440939690173 },
+	{ province: 'Agusan del Sur', municipality: 'Esperanza', latitude: 8.67636777814262, longitude: 125.6456281225687 },
+	{ province: 'Agusan del Sur', municipality: 'La Paz', latitude: 8.279508687215753, longitude: 125.81538651624723 },
+	{ province: 'Agusan del Sur', municipality: 'Loreto', latitude: 8.186649968514885, longitude: 125.85303978101459 },
+	{ province: 'Agusan del Sur', municipality: 'Prosperidad', latitude: 8.605781769060076, longitude: 125.91316083036553 },
+	{ province: 'Agusan del Sur', municipality: 'Rosario', latitude: 8.38597635304188, longitude: 126.00251397352055 },
+	{ province: 'Agusan del Sur', municipality: 'San Francisco', latitude: 8.505163822596515, longitude: 125.97695600151802 },
+	{ province: 'Agusan del Sur', municipality: 'San Luis', latitude: 8.477717564524182, longitude: 125.74466737311792 },
+	{ province: 'Agusan del Sur', municipality: 'Santa Josefa', latitude: 7.991982, longitude: 126.003941 },
+	{ province: 'Agusan del Sur', municipality: 'Sibagat', latitude: 8.820286, longitude: 125.977841 },
+	{ province: 'Agusan del Sur', municipality: 'Talacogon', latitude: 8.450263774712683, longitude: 125.78592465151321 },
+	{ province: 'Agusan del Sur', municipality: 'Trento', latitude: 8.044078940694366, longitude: 126.06278599367083 },
+	{ province: 'Agusan del Sur', municipality: 'Veruela', latitude: 8.028639, longitude: 125.944172 },
+]
+
 const geocodeCache = new Map<string, MapCoordinates | null>()
 
 function canUseLocalStorage() {

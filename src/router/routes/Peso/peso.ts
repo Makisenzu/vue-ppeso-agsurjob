@@ -22,9 +22,21 @@ export const pesoRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'skills-repository',
-        name: 'provincial-peso-skills-repository',
-        component: () => import('@/components/peso/ProvincialPeso/Common/SkillRepository/SkillRepository.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { breadcrumb: 'Skills Repository', breadcrumbTo: { name: 'provincial-peso-skills-repository' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-skills-repository',
+            component: () => import('@/components/peso/ProvincialPeso/Common/SkillRepository/SkillRepository.vue'),
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: ':id',
+            name: 'provincial-peso-skills-repository-details',
+            component: () => import('@/components/peso/ProvincialPeso/Common/SkillRepository/MunicipalitySkillData.vue'),
+            meta: { breadcrumb: 'Municipality Skills', requiresAuth: true, role: 'provincial_peso' },
+          },
+        ],
       },
       // ─── GIP (nested group for breadcrumb hierarchy: GIP > Details / Applicants) ───
       {
