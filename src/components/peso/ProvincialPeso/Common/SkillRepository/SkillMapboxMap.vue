@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>()
 
 const {
+  mapContainer,
   mapboxToken,
   selectedProvince,
   selectedMunicipality: internalSelectedMunicipality,
