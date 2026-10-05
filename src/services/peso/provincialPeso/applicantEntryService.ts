@@ -424,4 +424,51 @@ export const applicantEntryService = {
       referralResults,
     }
   },
+
+  /**
+   * Update an existing applicant record in applicants.applicants.
+   * Used by inline per-section editing in ApplicantNsrpDetails.
+   */
+  async updateApplicant(applicantId: string, payload: ApplicantUpdate): Promise<ApplicantRow> {
+    const cleanPayload: Record<string, any> = {}
+    for (const [key, value] of Object.entries(payload)) {
+      if (value !== undefined) {
+        cleanPayload[key] = value
+      }
+    }
+    cleanPayload.updated_at = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .update(cleanPayload as ApplicantUpdate)
+      .eq('id', applicantId)
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(error.message || 'Failed to update applicant record')
+    }
+
+    if (!data) {
+      // Check if applicant exists in DB to verify RLS issue vs non-existent row
+      const { data: existing } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .select('id')
+        .eq('id', applicantId)
+        .maybeSingle()
+
+      if (!existing) {
+        throw new Error(`Applicant record (${applicantId}) was not found in the database.`)
+      }
+
+      throw new Error(
+        'Update affected 0 rows. Please execute migration 004_applicants_peso_policy.sql in your Supabase SQL Editor to grant PESO role UPDATE permission on applicants.applicants.'
+      )
+    }
+
+    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+    return data as ApplicantRow
+  },
 }

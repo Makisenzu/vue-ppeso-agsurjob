@@ -4,7 +4,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantEntryService, APPLICANT_ENTRY_CACHE_KEY } from '@/services/peso/provincialPeso/applicantEntryService'
 import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import type { ApplicantEntryRecord, ApplicantInsert, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
+import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
@@ -173,6 +173,46 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     }
   }
 
+  /**
+   * Update an existing applicant record in applicants.applicants.
+   * Used by the per-section inline editing in ApplicantNsrpDetails.
+   */
+  const updateApplicant = async (
+    applicantId: string,
+    payload: ApplicantUpdate
+  ): Promise<ApplicantEntryRecord | null> => {
+    isSubmitting.value = true
+    try {
+      const updatedRow = await applicantEntryService.updateApplicant(applicantId, payload)
+      const updatedRecord = mapToApplicantEntryRecord(updatedRow)
+
+      // Replace in local list state with new object reference
+      applicants.value = applicants.value.map((a) =>
+        a.id === updatedRecord.id ? updatedRecord : a
+      )
+
+      // Also update selectedApplicant if viewing this one
+      if (selectedApplicant.value?.id === updatedRecord.id) {
+        selectedApplicant.value = updatedRecord
+      }
+
+      toastAlert.success('Applicant Updated', `${updatedRecord.fullName}'s record has been updated.`)
+
+      // Silent background sync
+      fetchApplicants(false, true).catch((err) => {
+        console.error('[applicantEntryStore] Background sync failed:', err)
+      })
+
+      return updatedRecord
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to update applicant:', error)
+      toastAlert.error('Update Error', error.message || 'Failed to update applicant record.')
+      throw error
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const resetFilters = () => {
     searchQuery.value = ''
     selectedGenderFilter.value = 'ALL'
@@ -204,6 +244,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     createApplicant,
     checkApplicantDuplicate,
     linkApplicantToProgram,
+    updateApplicant,
     resetFilters,
   }
 })
