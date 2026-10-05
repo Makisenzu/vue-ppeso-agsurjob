@@ -415,6 +415,15 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     flyToMunicipality('')
   }
 
+  function handleMunicipalityChange(event: Event) {
+    const target = event.target as HTMLSelectElement
+    const val = target?.value ?? ''
+    selectedMunicipality.value = val
+    if (options.onSelectMunicipality) {
+      options.onSelectMunicipality(val)
+    }
+  }
+
   return {
     mapContainer,
     map,
@@ -426,5 +435,6 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     flyToMunicipality,
     resetView,
     renderAllMarkers,
+    handleMunicipalityChange,
   }
 }

@@ -398,3 +398,35 @@ export function computeRepositoryStats(
     outsideMunicipalitiesCount,
   }
 }
+
+// ─── LPII Badge Props Helper ───
+
+export interface LpiiBadgeProps {
+  class: string
+  label: string
+}
+
+export function getLpiiBadgeProps(tag?: LpiiCategory | null): LpiiBadgeProps {
+  switch (tag) {
+    case 'UPLAND':
+      return {
+        class: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-500/30',
+        label: 'Upland',
+      }
+    case 'WETLAND':
+      return {
+        class: 'bg-sky-500/10 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-500/30',
+        label: 'Wetland',
+      }
+    case 'LOWLAND':
+      return {
+        class: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-500/30',
+        label: 'Lowland',
+      }
+    default:
+      return {
+        class: 'bg-muted text-muted-foreground border-border/50',
+        label: 'External (N/A)',
+      }
+  }
+}

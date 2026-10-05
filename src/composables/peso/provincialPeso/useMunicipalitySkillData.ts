@@ -1,14 +1,20 @@
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSkillRepositoryStore } from '@/stores/peso/provincialPeso/skillRepositoryStore'
 import type { LpiiCategory } from '@/types/peso/provincialPeso/skillRepository'
 import { normalizeText } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
 
-export function useMunicipalitySkillData(initialMunicipality: string) {
+export function useMunicipalitySkillData(initialMunicipality?: string) {
+  const route = useRoute()
+  const router = useRouter()
   const store = useSkillRepositoryStore()
   const { currentDetail, isDetailLoading } = storeToRefs(store)
 
-  const municipalityName = ref(initialMunicipality)
+  const resolvedName =
+    initialMunicipality ?? decodeURIComponent(((route?.params?.id as string) ?? '').trim())
+
+  const municipalityName = ref(resolvedName)
   const searchQuery = ref('')
   const selectedCategory = ref<string>('All')
   const selectedSkill = ref<string>('')
@@ -19,6 +25,25 @@ export function useMunicipalitySkillData(initialMunicipality: string) {
     if (!name) return
     municipalityName.value = name
     await store.loadMunicipalityDetail(name, options?.forceRefresh)
+  }
+
+  onMounted(() => {
+    void loadData()
+  })
+
+  function goBack() {
+    void router.push({ name: 'provincial-peso-skills-repository' })
+  }
+
+  function handleRefresh() {
+    void loadData(undefined, { forceRefresh: true })
+  }
+
+  function viewApplicantEntry(id: string) {
+    void router.push({
+      name: 'provincial-peso-entry-details',
+      params: { id },
+    })
   }
 
   // Filter skills by category
@@ -114,5 +139,8 @@ export function useMunicipalitySkillData(initialMunicipality: string) {
     setLpiiFilter,
     setCategory,
     clearAllFilters,
+    goBack,
+    handleRefresh,
+    viewApplicantEntry,
   }
 }

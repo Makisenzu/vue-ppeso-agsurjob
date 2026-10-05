@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
   Eye,
   Filter,
-  Mountain,
   RefreshCw,
   Search,
-  TreePine,
-  Users,
-  Waves,
-  Wrench,
   X,
   Phone,
 } from '@lucide/vue'
@@ -28,13 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useMunicipalitySkillData } from '@/composables/peso/provincialPeso/useMunicipalitySkillData'
-import type { LpiiCategory } from '@/types/peso/provincialPeso/skillRepository'
-
-const route = useRoute()
-const router = useRouter()
-
-const rawId = (route.params.id ?? '') as string
-const municipalityParam = decodeURIComponent(rawId)
+import { getLpiiBadgeProps } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
 
 const {
   municipalityName,
@@ -47,60 +34,14 @@ const {
   filteredSkills,
   filteredBarangays,
   filteredApplicants,
-  loadData,
   toggleSkillFilter,
   setLpiiFilter,
   setCategory,
   clearAllFilters,
-} = useMunicipalitySkillData(municipalityParam)
-
-onMounted(() => {
-  void loadData()
-})
-
-function goBack() {
-  void router.push({ name: 'provincial-peso-skills-repository' })
-}
-
-function handleRefresh() {
-  void loadData(undefined, { forceRefresh: true })
-}
-
-function viewApplicantEntry(id: string) {
-  void router.push({
-    name: 'provincial-peso-entry-details',
-    params: { id },
-  })
-}
-
-function getLpiiBadgeProps(tag?: LpiiCategory | null) {
-  switch (tag) {
-    case 'UPLAND':
-      return {
-        class: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-500/30',
-        icon: Mountain,
-        label: 'Upland',
-      }
-    case 'WETLAND':
-      return {
-        class: 'bg-sky-500/10 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-500/30',
-        icon: Waves,
-        label: 'Wetland',
-      }
-    case 'LOWLAND':
-      return {
-        class: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-500/30',
-        icon: TreePine,
-        label: 'Lowland',
-      }
-    default:
-      return {
-        class: 'bg-muted text-muted-foreground border-border/50',
-        icon: null,
-        label: 'External (N/A)',
-      }
-  }
-}
+  goBack,
+  handleRefresh,
+  viewApplicantEntry,
+} = useMunicipalitySkillData()
 </script>
 
 <template>
@@ -151,9 +92,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
     <div v-if="detail" class="grid grid-cols-2 gap-3 sm:grid-cols-5">
       <Card class="p-3 shadow-2xs">
         <div class="flex items-center gap-2.5">
-          <div class="rounded-lg bg-primary/10 p-2 text-primary dark:bg-primary/20">
-            <Users class="size-4" />
-          </div>
           <div>
             <p class="text-[11px] font-medium text-muted-foreground">Total Applicants</p>
             <p class="text-lg font-bold text-foreground">{{ detail.totalApplicants }}</p>
@@ -163,9 +101,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
 
       <Card class="p-3 shadow-2xs">
         <div class="flex items-center gap-2.5">
-          <div class="rounded-lg bg-secondary p-2 text-secondary-foreground">
-            <Wrench class="size-4" />
-          </div>
           <div>
             <p class="text-[11px] font-medium text-muted-foreground">Unique Skills</p>
             <p class="text-lg font-bold text-foreground">{{ detail.uniqueSkillsCount }}</p>
@@ -176,9 +111,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
       <template v-if="detail.isAgusanDelSur">
         <Card class="p-3 shadow-2xs">
           <div class="flex items-center gap-2.5">
-            <div class="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-              <TreePine class="size-4" />
-            </div>
             <div>
               <p class="text-[11px] font-medium text-muted-foreground">Lowland Applicants</p>
               <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400">
@@ -190,9 +122,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
 
         <Card class="p-3 shadow-2xs">
           <div class="flex items-center gap-2.5">
-            <div class="rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-              <Mountain class="size-4" />
-            </div>
             <div>
               <p class="text-[11px] font-medium text-muted-foreground">Upland Applicants</p>
               <p class="text-lg font-bold text-amber-600 dark:text-amber-400">
@@ -204,9 +133,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
 
         <Card class="p-3 shadow-2xs">
           <div class="flex items-center gap-2.5">
-            <div class="rounded-lg bg-sky-500/10 p-2 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400">
-              <Waves class="size-4" />
-            </div>
             <div>
               <p class="text-[11px] font-medium text-muted-foreground">Wetland Applicants</p>
               <p class="text-lg font-bold text-sky-600 dark:text-sky-400">
@@ -247,7 +173,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <Wrench class="size-4 text-primary" />
               <span>Skills Inventory — {{ municipalityName }}</span>
             </CardTitle>
             <CardDescription class="text-xs">
@@ -364,7 +289,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
           class="h-7 text-xs px-2.5 text-emerald-600 dark:text-emerald-400 font-semibold"
           @click="setLpiiFilter('LOWLAND')"
         >
-          <TreePine class="size-3 mr-1" />
           Lowland
         </Button>
         <Button
@@ -373,7 +297,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
           class="h-7 text-xs px-2.5 text-amber-600 dark:text-amber-400 font-semibold"
           @click="setLpiiFilter('UPLAND')"
         >
-          <Mountain class="size-3 mr-1" />
           Upland
         </Button>
         <Button
@@ -382,7 +305,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
           class="h-7 text-xs px-2.5 text-sky-600 dark:text-sky-400 font-semibold"
           @click="setLpiiFilter('WETLAND')"
         >
-          <Waves class="size-3 mr-1" />
           Wetland
         </Button>
       </div>
@@ -434,7 +356,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
                       variant="outline"
                       :class="['gap-1 text-[10px] font-semibold uppercase', getLpiiBadgeProps(b.lpiiTag).class]"
                     >
-                      <component :is="getLpiiBadgeProps(b.lpiiTag).icon" class="size-3" />
                       <span>{{ getLpiiBadgeProps(b.lpiiTag).label }}</span>
                     </Badge>
                   </TableCell>
@@ -514,7 +435,6 @@ function getLpiiBadgeProps(tag?: LpiiCategory | null) {
                       variant="outline"
                       :class="['gap-1 text-[9px] font-semibold uppercase mt-0.5', getLpiiBadgeProps(app.lpiiTag).class]"
                     >
-                      <component :is="getLpiiBadgeProps(app.lpiiTag).icon" class="size-2.5" />
                       <span>{{ getLpiiBadgeProps(app.lpiiTag).label }}</span>
                     </Badge>
                   </TableCell>

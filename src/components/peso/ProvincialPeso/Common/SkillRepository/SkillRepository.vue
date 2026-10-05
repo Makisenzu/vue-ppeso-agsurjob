@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Eye, RefreshCw, Search, X, Info, MapPin } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,8 +18,6 @@ import { useSkillRepository } from '@/composables/peso/provincialPeso/useSkillRe
 const {
   agusanMunicipalityRows,
   outsideMunicipalityRows,
-  filteredAgusanMunicipalityRows,
-  filteredOutsideMunicipalityRows,
   stats,
   isLoading,
   selectedMunicipality,
@@ -28,6 +25,10 @@ const {
   searchQuery,
   allSkillsList,
   activeTab,
+  hasActiveFilters,
+  currentDisplayRows,
+  hasAlternativeMatches,
+  alternativeMatchesCount,
   refreshRecords,
   gotoMunicipality,
   selectMunicipality,
@@ -35,33 +36,6 @@ const {
   setActiveTab,
   clearFilters,
 } = useSkillRepository()
-
-const hasActiveFilters = computed(
-  () => Boolean(searchQuery.value) || Boolean(selectedSkillFilter.value) || Boolean(selectedMunicipality.value)
-)
-
-const currentDisplayRows = computed(() => {
-  return activeTab.value === 'agusan'
-    ? filteredAgusanMunicipalityRows.value
-    : filteredOutsideMunicipalityRows.value
-})
-
-const hasAlternativeMatches = computed(() => {
-  if (currentDisplayRows.value.length > 0) return false
-  if (activeTab.value === 'agusan') {
-    return filteredOutsideMunicipalityRows.value.length > 0
-  } else {
-    return filteredAgusanMunicipalityRows.value.length > 0
-  }
-})
-
-const alternativeMatchesCount = computed(() => {
-  if (activeTab.value === 'agusan') {
-    return filteredOutsideMunicipalityRows.value.length
-  } else {
-    return filteredAgusanMunicipalityRows.value.length
-  }
-})
 </script>
 
 <template>
@@ -309,7 +283,6 @@ const alternativeMatchesCount = computed(() => {
                       v-if="row.lowlandApplicants > 0"
                       class="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400"
                     >
-                      <span class="size-1.5 rounded-full bg-emerald-500"></span>
                       {{ row.lowlandApplicants }}
                     </span>
                     <span v-else class="text-muted-foreground/60">—</span>
@@ -319,7 +292,6 @@ const alternativeMatchesCount = computed(() => {
                       v-if="row.uplandApplicants > 0"
                       class="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                     >
-                      <span class="size-1.5 rounded-full bg-amber-500"></span>
                       {{ row.uplandApplicants }}
                     </span>
                     <span v-else class="text-muted-foreground/60">—</span>
@@ -329,7 +301,6 @@ const alternativeMatchesCount = computed(() => {
                       v-if="row.wetlandApplicants > 0"
                       class="inline-flex items-center gap-1 font-semibold text-sky-600 dark:text-sky-400"
                     >
-                      <span class="size-1.5 rounded-full bg-sky-500"></span>
                       {{ row.wetlandApplicants }}
                     </span>
                     <span v-else class="text-muted-foreground/60">—</span>

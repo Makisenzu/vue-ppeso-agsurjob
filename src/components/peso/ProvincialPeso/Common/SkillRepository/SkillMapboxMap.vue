@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useSkillMap } from '@/composables/peso/provincialPeso/useSkillMap'
@@ -23,32 +22,19 @@ const emit = defineEmits<{
   (e: 'view-municipality', name: string): void
 }>()
 
-const mapContainer = ref<HTMLDivElement | null>(null)
-
 const {
   mapboxToken,
   selectedProvince,
   selectedMunicipality: internalSelectedMunicipality,
   municipalitiesList,
   resetView,
+  handleMunicipalityChange,
 } = useSkillMap({
-  mapContainer,
   municipalityRows: () => props.municipalityRows,
   selectedMunicipality: () => props.selectedMunicipality,
-  onSelectMunicipality: (name) => {
-    emit('select-municipality', name)
-  },
-  onViewMunicipality: (name) => {
-    emit('view-municipality', name)
-  },
+  onSelectMunicipality: (name) => emit('select-municipality', name),
+  onViewMunicipality: (name) => emit('view-municipality', name),
 })
-
-function onMunicipalityChange(event: Event) {
-  const target = event.target as HTMLSelectElement
-  const val = target.value
-  internalSelectedMunicipality.value = val
-  emit('select-municipality', val)
-}
 </script>
 
 <template>
@@ -67,7 +53,7 @@ function onMunicipalityChange(event: Event) {
         <NativeSelect
           :model-value="props.selectedMunicipality || internalSelectedMunicipality"
           class="w-full"
-          @change="onMunicipalityChange"
+          @change="handleMunicipalityChange"
         >
           <NativeSelectOption value="">All municipalities (Overview)</NativeSelectOption>
           <NativeSelectOption
