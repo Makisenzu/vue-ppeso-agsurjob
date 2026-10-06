@@ -831,6 +831,20 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  const removeGipApplicant = async (applicationId: string) => {
+    isSubmitting.value = true
+    try {
+      await gipService.deleteGipApplicant(applicationId)
+      toastAlert.success('Applicant Removed', 'The applicant has been removed from the GIP registry.')
+      await fetchApplicantsData(true)
+    } catch (err: any) {
+      toastAlert.error('Removal Failed', err.message || 'Could not remove applicant.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   // ─── Appointment Renewal Actions ───
   const openRenewalDialog = (intern: GipInternRecord) => {
     selectedInternForRenewal.value = intern
@@ -986,6 +1000,7 @@ export const useGipStore = defineStore('gipStore', () => {
     closeAddApplicantModal,
     openBatchUploadModal,
     closeBatchUploadModal,
+    removeGipApplicant,
     exportCsv,
     exportApplicantsCsv,
     fetchPriorityApplicants,

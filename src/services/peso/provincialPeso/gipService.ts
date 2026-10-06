@@ -35,29 +35,25 @@ import {
   parsePeriodDates,
   generateAppointmentCode,
   calculateAppointmentStatus,
+  GIP_INTERNS_CACHE_KEY,
+  GIP_APPLICANTS_CACHE_KEY,
+  GIP_PRIORITY_APPLICANTS_CACHE_KEY,
+  GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY,
+  GIP_LPII_INTERNS_CACHE_KEY,
+  GIP_LPII_APPLICANTS_CACHE_KEY,
+  invalidateGipCaches,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
-export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
-export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants'
-export const GIP_PRIORITY_APPLICANTS_CACHE_KEY = 'peso:gip:priority-applicants'
-export const GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY = 'peso:gip:yearly-demographics'
-export const GIP_LPII_INTERNS_CACHE_KEY = 'peso:gip:lpii-interns'
-export const GIP_LPII_APPLICANTS_CACHE_KEY = 'peso:gip:lpii-applicants'
-const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
-
-export function invalidateGipCaches(options?: { interns?: boolean; applicants?: boolean; all?: boolean }): void {
-  if (options?.all || options?.interns) {
-    removePersistentCacheValue(GIP_INTERNS_CACHE_KEY)
-    removePersistentCacheValue(GIP_LPII_INTERNS_CACHE_KEY)
-    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
-  }
-  if (options?.all || options?.applicants) {
-    removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
-    removePersistentCacheValue(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
-    removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
-    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
-  }
+export {
+  GIP_INTERNS_CACHE_KEY,
+  GIP_APPLICANTS_CACHE_KEY,
+  GIP_PRIORITY_APPLICANTS_CACHE_KEY,
+  GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY,
+  GIP_LPII_INTERNS_CACHE_KEY,
+  GIP_LPII_APPLICANTS_CACHE_KEY,
+  invalidateGipCaches,
 }
+const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
 
 type BarangayRow = {
   name: string
@@ -905,4 +901,87 @@ export const gipService = {
 
     invalidateGipCaches({ all: true })
   },
+
+  /**
+   * Provincial PESO: Manually removes an applicant from esmdd.gip_applicants.
+   * Business Policy:
+   * 1. Disallows removal if the applicant already has deployment records in esmdd.gips.
+   * 2. Deletes from esmdd.gip_applicants.
+   * 3. Synchronizes master applicants.applicants by removing 'GIP' from referred_programs (if present).
+   */
+  async deleteGipApplicant(applicationId: string): Promise<void> {
+    // 1. Fetch GIP application details to retrieve applicant_id
+    const { data: gipApp, error: fetchErr } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .select('id, applicant_id, status')
+      .eq('id', applicationId)
+      .maybeSingle()
+
+    if (fetchErr || !gipApp) {
+      throw new Error('GIP application record not found.')
+    }
+
+    // 2. Check for deployment in esmdd.gips
+    const { data: deployments, error: depErr } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .select('id')
+      .eq('application_id', applicationId)
+
+    if (depErr) {
+      console.warn('[gipService] Could not check deployments before deletion:', depErr.message)
+    }
+
+    if (deployments && deployments.length > 0) {
+      throw new Error(
+        'Cannot remove applicant: This applicant already has a deployment record in GIP.'
+      )
+    }
+
+    // 3. Delete from esmdd.gip_applicants
+    const { error: delErr } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .delete()
+      .eq('id', applicationId)
+
+    if (delErr) {
+      throw new Error(delErr.message || 'Failed to remove applicant from GIP registry.')
+    }
+
+    // 4. Also clean up referred_programs in applicants.applicants if linked
+    if (gipApp.applicant_id) {
+      try {
+        const { data: masterApp } = await supabase
+          .schema('applicants')
+          .from('applicants')
+          .select('referred_programs')
+          .eq('id', gipApp.applicant_id)
+          .maybeSingle()
+
+        if (masterApp && masterApp.referred_programs) {
+          const currentProgs = (masterApp.referred_programs as string[]) || []
+          const filteredProgs = currentProgs.filter((p) => !p.trim().toUpperCase().includes('GIP'))
+
+          await supabase
+            .schema('applicants')
+            .from('applicants')
+            .update({
+              referred_programs: filteredProgs.length > 0 ? filteredProgs : null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', gipApp.applicant_id)
+
+          invalidateApplicantEntryCache()
+        }
+      } catch (masterErr) {
+        console.warn('[gipService] Non-blocking master applicant referral update error:', masterErr)
+      }
+    }
+
+    // 5. Invalidate GIP caches
+    invalidateGipCaches({ applicants: true })
+  },
 }
+

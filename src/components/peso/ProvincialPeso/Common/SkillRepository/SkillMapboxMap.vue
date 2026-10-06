@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { MapPin, RotateCcw } from '@lucide/vue'
+import { RotateCcw } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -49,9 +49,6 @@ const {
     <div class="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <!-- Province Context Identifier -->
       <div class="flex items-center gap-2">
-        <div class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <MapPin class="size-3.5" />
-        </div>
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold text-foreground">Agusan del Sur</span>
           <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-medium text-muted-foreground">

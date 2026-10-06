@@ -18,6 +18,29 @@ import type {
 } from '@/types/peso/provincialPeso/gip'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import { removePersistentCacheValue } from '@/helpers/common/persistentCache'
+
+// ─── GIP Cache Keys & Invalidation Helper ───
+export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
+export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants'
+export const GIP_PRIORITY_APPLICANTS_CACHE_KEY = 'peso:gip:priority-applicants'
+export const GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY = 'peso:gip:yearly-demographics'
+export const GIP_LPII_INTERNS_CACHE_KEY = 'peso:gip:lpii-interns'
+export const GIP_LPII_APPLICANTS_CACHE_KEY = 'peso:gip:lpii-applicants'
+
+export function invalidateGipCaches(options?: { interns?: boolean; applicants?: boolean; all?: boolean }): void {
+  if (options?.all || options?.interns) {
+    removePersistentCacheValue(GIP_INTERNS_CACHE_KEY)
+    removePersistentCacheValue(GIP_LPII_INTERNS_CACHE_KEY)
+    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+  }
+  if (options?.all || options?.applicants) {
+    removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
+    removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
+  }
+}
 
 // ─── LPII Visual & Theme Configurations ───
 export const LPII_CONFIG: Record<LpiiCategory, LpiiCategoryConfig> = {

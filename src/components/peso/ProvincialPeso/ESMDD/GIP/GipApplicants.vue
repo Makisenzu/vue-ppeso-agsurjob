@@ -34,7 +34,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import type { ApplicantStatusDataPoint, GipApplicantRecord, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
@@ -84,7 +92,37 @@ const {
   exportCsv,
   refreshApplicantsData,
   navigateToPriority,
+  removeGipApplicant,
 } = useGipApplicants()
+
+// ─── Remove Applicant State & Handlers ───
+const applicantToRemove = ref<GipApplicantRecord | null>(null)
+const isRemoveDialogOpen = ref(false)
+const isRemoving = ref(false)
+
+const promptRemoveApplicant = (applicant: GipApplicantRecord) => {
+  applicantToRemove.value = applicant
+  isRemoveDialogOpen.value = true
+}
+
+const cancelRemoveApplicant = () => {
+  isRemoveDialogOpen.value = false
+  applicantToRemove.value = null
+}
+
+const confirmRemoveApplicant = async () => {
+  if (!applicantToRemove.value) return
+  isRemoving.value = true
+  try {
+    await removeGipApplicant(applicantToRemove.value.id)
+    isRemoveDialogOpen.value = false
+    applicantToRemove.value = null
+  } catch {
+    // Toast notification handled in gipStore
+  } finally {
+    isRemoving.value = false
+  }
+}
 
 const toggleStatusTab = (status: string) => {
   if (statusTab.value.toLowerCase() === status.toLowerCase()) {
@@ -683,15 +721,26 @@ const handleUploadBatchClick = () => {
 
                   <!-- Action -->
                   <TableCell class="py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-8 gap-1.5 text-xs cursor-pointer"
-                      @click="openApplicantDetails(applicant)"
-                    >
-                      <Eye class="h-3.5 w-3.5" />
-                      <span>Details</span>
-                    </Button>
+                    <div class="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 gap-1.5 text-xs cursor-pointer"
+                        @click="openApplicantDetails(applicant)"
+                      >
+                        <Eye class="h-3.5 w-3.5" />
+                        <span>Details</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="Remove from GIP Registry"
+                        @click="promptRemoveApplicant(applicant)"
+                      >
+                        <Trash2 class="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </template>
@@ -978,4 +1027,67 @@ const handleUploadBatchClick = () => {
     :index="editingCandidateIndex"
     @save="saveEditedCandidate"
   />
+
+  <!-- ─── REMOVE APPLICANT CONFIRMATION DIALOG ─── -->
+  <Dialog v-model:open="isRemoveDialogOpen">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive shrink-0">
+            <Trash2 class="h-5 w-5" />
+          </div>
+          <div>
+            <DialogTitle class="text-base font-semibold">Remove GIP Applicant</DialogTitle>
+            <DialogDescription class="text-xs text-muted-foreground mt-0.5">
+              Remove applicant record from GIP registry.
+            </DialogDescription>
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div v-if="applicantToRemove" class="py-2 space-y-3 text-xs">
+        <div class="rounded-lg border bg-muted/30 p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-muted-foreground">Full Name:</span>
+            <span class="font-semibold text-foreground">{{ applicantToRemove.fullName }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-muted-foreground">Status:</span>
+            <Badge variant="outline" class="text-[10px]">{{ applicantToRemove.status }}</Badge>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-muted-foreground">LPII Category:</span>
+            <span class="font-medium text-foreground">{{ applicantToRemove.lpiiTag }}</span>
+          </div>
+        </div>
+
+        <p class="text-muted-foreground leading-relaxed">
+          Are you sure you want to remove <strong class="text-foreground">{{ applicantToRemove.fullName }}</strong> from the GIP applicant registry?
+          Note: Applicants who have active intern deployments in GIP cannot be removed.
+        </p>
+      </div>
+
+      <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="text-xs cursor-pointer"
+          :disabled="isRemoving"
+          @click="cancelRemoveApplicant"
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          class="text-xs gap-1.5 cursor-pointer"
+          :disabled="isRemoving"
+          @click="confirmRemoveApplicant"
+        >
+          <Loader2 v-if="isRemoving" class="h-3.5 w-3.5 animate-spin" />
+          <span>{{ isRemoving ? 'Removing...' : 'Confirm Remove' }}</span>
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

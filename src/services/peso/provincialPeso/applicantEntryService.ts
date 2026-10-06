@@ -9,6 +9,7 @@ import type {
 } from '@/types/peso/provincialPeso/applicantEntry'
 import type { GipApplicantInsert, GipApplicantRow } from '@/types/peso/provincialPeso/gip'
 import type { SpesApplicantInsert, SpesApplicantRow } from '@/types/peso/provincialPeso/spes'
+import { invalidateGipCaches } from '@/helpers/peso/provincialPeso/gipHelper'
 
 export const APPLICANT_ENTRY_CACHE_KEY = 'peso:applicant-entry:applicants'
 const APPLICANT_ENTRY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
@@ -468,7 +469,108 @@ export const applicantEntryService = {
       )
     }
 
+    const updatedApplicant = data as ApplicantRow
     removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
-    return data as ApplicantRow
+
+    // Synchronize referred programs with ESMDD program tables if referred_programs was updated
+    if ('referred_programs' in cleanPayload) {
+      const currentPrograms = ((updatedApplicant.referred_programs || []) as string[]).map((p) =>
+        (p || '').trim().toUpperCase()
+      )
+      const hasGip = currentPrograms.some((p) => p.includes('GIP'))
+      const hasSpes = currentPrograms.some((p) => p.includes('SPES'))
+
+      if (hasGip) {
+        try {
+          await this.referToGip(updatedApplicant)
+          invalidateGipCaches({ applicants: true })
+        } catch (referralErr: unknown) {
+          console.error('[applicantEntryService] Failed to auto-route to GIP on update:', referralErr)
+        }
+      } else {
+        try {
+          await this.unreferFromGip(applicantId)
+        } catch (unreferErr: unknown) {
+          console.error('[applicantEntryService] Failed to unrefer from GIP on update:', unreferErr)
+        }
+      }
+
+      if (hasSpes) {
+        try {
+          await this.referToSpes(updatedApplicant)
+        } catch (spesErr: unknown) {
+          console.error('[applicantEntryService] Failed to auto-route to SPES on update:', spesErr)
+        }
+      }
+    }
+
+    return updatedApplicant
+  },
+
+  /**
+   * Safely unrefer an applicant from GIP by deleting from esmdd.gip_applicants.
+   * Business Policy:
+   * Only deletes if the applicant's status is 'Pending' AND they have no deployment records in esmdd.gips.
+   * Otherwise preserves the historical record intact.
+   */
+  async unreferFromGip(applicantId: string): Promise<{ deleted: boolean; reason?: string }> {
+    try {
+      const { data: gipApp, error: fetchErr } = await supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .select('id, status')
+        .eq('applicant_id', applicantId)
+        .maybeSingle()
+
+      if (fetchErr || !gipApp) {
+        return { deleted: false, reason: 'No GIP application record found' }
+      }
+
+      // 1. Only allow deletion if status is Pending
+      if (gipApp.status !== 'Pending') {
+        return {
+          deleted: false,
+          reason: `Applicant status is '${gipApp.status}'. Historical records are kept intact.`,
+        }
+      }
+
+      // 2. Check if applicant has any deployment records in esmdd.gips
+      const { data: deployments, error: depErr } = await supabase
+        .schema('esmdd')
+        .from('gips')
+        .select('id')
+        .eq('application_id', gipApp.id)
+
+      if (depErr) {
+        console.warn('[applicantEntryService] Error checking deployments in esmdd.gips:', depErr.message)
+        return { deleted: false, reason: 'Failed to verify deployment status' }
+      }
+
+      if (deployments && deployments.length > 0) {
+        return {
+          deleted: false,
+          reason: 'Applicant has existing deployment records in esmdd.gips and cannot be automatically deleted.',
+        }
+      }
+
+      // 3. Safe to delete from esmdd.gip_applicants
+      const { error: delErr } = await supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .delete()
+        .eq('id', gipApp.id)
+
+      if (delErr) {
+        console.error('[applicantEntryService] Failed to delete esmdd.gip_applicants row:', delErr.message)
+        return { deleted: false, reason: delErr.message }
+      }
+
+      invalidateGipCaches({ applicants: true })
+      return { deleted: true }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('[applicantEntryService] Non-blocking unrefer error:', msg)
+      return { deleted: false, reason: msg }
+    }
   },
 }

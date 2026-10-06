@@ -65,6 +65,7 @@ export function useGipApplicants() {
     openPriorityModal,
     closePriorityModal,
     exportPriorityCsv,
+    removeGipApplicant,
   } = store
 
   // ─── Selected Applicant for Details (Component & Route Sync) ───
@@ -229,6 +230,7 @@ export function useGipApplicants() {
     closePriorityModal,
     fetchPriorityApplicants,
     exportPriorityCsv,
+    removeGipApplicant,
   }
 }
 

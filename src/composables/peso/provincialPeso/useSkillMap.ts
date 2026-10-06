@@ -194,12 +194,9 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
                 ],
               },
               [
-                // Terrain dot
+                // Dominant Terrain Dot Indicator
                 h('span', {
-                  class: [
-                    'size-2 shrink-0 rounded-full transition-transform',
-                    isSelected ? 'bg-primary-foreground' : dotColorClass,
-                  ],
+                  class: ['size-1.5 rounded-full shrink-0', isSelected ? 'bg-primary-foreground' : dotColorClass],
                 }),
 
                 // Municipality Name
