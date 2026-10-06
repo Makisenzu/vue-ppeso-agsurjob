@@ -44,7 +44,7 @@ const {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2.5">
-          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Skills Repository</h1>
+          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Skills Tagging</h1>
           <Badge variant="secondary" class="font-mono text-xs">Agusan del Sur</Badge>
           <Badge
             v-if="outsideMunicipalityRows.length > 0"

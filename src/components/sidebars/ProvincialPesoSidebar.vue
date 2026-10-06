@@ -158,16 +158,16 @@ const companyItems = [
                     <span>Notification</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Entry of Applicants'">
+              <SidebarMenuButton as-child :tooltip="'Entry of Applicants'" :is-active="route.name === 'provincial-peso-entry'">
                   <RouterLink :to="{ name: 'provincial-peso-entry' }">
                     <BetweenHorizontalEnd />
                     <span>Entry of Applicants</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Skill Repository'">
+              <SidebarMenuButton as-child :tooltip="'Skill Tagging'" :is-active="route.name === 'provincial-peso-skills-repository'">
                   <RouterLink :to="{ name: 'provincial-peso-skills-repository' }">
                     <Database />
-                    <span>Skill Repository</span>
+                    <span>Skill Tagging</span>
                   </RouterLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -177,7 +177,7 @@ const companyItems = [
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
@@ -189,7 +189,7 @@ const companyItems = [
 
               <SidebarGroupLabel>ESMDD</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in employmentItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
@@ -202,7 +202,7 @@ const companyItems = [
               
               <SidebarGroupLabel>Skill Development Division</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in sddItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>

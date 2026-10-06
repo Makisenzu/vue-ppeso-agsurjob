@@ -38,13 +38,14 @@ export interface UseApplicantNsrpDetailsOptions {
 // ─── Section Edit Mode Types ───
 export type EditableSection =
   | 'personal'       // Section I
-  | 'doleStatus'     // Section II
-  | 'education'      // Section III
-  | 'workExperience' // Section IV
+  | 'doleStatus'     // Section I (DOLE Status & Classifications)
+  | 'preferences'    // Section II
+  | 'language'       // Section III
+  | 'education'      // Section IV
   | 'vocational'     // Section V
   | 'eligibility'    // Section VI
-  | 'skills'         // Section VII
-  | 'preferences'    // Section VIII
+  | 'workExperience' // Section VII
+  | 'skills'         // Section VIII
 
 export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions) {
   const route = useRoute()
@@ -487,12 +488,15 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         editEligibilities.value = a.eligibilities.map((el) => ({ ...el }))
         break
 
+      case 'language':
+        editLanguageProficiencies.value = a.languageProficiencies.map((l) => ({ ...l }))
+        editNewLanguageName.value = ''
+        break
+
       case 'skills':
         editOtherSkills.value = [...a.otherSkills]
         editNewSkillTag.value = ''
         editOtherSkillsSpecified.value = a.otherSkillsSpecified ?? ''
-        editLanguageProficiencies.value = a.languageProficiencies.map((l) => ({ ...l }))
-        editNewLanguageName.value = ''
         break
 
       case 'preferences':
@@ -675,11 +679,15 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         }
       }
 
+      case 'language':
+        return {
+          language_proficiencies: editLanguageProficiencies.value.length > 0 ? editLanguageProficiencies.value : null,
+        }
+
       case 'skills':
         return {
           other_skills: editOtherSkills.value.length > 0 ? editOtherSkills.value : null,
           other_skills_specified: editOtherSkillsSpecified.value.trim() || null,
-          language_proficiencies: editLanguageProficiencies.value.length > 0 ? editLanguageProficiencies.value : null,
         }
 
       case 'preferences':
