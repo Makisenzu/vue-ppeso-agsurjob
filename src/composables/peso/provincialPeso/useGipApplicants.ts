@@ -296,6 +296,14 @@ export function useGipApplicants() {
     return result
   }
 
+  // ─── Bulk Deploy State ───
+  const isBulkDeployDialogOpen = ref(false)
+
+  const selectedApplicants = computed<GipApplicantRecord[]>(() => {
+    const ids = new Set(selectedApplicantIds.value)
+    return applicants.value.filter((a) => ids.has(a.id))
+  })
+
   watch(applicants, (newList) => {
     const validIds = new Set(newList.map((a) => a.id))
     selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => validIds.has(id))
@@ -377,6 +385,10 @@ export function useGipApplicants() {
     isBulkDeleteDialogOpen,
     isBulkDeleting,
     handleBulkDelete,
+
+    // Bulk Deploy Dialog State
+    isBulkDeployDialogOpen,
+    selectedApplicants,
 
     // Actions & Navigation
     goBack,

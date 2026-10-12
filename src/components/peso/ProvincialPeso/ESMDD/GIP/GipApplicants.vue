@@ -2,7 +2,11 @@
 import {
   AlertCircle,
   ArrowLeft,
+  CalendarDays,
   Check,
+  CheckCircle2,
+  CheckIcon,
+  ChevronsUpDownIcon,
   Download,
   Eye,
   Filter,
@@ -18,6 +22,7 @@ import {
   Trash2,
   TreePine,
   UploadCloud,
+  Users,
   UserX,
   Waves,
   X,
@@ -55,6 +60,7 @@ import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import {
+  Form,
   FormControl,
   FormDescription,
   FormField,
@@ -69,7 +75,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/components/ui/combobox'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import type { DirectoryRow } from '@/types/common/directory'
 import { useGipEditApplicant } from '@/composables/peso/provincialPeso/useGipEditApplicant'
+import { useGipBulkDeploy } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
 
 const {
   applicants,
@@ -132,6 +155,10 @@ const {
   isBulkDeleting,
   handleBulkDelete,
 
+  // Bulk Deploy Dialog
+  isBulkDeployDialogOpen,
+  selectedApplicants,
+
   // LPII Config
   LPII_CONFIG,
 } = useGipApplicants()
@@ -176,6 +203,24 @@ const {
   closeEditApplicantDialog,
   saveApplicantReview,
 } = useGipEditApplicant()
+
+const {
+  isBulkDeploying,
+  deployableApplicants,
+  skippedApplicants,
+  bulkDeploySchema,
+  bulkDeployInitialValues,
+  programOptions,
+  deploymentStatusOptions,
+  officeSearchQuery,
+  filteredOffices,
+  isLoadingOffices,
+  stipendForProgram,
+  formatDeploymentDate,
+  formatDeploymentPeriod,
+  onBulkDeployOpenChange,
+  submitBulkDeploy,
+} = useGipBulkDeploy(selectedApplicants, isBulkDeployDialogOpen, clearSelection)
 </script>
 
 <template>
@@ -455,6 +500,16 @@ const {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <!-- Deploy Selected Button in Header Toolbar -->
+            <Button
+              v-if="selectedApplicantIds.length > 0"
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
+              @click="isBulkDeployDialogOpen = true"
+            >
+              <span>Deploy Selected ({{ selectedApplicantIds.length }})</span>
+            </Button>
+
             <!-- Delete Selected Button in Header Toolbar -->
             <Button
               v-if="selectedApplicantIds.length > 0"
@@ -600,15 +655,24 @@ const {
               Clear selection
             </Button>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
-            @click="isBulkDeleteDialogOpen = true"
-          >
-            <Trash2 class="h-3.5 w-3.5" />
-            <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
-          </Button>
+          <div class="flex items-center gap-2">
+            <Button
+              size="sm"
+              class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
+              @click="isBulkDeployDialogOpen = true"
+            >
+              <span>Deploy Selected ({{ selectedApplicantIds.length }})</span>
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
+              @click="isBulkDeleteDialogOpen = true"
+            >
+              <Trash2 class="h-3.5 w-3.5" />
+              <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+            </Button>
+          </div>
         </div>
 
         <!-- ─── Table ─── -->
@@ -1304,6 +1368,286 @@ const {
           <span>{{ isBulkDeleting ? 'Removing...' : `Remove ${selectedApplicantIds.length} Applicants` }}</span>
         </Button>
       </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ─── BULK GIP DEPLOYMENT DIALOG ─── -->
+  <Dialog :open="isBulkDeployDialogOpen" @update:open="onBulkDeployOpenChange">
+    <DialogContent class="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+      <Form
+        v-slot="{ values, setFieldValue }"
+        :validation-schema="bulkDeploySchema"
+        :initial-values="bulkDeployInitialValues"
+        class="grid gap-5"
+        @submit="submitBulkDeploy"
+      >
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            Bulk GIP Deployment
+          </DialogTitle>
+          <DialogDescription>
+            Deploy {{ deployableApplicants.length }} selected applicant{{ deployableApplicants.length === 1 ? '' : 's' }}
+            with the same program, station, stipend, and period.
+          </DialogDescription>
+        </DialogHeader>
+
+        <!-- Applicants to deploy -->
+        <div class="grid gap-2">
+          <Label>Applicants to Deploy ({{ deployableApplicants.length }})</Label>
+          <div v-if="deployableApplicants.length > 0" class="max-h-36 overflow-y-auto rounded-lg border divide-y">
+            <div v-for="app in deployableApplicants" :key="app.id" class="flex items-center gap-2.5 px-3 py-2 text-sm">
+              <span class="min-w-0 flex-1 truncate font-medium text-foreground">{{ app.fullName }}</span>
+              <span class="hidden sm:inline truncate text-xs text-muted-foreground">{{ app.municipality }}</span>
+              <Badge variant="secondary" class="shrink-0">{{ app.status }}</Badge>
+            </div>
+          </div>
+          <Empty v-else class="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Users class="text-muted-foreground" />
+              </EmptyMedia>
+              <EmptyTitle>No eligible applicants</EmptyTitle>
+              <EmptyDescription>
+                Every selected applicant is already Hired or Rejected.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
+
+        <Alert v-if="skippedApplicants.length > 0">
+          <AlertCircle class="size-4 shrink-0" />
+          <AlertTitle>{{ skippedApplicants.length }} applicant{{ skippedApplicants.length > 1 ? 's' : '' }} will be skipped</AlertTitle>
+          <AlertDescription>
+            Already Hired or Rejected: {{ skippedApplicants.map((a) => a.fullName).join(', ') }}
+          </AlertDescription>
+        </Alert>
+
+        <!-- Program affiliation -->
+        <FormField v-slot="{ value, handleChange }" name="program">
+          <FormItem>
+            <FormLabel>GIP Program Affiliation</FormLabel>
+            <FormControl>
+              <div role="radiogroup" class="grid gap-3 sm:grid-cols-2">
+                <button
+                  v-for="opt in programOptions"
+                  :key="opt.value"
+                  type="button"
+                  role="radio"
+                  :aria-checked="value === opt.value"
+                  :disabled="isBulkDeploying"
+                  :class="[
+                    'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors cursor-pointer',
+                    value === opt.value ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/50',
+                  ]"
+                  @click="() => {
+                    handleChange(opt.value)
+                    const stipend = stipendForProgram(opt.value, values.stipend)
+                    if (stipend) setFieldValue('stipend', stipend)
+                  }"
+                >
+                  <Avatar class="size-9 shrink-0 rounded-md border bg-background">
+                    <img :src="opt.logo" :alt="opt.value" class="object-cover" />
+                  </Avatar>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2 text-sm font-semibold text-foreground">
+                      <span class="truncate">{{ opt.label }}</span>
+                      <CheckCircle2 v-if="value === opt.value" class="size-4 shrink-0 text-primary" />
+                    </div>
+                    <p class="text-xs text-muted-foreground">{{ opt.description }}</p>
+                  </div>
+                </button>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <!-- Assigned office -->
+          <FormField v-slot="{ value, handleChange }" name="office">
+            <FormItem class="sm:col-span-2">
+              <FormLabel>Assigned Station / Office</FormLabel>
+              <Combobox
+                v-model:search-term="officeSearchQuery"
+                :model-value="value"
+                :ignore-filter="true"
+                by="id"
+                @update:model-value="(office) => {
+                  handleChange(office)
+                  setFieldValue('supervisor', (office as DirectoryRow | null)?.office_head ?? '')
+                }"
+              >
+                <ComboboxAnchor as-child>
+                  <ComboboxTrigger as-child>
+                    <FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        class="w-full justify-between overflow-hidden font-normal"
+                        :disabled="isLoadingOffices || isBulkDeploying"
+                      >
+                        <span class="min-w-0 flex-1 truncate text-left">
+                          <template v-if="isLoadingOffices">Loading offices...</template>
+                          <template v-else-if="value">{{ (value as DirectoryRow).office_name }}</template>
+                          <span v-else class="text-muted-foreground">Select office...</span>
+                        </span>
+                        <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </ComboboxTrigger>
+                </ComboboxAnchor>
+
+                <ComboboxList>
+                  <ComboboxInput
+                    placeholder="Search offices..."
+                    @input="officeSearchQuery = ($event.target as HTMLInputElement).value"
+                  />
+                  <ComboboxViewport>
+                    <ComboboxEmpty>No office found.</ComboboxEmpty>
+                    <ComboboxGroup>
+                      <ComboboxItem v-for="office in filteredOffices" :key="office.id" :value="office">
+                        <span class="min-w-0 flex-1 truncate">{{ office.office_name }}</span>
+                        <Badge variant="secondary" class="shrink-0">{{ office.office_code }}</Badge>
+                        <ComboboxItemIndicator>
+                          <CheckIcon class="size-4 shrink-0" />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxGroup>
+                  </ComboboxViewport>
+                </ComboboxList>
+              </Combobox>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- Supervisor -->
+          <FormField v-slot="{ componentField }" name="supervisor">
+            <FormItem>
+              <FormLabel>Designated Supervisor / Station Head</FormLabel>
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  placeholder="e.g. Maria Santos, Division Head"
+                  :readonly="!!values.office?.office_head"
+                  :class="values.office?.office_head ? 'bg-muted/40' : ''"
+                  :disabled="isBulkDeploying"
+                />
+              </FormControl>
+              <FormDescription v-if="values.office?.office_head">Auto-filled from office directory</FormDescription>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- Stipend -->
+          <FormField v-slot="{ componentField }" name="stipend">
+            <FormItem>
+              <FormLabel>Daily Allowance / Stipend Rate</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" placeholder="e.g. ₱479.35 / day" class="font-mono" :disabled="isBulkDeploying" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- Start date -->
+          <FormField v-slot="{ value, handleChange }" name="startDate">
+            <FormItem>
+              <FormLabel>Start Date</FormLabel>
+              <Popover>
+                <PopoverTrigger as-child>
+                  <FormControl>
+                    <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isBulkDeploying">
+                      <CalendarDays class="size-4 shrink-0" />
+                      <span v-if="value">{{ formatDeploymentDate(value) }}</span>
+                      <span v-else class="text-muted-foreground">Pick start date</span>
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent class="w-auto p-0" align="start">
+                  <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- End date -->
+          <FormField v-slot="{ value, handleChange }" name="endDate">
+            <FormItem>
+              <FormLabel>End Date</FormLabel>
+              <Popover>
+                <PopoverTrigger as-child>
+                  <FormControl>
+                    <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isBulkDeploying">
+                      <CalendarDays class="size-4 shrink-0" />
+                      <span v-if="value">{{ formatDeploymentDate(value) }}</span>
+                      <span v-else class="text-muted-foreground">Pick end date</span>
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent class="w-auto p-0" align="start">
+                  <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <p
+            v-if="formatDeploymentPeriod(values.startDate, values.endDate)"
+            class="sm:col-span-2 flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm font-medium text-foreground"
+          >
+            <CalendarDays class="size-4 shrink-0 text-muted-foreground" />
+            {{ formatDeploymentPeriod(values.startDate, values.endDate) }}
+          </p>
+
+          <!-- Deployment status -->
+          <FormField v-slot="{ componentField }" name="status">
+            <FormItem>
+              <FormLabel>Deployment Status</FormLabel>
+              <Select v-bind="componentField" :disabled="isBulkDeploying">
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="Select a status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="opt in deploymentStatusOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- Notes -->
+          <FormField v-slot="{ componentField }" name="notes">
+            <FormItem>
+              <FormLabel>Special Assignment Notes</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" placeholder="e.g. Assigned to records digitizing project" :disabled="isBulkDeploying" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isBulkDeploying"
+            @click="onBulkDeployOpenChange(false)"
+          >
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="isBulkDeploying || deployableApplicants.length === 0">
+            <Loader2 v-if="isBulkDeploying" class="size-4 shrink-0 animate-spin" />
+            {{ isBulkDeploying ? 'Deploying...' : `Deploy ${deployableApplicants.length} Intern${deployableApplicants.length === 1 ? '' : 's'}` }}
+          </Button>
+        </DialogFooter>
+      </Form>
     </DialogContent>
   </Dialog>
 </template>

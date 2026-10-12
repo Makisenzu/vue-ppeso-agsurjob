@@ -515,6 +515,48 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  const bulkDeployInternsFromApplicants = async (
+    applicationIds: string[],
+    payload: {
+      program: 'PGAS' | 'DOLE'
+      assignedOffice: string
+      supervisor?: string
+      stipend?: string
+      period?: string
+      status?: string
+      remarks?: string
+    }
+  ) => {
+    if (applicationIds.length === 0) return { successCount: 0, skippedCount: 0, failedCount: 0, errors: [] }
+    isSubmitting.value = true
+    try {
+      const result = await gipService.bulkDeployGipInterns(applicationIds, payload)
+      const extras = [
+        result.skippedCount > 0 ? `${result.skippedCount} already deployed` : '',
+        result.failedCount > 0 ? `${result.failedCount} failed` : '',
+      ].filter(Boolean)
+      if (result.successCount > 0) {
+        toastAlert.success(
+          'Bulk Deployment Completed',
+          `Successfully deployed ${result.successCount} intern${result.successCount > 1 ? 's' : ''}.` +
+            (extras.length > 0 ? ` (${extras.join(', ')})` : '')
+        )
+      } else {
+        toastAlert.error(
+          'Bulk Deployment Failed',
+          result.errors[0] || (result.skippedCount > 0 ? 'All selected applicants are already deployed.' : 'Could not deploy selected applicants.')
+        )
+      }
+      await Promise.all([fetchDetailsData(true), fetchApplicantsData(true)])
+      return result
+    } catch (err: any) {
+      toastAlert.error('Bulk Deployment Error', err.message || 'Could not complete bulk deployment.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const exportCsv = () => {
     try {
       exportGipInternsCsv(filteredInterns.value, selectedProgram.value)
@@ -1182,6 +1224,7 @@ export const useGipStore = defineStore('gipStore', () => {
     openAddInternModal,
     closeAddInternModal,
     deployInternFromApplicant,
+    bulkDeployInternsFromApplicants,
     openApplicantDetails,
     closeApplicantDetails,
     openAddApplicantModal,

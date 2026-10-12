@@ -980,6 +980,53 @@ export const gipService = {
   },
 
   /**
+   * Bulk deploys multiple applicants as GIP interns using shared deployment parameters.
+   * Applicants that already have a deployment record in esmdd.gips are skipped.
+   */
+  async bulkDeployGipInterns(
+    applicationIds: string[],
+    deploymentData: {
+      program: 'PGAS' | 'DOLE'
+      assignedOffice: string
+      supervisor?: string
+      stipend?: string
+      period?: string
+      status?: string
+      remarks?: string
+    }
+  ): Promise<{ successCount: number; skippedCount: number; failedCount: number; errors: string[] }> {
+    let successCount = 0
+    let failedCount = 0
+    const errors: string[] = []
+
+    const { data: existing, error: existingErr } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .select('application_id')
+      .in('application_id', applicationIds)
+
+    if (existingErr) {
+      throw new Error(existingErr.message || 'Could not verify existing GIP deployments.')
+    }
+
+    const deployedIds = new Set((existing ?? []).map((row) => row.application_id))
+    const toDeploy = applicationIds.filter((id) => !deployedIds.has(id))
+
+    for (const applicationId of toDeploy) {
+      try {
+        await gipService.deployGipIntern({ ...deploymentData, applicationId })
+        successCount++
+      } catch (err: any) {
+        failedCount++
+        errors.push(err.message || `Failed to deploy applicant ID ${applicationId}`)
+      }
+    }
+
+    invalidateGipCaches({ all: true })
+    return { successCount, skippedCount: applicationIds.length - toDeploy.length, failedCount, errors }
+  },
+
+  /**
    * Provincial PESO: Renews a GIP intern's appointment for another term.
    */
   async renewAppointment(payload: GipRenewAppointmentPayload): Promise<void> {
