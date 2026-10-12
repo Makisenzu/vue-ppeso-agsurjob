@@ -92,7 +92,8 @@ const {
   middleName,
   surname,
   suffix,
-  dateOfBirth,
+  dateOfBirthFormatted,
+  onDobInput,
   age,
   sex,
   civilStatus,
@@ -353,21 +354,21 @@ const confirmDuplicateResolution = () => {
             </CardDescription>
           </CardHeader>
           <CardContent class="p-5 space-y-5 text-xs">
-            <!-- Full Name Section -->
+            <!-- Full Name Section (NSRP Standard: Surname, First Name, Middle Name, Suffix) -->
             <div class="space-y-2">
               <label class="font-semibold text-foreground text-xs">Full Name</label>
               <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">First Name <span class="text-destructive">*</span></span>
-                  <Input v-model="firstName" placeholder="e.g. Juan" class="h-9 text-xs" />
+                  <span class="text-[11px] text-muted-foreground">Surname (Apelyido) <span class="text-destructive">*</span></span>
+                  <Input v-model="surname" placeholder="e.g. Dela Cruz" class="h-9 text-xs" autocomplete="family-name" />
                 </div>
                 <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Middle Name</span>
-                  <Input v-model="middleName" placeholder="e.g. Santos" class="h-9 text-xs" />
+                  <span class="text-[11px] text-muted-foreground">First Name (Pangalan) <span class="text-destructive">*</span></span>
+                  <Input v-model="firstName" placeholder="e.g. Juan" class="h-9 text-xs" autocomplete="given-name" />
                 </div>
                 <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Surname <span class="text-destructive">*</span></span>
-                  <Input v-model="surname" placeholder="e.g. Dela Cruz" class="h-9 text-xs" />
+                  <span class="text-[11px] text-muted-foreground">Middle Name (Gitnang Pangalan)</span>
+                  <Input v-model="middleName" placeholder="e.g. Santos" class="h-9 text-xs" autocomplete="additional-name" />
                 </div>
                 <div class="space-y-1">
                   <span class="text-[11px] text-muted-foreground">Suffix</span>
@@ -379,8 +380,19 @@ const confirmDuplicateResolution = () => {
             <!-- Birth & Demographics -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Date of Birth <span class="text-destructive">*</span></span>
-                <Input v-model="dateOfBirth" type="date" class="h-9 text-xs" />
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] text-muted-foreground">Date of Birth <span class="text-destructive">*</span></span>
+                  <span class="text-[10px] text-muted-foreground/70 font-mono">MM/DD/YYYY</span>
+                </div>
+                <Input
+                  :model-value="dateOfBirthFormatted"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="MM/DD/YYYY"
+                  class="h-9 text-xs font-mono"
+                  @input="onDobInput"
+                />
               </div>
               <div class="space-y-1">
                 <span class="text-[11px] text-muted-foreground">Age (years)</span>

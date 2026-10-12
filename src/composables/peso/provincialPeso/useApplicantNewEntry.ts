@@ -22,6 +22,13 @@ import type {
   ExistingApplicantMatch,
   DuplicateResolutionChoice,
 } from '@/types/peso/provincialPeso/applicantEntry'
+import {
+  maskDateOfBirthInput,
+  isValidMMDDYYYY,
+  parseMMDDYYYYToISO,
+  parseISOToMMDDYYYY,
+  calculateAgeFromDateString,
+} from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 
 export interface PsgcLocationEntity {
   code: string
@@ -176,10 +183,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   }
 
   // ─── STEP 1: Personal Information Form State ───
+  const surname = ref('')
   const firstName = ref('')
   const middleName = ref('')
-  const surname = ref('')
   const suffix = ref('')
+  const dateOfBirthFormatted = ref('')
   const dateOfBirth = ref('')
   const age = ref<number | undefined>(undefined)
   const sex = ref('Male')
@@ -197,19 +205,46 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const street = ref('')
   const village = ref('')
 
-  // Auto-calculate age when dateOfBirth changes
-  watch(dateOfBirth, (val) => {
-    if (!val) return
-    const birthDate = new Date(val)
-    if (isNaN(birthDate.getTime())) return
-    const today = new Date()
-    let calculatedAge = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      calculatedAge--
+  // Fast MM/DD/YYYY input handler with progressive numeric masking
+  const onDobInput = (eventOrVal: string | Event) => {
+    let raw = ''
+    if (typeof eventOrVal === 'string') {
+      raw = eventOrVal
+    } else if (eventOrVal && (eventOrVal.target as HTMLInputElement)) {
+      raw = (eventOrVal.target as HTMLInputElement).value
     }
-    if (calculatedAge >= 0 && calculatedAge < 120) {
-      age.value = calculatedAge
+    const masked = maskDateOfBirthInput(raw)
+    dateOfBirthFormatted.value = masked
+
+    if (isValidMMDDYYYY(masked)) {
+      const iso = parseMMDDYYYYToISO(masked)
+      dateOfBirth.value = iso || ''
+      const calculatedAge = calculateAgeFromDateString(masked)
+      if (calculatedAge !== undefined) {
+        age.value = calculatedAge
+      }
+    } else {
+      dateOfBirth.value = ''
+    }
+  }
+
+  // Watch for external / ISO changes to dateOfBirth (e.g. from template or hydration)
+  watch(dateOfBirth, (val) => {
+    if (!val) {
+      if (!dateOfBirthFormatted.value) {
+        age.value = undefined
+      }
+      return
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      const formatted = parseISOToMMDDYYYY(val)
+      if (dateOfBirthFormatted.value !== formatted) {
+        dateOfBirthFormatted.value = formatted
+      }
+      const calculatedAge = calculateAgeFromDateString(val)
+      if (calculatedAge !== undefined) {
+        age.value = calculatedAge
+      }
     }
   })
 
@@ -500,9 +535,22 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
         toastAlert.error('Validation Error', 'Surname is required.')
         return false
       }
-      if (!dateOfBirth.value) {
-        toastAlert.error('Validation Error', 'Date of Birth is required.')
+      if (!dateOfBirthFormatted.value && !dateOfBirth.value) {
+        toastAlert.error('Validation Error', 'Date of Birth (MM/DD/YYYY) is required.')
         return false
+      }
+      if (dateOfBirthFormatted.value && !isValidMMDDYYYY(dateOfBirthFormatted.value)) {
+        toastAlert.error('Validation Error', 'Please enter a valid Date of Birth in MM/DD/YYYY format.')
+        return false
+      }
+      if (!dateOfBirth.value && dateOfBirthFormatted.value) {
+        const iso = parseMMDDYYYYToISO(dateOfBirthFormatted.value)
+        if (iso) {
+          dateOfBirth.value = iso
+        } else {
+          toastAlert.error('Validation Error', 'Please enter a valid Date of Birth in MM/DD/YYYY format.')
+          return false
+        }
       }
       if (!selectedCity.value) {
         toastAlert.error('Validation Error', 'Municipality / City is required.')
@@ -696,6 +744,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     surname.value = ''
     suffix.value = ''
     dateOfBirth.value = ''
+    dateOfBirthFormatted.value = ''
     age.value = undefined
     sex.value = 'Male'
     civilStatus.value = 'Single'
@@ -865,6 +914,8 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     surname,
     suffix,
     dateOfBirth,
+    dateOfBirthFormatted,
+    onDobInput,
     age,
     sex,
     civilStatus,

@@ -369,3 +369,122 @@ export function exportApplicantsToCsv(applicants: ApplicantEntryRecord[], filter
   link.click()
   document.body.removeChild(link)
 }
+
+// ─── Fast Encoding Date Helpers (MM/DD/YYYY) ───
+
+/**
+ * Auto-masks user input into MM/DD/YYYY format for high-speed numeric data entry.
+ * Progressive formatting allows typing 8 continuous digits on the numpad (e.g. 10241998 -> 10/24/1998).
+ */
+export function maskDateOfBirthInput(raw: string): string {
+  if (!raw) return ''
+
+  // Support pasted ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [y, m, d] = raw.split('-')
+    return `${m}/${d.slice(0, 2)}/${y}`
+  }
+
+  const digits = raw.replace(/\D/g, '').slice(0, 8)
+  if (!digits) return ''
+
+  if (digits.length <= 2) {
+    return raw.endsWith('/') && digits.length === 2 ? `${digits}/` : digits
+  }
+
+  if (digits.length <= 4) {
+    const mm = digits.slice(0, 2)
+    const dd = digits.slice(2)
+    return raw.endsWith('/') && digits.length === 4 ? `${mm}/${dd}/` : `${mm}/${dd}`
+  }
+
+  const mm = digits.slice(0, 2)
+  const dd = digits.slice(2, 4)
+  const yyyy = digits.slice(4, 8)
+  return `${mm}/${dd}/${yyyy}`
+}
+
+/**
+ * Validates whether an MM/DD/YYYY string is a valid historical calendar date.
+ */
+export function isValidMMDDYYYY(dateStr: string): boolean {
+  if (!dateStr || dateStr.length !== 10) return false
+  const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!match) return false
+
+  const month = parseInt(match[1], 10)
+  const day = parseInt(match[2], 10)
+  const year = parseInt(match[3], 10)
+
+  if (month < 1 || month > 12) return false
+  if (year < 1900) return false
+
+  const currentYear = new Date().getFullYear()
+  if (year > currentYear) return false
+
+  const daysInMonth = new Date(year, month, 0).getDate()
+  if (day < 1 || day > daysInMonth) return false
+
+  const birthDate = new Date(year, month - 1, day)
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  if (birthDate > today) return false
+
+  return true
+}
+
+/**
+ * Converts an MM/DD/YYYY string to ISO YYYY-MM-DD for PostgreSQL storage.
+ */
+export function parseMMDDYYYYToISO(dateStr: string): string | null {
+  if (!dateStr) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr
+  const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!match) return null
+  if (!isValidMMDDYYYY(dateStr)) return null
+  const [, mm, dd, yyyy] = match
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/**
+ * Converts an ISO YYYY-MM-DD string to MM/DD/YYYY format.
+ */
+export function parseISOToMMDDYYYY(isoStr: string): string {
+  if (!isoStr) return ''
+  const clean = isoStr.split('T')[0]
+  const match = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return isoStr
+  const [, yyyy, mm, dd] = match
+  return `${mm}/${dd}/${yyyy}`
+}
+
+/**
+ * Computes exact chronological age in years from MM/DD/YYYY or YYYY-MM-DD date string.
+ */
+export function calculateAgeFromDateString(dateStr: string): number | undefined {
+  if (!dateStr) return undefined
+  let birthDate: Date | null = null
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    if (!isValidMMDDYYYY(dateStr)) return undefined
+    const [mm, dd, yyyy] = dateStr.split('/').map(Number)
+    birthDate = new Date(yyyy, mm - 1, dd)
+  } else if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const [yyyy, mm, dd] = dateStr.split('T')[0].split('-').map(Number)
+    birthDate = new Date(yyyy, mm - 1, dd)
+  }
+
+  if (!birthDate || isNaN(birthDate.getTime())) return undefined
+
+  const today = new Date()
+  let calculatedAge = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    calculatedAge--
+  }
+
+  if (calculatedAge >= 0 && calculatedAge < 125) {
+    return calculatedAge
+  }
+  return undefined
+}
