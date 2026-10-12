@@ -983,5 +983,85 @@ export const gipService = {
     // 5. Invalidate GIP caches
     invalidateGipCaches({ applicants: true })
   },
+
+  /**
+   * Bulk remove multiple applicants from GIP registry.
+   */
+  async bulkDeleteGipApplicants(
+    applicationIds: string[]
+  ): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
+    let successCount = 0
+    let failedCount = 0
+    const errors: string[] = []
+
+    for (const id of applicationIds) {
+      try {
+        await gipService.deleteGipApplicant(id)
+        successCount++
+      } catch (err: any) {
+        failedCount++
+        errors.push(err.message || `Failed to remove applicant ID ${id}`)
+      }
+    }
+
+    invalidateGipCaches({ applicants: true })
+    return { successCount, failedCount, errors }
+  },
+
+  /**
+   * Delete a GIP intern deployment record and associated appointments.
+   */
+  async deleteGipIntern(internId: string): Promise<void> {
+    if (!internId) throw new Error('Intern ID is required.')
+
+    // 1. Delete associated appointments from esmdd.gip_appointments
+    const { error: apptErr } = await supabase
+      .schema('esmdd')
+      .from('gip_appointments' as any)
+      .delete()
+      .eq('gip_id', internId)
+
+    if (apptErr) {
+      console.warn('[gipService] Could not delete appointments for intern:', apptErr.message)
+    }
+
+    // 2. Delete deployment from esmdd.gips
+    const { error: gipErr } = await supabase
+      .schema('esmdd')
+      .from('gips')
+      .delete()
+      .eq('id', internId)
+
+    if (gipErr) {
+      throw new Error(gipErr.message || 'Failed to delete GIP intern deployment record.')
+    }
+
+    // 3. Invalidate GIP caches
+    invalidateGipCaches({ interns: true })
+  },
+
+  /**
+   * Bulk delete multiple GIP intern deployment records and associated appointments.
+   */
+  async bulkDeleteGipInterns(
+    internIds: string[]
+  ): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
+    let successCount = 0
+    let failedCount = 0
+    const errors: string[] = []
+
+    for (const id of internIds) {
+      try {
+        await gipService.deleteGipIntern(id)
+        successCount++
+      } catch (err: any) {
+        failedCount++
+        errors.push(err.message || `Failed to delete intern ID ${id}`)
+      }
+    }
+
+    invalidateGipCaches({ interns: true })
+    return { successCount, failedCount, errors }
+  },
 }
 

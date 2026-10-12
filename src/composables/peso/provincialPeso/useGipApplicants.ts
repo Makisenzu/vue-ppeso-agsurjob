@@ -1,4 +1,4 @@
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
@@ -66,6 +66,7 @@ export function useGipApplicants() {
     closePriorityModal,
     exportPriorityCsv,
     removeGipApplicant,
+    bulkRemoveGipApplicants,
   } = store
 
   // ─── Selected Applicant for Details (Component & Route Sync) ───
@@ -163,6 +164,142 @@ export function useGipApplicants() {
     router.push({ name: 'provincial-peso-gip-priority' })
   }
 
+  // ─── Status Tab Toggle Helper ───
+  const toggleStatusTab = (status: string) => {
+    if (statusTab.value.toLowerCase() === status.toLowerCase()) {
+      statusTab.value = 'ALL'
+    } else {
+      statusTab.value = status
+    }
+  }
+
+  // ─── File Input & Batch Upload Triggers ───
+  const fileInputRef = ref<HTMLInputElement | null>(null)
+
+  const setFileInputRef = (el: any) => {
+    fileInputRef.value = el
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.value?.click()
+  }
+
+  const handleUploadBatchClick = () => {
+    if (applicants.value.length > 0) {
+      openBatchUploadModal()
+    } else {
+      triggerFileInput()
+    }
+  }
+
+  // ─── Remove Applicant State & Handlers ───
+  const applicantToRemove = ref<GipApplicantRecord | null>(null)
+  const isRemoveDialogOpen = ref(false)
+  const isRemoving = ref(false)
+
+  const promptRemoveApplicant = (applicant: GipApplicantRecord) => {
+    applicantToRemove.value = applicant
+    isRemoveDialogOpen.value = true
+  }
+
+  const cancelRemoveApplicant = () => {
+    isRemoveDialogOpen.value = false
+    applicantToRemove.value = null
+  }
+
+  const confirmRemoveApplicant = async () => {
+    if (!applicantToRemove.value) return
+    isRemoving.value = true
+    try {
+      await removeGipApplicant(applicantToRemove.value.id)
+      isRemoveDialogOpen.value = false
+      applicantToRemove.value = null
+    } finally {
+      isRemoving.value = false
+    }
+  }
+
+  // ─── Bulk Remove State & Handlers ───
+  const isBulkDeleteDialogOpen = ref(false)
+  const isBulkDeleting = ref(false)
+
+  const handleBulkDelete = async () => {
+    isBulkDeleting.value = true
+    try {
+      await bulkDeleteSelectedApplicants()
+      isBulkDeleteDialogOpen.value = false
+    } finally {
+      isBulkDeleting.value = false
+    }
+  }
+
+  // ─── Helper for Applicant Submitted Documents ───
+  const getApplicantDocuments = (applicant: GipApplicantRecord): string[] => {
+    if (applicant.documentsSubmitted && applicant.documentsSubmitted.length > 0) {
+      return applicant.documentsSubmitted
+    }
+    if (applicant.rawApplicant?.documents_submitted && applicant.rawApplicant.documents_submitted.length > 0) {
+      return applicant.rawApplicant.documents_submitted
+    }
+    return []
+  }
+
+  // ─── Multi-Select State ───
+  const selectedApplicantIds = ref<string[]>([])
+
+  const isAllSelected = computed(() => {
+    if (paginatedApplicants.value.length === 0) return false
+    return paginatedApplicants.value.every((a) => selectedApplicantIds.value.includes(a.id))
+  })
+
+  const isIndeterminate = computed(() => {
+    if (isAllSelected.value) return false
+    return paginatedApplicants.value.some((a) => selectedApplicantIds.value.includes(a.id))
+  })
+
+  const toggleSelectAll = (checked?: boolean | 'indeterminate') => {
+    const pageIds = paginatedApplicants.value.map((a) => a.id)
+    if (pageIds.length === 0) return
+
+    const shouldSelect = typeof checked === 'boolean' ? checked : !isAllSelected.value
+    if (shouldSelect) {
+      const set = new Set([...selectedApplicantIds.value, ...pageIds])
+      selectedApplicantIds.value = Array.from(set)
+    } else {
+      selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => !pageIds.includes(id))
+    }
+  }
+
+  const toggleSelectApplicant = (id: string, checked?: boolean | 'indeterminate') => {
+    const shouldAdd = typeof checked === 'boolean' ? checked : !selectedApplicantIds.value.includes(id)
+    if (shouldAdd) {
+      if (!selectedApplicantIds.value.includes(id)) {
+        selectedApplicantIds.value.push(id)
+      }
+    } else {
+      selectedApplicantIds.value = selectedApplicantIds.value.filter((i) => i !== id)
+    }
+  }
+
+  const clearSelection = () => {
+    selectedApplicantIds.value = []
+  }
+
+  const bulkDeleteSelectedApplicants = async () => {
+    if (selectedApplicantIds.value.length === 0) return
+    const ids = [...selectedApplicantIds.value]
+    const result = await bulkRemoveGipApplicants(ids)
+    if (result && result.successCount > 0) {
+      clearSelection()
+    }
+    return result
+  }
+
+  watch(applicants, (newList) => {
+    const validIds = new Set(newList.map((a) => a.id))
+    selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => validIds.has(id))
+  })
+
   onMounted(() => {
     fetchApplicantsData()
   })
@@ -191,9 +328,19 @@ export function useGipApplicants() {
     isSubmitting,
     errorMessage,
 
+    // Selection State
+    selectedApplicantIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleSelectAll,
+    toggleSelectApplicant,
+    clearSelection,
+    bulkDeleteSelectedApplicants,
+
     // Filter & Pagination Models
     searchQuery: applicantSearchQuery,
     statusTab,
+    toggleStatusTab,
     selectedLpiiFilter: applicantLpiiFilter,
     selectedMonthFilter: applicantMonthFilter,
     selectedYearFilter: applicantYearFilter,
@@ -209,6 +356,26 @@ export function useGipApplicants() {
     statusDonutTooltipTriggers,
     getInitials,
     formatDateDisplay,
+    getApplicantDocuments,
+
+    // File Input & Batch Trigger
+    fileInputRef,
+    setFileInputRef,
+    triggerFileInput,
+    handleUploadBatchClick,
+
+    // Remove Dialog State & Actions
+    applicantToRemove,
+    isRemoveDialogOpen,
+    isRemoving,
+    promptRemoveApplicant,
+    cancelRemoveApplicant,
+    confirmRemoveApplicant,
+
+    // Bulk Delete Dialog State & Actions
+    isBulkDeleteDialogOpen,
+    isBulkDeleting,
+    handleBulkDelete,
 
     // Actions & Navigation
     goBack,
@@ -231,6 +398,7 @@ export function useGipApplicants() {
     fetchPriorityApplicants,
     exportPriorityCsv,
     removeGipApplicant,
+    bulkRemoveGipApplicants,
   }
 }
 

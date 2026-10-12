@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import {
   AlertTriangle,
   ArrowLeft,
   CalendarDays,
+  Check,
   CheckCircle2,
   CheckIcon,
   ChevronsUpDownIcon,
@@ -15,17 +15,20 @@ import {
   Filter,
   Loader2,
   MapPin,
+  Minus,
   Mountain,
   Pencil,
   Plus,
   RefreshCw,
   Save,
   Search,
+  Trash2,
   TreePine,
   UserX,
   Waves,
   X,
 } from '@lucide/vue'
+import { Checkbox } from '@/components/ui/checkbox'
 import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -106,6 +109,12 @@ const {
   selectedAppointmentFilter,
   currentPage,
   pageSize,
+  selectedInternIds,
+  isAllSelected,
+  isIndeterminate,
+  toggleSelectAll,
+  toggleSelectIntern,
+  clearSelection,
   LPII_CONFIG,
   donutTooltipTriggers,
   getInitials,
@@ -132,18 +141,19 @@ const {
   deploymentStartDate,
   deploymentEndDate,
   formattedPeriod,
-} = useGipDetails()
 
-const internDocumentsSubmitted = computed<string[]>(() => {
-  if (!selectedIntern.value) return []
-  if (selectedIntern.value.rawApplicant?.documents_submitted && selectedIntern.value.rawApplicant.documents_submitted.length > 0) {
-    return selectedIntern.value.rawApplicant.documents_submitted
-  }
-  if (selectedIntern.value.documentsSubmitted && selectedIntern.value.documentsSubmitted.length > 0) {
-    return selectedIntern.value.documentsSubmitted
-  }
-  return []
-})
+  // Delete modal state & actions
+  internToDelete,
+  isSingleDeleteDialogOpen,
+  isBulkDeleteDialogOpen,
+  isDeleting,
+  promptDeleteIntern,
+  handleSingleDelete,
+  handleBulkDelete,
+
+  // Documents
+  internDocumentsSubmitted,
+} = useGipDetails()
 </script>
 
 <template>
@@ -448,6 +458,18 @@ const internDocumentsSubmitted = computed<string[]>(() => {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2">
+            <!-- Delete Selected Button in Header Toolbar -->
+            <Button
+              v-if="selectedInternIds.length > 0"
+              variant="destructive"
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
+              @click="isBulkDeleteDialogOpen = true"
+            >
+              <Trash2 class="h-3.5 w-3.5" />
+              <span>Delete Selected ({{ selectedInternIds.length }})</span>
+            </Button>
+
             <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90" @click="navigateToAddIntern">
               <Plus class="h-3.5 w-3.5" />
               <span>Add GIP</span>
@@ -556,11 +578,52 @@ const internDocumentsSubmitted = computed<string[]>(() => {
       </CardHeader>
 
       <CardContent class="p-0">
+        <!-- ─── Bulk Action Bar ─── -->
+        <div
+          v-if="selectedInternIds.length > 0"
+          class="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-t border-b border-primary/20 text-xs text-foreground transition-all animate-in fade-in"
+        >
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary">{{ selectedInternIds.length }}</span>
+            <span class="text-muted-foreground">intern{{ selectedInternIds.length > 1 ? 's' : '' }} selected</span>
+            <span class="text-muted-foreground">•</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              @click="clearSelection"
+            >
+              Clear selection
+            </Button>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
+            @click="isBulkDeleteDialogOpen = true"
+          >
+            <Trash2 class="h-3.5 w-3.5" />
+            <span>Delete Selected ({{ selectedInternIds.length }})</span>
+          </Button>
+        </div>
+
         <!-- ─── Table ─── -->
         <div class="relative overflow-x-auto border-t">
           <Table>
             <TableHeader class="bg-muted/40">
               <TableRow>
+                <TableHead class="w-12 px-4 text-center">
+                  <Checkbox
+                    :model-value="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+                    aria-label="Select all interns on page"
+                    @update:model-value="toggleSelectAll"
+                  >
+                    <template #default="{ modelValue }">
+                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-[3]" />
+                      <Check v-else class="h-3.5 w-3.5" />
+                    </template>
+                  </Checkbox>
+                </TableHead>
                 <TableHead class="w-50 text-xs font-semibold">Intern Information</TableHead>
                 <TableHead class="text-xs font-semibold">Program</TableHead>
                 <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
@@ -574,7 +637,7 @@ const internDocumentsSubmitted = computed<string[]>(() => {
             <TableBody>
               <template v-if="isLoading">
                 <TableRow>
-                  <TableCell colspan="8" class="h-32 text-center text-muted-foreground">
+                  <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
                     <div class="flex flex-col items-center justify-center gap-2 py-4">
                       <Loader2 class="h-7 w-7 animate-spin text-muted-foreground" />
                       <p class="text-xs text-muted-foreground">Loading GIP intern records...</p>
@@ -586,8 +649,19 @@ const internDocumentsSubmitted = computed<string[]>(() => {
                 <TableRow
                   v-for="intern in paginatedInterns"
                   :key="intern.id"
-                  class="transition-colors hover:bg-muted/30"
+                  :class="[
+                    'transition-colors hover:bg-muted/30',
+                    selectedInternIds.includes(intern.id) ? 'bg-primary/5 dark:bg-primary/10' : '',
+                  ]"
                 >
+                  <!-- Multi-select Checkbox -->
+                  <TableCell class="py-3 px-4 text-center" @click.stop>
+                    <Checkbox
+                      :model-value="selectedInternIds.includes(intern.id)"
+                      :aria-label="'Select ' + intern.fullName"
+                      @update:model-value="(val) => toggleSelectIntern(intern.id, val)"
+                    />
+                  </TableCell>
                   <!-- Intern Info -->
                   <TableCell class="py-3">
                     <div class="flex items-center gap-2.5">
@@ -753,6 +827,15 @@ const internDocumentsSubmitted = computed<string[]>(() => {
                         <Eye class="h-3.5 w-3.5" />
                         <span>Details</span>
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="Delete Intern Deployment"
+                        @click="promptDeleteIntern(intern)"
+                      >
+                        <Trash2 class="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -760,7 +843,7 @@ const internDocumentsSubmitted = computed<string[]>(() => {
 
               <!-- Empty State -->
               <TableRow v-else>
-                <TableCell colspan="8" class="h-32 text-center text-muted-foreground">
+                <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
                   <div class="flex flex-col items-center justify-center gap-2 py-4">
                     <Filter class="h-7 w-7 text-muted-foreground/50" />
                     <p class="text-sm font-semibold">No intern records match the selected criteria</p>
@@ -1225,5 +1308,82 @@ const internDocumentsSubmitted = computed<string[]>(() => {
 
     <!-- ─── BATCH UPLOAD / OCR MODAL (ACCESSIBLE VIA OCR SCAN) ─── -->
     <GipBatchUploadDialog />
+
+    <!-- ─── Single Delete Intern Confirmation Dialog ─── -->
+    <Dialog :open="isSingleDeleteDialogOpen" @update:open="isSingleDeleteDialogOpen = $event">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-destructive flex items-center gap-2">
+            <Trash2 class="h-5 w-5" />
+            <span>Delete GIP Intern Record</span>
+          </DialogTitle>
+          <DialogDescription class="text-xs leading-relaxed">
+            Are you sure you want to permanently delete
+            <span class="font-semibold text-foreground">{{ internToDelete?.fullName }}</span>'s
+            deployment record? This will also remove associated appointment records. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="text-xs cursor-pointer"
+            :disabled="isDeleting"
+            @click="isSingleDeleteDialogOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="text-xs gap-1.5 cursor-pointer"
+            :disabled="isDeleting"
+            @click="handleSingleDelete"
+          >
+            <Loader2 v-if="isDeleting" class="h-3.5 w-3.5 animate-spin" />
+            <Trash2 v-else class="h-3.5 w-3.5" />
+            <span>{{ isDeleting ? 'Deleting...' : 'Confirm Delete' }}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- ─── Bulk Delete Interns Confirmation Dialog ─── -->
+    <Dialog :open="isBulkDeleteDialogOpen" @update:open="isBulkDeleteDialogOpen = $event">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-destructive flex items-center gap-2">
+            <Trash2 class="h-5 w-5" />
+            <span>Delete Selected Interns</span>
+          </DialogTitle>
+          <DialogDescription class="text-xs leading-relaxed">
+            Are you sure you want to permanently delete <strong class="text-foreground">{{ selectedInternIds.length }}</strong> selected intern deployment record{{ selectedInternIds.length > 1 ? 's' : '' }}?
+            This will also remove their associated appointment records. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="text-xs cursor-pointer"
+            :disabled="isDeleting"
+            @click="isBulkDeleteDialogOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="text-xs gap-1.5 cursor-pointer"
+            :disabled="isDeleting"
+            @click="handleBulkDelete"
+          >
+            <Loader2 v-if="isDeleting" class="h-3.5 w-3.5 animate-spin" />
+            <Trash2 v-else class="h-3.5 w-3.5" />
+            <span>{{ isDeleting ? 'Deleting...' : `Delete ${selectedInternIds.length} Interns` }}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

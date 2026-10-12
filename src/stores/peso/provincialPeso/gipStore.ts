@@ -845,6 +845,76 @@ export const useGipStore = defineStore('gipStore', () => {
     }
   }
 
+  const bulkRemoveGipApplicants = async (applicationIds: string[]) => {
+    if (applicationIds.length === 0) return { successCount: 0, failedCount: 0 }
+    isSubmitting.value = true
+    try {
+      const result = await gipService.bulkDeleteGipApplicants(applicationIds)
+      if (result.successCount > 0) {
+        toastAlert.success(
+          'Bulk Removal Completed',
+          `Successfully removed ${result.successCount} applicant${result.successCount > 1 ? 's' : ''} from GIP registry.` +
+            (result.failedCount > 0 ? ` (${result.failedCount} failed)` : '')
+        )
+      } else {
+        toastAlert.error('Bulk Removal Failed', result.errors[0] || 'Could not remove selected applicants.')
+      }
+      await fetchApplicantsData(true)
+      return result
+    } catch (err: any) {
+      toastAlert.error('Bulk Removal Error', err.message || 'Could not complete bulk removal.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const removeGipIntern = async (internId: string) => {
+    isSubmitting.value = true
+    try {
+      await gipService.deleteGipIntern(internId)
+      toastAlert.success('Intern Removed', 'The intern deployment has been removed.')
+      if (selectedIntern.value?.id === internId) {
+        selectedIntern.value = null
+        isDetailsModalOpen.value = false
+      }
+      await fetchDetailsData(true)
+    } catch (err: any) {
+      toastAlert.error('Removal Failed', err.message || 'Could not remove intern.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const bulkRemoveGipInterns = async (internIds: string[]) => {
+    if (internIds.length === 0) return { successCount: 0, failedCount: 0 }
+    isSubmitting.value = true
+    try {
+      const result = await gipService.bulkDeleteGipInterns(internIds)
+      if (result.successCount > 0) {
+        toastAlert.success(
+          'Bulk Removal Completed',
+          `Successfully removed ${result.successCount} intern record${result.successCount > 1 ? 's' : ''}.` +
+            (result.failedCount > 0 ? ` (${result.failedCount} failed)` : '')
+        )
+      } else {
+        toastAlert.error('Bulk Removal Failed', result.errors[0] || 'Could not remove selected interns.')
+      }
+      if (selectedIntern.value && internIds.includes(selectedIntern.value.id)) {
+        selectedIntern.value = null
+        isDetailsModalOpen.value = false
+      }
+      await fetchDetailsData(true)
+      return result
+    } catch (err: any) {
+      toastAlert.error('Bulk Removal Error', err.message || 'Could not complete bulk removal.')
+      throw err
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   // ─── Appointment Renewal Actions ───
   const openRenewalDialog = (intern: GipInternRecord) => {
     selectedInternForRenewal.value = intern
@@ -1001,6 +1071,9 @@ export const useGipStore = defineStore('gipStore', () => {
     openBatchUploadModal,
     closeBatchUploadModal,
     removeGipApplicant,
+    bulkRemoveGipApplicants,
+    removeGipIntern,
+    bulkRemoveGipInterns,
     exportCsv,
     exportApplicantsCsv,
     fetchPriorityApplicants,

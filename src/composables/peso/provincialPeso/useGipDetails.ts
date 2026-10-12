@@ -78,6 +78,8 @@ export function useGipDetails() {
     closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,
+    removeGipIntern,
+    bulkRemoveGipInterns,
   } = store
 
   // ─── Query Sync ───
@@ -371,6 +373,112 @@ export function useGipDetails() {
     }
   })
 
+  // ─── Multi-Select State ───
+  const selectedInternIds = ref<string[]>([])
+
+  const isAllSelected = computed(() => {
+    if (paginatedInterns.value.length === 0) return false
+    return paginatedInterns.value.every((i) => selectedInternIds.value.includes(i.id))
+  })
+
+  const isIndeterminate = computed(() => {
+    if (isAllSelected.value) return false
+    return paginatedInterns.value.some((i) => selectedInternIds.value.includes(i.id))
+  })
+
+  const toggleSelectAll = (checked?: boolean | 'indeterminate') => {
+    const pageIds = paginatedInterns.value.map((i) => i.id)
+    if (pageIds.length === 0) return
+
+    const shouldSelect = typeof checked === 'boolean' ? checked : !isAllSelected.value
+    if (shouldSelect) {
+      const set = new Set([...selectedInternIds.value, ...pageIds])
+      selectedInternIds.value = Array.from(set)
+    } else {
+      selectedInternIds.value = selectedInternIds.value.filter((id) => !pageIds.includes(id))
+    }
+  }
+
+  const toggleSelectIntern = (id: string, checked?: boolean | 'indeterminate') => {
+    const shouldAdd = typeof checked === 'boolean' ? checked : !selectedInternIds.value.includes(id)
+    if (shouldAdd) {
+      if (!selectedInternIds.value.includes(id)) {
+        selectedInternIds.value.push(id)
+      }
+    } else {
+      selectedInternIds.value = selectedInternIds.value.filter((i) => i !== id)
+    }
+  }
+
+  const clearSelection = () => {
+    selectedInternIds.value = []
+  }
+
+  const deleteSingleIntern = async (internId: string) => {
+    await removeGipIntern(internId)
+    selectedInternIds.value = selectedInternIds.value.filter((id) => id !== internId)
+  }
+
+  const bulkDeleteSelectedInterns = async () => {
+    if (selectedInternIds.value.length === 0) return
+    const ids = [...selectedInternIds.value]
+    const result = await bulkRemoveGipInterns(ids)
+    if (result && result.successCount > 0) {
+      clearSelection()
+    }
+    return result
+  }
+
+  // ─── Delete Intern Modal State & Handlers ───
+  const internToDelete = ref<GipInternRecord | null>(null)
+  const isSingleDeleteDialogOpen = ref(false)
+  const isBulkDeleteDialogOpen = ref(false)
+  const isDeleting = ref(false)
+
+  const promptDeleteIntern = (intern: GipInternRecord) => {
+    internToDelete.value = intern
+    isSingleDeleteDialogOpen.value = true
+  }
+
+  const handleSingleDelete = async () => {
+    if (!internToDelete.value) return
+    isDeleting.value = true
+    try {
+      await deleteSingleIntern(internToDelete.value.id)
+      isSingleDeleteDialogOpen.value = false
+      internToDelete.value = null
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    isDeleting.value = true
+    try {
+      await bulkDeleteSelectedInterns()
+      isBulkDeleteDialogOpen.value = false
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
+  // ─── Documents Submitted Extraction ───
+  const internDocumentsSubmitted = computed<string[]>(() => {
+    if (!selectedIntern.value) return []
+    if (selectedIntern.value.rawApplicant?.documents_submitted && selectedIntern.value.rawApplicant.documents_submitted.length > 0) {
+      return selectedIntern.value.rawApplicant.documents_submitted
+    }
+    if (selectedIntern.value.documentsSubmitted && selectedIntern.value.documentsSubmitted.length > 0) {
+      return selectedIntern.value.documentsSubmitted
+    }
+    return []
+  })
+
+  watch(interns, (newList) => {
+    const validIds = new Set(newList.map((i) => i.id))
+    selectedInternIds.value = selectedInternIds.value.filter((id) => validIds.has(id))
+  })
+
   onMounted(() => {
     fetchDetailsData()
   })
@@ -446,6 +554,7 @@ export function useGipDetails() {
     LPII_CONFIG,
     donutTooltipTriggers,
     getInitials,
+    internDocumentsSubmitted,
 
     // Actions & Navigation
     goBack,
@@ -468,5 +577,24 @@ export function useGipDetails() {
     fetchApplicantsData,
     createGipApplication,
     createGipDeployment,
+
+    // Multi-Select & Delete Actions
+    selectedInternIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleSelectAll,
+    toggleSelectIntern,
+    clearSelection,
+    deleteSingleIntern,
+    bulkDeleteSelectedInterns,
+
+    // Delete Modal State & Actions
+    internToDelete,
+    isSingleDeleteDialogOpen,
+    isBulkDeleteDialogOpen,
+    isDeleting,
+    promptDeleteIntern,
+    handleSingleDelete,
+    handleBulkDelete,
   }
 }

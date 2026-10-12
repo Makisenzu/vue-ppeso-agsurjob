@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import {
   AlertCircle,
   ArrowLeft,
+  Check,
   Download,
   Eye,
   Filter,
   Loader2,
   MapPin,
+  Minus,
   Mountain,
   Pencil,
   RefreshCw,
@@ -26,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -42,22 +44,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { ApplicantStatusDataPoint, GipApplicantRecord, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
-import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
-import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
 import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
 import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicantNsrpDetails.vue'
-
-const gipStore = useGipStore()
-
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-const triggerFileInput = () => {
-  fileInputRef.value?.click()
-}
 
 const {
   applicants,
@@ -75,16 +68,24 @@ const {
   isLoading,
   searchQuery,
   statusTab,
+  toggleStatusTab,
   selectedLpiiFilter,
   selectedMonthFilter,
   selectedGenderFilter,
   selectedStatusFilter,
   currentPage,
   pageSize,
+  selectedApplicantIds,
+  isAllSelected,
+  isIndeterminate,
+  toggleSelectAll,
+  toggleSelectApplicant,
+  clearSelection,
   donutTooltipTriggers,
   statusDonutTooltipTriggers,
   getInitials,
   formatDateDisplay,
+  getApplicantDocuments,
   goBack,
   resetFilters,
   openApplicantDetails,
@@ -92,45 +93,28 @@ const {
   exportCsv,
   refreshApplicantsData,
   navigateToPriority,
-  removeGipApplicant,
+
+  // File Input & Batch Trigger
+  setFileInputRef,
+  triggerFileInput,
+  handleUploadBatchClick,
+
+  // Remove Dialog
+  applicantToRemove,
+  isRemoveDialogOpen,
+  isRemoving,
+  promptRemoveApplicant,
+  cancelRemoveApplicant,
+  confirmRemoveApplicant,
+
+  // Bulk Delete Dialog
+  isBulkDeleteDialogOpen,
+  isBulkDeleting,
+  handleBulkDelete,
+
+  // LPII Config
+  LPII_CONFIG,
 } = useGipApplicants()
-
-// ─── Remove Applicant State & Handlers ───
-const applicantToRemove = ref<GipApplicantRecord | null>(null)
-const isRemoveDialogOpen = ref(false)
-const isRemoving = ref(false)
-
-const promptRemoveApplicant = (applicant: GipApplicantRecord) => {
-  applicantToRemove.value = applicant
-  isRemoveDialogOpen.value = true
-}
-
-const cancelRemoveApplicant = () => {
-  isRemoveDialogOpen.value = false
-  applicantToRemove.value = null
-}
-
-const confirmRemoveApplicant = async () => {
-  if (!applicantToRemove.value) return
-  isRemoving.value = true
-  try {
-    await removeGipApplicant(applicantToRemove.value.id)
-    isRemoveDialogOpen.value = false
-    applicantToRemove.value = null
-  } catch {
-    // Toast notification handled in gipStore
-  } finally {
-    isRemoving.value = false
-  }
-}
-
-const toggleStatusTab = (status: string) => {
-  if (statusTab.value.toLowerCase() === status.toLowerCase()) {
-    statusTab.value = 'ALL'
-  } else {
-    statusTab.value = status
-  }
-}
 
 const {
   isDragging,
@@ -156,14 +140,6 @@ const {
   resetBatchState,
   downloadTemplate,
 } = useGipBatchUpload()
-
-const handleUploadBatchClick = () => {
-  if (applicants.value.length > 0) {
-    gipStore.openBatchUploadModal()
-  } else {
-    triggerFileInput()
-  }
-}
 </script>
 
 <template>
@@ -443,6 +419,18 @@ const handleUploadBatchClick = () => {
 
           <!-- Action buttons -->
           <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <!-- Delete Selected Button in Header Toolbar -->
+            <Button
+              v-if="selectedApplicantIds.length > 0"
+              variant="destructive"
+              size="sm"
+              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
+              @click="isBulkDeleteDialogOpen = true"
+            >
+              <Trash2 class="h-3.5 w-3.5" />
+              <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+            </Button>
+
             <!-- Priority Applicants Button -->
             <Button
               variant="outline"
@@ -462,7 +450,7 @@ const handleUploadBatchClick = () => {
               <span>Upload Batch</span>
             </Button>
             <input
-              ref="fileInputRef"
+              :ref="setFileInputRef"
               type="file"
               accept=".xlsx,.xls,.csv,.pdf"
               class="hidden"
@@ -558,11 +546,52 @@ const handleUploadBatchClick = () => {
       </CardHeader>
 
       <CardContent class="p-0">
+        <!-- ─── Bulk Action Bar ─── -->
+        <div
+          v-if="selectedApplicantIds.length > 0"
+          class="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-t border-b border-primary/20 text-xs text-foreground transition-all animate-in fade-in"
+        >
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary">{{ selectedApplicantIds.length }}</span>
+            <span class="text-muted-foreground">applicant{{ selectedApplicantIds.length > 1 ? 's' : '' }} selected</span>
+            <span class="text-muted-foreground">•</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              @click="clearSelection"
+            >
+              Clear selection
+            </Button>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
+            @click="isBulkDeleteDialogOpen = true"
+          >
+            <Trash2 class="h-3.5 w-3.5" />
+            <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+          </Button>
+        </div>
+
         <!-- ─── Table ─── -->
         <div class="relative overflow-x-auto border-t">
           <Table>
             <TableHeader class="bg-muted/40">
               <TableRow>
+                <TableHead class="w-12 px-4 text-center">
+                  <Checkbox
+                    :model-value="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+                    aria-label="Select all applicants on page"
+                    @update:model-value="toggleSelectAll"
+                  >
+                    <template #default="{ modelValue }">
+                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-[3]" />
+                      <Check v-else class="h-3.5 w-3.5" />
+                    </template>
+                  </Checkbox>
+                </TableHead>
                 <TableHead class="w-50 text-xs font-semibold">Applicant Information</TableHead>
                 <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
                 <TableHead class="text-xs font-semibold">LPII Classification</TableHead>
@@ -576,7 +605,7 @@ const handleUploadBatchClick = () => {
             <TableBody>
               <template v-if="isLoading">
                 <TableRow>
-                  <TableCell colspan="8" class="h-32 text-center text-muted-foreground">
+                  <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
                     <div class="flex flex-col items-center justify-center gap-2 py-4">
                       <Loader2 class="h-7 w-7 animate-spin text-muted-foreground" />
                       <p class="text-xs text-muted-foreground">Loading GIP applicant records...</p>
@@ -588,8 +617,19 @@ const handleUploadBatchClick = () => {
                 <TableRow
                   v-for="applicant in paginatedApplicants"
                   :key="applicant.id"
-                  class="transition-colors hover:bg-muted/30"
+                  :class="[
+                    'transition-colors hover:bg-muted/30',
+                    selectedApplicantIds.includes(applicant.id) ? 'bg-primary/5 dark:bg-primary/10' : '',
+                  ]"
                 >
+                  <!-- Multi-select Checkbox -->
+                  <TableCell class="py-3 px-4 text-center" @click.stop>
+                    <Checkbox
+                      :model-value="selectedApplicantIds.includes(applicant.id)"
+                      :aria-label="'Select ' + applicant.fullName"
+                      @update:model-value="(val) => toggleSelectApplicant(applicant.id, val)"
+                    />
+                  </TableCell>
                   <!-- Applicant Info -->
                   <TableCell class="py-3">
                     <div class="flex items-center gap-2.5">
@@ -664,9 +704,9 @@ const handleUploadBatchClick = () => {
                   <!-- Documents Submitted -->
                   <TableCell class="py-3">
                     <div class="flex flex-wrap items-center gap-1 max-w-50">
-                      <template v-if="(applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length > 0">
+                      <template v-if="getApplicantDocuments(applicant).length > 0">
                         <Badge
-                          v-for="doc in (applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).slice(0, 2)"
+                          v-for="doc in getApplicantDocuments(applicant).slice(0, 2)"
                           :key="doc"
                           variant="secondary"
                           class="text-[10px] px-1.5 py-0 font-normal truncate max-w-25"
@@ -675,11 +715,11 @@ const handleUploadBatchClick = () => {
                           {{ doc }}
                         </Badge>
                         <Badge
-                          v-if="(applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length > 2"
+                          v-if="getApplicantDocuments(applicant).length > 2"
                           variant="outline"
                           class="text-[10px] px-1.5 py-0 font-mono"
                         >
-                          +{{ (applicant.documentsSubmitted?.length ? applicant.documentsSubmitted : applicant.rawApplicant?.documents_submitted || []).length - 2 }}
+                          +{{ getApplicantDocuments(applicant).length - 2 }}
                         </Badge>
                       </template>
                       <span v-else class="text-[11px] text-muted-foreground">None submitted</span>
@@ -952,7 +992,7 @@ const handleUploadBatchClick = () => {
 
               <!-- Case B: Search or dropdown filters returned 0 matches -->
               <TableRow v-else>
-                <TableCell colspan="8" class="h-36 text-center text-muted-foreground">
+                <TableCell colspan="9" class="h-36 text-center text-muted-foreground">
                   <div class="flex flex-col items-center justify-center gap-2 py-4">
                     <Filter class="h-7 w-7 text-muted-foreground/50" />
                     <p class="text-sm font-semibold text-foreground">No applicant records match the selected criteria</p>
@@ -1086,6 +1126,45 @@ const handleUploadBatchClick = () => {
         >
           <Loader2 v-if="isRemoving" class="h-3.5 w-3.5 animate-spin" />
           <span>{{ isRemoving ? 'Removing...' : 'Confirm Remove' }}</span>
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ─── Bulk Remove Applicants Dialog ─── -->
+  <Dialog :open="isBulkDeleteDialogOpen" @update:open="isBulkDeleteDialogOpen = $event">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle class="text-destructive flex items-center gap-2">
+          <Trash2 class="h-5 w-5" />
+          <span>Remove Selected GIP Applicants</span>
+        </DialogTitle>
+        <DialogDescription class="text-xs leading-relaxed">
+          Are you sure you want to remove <strong class="text-foreground">{{ selectedApplicantIds.length }}</strong> selected applicant record{{ selectedApplicantIds.length > 1 ? 's' : '' }} from the GIP registry?
+          Note: Applicants who have active deployments in GIP will not be removed.
+        </DialogDescription>
+      </DialogHeader>
+
+      <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="text-xs cursor-pointer"
+          :disabled="isBulkDeleting"
+          @click="isBulkDeleteDialogOpen = false"
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          class="text-xs gap-1.5 cursor-pointer"
+          :disabled="isBulkDeleting"
+          @click="handleBulkDelete"
+        >
+          <Loader2 v-if="isBulkDeleting" class="h-3.5 w-3.5 animate-spin" />
+          <Trash2 v-else class="h-3.5 w-3.5" />
+          <span>{{ isBulkDeleting ? 'Removing...' : `Remove ${selectedApplicantIds.length} Applicants` }}</span>
         </Button>
       </DialogFooter>
     </DialogContent>
