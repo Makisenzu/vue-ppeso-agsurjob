@@ -18,11 +18,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'provincial-peso-dashboard',
-        component: PPESODashboard
+        component: PPESODashboard,
+        meta: { breadcrumb: 'Dashboard' },
       },
       {
         path: 'skills-repository',
-        meta: { breadcrumb: 'Skills Repository', breadcrumbTo: { name: 'provincial-peso-skills-repository' } },
+        meta: { breadcrumb: 'Skill Tagging', breadcrumbTo: { name: 'provincial-peso-skills-repository' } },
         children: [
           {
             path: '',
@@ -38,7 +39,7 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
         ],
       },
-      // ─── GIP (nested group for breadcrumb hierarchy: GIP > Details / Applicants) ───
+      // ─── GIP (breadcrumb hierarchy: GIP > Details > Deploy Intern / GIP > Applicants > Applicant Details / Priority Ranking) ───
       {
         path: 'gip',
         meta: { breadcrumb: 'GIP', breadcrumbTo: { name: 'provincial-peso-gip' } },
@@ -51,33 +52,45 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
           {
             path: 'details',
-            name: 'provincial-peso-gip-details',
-            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipDetails.vue'),
-            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Details' },
+            meta: { breadcrumb: 'Details', breadcrumbTo: { name: 'provincial-peso-gip-details' } },
+            children: [
+              {
+                path: '',
+                name: 'provincial-peso-gip-details',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipDetails.vue'),
+                meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+              },
+              {
+                path: 'deploy',
+                name: 'provincial-peso-gip-add',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddIntern.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Deploy Intern' },
+              },
+            ],
           },
           {
             path: 'applicants',
-            name: 'provincial-peso-gip-applicants',
-            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
-            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicants' },
-          },
-          {
-            path: 'applicants/:id',
-            name: 'provincial-peso-gip-applicant-details',
-            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
-            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicant Details' },
-          },
-          {
-            path: 'priority',
-            name: 'provincial-peso-gip-priority',
-            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipPriorityApplicants.vue'),
-            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Priority Ranking' },
-          },
-          {
-            path: 'deploy',
-            name: 'provincial-peso-gip-add',
-            component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddIntern.vue'),
-            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Deploy Intern' },
+            meta: { breadcrumb: 'Applicants', breadcrumbTo: { name: 'provincial-peso-gip-applicants' } },
+            children: [
+              {
+                path: '',
+                name: 'provincial-peso-gip-applicants',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
+                meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+              },
+              {
+                path: 'priority',
+                name: 'provincial-peso-gip-priority',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipPriorityApplicants.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Priority Ranking' },
+              },
+              {
+                path: ':id',
+                name: 'provincial-peso-gip-applicant-details',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicant Details' },
+              },
+            ],
           },
         ],
       },
@@ -85,42 +98,42 @@ export const pesoRoutes: RouteRecordRaw[] = [
         path: 'spes',
         name: 'provincial-peso-spes',
         component: SPESDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'SPES' }
       },
       {
         path: 'job-fair',
         name: 'provincial-peso-job-fair',
         component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFair.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Job Fair' }
       },
       {
         path: 'tupad',
         name: 'provincial-peso-tupad',
         component: TupadDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'TUPAD' }
       },
       {
         path: 'fnplp',
         name: 'provincial-peso-fnplp',
         component: FnplpDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'FNPLP / OFW' }
       },
       {
         path: 'lra',
         name: 'provincial-peso-lra',
         component: LRADashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'LRA' }
       },
       {
         path: 'sra',
         name: 'provincial-peso-sra',
         component: SRADashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso' }
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'SRA' }
       },
-      // ─── Applicant Entry (nested group for breadcrumb hierarchy: Applicant Entry > Details / New) ───
+      // ─── Applicant Entry (nested group for breadcrumb hierarchy: Entry of Applicants > Details / New) ───
       {
         path: 'entry',
-        meta: { breadcrumb: 'Applicant Entry', breadcrumbTo: { name: 'provincial-peso-entry' } },
+        meta: { breadcrumb: 'Entry of Applicants', breadcrumbTo: { name: 'provincial-peso-entry' } },
         children: [
           {
             path: '',
