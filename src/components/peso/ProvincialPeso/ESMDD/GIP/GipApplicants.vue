@@ -587,7 +587,7 @@ const {
                     @update:model-value="toggleSelectAll"
                   >
                     <template #default="{ modelValue }">
-                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-[3]" />
+                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-3" />
                       <Check v-else class="h-3.5 w-3.5" />
                     </template>
                   </Checkbox>
