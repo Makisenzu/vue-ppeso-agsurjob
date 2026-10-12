@@ -14,6 +14,7 @@ import type {
   ApplicantRow,
   GipApplicantInsert,
   GipApplicantUpdate,
+  GipApplicantReviewPayload,
   GipInsert,
   GipUpdate,
   GipAppointmentRecord,
@@ -650,6 +651,76 @@ export const gipService = {
       if (error) throw new Error(error.message || 'Failed to update GIP application.')
       invalidateGipCaches({ applicants: true })
       return data as GipApplicantRow
+    }
+  },
+
+  /**
+   * Updates a GIP applicant's status and submitted documents.
+   * Documents are written to both esmdd.gip_applicants and applicants.applicants because
+   * the registry displays the applicant's own checklist first.
+   */
+  async updateGipApplicantReview(payload: GipApplicantReviewPayload): Promise<void> {
+    const allowedStatuses = ['Pending', 'Approved', 'Rejected']
+    if (!allowedStatuses.includes(payload.status)) {
+      throw new Error(`Invalid GIP applicant status: ${payload.status}`)
+    }
+
+    const { data: current, error: fetchErr } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .select('id, status')
+      .eq('id', payload.applicationId)
+      .maybeSingle()
+
+    if (fetchErr) throw new Error(fetchErr.message || 'Failed to load GIP application.')
+    if (!current) throw new Error('GIP application record not found.')
+
+    const isHired = ['hired', 'deployed'].includes((current.status || '').trim().toLowerCase())
+    if (isHired && current.status !== payload.status) {
+      throw new Error('Hired applicants are managed through their GIP deployment; their status cannot be changed here.')
+    }
+
+    const documents = Array.from(new Set(payload.documentsSubmitted.map((d) => d.trim()).filter(Boolean)))
+    const now = new Date().toISOString()
+
+    const { data: updatedApp, error: appErr } = await supabase
+      .schema('esmdd')
+      .from('gip_applicants')
+      .update({
+        status: isHired ? current.status : payload.status,
+        document_submitted: documents.length > 0 ? documents : null,
+        updated_at: now,
+      })
+      .eq('id', payload.applicationId)
+      .select('id')
+
+    if (appErr) throw new Error(appErr.message || 'Failed to update GIP application.')
+    if (!updatedApp || updatedApp.length === 0) {
+      throw new Error('Update affected 0 rows. You may not have permission to edit GIP applications.')
+    }
+    invalidateGipCaches({ applicants: true })
+
+    if (payload.applicantId) {
+      const { data: updatedApplicant, error: applicantErr } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .update({
+          documents_submitted: documents.length > 0 ? documents : null,
+          updated_at: now,
+        })
+        .eq('id', payload.applicantId)
+        .select('id')
+
+      if (applicantErr) {
+        throw new Error(applicantErr.message || 'GIP status saved, but the applicant documents could not be updated.')
+      }
+      if (!updatedApplicant || updatedApplicant.length === 0) {
+        throw new Error(
+          'GIP status saved, but the applicant documents were not updated. Please execute migration 004_applicants_peso_policy.sql to grant UPDATE permission on applicants.applicants.'
+        )
+      }
+      invalidateApplicantEntryCache()
+      invalidateGipCaches({ applicants: true })
     }
   },
 

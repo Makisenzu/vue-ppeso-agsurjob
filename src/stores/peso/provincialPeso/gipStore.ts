@@ -14,6 +14,7 @@ import type {
   LpiiDataPoint,
   GipRenewAppointmentPayload,
   GipConcludeAppointmentPayload,
+  GipApplicantReviewPayload,
 } from '@/types/peso/provincialPeso/gip'
 import {
   gipService,
@@ -533,6 +534,11 @@ export const useGipStore = defineStore('gipStore', () => {
   const isAddApplicantModalOpen = ref<boolean>(false)
   const isBatchUploadModalOpen = ref<boolean>(false)
 
+  // ─── Edit Applicant Status & Documents State ───
+  const applicantToEdit = ref<GipApplicantRecord | null>(null)
+  const isEditApplicantDialogOpen = ref<boolean>(false)
+  const isSavingApplicantReview = ref<boolean>(false)
+
   // ─── Priority Applicants Ranking State ───
   const priorityApplicants = ref<GipPriorityApplicantRecord[]>([])
   const isPriorityModalOpen = ref<boolean>(false)
@@ -696,8 +702,8 @@ export const useGipStore = defineStore('gipStore', () => {
         applicantMaleLpiiData.value = cachedLpii.male
         applicantFemaleLpiiData.value = cachedLpii.female
       }
-      isLoading.value = cachedApplicants === null || cachedLpii === null
-    } else {
+      if (!silent) isLoading.value = cachedApplicants === null || cachedLpii === null
+    } else if (!silent) {
       isLoading.value = true
     }
 
@@ -720,10 +726,14 @@ export const useGipStore = defineStore('gipStore', () => {
       }
     } catch (err: any) {
       const msg = err.message || 'Failed to load GIP applicants and demographic registry.'
-      errorMessage.value = msg
-      toastAlert.error('Error Loading Applicants', msg)
+      if (silent) {
+        console.error('[gipStore] Background applicant sync failed:', err)
+      } else {
+        errorMessage.value = msg
+        toastAlert.error('Error Loading Applicants', msg)
+      }
     } finally {
-      isLoading.value = false
+      if (!silent) isLoading.value = false
     }
   }
 
@@ -789,6 +799,63 @@ export const useGipStore = defineStore('gipStore', () => {
 
   const closeAddApplicantModal = () => {
     isAddApplicantModalOpen.value = false
+  }
+
+  const openEditApplicantDialog = (app: GipApplicantRecord) => {
+    applicantToEdit.value = app
+    isEditApplicantDialogOpen.value = true
+  }
+
+  const closeEditApplicantDialog = () => {
+    isEditApplicantDialogOpen.value = false
+    applicantToEdit.value = null
+  }
+
+  // Patch the edited row in place so the table updates without a loading state
+  const applyApplicantReviewLocally = (payload: GipApplicantReviewPayload) => {
+    const patch = (a: GipApplicantRecord): GipApplicantRecord => {
+      const isHired = ['hired', 'deployed'].includes((a.status || '').trim().toLowerCase())
+      const status = isHired ? a.status : payload.status
+      const docs = [...payload.documentsSubmitted]
+      return {
+        ...a,
+        status,
+        documentsSubmitted: docs,
+        rawApplication: a.rawApplication
+          ? { ...a.rawApplication, status, document_submitted: docs.length > 0 ? docs : null }
+          : a.rawApplication,
+        rawApplicant: a.rawApplicant
+          ? { ...a.rawApplicant, documents_submitted: docs.length > 0 ? docs : null }
+          : a.rawApplicant,
+      }
+    }
+
+    applicants.value = applicants.value.map((a) => (a.id === payload.applicationId ? patch(a) : a))
+    if (selectedApplicant.value?.id === payload.applicationId) {
+      selectedApplicant.value = patch(selectedApplicant.value)
+    }
+  }
+
+  const updateApplicantReview = async (payload: GipApplicantReviewPayload): Promise<boolean> => {
+    isSavingApplicantReview.value = true
+    try {
+      await gipService.updateGipApplicantReview(payload)
+      applyApplicantReviewLocally(payload)
+      toastAlert.success('Applicant Updated', 'GIP status and submitted documents have been saved.')
+      closeEditApplicantDialog()
+
+      // Background re-sync (priority ranking, server defaults) without showing a loading state
+      fetchApplicantsData(true, true).catch(() => {})
+      return true
+    } catch (err: any) {
+      console.error('[gipStore] Failed to update applicant review:', err)
+      toastAlert.error('Update Failed', err.message || 'Could not update GIP applicant.')
+      // A partial save (GIP row updated, applicant row not) still changed data — resync the table
+      fetchApplicantsData(true, true).catch(() => {})
+      return false
+    } finally {
+      isSavingApplicantReview.value = false
+    }
   }
 
   const openBatchUploadModal = () => {
@@ -1037,6 +1104,9 @@ export const useGipStore = defineStore('gipStore', () => {
     isApplicantDetailsModalOpen,
     isAddApplicantModalOpen,
     isBatchUploadModalOpen,
+    applicantToEdit,
+    isEditApplicantDialogOpen,
+    isSavingApplicantReview,
     selectedInternForRenewal,
     isRenewalDialogOpen,
     isSubmittingRenewal,
@@ -1133,5 +1203,8 @@ export const useGipStore = defineStore('gipStore', () => {
     renewInternAppointment,
     concludeInternAppointment,
     addReferredApplicant,
+    openEditApplicantDialog,
+    closeEditApplicantDialog,
+    updateApplicantReview,
   }
 })

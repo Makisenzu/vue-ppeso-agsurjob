@@ -118,6 +118,69 @@ Located in [`src/components/ui/`](file:///c:/Users/Denmark%20B.%20Rivera/OneDriv
 > 3. **DO NOT install** Vuetify, Element Plus, Quasar, PrimeVue, or any other component library.
 > 4. Custom shared components live **outside** `ui/` at the `src/components/` root or role subdirectories.
 
+### 5.1 Component Usage — Use Installed Primitives, Don't Create Wrappers
+
+The project has **40 shadcn-vue primitives** already installed. When you need a dialog, drawer, alert, dropdown, popover, tooltip, or any other standard UI pattern, **use the installed shadcn-vue component directly** in your template. **DO NOT create a new `.vue` wrapper file** for something that shadcn-vue already provides.
+
+#### UI Need → shadcn-vue Component Mapping
+
+| UI Need                          | Use This Component(s)                                | ❌ Do NOT Create                     |
+| -------------------------------- | ---------------------------------------------------- | ------------------------------------ |
+| Modal / confirmation popup       | `Dialog`, `AlertDialog`                              | `ConfirmModal.vue`, `MyDialog.vue`   |
+| Side panel / overlay form        | `Sheet`, `Drawer`                                    | `SidePanel.vue`, `SlideOver.vue`     |
+| Dropdown actions / context menu  | `DropdownMenu`                                       | `ActionMenu.vue`, `ContextMenu.vue`  |
+| Inline expandable content        | `Collapsible`, `Accordion`                           | `ExpandSection.vue`                  |
+| Tooltip / info hover             | `Tooltip`, `HoverCard`                               | `InfoPopup.vue`, `HoverInfo.vue`     |
+| Floating content / picker        | `Popover`                                            | `FloatingPanel.vue`                  |
+| Selection dropdown               | `Select`, `Combobox`, `NativeSelect`                 | `CustomSelect.vue`                   |
+| Notifications / feedback         | `useToastAlert()` (wraps `Sonner`)                   | `NotificationBanner.vue`             |
+| Destructive confirmation         | `AlertDialog`                                        | `DeleteConfirm.vue`                  |
+| Step-by-step flow                | `Stepper`                                            | `WizardStepper.vue`                  |
+| Loading placeholder              | `Skeleton`                                           | `LoadingPlaceholder.vue`             |
+| Empty state                      | `Empty`                                              | `NoDataFound.vue`                    |
+| Progress indicator               | `Progress`                                           | `ProgressBar.vue`                    |
+
+#### Correct Pattern — Inline Composition
+
+Compose shadcn-vue primitives **directly in the parent component's template**:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+
+const open = ref(false)
+</script>
+
+<template>
+  <Button @click="open = true">Open Dialog</Button>
+
+  <Dialog v-model:open="open">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Confirm Action</DialogTitle>
+        <DialogDescription>Are you sure you want to proceed?</DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" @click="open = false">Cancel</Button>
+        <Button @click="handleConfirm">Confirm</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>
+```
+
+#### When Is a Custom Component Justified?
+
+Only create a new `.vue` component when you are composing **significant business logic or role-specific layout** that goes beyond what a single shadcn-vue primitive provides — for example, a `UserAccountsTable.vue` that wires up `@tanstack/vue-table` with column definitions, search, pagination, and row actions. Simple structural wrappers around a single primitive (like a "ConfirmDialog" that just wraps `<AlertDialog>`) are **NOT justified**.
+
+> [!CAUTION]
+> 1. **DO NOT create new `.vue` files** that merely wrap a single shadcn-vue primitive (Dialog, Sheet, Drawer, AlertDialog, Popover, etc.).
+> 2. **Compose primitives inline** in the parent component's `<template>` where they are used.
+> 3. If the same dialog/sheet pattern is reused across **3+ unrelated components**, extract it — but import and extend the shadcn-vue primitive, never re-implement its functionality.
+> 4. **Always check the installed primitives list** (Section 5) before building any UI pattern from scratch.
+
 ---
 
 ## 6. Icons — Lucide Vue

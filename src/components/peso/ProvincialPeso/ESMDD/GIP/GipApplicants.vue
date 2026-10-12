@@ -7,6 +7,7 @@ import {
   Eye,
   Filter,
   Loader2,
+  Lock,
   MapPin,
   Minus,
   Mountain,
@@ -51,6 +52,24 @@ import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatch
 import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
 import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
 import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicantNsrpDetails.vue'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Label } from '@/components/ui/label'
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useGipEditApplicant } from '@/composables/peso/provincialPeso/useGipEditApplicant'
 
 const {
   applicants,
@@ -90,6 +109,7 @@ const {
   resetFilters,
   openApplicantDetails,
   closeApplicantDetails,
+  openEditApplicantDialog,
   exportCsv,
   refreshApplicantsData,
   navigateToPriority,
@@ -140,6 +160,22 @@ const {
   resetBatchState,
   downloadTemplate,
 } = useGipBatchUpload()
+
+const {
+  applicantToEdit,
+  isEditApplicantDialogOpen,
+  isSavingApplicantReview,
+  isEditingHiredApplicant,
+  editStatusOptions,
+  editDocuments,
+  editDocumentOptions,
+  lockedDocument,
+  isExtraDocument,
+  toggleEditDocument,
+  onEditDialogOpenChange,
+  closeEditApplicantDialog,
+  saveApplicantReview,
+} = useGipEditApplicant()
 </script>
 
 <template>
@@ -774,6 +810,16 @@ const {
                       <Button
                         variant="ghost"
                         size="sm"
+                        class="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                        title="Edit status & documents"
+                        :aria-label="'Edit ' + applicant.fullName"
+                        @click="openEditApplicantDialog(applicant)"
+                      >
+                        <Pencil class="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                         title="Remove from GIP Registry"
                         @click="promptRemoveApplicant(applicant)"
@@ -1054,11 +1100,102 @@ const {
     </Card>
   </div>
 
-  <!-- ─── ADD SINGLE APPLICANT DIALOG ─── -->
-  <GipAddApplicantDialog />
-
   <!-- ─── BATCH IMPORT APPLICANTS DIALOG ─── -->
   <GipBatchUploadDialog />
+
+  <!-- ─── EDIT APPLICANT STATUS & DOCUMENTS DIALOG ─── -->
+  <Dialog :open="isEditApplicantDialogOpen" @update:open="onEditDialogOpenChange">
+    <DialogContent class="sm:max-w-lg">
+      <form class="grid gap-5" @submit="saveApplicantReview">
+        <DialogHeader>
+          <DialogTitle>Edit GIP Applicant</DialogTitle>
+          <DialogDescription v-if="applicantToEdit" class="truncate">
+            {{ applicantToEdit.fullName }} · {{ applicantToEdit.code }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <Alert v-if="isEditingHiredApplicant">
+          <Lock class="size-4 shrink-0" />
+          <AlertTitle>Status locked</AlertTitle>
+          <AlertDescription>
+            This applicant is Hired. Their status is managed through the GIP deployment; only documents can be edited here.
+          </AlertDescription>
+        </Alert>
+
+        <FormField v-else v-slot="{ componentField }" name="status">
+          <FormItem>
+            <FormLabel>Application Status</FormLabel>
+            <Select v-bind="componentField" :disabled="isSavingApplicantReview">
+              <FormControl>
+                <SelectTrigger class="w-full">
+                  <SelectValue placeholder="Select a status" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem v-for="opt in editStatusOptions" :key="opt" :value="opt">
+                  {{ opt }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField name="documentsSubmitted">
+          <FormItem>
+            <FormLabel>Documents Submitted</FormLabel>
+            <FormDescription>
+              Same checklist as the applicant entry form. NSRP is always included, and changes also update the applicant's registry record.
+            </FormDescription>
+            <FormControl>
+              <div role="group" class="grid gap-2 sm:grid-cols-2">
+                <Label
+                  v-for="doc in editDocumentOptions"
+                  :key="doc"
+                  :class="[
+                    'flex items-center gap-2.5 rounded-lg border p-3 font-normal transition-colors',
+                    editDocuments.includes(doc) ? 'border-primary/40 bg-primary/5' : 'hover:bg-muted/50',
+                    doc === lockedDocument ? 'cursor-default' : 'cursor-pointer',
+                  ]"
+                >
+                  <Checkbox
+                    :model-value="editDocuments.includes(doc)"
+                    :disabled="doc === lockedDocument || isSavingApplicantReview"
+                    @update:model-value="toggleEditDocument(doc)"
+                  />
+                  <span class="min-w-0 flex-1 truncate" :title="doc">{{ doc }}</span>
+                  <Badge v-if="doc === lockedDocument" variant="secondary">Required</Badge>
+                  <Badge
+                    v-else-if="isExtraDocument(doc)"
+                    variant="outline"
+                    title="Not part of the standard checklist — uncheck to remove"
+                  >
+                    Other
+                  </Badge>
+                </Label>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isSavingApplicantReview"
+            @click="closeEditApplicantDialog"
+          >
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="isSavingApplicantReview || !applicantToEdit">
+            <Loader2 v-if="isSavingApplicantReview" class="size-4 shrink-0 animate-spin" />
+            {{ isSavingApplicantReview ? 'Saving...' : 'Save Changes' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 
   <!-- ─── EDIT SCANNED CANDIDATE DIALOG (INLINE TABLE SUPPORT) ─── -->
   <GipEditCandidateDialog

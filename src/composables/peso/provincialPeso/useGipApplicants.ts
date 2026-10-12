@@ -67,6 +67,7 @@ export function useGipApplicants() {
     exportPriorityCsv,
     removeGipApplicant,
     bulkRemoveGipApplicants,
+    openEditApplicantDialog,
   } = store
 
   // ─── Selected Applicant for Details (Component & Route Sync) ───
@@ -383,6 +384,7 @@ export function useGipApplicants() {
     resetFilters: resetApplicantFilters,
     openApplicantDetails,
     closeApplicantDetails,
+    openEditApplicantDialog,
     openAddApplicantModal,
     closeAddApplicantModal,
     openBatchUploadModal,

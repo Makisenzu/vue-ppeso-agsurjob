@@ -21,6 +21,15 @@ export type GipInternStatus = 'Active' | 'Hired' | 'Resigned' | 'Completed' | 'P
 
 export type ApplicantStatus = 'Hired' | 'Pending' | 'Approved' | 'Rejected'
 
+export type EditableGipApplicantStatus = Exclude<ApplicantStatus, 'Hired'>
+
+export interface GipApplicantReviewPayload {
+  applicationId: string
+  applicantId: string | null
+  status: EditableGipApplicantStatus
+  documentsSubmitted: string[]
+}
+
 export interface ApplicantStatusDataPoint {
   status: ApplicantStatus
   label: string
