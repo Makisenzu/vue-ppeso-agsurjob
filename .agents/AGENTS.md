@@ -1,5 +1,13 @@
 # AGSURJOBS — Master Agent
 
+# Execution Rules
+
+- **Terminal Commands**: Always prefix CLI/terminal commands with `rtk` to reduce output token usage.
+  - Use `rtk git status` instead of `git status`
+  - Use `rtk git diff` instead of `git diff`
+  - Use `rtk npm test` or `rtk vitest` instead of plain test runners
+  - Use `rtk pnpm` / `rtk npm` for package listing or management tasks
+
 > **Purpose**: This is the **authoritative primary entry point** for all AI coding agents working on the AGSURJOBS codebase.
 > Every AI model — regardless of provider (Claude, Gemini, GPT, Copilot, Cursor, etc.) — **MUST read this file first**
 > before executing ANY coding request. This document defines the project structure, global constraints,
@@ -11,33 +19,34 @@
 
 > [!CAUTION]
 > **BEFORE writing, modifying, or deleting ANY code**, you MUST:
+>
 > 1. **Identify which specialized agents apply** to your task using the Registry & Task Matrix below.
 > 2. **Read the relevant specialized agent file(s)** and follow their rules strictly.
 > 3. **Never skip an applicable agent** — violating a specialized agent's rules is considered a project constraint violation.
 
 ### Specialized Agent Registry
 
-| Agent File | Domain | Key Responsibilities | Read When... |
-|---|---|---|---|
-| [`BACKEND.md`](.agents/BACKEND.md) | **Service Layer & State** | 5-layer architecture, Pinia setup stores, Services, Composables, Caching, Helpers, File uploads | Writing/modifying any service, store, composable, or backend data flow |
-| [`DATABASE.md`](.agents/DATABASE.md) | **Database & Schema** | Multi-schema architecture (`public`, `core`, `applicants`, `employers`, `jobs`, `system`, `esmdd`), typed queries, RPCs, migrations | Writing queries, defining/deriving types, referencing tables/schemas |
-| [`DESIGN.md`](.agents/DESIGN.md) | **UI & Design System** | `oklch` tokens, Tailwind CSS v4, shadcn-vue (`reka-vega`), Lucide icons, Dark mode, Layouts, Motion | Creating/modifying `.vue` components, layouts, styling, or animations |
-| [`SECURITY.md`](.agents/SECURITY.md) | **Auth & Access Control** | Client route guards, Supabase Auth/JWT, RLS policies, SECURITY DEFINER functions, Password validation | Touching auth, role permissions, route guards, or sensitive operations |
+| Agent File                           | Domain                    | Key Responsibilities                                                                                                                | Read When...                                                           |
+| ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [`BACKEND.md`](.agents/BACKEND.md)   | **Service Layer & State** | 5-layer architecture, Pinia setup stores, Services, Composables, Caching, Helpers, File uploads                                     | Writing/modifying any service, store, composable, or backend data flow |
+| [`DATABASE.md`](.agents/DATABASE.md) | **Database & Schema**     | Multi-schema architecture (`public`, `core`, `applicants`, `employers`, `jobs`, `system`, `esmdd`), typed queries, RPCs, migrations | Writing queries, defining/deriving types, referencing tables/schemas   |
+| [`DESIGN.md`](.agents/DESIGN.md)     | **UI & Design System**    | `oklch` tokens, Tailwind CSS v4, shadcn-vue (`reka-vega`), Lucide icons, Dark mode, Layouts, Motion                                 | Creating/modifying `.vue` components, layouts, styling, or animations  |
+| [`SECURITY.md`](.agents/SECURITY.md) | **Auth & Access Control** | Client route guards, Supabase Auth/JWT, RLS policies, SECURITY DEFINER functions, Password validation                               | Touching auth, role permissions, route guards, or sensitive operations |
 
 ### Task-to-Agent Mapping
 
-| Task | Required Agents |
-|---|---|
-| **New Full-Stack Feature** | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) + [`DESIGN.md`](.agents/DESIGN.md) + [`SECURITY.md`](.agents/SECURITY.md) |
-| **New / Modify Vue Component** | [`DESIGN.md`](.agents/DESIGN.md) (+ [`BACKEND.md`](.agents/BACKEND.md) if connecting to stores/composables) |
-| **New / Modify Supabase Query** | [`DATABASE.md`](.agents/DATABASE.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md) |
-| **New / Modify Pinia Store** | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) |
-| **Fix Styling / Dark Mode / Layout** | [`DESIGN.md`](.agents/DESIGN.md) |
-| **Auth / Login / Registration Flow** | [`SECURITY.md`](.agents/SECURITY.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) |
-| **Route / Navigation / Guard Change** | [`SECURITY.md`](.agents/SECURITY.md) + [`DESIGN.md`](.agents/DESIGN.md) |
-| **Type Definition / Schema Update** | [`DATABASE.md`](.agents/DATABASE.md) |
-| **File Upload / Media Storage** | [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md) |
-| **Data Tables / Data Visualizations** | [`DESIGN.md`](.agents/DESIGN.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) |
+| Task                                  | Required Agents                                                                                                                                     |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New Full-Stack Feature**            | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) + [`DESIGN.md`](.agents/DESIGN.md) + [`SECURITY.md`](.agents/SECURITY.md) |
+| **New / Modify Vue Component**        | [`DESIGN.md`](.agents/DESIGN.md) (+ [`BACKEND.md`](.agents/BACKEND.md) if connecting to stores/composables)                                         |
+| **New / Modify Supabase Query**       | [`DATABASE.md`](.agents/DATABASE.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md)                                    |
+| **New / Modify Pinia Store**          | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                                                           |
+| **Fix Styling / Dark Mode / Layout**  | [`DESIGN.md`](.agents/DESIGN.md)                                                                                                                    |
+| **Auth / Login / Registration Flow**  | [`SECURITY.md`](.agents/SECURITY.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                    |
+| **Route / Navigation / Guard Change** | [`SECURITY.md`](.agents/SECURITY.md) + [`DESIGN.md`](.agents/DESIGN.md)                                                                             |
+| **Type Definition / Schema Update**   | [`DATABASE.md`](.agents/DATABASE.md)                                                                                                                |
+| **File Upload / Media Storage**       | [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md)                                                                           |
+| **Data Tables / Data Visualizations** | [`DESIGN.md`](.agents/DESIGN.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                        |
 
 ---
 
@@ -48,27 +57,27 @@ It serves 5 user roles: **Admin**, **Applicant**, **Employer** (company_owner/co
 
 ### Technology Stack — DO NOT CHANGE
 
-| Layer           | Technology                                                         |
-| --------------- | ------------------------------------------------------------------ |
-| Framework       | **Vue 3** (Composition API with `<script setup lang="ts">`)       |
-| Build Tool      | **Vite 8** with `@vitejs/plugin-vue`                               |
-| Language        | **TypeScript** (strict)                                            |
-| State           | **Pinia 3** (setup stores using `defineStore('name', () => {})`)   |
-| Routing         | **Vue Router 4** (history mode)                                    |
-| Backend/DB      | **Supabase** (multi-schema: `public`, `core`, `applicants`, `employers`, `jobs`, `system`, `esmdd`) |
-| UI Components   | **shadcn-vue** (reka-vega style, reka-ui base) + Tailwind CSS v4   |
-| Styling         | **Tailwind CSS v4** with `@tailwindcss/vite` plugin                |
-| Icons           | **Lucide Vue** (`@lucide/vue`)                                     |
-| Animations      | **@vueuse/motion**, `tw-animate-css`, Vue `<transition>` / `<TransitionGroup>` |
-| Forms           | **vee-validate** + **zod** (`@vee-validate/zod`)                   |
-| Data Tables     | **@tanstack/vue-table**                                            |
-| Maps            | **mapbox-gl**                                                      |
-| Toast/Alerts    | Custom `useToastAlert` composable (NOT vue-sonner directly in components) |
-| Date Handling   | **date-fns**                                                       |
-| HTTP            | **axios** (for external APIs only; all Supabase calls use the JS client) |
-| Charts          | **@unovis/vue** + **@unovis/ts**                                  |
-| Font            | **Nunito Sans** (Google Fonts, imported in `style.css`)            |
-| Path Alias      | `@` → `./src` (configured in `vite.config.ts`)                    |
+| Layer         | Technology                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| Framework     | **Vue 3** (Composition API with `<script setup lang="ts">`)                                         |
+| Build Tool    | **Vite 8** with `@vitejs/plugin-vue`                                                                |
+| Language      | **TypeScript** (strict)                                                                             |
+| State         | **Pinia 3** (setup stores using `defineStore('name', () => {})`)                                    |
+| Routing       | **Vue Router 4** (history mode)                                                                     |
+| Backend/DB    | **Supabase** (multi-schema: `public`, `core`, `applicants`, `employers`, `jobs`, `system`, `esmdd`) |
+| UI Components | **shadcn-vue** (reka-vega style, reka-ui base) + Tailwind CSS v4                                    |
+| Styling       | **Tailwind CSS v4** with `@tailwindcss/vite` plugin                                                 |
+| Icons         | **Lucide Vue** (`@lucide/vue`)                                                                      |
+| Animations    | **@vueuse/motion**, `tw-animate-css`, Vue `<transition>` / `<TransitionGroup>`                      |
+| Forms         | **vee-validate** + **zod** (`@vee-validate/zod`)                                                    |
+| Data Tables   | **@tanstack/vue-table**                                                                             |
+| Maps          | **mapbox-gl**                                                                                       |
+| Toast/Alerts  | Custom `useToastAlert` composable (NOT vue-sonner directly in components)                           |
+| Date Handling | **date-fns**                                                                                        |
+| HTTP          | **axios** (for external APIs only; all Supabase calls use the JS client)                            |
+| Charts        | **@unovis/vue** + **@unovis/ts**                                                                    |
+| Font          | **Nunito Sans** (Google Fonts, imported in `style.css`)                                             |
+| Path Alias    | `@` → `./src` (configured in `vite.config.ts`)                                                      |
 
 ---
 
@@ -137,25 +146,29 @@ src/
 ## 3. Universal Architectural Constraints
 
 ### 3.1 Layered Data Flow
+
 ```
 Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──► Service (xxxService) ──► Supabase / Types
 ```
+
 - **Components** never call Supabase or services directly; use composables/stores.
 - **Services** are stateless pure TypeScript modules — never import Vue reactivity (`ref`, `computed`).
 - **Stores** manage reactive state and delegate operations to services.
 - **Helpers** are pure, stateless utility functions with no side effects.
 
 ### 3.2 Routing & Role Prefixes
-| Role | Path Prefix | Layout | Meta `role` Value |
-|---|---|---|---|
-| Auth (public) | `/login`, `/signup` | `AuthLayout` | _(none)_ |
-| Admin | `/admin` | `AdminLayout` | `'admin'` |
-| Applicant | `/app` | `ApplicantLayout` | `'applicant'` |
-| Employer | `/employer` | `EmployerLayout` | `'company_owner'` |
-| Provincial PESO | `/provincial-peso` | `ProvincialPesoLayout` | `'provincial_peso'` |
-| Municipal PESO | `/municipal-peso` | `MunicipalPesoLayout` | `'municipal_peso'` |
+
+| Role            | Path Prefix         | Layout                 | Meta `role` Value   |
+| --------------- | ------------------- | ---------------------- | ------------------- |
+| Auth (public)   | `/login`, `/signup` | `AuthLayout`           | _(none)_            |
+| Admin           | `/admin`            | `AdminLayout`          | `'admin'`           |
+| Applicant       | `/app`              | `ApplicantLayout`      | `'applicant'`       |
+| Employer        | `/employer`         | `EmployerLayout`       | `'company_owner'`   |
+| Provincial PESO | `/provincial-peso`  | `ProvincialPesoLayout` | `'provincial_peso'` |
+| Municipal PESO  | `/municipal-peso`   | `MunicipalPesoLayout`  | `'municipal_peso'`  |
 
 ### 3.3 File Naming & Imports
+
 - **Components / Layouts / Sidebars**: `PascalCase.vue` (e.g., `ApplicantDashboard.vue`, `AdminSidebar.vue`)
 - **Composables**: `useCamelCase.ts` (e.g., `useUserAccounts.ts`)
 - **Stores**: `camelCaseStore.ts` or `camelCase.ts` (e.g., `userAccountsStore.ts`, `auth.ts`)
@@ -169,6 +182,7 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 ## 4. Universal Critical DON'Ts — HARD RULES
 
 > [!CAUTION]
+>
 > 1. **DO NOT edit `src/types/database.types.ts`** — it is auto-generated via `npm run types:gen`.
 > 2. **DO NOT edit files inside `src/components/ui/`** — they are shadcn-vue primitives managed via CLI.
 > 3. **DO NOT install alternative UI component libraries** (Vuetify, PrimeVue, Element Plus, etc.).
