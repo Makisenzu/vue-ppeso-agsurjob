@@ -606,4 +606,129 @@ export const applicantEntryService = {
       return { deleted: false, reason: msg }
     }
   },
+
+  /**
+   * Permanently delete an applicant from applicants.applicants together with their GIP/SPES referrals.
+   * Blocked when the applicant is linked to a user account or already has a GIP/SPES deployment.
+   */
+  async deleteApplicant(applicantId: string): Promise<void> {
+    await this.deleteApplicantRecord(applicantId)
+    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+    invalidateGipCaches({ applicants: true })
+  },
+
+  async bulkDeleteApplicants(
+    applicantIds: string[]
+  ): Promise<{ deletedIds: string[]; errors: string[] }> {
+    const deletedIds: string[] = []
+    const errors: string[] = []
+
+    for (const id of applicantIds) {
+      try {
+        await this.deleteApplicantRecord(id)
+        deletedIds.push(id)
+      } catch (err: unknown) {
+        errors.push(err instanceof Error ? err.message : `Failed to delete applicant ${id}`)
+      }
+    }
+
+    if (deletedIds.length > 0) {
+      removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+      invalidateGipCaches({ applicants: true })
+    }
+
+    return { deletedIds, errors }
+  },
+
+  async deleteApplicantRecord(applicantId: string): Promise<void> {
+    const { data: applicant, error: fetchErr } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .select('id, profile_id, first_name, surname')
+      .eq('id', applicantId)
+      .maybeSingle()
+
+    if (fetchErr) throw new Error(fetchErr.message || 'Failed to load applicant before deletion.')
+    if (!applicant) throw new Error('Applicant record was not found.')
+
+    const label = [applicant.first_name, applicant.surname].filter(Boolean).join(' ') || 'Applicant'
+
+    if (applicant.profile_id) {
+      throw new Error(`${label} is linked to a registered user account and cannot be deleted from the registry.`)
+    }
+
+    const [gipRes, spesRes] = await Promise.all([
+      supabase.schema('esmdd').from('gip_applicants').select('id').eq('applicant_id', applicantId),
+      supabase.schema('esmdd').from('spes_applicants').select('id').eq('applicant_id', applicantId),
+    ])
+
+    if (gipRes.error) throw new Error(gipRes.error.message || 'Failed to check GIP referrals.')
+    if (spesRes.error) throw new Error(spesRes.error.message || 'Failed to check SPES referrals.')
+
+    const gipAppIds = (gipRes.data ?? []).map((r) => r.id)
+    const spesAppIds = (spesRes.data ?? []).map((r) => r.id)
+
+    if (gipAppIds.length > 0) {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('gips')
+        .select('id')
+        .in('application_id', gipAppIds)
+        .limit(1)
+      if (error) throw new Error(error.message || 'Failed to check GIP deployments.')
+      if (data && data.length > 0) {
+        throw new Error(`${label} has a GIP deployment record and cannot be deleted.`)
+      }
+    }
+
+    if (spesAppIds.length > 0) {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('spes')
+        .select('id')
+        .in('application_id', spesAppIds)
+        .limit(1)
+      if (error) throw new Error(error.message || 'Failed to check SPES deployments.')
+      if (data && data.length > 0) {
+        throw new Error(`${label} has a SPES deployment record and cannot be deleted.`)
+      }
+    }
+
+    const deleteReferrals = async () => {
+      if (gipAppIds.length > 0) {
+        const { error } = await supabase.schema('esmdd').from('gip_applicants').delete().in('id', gipAppIds)
+        if (error) throw new Error(error.message || 'Failed to remove GIP referral.')
+      }
+      if (spesAppIds.length > 0) {
+        const { error } = await supabase.schema('esmdd').from('spes_applicants').delete().in('id', spesAppIds)
+        if (error) throw new Error(error.message || 'Failed to remove SPES referral.')
+      }
+    }
+
+    const deleteMaster = () =>
+      supabase.schema('applicants').from('applicants').delete().eq('id', applicantId).select('id')
+
+    // Master row goes first so an RLS denial (0 rows, no error) leaves the referrals untouched
+    let { data: deleted, error: delErr } = await deleteMaster()
+
+    // 23503 = foreign key violation: referrals must be removed before the master row
+    if (delErr?.code === '23503') {
+      await deleteReferrals()
+      ;({ data: deleted, error: delErr } = await deleteMaster())
+    } else if (!delErr && deleted && deleted.length > 0) {
+      // Cross-schema FKs may not cascade; clear any remaining referrals so no orphans stay in ESMDD
+      try {
+        await deleteReferrals()
+      } catch (cleanupErr) {
+        console.warn('[applicantEntryService] Applicant deleted but referral cleanup failed:', cleanupErr)
+      }
+    }
+
+    if (delErr) throw new Error(delErr.message || `Failed to delete ${label}.`)
+    if (!deleted || deleted.length === 0) {
+      throw new Error(
+        'Delete affected 0 rows. Please execute migration 005_applicants_peso_delete_policy.sql in your Supabase SQL Editor to grant DELETE permission on applicants.applicants.'
+      )
+    }
+  },
 }

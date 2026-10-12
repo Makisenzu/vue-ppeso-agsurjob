@@ -1,19 +1,31 @@
 <script setup lang="ts">
 import {
+  Check,
   CheckCircle2,
   Download,
   Eye,
   Filter,
   Loader2,
   MapPin,
+  Minus,
   Phone,
   RefreshCw,
   Search,
+  Trash2,
   UserX,
   UserPlus,
   X,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -53,6 +65,21 @@ const {
   setPage,
   prevPage,
   nextPage,
+  applicantToDelete,
+  isDeleteDialogOpen,
+  isDeleting,
+  promptDeleteApplicant,
+  cancelDeleteApplicant,
+  confirmDeleteApplicant,
+  selectedApplicantIds,
+  isAllSelected,
+  isIndeterminate,
+  toggleSelectAll,
+  toggleSelectApplicant,
+  clearSelection,
+  isBulkDeleteDialogOpen,
+  isBulkDeleting,
+  handleBulkDelete,
 } = useApplicantEntry()
 </script>
 
@@ -272,11 +299,52 @@ const {
       </CardHeader>
 
       <CardContent class="p-0">
+        <!-- ─── Bulk Action Bar ─── -->
+        <div
+          v-if="selectedApplicantIds.length > 0"
+          class="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-t border-b border-primary/20 text-xs text-foreground transition-all animate-in fade-in"
+        >
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary">{{ selectedApplicantIds.length }}</span>
+            <span class="text-muted-foreground">applicant{{ selectedApplicantIds.length > 1 ? 's' : '' }} selected</span>
+            <span class="text-muted-foreground">•</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              @click="clearSelection"
+            >
+              Clear selection
+            </Button>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
+            @click="isBulkDeleteDialogOpen = true"
+          >
+            <Trash2 class="h-3.5 w-3.5" />
+            <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+          </Button>
+        </div>
+
         <!-- ─── Table ─── -->
         <div class="relative overflow-x-auto border-t">
           <Table>
             <TableHeader class="bg-muted/40">
               <TableRow>
+                <TableHead class="w-12 px-4 text-center">
+                  <Checkbox
+                    :model-value="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+                    aria-label="Select all applicants on page"
+                    @update:model-value="toggleSelectAll"
+                  >
+                    <template #default="{ modelValue }">
+                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-3" />
+                      <Check v-else class="h-3.5 w-3.5" />
+                    </template>
+                  </Checkbox>
+                </TableHead>
                 <TableHead class="w-60 text-xs font-semibold">Applicant Profile</TableHead>
                 <TableHead class="text-xs font-semibold">Sex & Age</TableHead>
                 <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
@@ -290,7 +358,7 @@ const {
               <!-- Loading State -->
               <template v-if="isLoading">
                 <TableRow>
-                  <TableCell colspan="7" class="h-44 text-center text-muted-foreground">
+                  <TableCell colspan="8" class="h-44 text-center text-muted-foreground">
                     <div class="flex flex-col items-center justify-center gap-2 py-6">
                       <Loader2 class="h-8 w-8 animate-spin text-primary" />
                       <p class="text-xs text-muted-foreground">Loading applicants from applicants.applicants...</p>
@@ -304,8 +372,20 @@ const {
                 <TableRow
                   v-for="applicant in paginatedApplicants"
                   :key="applicant.id"
-                  class="transition-colors hover:bg-muted/30"
+                  :class="[
+                    'transition-colors hover:bg-muted/30',
+                    selectedApplicantIds.includes(applicant.id) ? 'bg-primary/5 dark:bg-primary/10' : '',
+                  ]"
                 >
+                  <!-- Multi-select Checkbox -->
+                  <TableCell class="py-3 px-4 text-center" @click.stop>
+                    <Checkbox
+                      :model-value="selectedApplicantIds.includes(applicant.id)"
+                      :aria-label="'Select ' + applicant.fullName"
+                      @update:model-value="(val) => toggleSelectApplicant(applicant.id, val)"
+                    />
+                  </TableCell>
+
                   <!-- Applicant Profile -->
                   <TableCell class="py-3">
                     <div class="flex items-center gap-3">
@@ -476,22 +556,34 @@ const {
 
                   <!-- Action -->
                   <TableCell class="py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-8 gap-1.5 text-xs cursor-pointer"
-                      @click="openDetails(applicant)"
-                    >
-                      <Eye class="h-3.5 w-3.5" />
-                      <span>Details</span>
-                    </Button>
+                    <div class="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 gap-1.5 text-xs cursor-pointer"
+                        @click="openDetails(applicant)"
+                      >
+                        <Eye class="h-3.5 w-3.5" />
+                        <span>Details</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="Delete applicant"
+                        :aria-label="'Delete ' + applicant.fullName"
+                        @click="promptDeleteApplicant(applicant)"
+                      >
+                        <Trash2 class="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </template>
 
               <!-- Empty State: Zero matches -->
               <TableRow v-else>
-                <TableCell colspan="7" class="h-44 text-center text-muted-foreground">
+                <TableCell colspan="8" class="h-44 text-center text-muted-foreground">
                   <div class="flex flex-col items-center justify-center gap-2 py-6">
                     <Filter class="h-8 w-8 text-muted-foreground/50" />
                     <p class="text-sm font-semibold text-foreground">
@@ -563,5 +655,119 @@ const {
         </div>
       </CardContent>
     </Card>
+
+    <!-- ─── Delete Applicant Confirmation Dialog ─── -->
+    <Dialog
+      :open="isDeleteDialogOpen"
+      @update:open="(open) => { if (!open && !isDeleting) cancelDeleteApplicant() }"
+    >
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive shrink-0">
+              <Trash2 class="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle class="text-base font-semibold">Delete Applicant</DialogTitle>
+              <DialogDescription class="text-xs text-muted-foreground mt-0.5">
+                Permanently remove this record from the applicant registry.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div v-if="applicantToDelete" class="py-2 space-y-3 text-xs">
+          <div class="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div class="flex justify-between items-center gap-3">
+              <span class="text-muted-foreground">Full Name:</span>
+              <span class="font-semibold text-foreground text-right">{{ applicantToDelete.fullName }}</span>
+            </div>
+            <div class="flex justify-between items-center gap-3">
+              <span class="text-muted-foreground">Municipality:</span>
+              <span class="font-medium text-foreground text-right">{{ applicantToDelete.address.municipality }}</span>
+            </div>
+            <div class="flex justify-between items-center gap-3">
+              <span class="text-muted-foreground">Programs:</span>
+              <span class="font-medium text-foreground text-right">
+                {{ applicantToDelete.referredPrograms.length > 0 ? applicantToDelete.referredPrograms.join(', ') : 'None' }}
+              </span>
+            </div>
+          </div>
+
+          <p class="text-muted-foreground leading-relaxed">
+            Are you sure you want to delete <strong class="text-foreground">{{ applicantToDelete.fullName }}</strong>?
+            Their GIP and SPES referrals will also be removed. This cannot be undone.
+            Applicants with a GIP/SPES deployment or a linked user account cannot be deleted.
+          </p>
+        </div>
+
+        <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="text-xs cursor-pointer"
+            :disabled="isDeleting"
+            @click="cancelDeleteApplicant"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="text-xs gap-1.5 cursor-pointer"
+            :disabled="isDeleting"
+            @click="confirmDeleteApplicant"
+          >
+            <Loader2 v-if="isDeleting" class="h-3.5 w-3.5 animate-spin" />
+            <span>{{ isDeleting ? 'Deleting...' : 'Confirm Delete' }}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- ─── Bulk Delete Applicants Dialog ─── -->
+    <Dialog
+      :open="isBulkDeleteDialogOpen"
+      @update:open="(open) => { if (!isBulkDeleting) isBulkDeleteDialogOpen = open }"
+    >
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-destructive flex items-center gap-2">
+            <Trash2 class="h-5 w-5" />
+            <span>Delete Selected Applicants</span>
+          </DialogTitle>
+          <DialogDescription class="text-xs leading-relaxed">
+            Are you sure you want to permanently delete
+            <strong class="text-foreground">{{ selectedApplicantIds.length }}</strong>
+            selected applicant record{{ selectedApplicantIds.length > 1 ? 's' : '' }}?
+            Their GIP and SPES referrals will also be removed. This cannot be undone.
+            Applicants with a GIP/SPES deployment or a linked user account will be skipped.
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="text-xs cursor-pointer"
+            :disabled="isBulkDeleting"
+            @click="isBulkDeleteDialogOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="text-xs gap-1.5 cursor-pointer"
+            :disabled="isBulkDeleting || selectedApplicantIds.length === 0"
+            @click="handleBulkDelete"
+          >
+            <Loader2 v-if="isBulkDeleting" class="h-3.5 w-3.5 animate-spin" />
+            <Trash2 v-else class="h-3.5 w-3.5" />
+            <span>{{ isBulkDeleting ? 'Deleting...' : `Delete ${selectedApplicantIds.length} Applicant${selectedApplicantIds.length > 1 ? 's' : ''}` }}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

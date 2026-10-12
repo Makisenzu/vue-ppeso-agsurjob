@@ -1,4 +1,4 @@
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
@@ -35,6 +35,8 @@ export function useApplicantEntry() {
     closeAddApplicant,
     createApplicant,
     resetFilters,
+    deleteApplicant,
+    bulkDeleteApplicants,
   } = store
 
   const openDetails = (applicant: ApplicantEntryRecord) => {
@@ -205,6 +207,99 @@ export function useApplicantEntry() {
     }
   }
 
+  // ─── Single Delete Dialog ───
+  const applicantToDelete = ref<ApplicantEntryRecord | null>(null)
+  const isDeleteDialogOpen = ref(false)
+  const isDeleting = ref(false)
+
+  const promptDeleteApplicant = (applicant: ApplicantEntryRecord) => {
+    applicantToDelete.value = applicant
+    isDeleteDialogOpen.value = true
+  }
+
+  const cancelDeleteApplicant = () => {
+    isDeleteDialogOpen.value = false
+    applicantToDelete.value = null
+  }
+
+  const confirmDeleteApplicant = async () => {
+    if (!applicantToDelete.value) return
+    isDeleting.value = true
+    try {
+      const deleted = await deleteApplicant(applicantToDelete.value.id)
+      if (deleted) {
+        isDeleteDialogOpen.value = false
+        applicantToDelete.value = null
+      }
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
+  // ─── Multi-Select & Bulk Delete ───
+  const selectedApplicantIds = ref<string[]>([])
+  const isBulkDeleteDialogOpen = ref(false)
+  const isBulkDeleting = ref(false)
+
+  const isAllSelected = computed(() => {
+    if (paginatedApplicants.value.length === 0) return false
+    return paginatedApplicants.value.every((a) => selectedApplicantIds.value.includes(a.id))
+  })
+
+  const isIndeterminate = computed(() => {
+    if (isAllSelected.value) return false
+    return paginatedApplicants.value.some((a) => selectedApplicantIds.value.includes(a.id))
+  })
+
+  const toggleSelectAll = (checked?: boolean | 'indeterminate') => {
+    const pageIds = paginatedApplicants.value.map((a) => a.id)
+    if (pageIds.length === 0) return
+
+    const shouldSelect = typeof checked === 'boolean' ? checked : !isAllSelected.value
+    if (shouldSelect) {
+      selectedApplicantIds.value = Array.from(new Set([...selectedApplicantIds.value, ...pageIds]))
+    } else {
+      selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => !pageIds.includes(id))
+    }
+  }
+
+  const toggleSelectApplicant = (id: string, checked?: boolean | 'indeterminate') => {
+    const shouldAdd = typeof checked === 'boolean' ? checked : !selectedApplicantIds.value.includes(id)
+    if (shouldAdd) {
+      if (!selectedApplicantIds.value.includes(id)) {
+        selectedApplicantIds.value = [...selectedApplicantIds.value, id]
+      }
+    } else {
+      selectedApplicantIds.value = selectedApplicantIds.value.filter((i) => i !== id)
+    }
+  }
+
+  const clearSelection = () => {
+    selectedApplicantIds.value = []
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedApplicantIds.value.length === 0) return
+    isBulkDeleting.value = true
+    try {
+      const result = await bulkDeleteApplicants([...selectedApplicantIds.value])
+      // Keep failed rows selected so the user can see which ones were skipped
+      const deleted = new Set(result.deletedIds)
+      selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => !deleted.has(id))
+      if (result.errors.length === 0) {
+        isBulkDeleteDialogOpen.value = false
+      }
+    } finally {
+      isBulkDeleting.value = false
+    }
+  }
+
+  // Drop selections for rows that no longer exist (deleted or refreshed away)
+  watch(applicants, (list) => {
+    const validIds = new Set(list.map((a) => a.id))
+    selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => validIds.has(id))
+  })
+
   onMounted(() => {
     fetchApplicants()
   })
@@ -242,6 +337,25 @@ export function useApplicantEntry() {
     nextPage,
     getInitials,
     formatDateDisplay,
+
+    // Single Delete
+    applicantToDelete,
+    isDeleteDialogOpen,
+    isDeleting,
+    promptDeleteApplicant,
+    cancelDeleteApplicant,
+    confirmDeleteApplicant,
+
+    // Multi-Select & Bulk Delete
+    selectedApplicantIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleSelectAll,
+    toggleSelectApplicant,
+    clearSelection,
+    isBulkDeleteDialogOpen,
+    isBulkDeleting,
+    handleBulkDelete,
   }
 }
 

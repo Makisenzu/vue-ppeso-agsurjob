@@ -7,6 +7,9 @@ import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applica
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
 
+// In-memory only: cleared on every page load (Ctrl+R / F5), so the registry revalidates against the database once per load
+let hasRevalidatedThisPageLoad = false
+
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
 
@@ -43,10 +46,13 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       isLoading.value = true
     }
 
+    const bypassCache = isManualRefresh || !hasRevalidatedThisPageLoad
+
     try {
-      const data = await applicantEntryService.fetchAllApplicants(isManualRefresh)
+      const data = await applicantEntryService.fetchAllApplicants(bypassCache)
       // Fresh array reference ensures table and charts react immediately
       applicants.value = [...data.map(mapToApplicantEntryRecord)]
+      hasRevalidatedThisPageLoad = true
       if (isManualRefresh) {
         toastAlert.success('Data Refreshed', `Refreshed ${data.length} applicant records.`)
       }
@@ -234,6 +240,64 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     }
   }
 
+  const deleteApplicant = async (applicantId: string): Promise<boolean> => {
+    isSubmitting.value = true
+    try {
+      const name = applicants.value.find((a) => a.id === applicantId)?.fullName ?? 'The applicant'
+      await applicantEntryService.deleteApplicant(applicantId)
+
+      applicants.value = applicants.value.filter((a) => a.id !== applicantId)
+      if (selectedApplicant.value?.id === applicantId) {
+        selectedApplicant.value = null
+      }
+
+      toastAlert.success('Applicant Deleted', `${name} has been removed from the registry.`)
+      return true
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to delete applicant:', error)
+      toastAlert.error('Delete Failed', error.message || 'Could not delete applicant.')
+      return false
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const bulkDeleteApplicants = async (applicantIds: string[]) => {
+    if (applicantIds.length === 0) return { deletedIds: [] as string[], errors: [] as string[] }
+    isSubmitting.value = true
+    try {
+      const result = await applicantEntryService.bulkDeleteApplicants(applicantIds)
+      const deleted = new Set(result.deletedIds)
+
+      applicants.value = applicants.value.filter((a) => !deleted.has(a.id))
+      if (selectedApplicant.value && deleted.has(selectedApplicant.value.id)) {
+        selectedApplicant.value = null
+      }
+
+      if (result.deletedIds.length > 0) {
+        const count = result.deletedIds.length
+        toastAlert.success(
+          'Bulk Delete Completed',
+          `Deleted ${count} applicant${count > 1 ? 's' : ''}` +
+            (result.errors.length > 0 ? ` (${result.errors.length} skipped).` : '.')
+        )
+      }
+      if (result.errors.length > 0) {
+        toastAlert.error(
+          result.deletedIds.length > 0 ? 'Some Applicants Skipped' : 'Bulk Delete Failed',
+          result.errors[0]
+        )
+      }
+      return result
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Bulk delete failed:', error)
+      toastAlert.error('Bulk Delete Error', error.message || 'Could not complete bulk delete.')
+      return { deletedIds: [] as string[], errors: [error.message as string] }
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   const resetFilters = () => {
     searchQuery.value = ''
     selectedGenderFilter.value = 'ALL'
@@ -266,6 +330,8 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     checkApplicantDuplicate,
     linkApplicantToProgram,
     updateApplicant,
+    deleteApplicant,
+    bulkDeleteApplicants,
     resetFilters,
   }
 })
