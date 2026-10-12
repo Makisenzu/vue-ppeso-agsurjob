@@ -150,6 +150,7 @@ export interface GipApplicantRecord {
   documentsSubmitted: string[]
   remarks: string[]
   createdAt: string
+  assessmentDate: string | null
   totalPriorityScore?: number | null
   priorityRank?: number | null
   statusScore?: number | null

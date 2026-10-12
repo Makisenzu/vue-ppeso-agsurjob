@@ -693,7 +693,7 @@ const {
                   <TableCell class="py-3">
                     <div class="flex flex-col text-xs">
                       <span class="font-medium text-foreground">
-                        {{ formatDateDisplay(applicant.createdAt) }}
+                        {{ formatDateDisplay(applicant.assessmentDate || applicant.rawApplicant?.assessment_date || applicant.createdAt) }}
                       </span>
                       <span class="text-[11px] text-muted-foreground font-mono">
                         Batch {{ applicant.batchYear }}

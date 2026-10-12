@@ -18,6 +18,32 @@ export function invalidateApplicantEntryCache(): void {
   removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
 }
 
+/**
+ * Normalizes applicant employment fields to strictly conform to database check constraints.
+ * The constraint "applicants_employment_status_check" requires employment_status to be
+ * 'Employed' or 'Unemployed'. Self-employment is represented as:
+ * employment_status: 'Employed' and employment_type: 'Self-employed'.
+ */
+function normalizeApplicantEmploymentPayload<T extends Record<string, any>>(payload: T): T {
+  const result: Record<string, any> = { ...payload }
+  if (result.employment_status !== undefined) {
+    const raw = String(result.employment_status || '').trim().toLowerCase()
+    if (raw.includes('self')) {
+      result.employment_status = 'Employed'
+      if (!result.employment_type) {
+        result.employment_type = 'Self-employed'
+      }
+    } else if (raw.includes('unemployed')) {
+      result.employment_status = 'Unemployed'
+    } else if (raw.includes('employed')) {
+      result.employment_status = 'Employed'
+    } else if (!raw) {
+      result.employment_status = 'Unemployed'
+    }
+  }
+  return result as T
+}
+
 export const applicantEntryService = {
   /**
    * Fetch all applicant records from applicants.applicants schema with persistent cache
@@ -197,10 +223,12 @@ export const applicantEntryService = {
    * and subsequently check & route to program tables (e.g. esmdd.gip_applicants, esmdd.spes_applicants)
    */
   async createApplicant(payload: ApplicantInsert): Promise<ApplicantRow> {
+    const sanitizedPayload = normalizeApplicantEmploymentPayload(payload)
+
     const { data, error } = await supabase
       .schema('applicants')
       .from('applicants')
-      .insert(payload)
+      .insert(sanitizedPayload)
       .select()
       .single()
 
@@ -438,11 +466,12 @@ export const applicantEntryService = {
       }
     }
     cleanPayload.updated_at = new Date().toISOString()
+    const sanitizedPayload = normalizeApplicantEmploymentPayload(cleanPayload)
 
     const { data, error } = await supabase
       .schema('applicants')
       .from('applicants')
-      .update(cleanPayload as ApplicantUpdate)
+      .update(sanitizedPayload as ApplicantUpdate)
       .eq('id', applicantId)
       .select()
       .maybeSingle()

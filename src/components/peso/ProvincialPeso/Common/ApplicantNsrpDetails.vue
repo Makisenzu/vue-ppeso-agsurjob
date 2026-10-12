@@ -1520,7 +1520,7 @@ const {
               </div>
             </div>
 
-            <div v-if="editEmploymentStatus === 'Self-Employed'" class="p-3 rounded-xl border bg-muted/15 space-y-1">
+            <div v-if="editEmploymentStatus === 'Self-Employed' || (editEmploymentStatus === 'Employed' && editEmploymentType === 'Self-employed')" class="p-3 rounded-xl border bg-muted/15 space-y-1">
               <span class="text-[11px] text-muted-foreground">Self-Employment Classification</span>
               <Input v-model="editSelfEmployedType" placeholder="e.g. Sari-sari Store Vendor, Farmer" class="h-9 text-xs" />
             </div>

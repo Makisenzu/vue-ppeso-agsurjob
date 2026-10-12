@@ -200,7 +200,10 @@ export function mapToApplicantEntryRecord(row: ApplicantRow): ApplicantEntryReco
     tin: row.tin,
     address,
     fullAddressString,
-    employmentStatus: row.employment_status || 'Unemployed',
+    employmentStatus:
+      row.employment_status === 'Employed' && row.employment_type === 'Self-employed'
+        ? 'Self-Employed'
+        : (row.employment_status || 'Unemployed'),
     employmentType: row.employment_type,
     unemployedReason: row.unemployed_reason,
     selfEmployedType: row.self_employed_type,

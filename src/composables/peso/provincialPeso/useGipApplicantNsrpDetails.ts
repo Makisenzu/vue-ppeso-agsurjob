@@ -62,12 +62,15 @@ export function useGipApplicantNsrpDetails(options: UseGipApplicantNsrpDetailsOp
   }
 
   const formattedDob = computed(() => formatDateDisplay(applicantRecord.value.dateOfBirth))
-  const formattedRegisteredDate = computed(() =>
-    formatDateDisplay(options.props.applicant.createdAt || applicantRecord.value.createdAt)
-  )
   const formattedAssessmentDate = computed(() =>
-    formatDateDisplay(applicantRecord.value.assessmentDate)
+    formatDateDisplay(
+      applicantRecord.value.assessmentDate ||
+      options.props.applicant.rawApplicant?.assessment_date ||
+      options.props.applicant.createdAt ||
+      applicantRecord.value.createdAt
+    )
   )
+  const formattedRegisteredDate = computed(() => formattedAssessmentDate.value)
   const formattedUpdatedDate = computed(() => {
     const dateVal =
       applicantRecord.value.updatedAt ||

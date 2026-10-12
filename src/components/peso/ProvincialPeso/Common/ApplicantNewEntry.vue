@@ -623,7 +623,7 @@ const confirmDuplicateResolution = () => {
             </div>
 
             <!-- Conditional: Self-Employed Details -->
-            <div v-if="employmentStatus === 'Self-Employed'" class="p-3.5 rounded-xl border bg-muted/15 space-y-2">
+            <div v-if="employmentStatus === 'Self-Employed' || (employmentStatus === 'Employed' && employmentType === 'Self-employed')" class="p-3.5 rounded-xl border bg-muted/15 space-y-2">
               <span class="font-semibold text-foreground text-xs block">Self-Employment Classification</span>
               <Input v-model="selfEmployedType" placeholder="e.g. Sari-sari Store Vendor, Farmer, Freelance Programmer" class="h-9 text-xs" />
             </div>

@@ -596,8 +596,9 @@ export const useGipStore = defineStore('gipStore', () => {
       }
       // Month filter
       if (applicantMonthFilter.value !== 'ALL') {
-        if (!app.createdAt) return false
-        const d = new Date(app.createdAt)
+        const targetDate = app.assessmentDate || app.rawApplicant?.assessment_date || app.createdAt
+        if (!targetDate) return false
+        const d = new Date(targetDate)
         if (isNaN(d.getTime())) return false
         const month = (d.getMonth() + 1).toString()
         if (month !== applicantMonthFilter.value.trim()) {
@@ -670,7 +671,10 @@ export const useGipStore = defineStore('gipStore', () => {
       }>(GIP_LPII_APPLICANTS_CACHE_KEY)
 
       if (cachedApplicants !== null) {
-        applicants.value = cachedApplicants
+        applicants.value = cachedApplicants.map((a) => ({
+          ...a,
+          assessmentDate: a.assessmentDate || a.rawApplicant?.assessment_date || a.createdAt,
+        }))
       }
       if (cachedPriority !== null) {
         priorityApplicants.value = cachedPriority

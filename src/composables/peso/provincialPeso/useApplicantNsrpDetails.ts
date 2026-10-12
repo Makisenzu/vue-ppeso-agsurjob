@@ -108,9 +108,11 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   }
 
   const formattedDob = computed(() => (applicant.value ? formatDateDisplay(applicant.value.dateOfBirth) : 'N/A'))
-  const formattedRegisteredDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.createdAt) : 'N/A'))
+  const formattedAssessmentDate = computed(() =>
+    applicant.value ? formatDateDisplay(applicant.value.assessmentDate || applicant.value.createdAt) : 'N/A'
+  )
+  const formattedRegisteredDate = computed(() => formattedAssessmentDate.value)
   const formattedUpdatedDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.updatedAt) : 'N/A'))
-  const formattedAssessmentDate = computed(() => (applicant.value ? formatDateDisplay(applicant.value.assessmentDate) : 'N/A'))
 
   // ═══════════════════════════════════════════════════════════════
   // ─── PER-SECTION INLINE EDIT MODE ───
@@ -442,7 +444,11 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         break
 
       case 'doleStatus':
-        editEmploymentStatus.value = a.employmentStatus
+        if (a.employmentType === 'Self-employed' || a.employmentStatus === 'Self-Employed') {
+          editEmploymentStatus.value = 'Self-Employed'
+        } else {
+          editEmploymentStatus.value = a.employmentStatus || 'Unemployed'
+        }
         editEmploymentType.value = (a.employmentType as 'Wage employed' | 'Self-employed') || 'Wage employed'
         editUnemployedReason.value = a.unemployedReason ?? 'Fresh Graduate'
         editMonthsLookingForWork.value = a.monthsLookingForWork ?? undefined
@@ -590,18 +596,23 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         }
       }
 
-      case 'doleStatus':
+      case 'doleStatus': {
+        const isSelf =
+          editEmploymentStatus.value === 'Self-Employed' ||
+          (editEmploymentStatus.value === 'Employed' && editEmploymentType.value === 'Self-employed')
+        const isEmployed = editEmploymentStatus.value === 'Employed' || isSelf
+
         return {
-          employment_status: editEmploymentStatus.value || null,
-          employment_type:
-            editEmploymentStatus.value === 'Employed'
+          // Database check constraint "applicants_employment_status_check" strictly requires 'Employed' | 'Unemployed'
+          employment_status: isEmployed ? 'Employed' : 'Unemployed',
+          employment_type: isSelf
+            ? 'Self-employed'
+            : isEmployed
               ? (editEmploymentType.value || 'Wage employed')
-              : editEmploymentStatus.value === 'Self-Employed'
-                ? 'Self-employed'
-                : null,
-          unemployed_reason: editEmploymentStatus.value === 'Unemployed' ? editUnemployedReason.value || null : null,
-          months_looking_for_work: editEmploymentStatus.value === 'Unemployed' ? (editMonthsLookingForWork.value ?? null) : null,
-          self_employed_type: editEmploymentStatus.value === 'Self-Employed' ? editSelfEmployedType.value || null : null,
+              : null,
+          unemployed_reason: !isEmployed ? editUnemployedReason.value || null : null,
+          months_looking_for_work: !isEmployed ? (editMonthsLookingForWork.value ?? null) : null,
+          self_employed_type: isSelf ? editSelfEmployedType.value.trim() || null : null,
           is_4ps_beneficiary: editIs4psBeneficiary.value,
           household_id_4ps: editIs4psBeneficiary.value ? editHouseholdId4ps.value.trim() || null : null,
           has_disability: editHasDisability.value,
@@ -614,6 +625,7 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
           former_ofw_return_date: editIsFormerOfw.value && editFormerOfwReturnDate.value ? editFormerOfwReturnDate.value : null,
           referred_programs: editReferredPrograms.value.length > 0 ? editReferredPrograms.value : null,
         }
+      }
 
       case 'education': {
         const cleanEducation = editEducationalBackground.value

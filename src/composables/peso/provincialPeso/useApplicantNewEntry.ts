@@ -684,16 +684,24 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       address: addressPayload,
 
       // DOLE Employment Classification
-      employment_status: employmentStatus.value || null,
+      // Database check constraint "applicants_employment_status_check" strictly requires 'Employed' | 'Unemployed'
+      employment_status:
+        employmentStatus.value === 'Self-Employed' || employmentStatus.value === 'Employed'
+          ? 'Employed'
+          : 'Unemployed',
       employment_type:
-        employmentStatus.value === 'Employed'
-          ? (employmentType.value || 'Wage employed')
-          : employmentStatus.value === 'Self-Employed'
-            ? 'Self-employed'
+        employmentStatus.value === 'Self-Employed'
+          ? 'Self-employed'
+          : employmentStatus.value === 'Employed'
+            ? (employmentType.value || 'Wage employed')
             : null,
       unemployed_reason: employmentStatus.value === 'Unemployed' ? unemployedReason.value || null : null,
       months_looking_for_work: employmentStatus.value === 'Unemployed' ? (monthsLookingForWork.value ?? null) : null,
-      self_employed_type: employmentStatus.value === 'Self-Employed' ? selfEmployedType.value || null : null,
+      self_employed_type:
+        employmentStatus.value === 'Self-Employed' ||
+        (employmentStatus.value === 'Employed' && employmentType.value === 'Self-employed')
+          ? selfEmployedType.value.trim() || null
+          : null,
 
       // Special Categories
       is_4ps_beneficiary: is4psBeneficiary.value,

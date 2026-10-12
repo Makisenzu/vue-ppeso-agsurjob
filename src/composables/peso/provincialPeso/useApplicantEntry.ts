@@ -108,13 +108,16 @@ export function useApplicantEntry() {
       // Employment Status filter
       if (empStatus !== 'ALL') {
         const rawEmp = a.employmentStatus.toLowerCase()
-        if (empStatus === 'Employed' && (!rawEmp.includes('employed') || rawEmp.includes('unemployed'))) {
+        const rawType = (a.employmentType || '').toLowerCase()
+        const isSelf = rawEmp.includes('self') || rawType.includes('self')
+
+        if (empStatus === 'Employed' && (isSelf || !rawEmp.includes('employed') || rawEmp.includes('unemployed'))) {
           return false
         }
         if (empStatus === 'Unemployed' && !rawEmp.includes('unemployed')) {
           return false
         }
-        if (empStatus === 'Self-Employed' && !rawEmp.includes('self')) {
+        if (empStatus === 'Self-Employed' && !isSelf) {
           return false
         }
       }

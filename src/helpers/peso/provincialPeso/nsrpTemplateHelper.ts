@@ -217,8 +217,10 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
   )
 
   const assessor = escapeHtml(a.assessedByName || 'PESO OFFICER')
-  const assessDate = a.assessmentDate ? formatDateDisplay(a.assessmentDate) : formatDateDisplay(new Date().toISOString())
-  const signDate = formatDateDisplay(new Date().toISOString())
+  const assessDate = a.assessmentDate
+    ? formatDateDisplay(a.assessmentDate)
+    : (a.createdAt ? formatDateDisplay(a.createdAt) : formatDateDisplay(new Date().toISOString()))
+  const signDate = assessDate
 
   return `<!DOCTYPE html>
 <html lang="en">

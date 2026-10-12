@@ -623,7 +623,12 @@ export const gipService = {
         is_4ps_beneficiary: applicantData.is4ps || false,
         has_disability: applicantData.hasDisability || false,
         other_skills: applicantData.skills || ['Computer Literacy'],
-        employment_status: applicantData.employmentStatus || 'Unemployed',
+        employment_status: String(applicantData.employmentStatus || '').toLowerCase().includes('unemployed')
+          ? 'Unemployed'
+          : 'Employed',
+        employment_type: String(applicantData.employmentStatus || '').toLowerCase().includes('self')
+          ? 'Self-employed'
+          : null,
       } as any)
       .select()
       .single()

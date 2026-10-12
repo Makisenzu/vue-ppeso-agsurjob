@@ -22,7 +22,7 @@ import { removePersistentCacheValue } from '@/helpers/common/persistentCache'
 
 // ─── GIP Cache Keys & Invalidation Helper ───
 export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
-export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants'
+export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants:v2'
 export const GIP_PRIORITY_APPLICANTS_CACHE_KEY = 'peso:gip:priority-applicants'
 export const GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY = 'peso:gip:yearly-demographics'
 export const GIP_LPII_INTERNS_CACHE_KEY = 'peso:gip:lpii-interns'
@@ -35,6 +35,7 @@ export function invalidateGipCaches(options?: { interns?: boolean; applicants?: 
     removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
   }
   if (options?.all || options?.applicants) {
+    removePersistentCacheValue('peso:gip:applicants')
     removePersistentCacheValue(GIP_APPLICANTS_CACHE_KEY)
     removePersistentCacheValue(GIP_PRIORITY_APPLICANTS_CACHE_KEY)
     removePersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY)
@@ -515,6 +516,7 @@ export function mapToGipApplicantRecord(
       : (application.document_submitted || []),
     remarks: application.remarks || [],
     createdAt: createdDate,
+    assessmentDate: applicant?.assessment_date || createdDate,
     rawApplication: application,
     rawApplicant: applicant,
   }
@@ -791,7 +793,7 @@ export function exportGipApplicantsCsv(applicants: GipApplicantRecord[], statusF
     a.status,
     `"${a.contact}"`,
     `"${(a.documentsSubmitted || []).join('; ')}"`,
-    a.createdAt ? a.createdAt.slice(0, 10) : 'N/A',
+    (a.assessmentDate || a.rawApplicant?.assessment_date || a.createdAt ? (a.assessmentDate || a.rawApplicant?.assessment_date || a.createdAt).slice(0, 10) : 'N/A'),
   ])
 
   const csvContent =
@@ -934,6 +936,10 @@ export function convertGipApplicantToEntryRecord(gipApp: GipApplicantRecord): Ap
     // Ensure course fallback
     if ((!entry.highestEducationalAttainment || entry.highestEducationalAttainment === 'Not Specified') && gipApp.course) {
       entry.highestEducationalAttainment = gipApp.course
+    }
+    // Ensure assessmentDate fallback if not set on rawApplicant
+    if (!entry.assessmentDate && (gipApp.assessmentDate || gipApp.rawApplicant?.assessment_date || gipApp.createdAt || entry.createdAt)) {
+      entry.assessmentDate = gipApp.assessmentDate || gipApp.rawApplicant?.assessment_date || gipApp.createdAt || entry.createdAt
     }
     return entry
   }
