@@ -42,6 +42,7 @@ import {
   GIP_LPII_INTERNS_CACHE_KEY,
   GIP_LPII_APPLICANTS_CACHE_KEY,
   invalidateGipCaches,
+  prependGipApplicantToPersistentCache,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
 export {
@@ -52,6 +53,7 @@ export {
   GIP_LPII_INTERNS_CACHE_KEY,
   GIP_LPII_APPLICANTS_CACHE_KEY,
   invalidateGipCaches,
+  prependGipApplicantToPersistentCache,
 }
 const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
 
@@ -343,6 +345,102 @@ export const gipService = {
         return rec
       })
     })
+  },
+
+  /**
+   * Incremental sync: Only fetches GIP applicant records created AFTER the provided timestamp.
+   * Avoids reloading the entire historical dataset when only newly registered applicants are needed.
+   */
+  async fetchNewGipApplicantsSince(latestCreatedAt: string): Promise<GipApplicantRecord[]> {
+    if (!latestCreatedAt) return []
+
+    try {
+      const { data: newGipApps, error: gipErr } = await supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .select('*')
+        .gt('created_at', latestCreatedAt)
+        .order('created_at', { ascending: false })
+
+      if (gipErr || !newGipApps || newGipApps.length === 0) {
+        return []
+      }
+
+      // Fetch barangays for LPII tagging
+      const { data: barangaysData } = await supabase
+        .schema('public')
+        .from('barangays')
+        .select('name, lpii_tag')
+
+      const barangayTagMap = new Map<string, LpiiCategory>()
+      for (const b of (barangaysData ?? []) as BarangayRow[]) {
+        if (b.name && b.lpii_tag) {
+          barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+        }
+      }
+
+      // Fetch corresponding applicant profiles
+      const applicantIds = Array.from(
+        new Set(newGipApps.map((a) => a.applicant_id).filter((id): id is string => Boolean(id)))
+      )
+      let applicantsList: ApplicantRow[] = []
+      if (applicantIds.length > 0) {
+        const { data: profs, error: profErr } = await supabase
+          .schema('applicants')
+          .from('applicants')
+          .select('*')
+          .in('id', applicantIds)
+
+        if (!profErr && profs) {
+          applicantsList = profs as ApplicantRow[]
+        }
+      }
+
+      const applicantMap = new Map<string, ApplicantRow>()
+      for (const p of applicantsList) {
+        applicantMap.set(p.id, p)
+      }
+
+      return (newGipApps as GipApplicantRow[]).map((app) => {
+        const applicant = app.applicant_id ? applicantMap.get(app.applicant_id) || null : null
+        return mapToGipApplicantRecord(app, applicant, barangayTagMap)
+      })
+    } catch (err) {
+      console.warn('[gipService] Error fetching incremental GIP applicants:', err)
+      return []
+    }
+  },
+
+  /**
+   * Converts a newly created GIP application + Applicant profile into a GipApplicantRecord
+   * and prepends it to the persistent cache so subsequent reads immediately include the new jobseeker.
+   */
+  async formatAndCacheReferredGipApplicant(
+    gipRow: GipApplicantRow,
+    applicant: ApplicantRow,
+  ): Promise<GipApplicantRecord> {
+    let barangayTagMap: Map<string, LpiiCategory> | undefined
+    try {
+      const { data } = await supabase
+        .schema('public')
+        .from('barangays')
+        .select('name, lpii_tag')
+
+      if (data) {
+        barangayTagMap = new Map<string, LpiiCategory>()
+        for (const b of data as BarangayRow[]) {
+          if (b.name && b.lpii_tag) {
+            barangayTagMap.set(b.name.trim().toLowerCase(), b.lpii_tag as LpiiCategory)
+          }
+        }
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+
+    const record = mapToGipApplicantRecord(gipRow, applicant, barangayTagMap)
+    prependGipApplicantToPersistentCache(record)
+    return record
   },
 
   /**

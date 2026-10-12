@@ -18,9 +18,14 @@ import type {
 } from '@/types/peso/provincialPeso/gip'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
-import { removePersistentCacheValue } from '@/helpers/common/persistentCache'
+import {
+  getPersistentCacheValue,
+  removePersistentCacheValue,
+  setPersistentCacheValue,
+} from '@/helpers/common/persistentCache'
 
 // ─── GIP Cache Keys & Invalidation Helper ───
+export const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
 export const GIP_INTERNS_CACHE_KEY = 'peso:gip:interns'
 export const GIP_APPLICANTS_CACHE_KEY = 'peso:gip:applicants:v2'
 export const GIP_PRIORITY_APPLICANTS_CACHE_KEY = 'peso:gip:priority-applicants'
@@ -752,6 +757,33 @@ export function computeApplicantLpiiBreakdown(records: GipApplicantRecord[]): {
     male: buildLpiiData('Male'),
     female: buildLpiiData('Female'),
   }
+}
+
+/**
+ * Optimistically prepends a newly referred or created GIP applicant to the persistent cache,
+ * updating the applicant list and recomputing LPII breakdown cache without requiring a full fetch.
+ */
+export function prependGipApplicantToPersistentCache(newRecord: GipApplicantRecord): GipApplicantRecord[] {
+  const cachedList = getPersistentCacheValue<GipApplicantRecord[]>(GIP_APPLICANTS_CACHE_KEY)
+  // Without a full cached registry, writing would persist a one-item list as if it were the whole table
+  if (cachedList === null) return [newRecord]
+
+  const filtered = cachedList.filter(
+    (a) => a.id !== newRecord.id && (!newRecord.applicantId || a.applicantId !== newRecord.applicantId)
+  )
+  const updatedList = [newRecord, ...filtered]
+
+  setPersistentCacheValue(GIP_APPLICANTS_CACHE_KEY, updatedList, GIP_CACHE_TTL_MS)
+
+  // Also update cached LPII breakdown with the new entry included
+  try {
+    const lpiiBreakdown = computeApplicantLpiiBreakdown(updatedList)
+    setPersistentCacheValue(GIP_LPII_APPLICANTS_CACHE_KEY, lpiiBreakdown, GIP_CACHE_TTL_MS)
+  } catch (err) {
+    console.warn('[gipHelper] Could not update LPII cache on prepend:', err)
+  }
+
+  return updatedList
 }
 
 // ─── Extract Unique Batch Years for Applicants ───

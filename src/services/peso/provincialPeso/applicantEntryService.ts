@@ -121,6 +121,9 @@ export const applicantEntryService = {
       throw new Error(error.message || 'Failed to register applicant under GIP')
     }
 
+    // Writing a partial list here would replace the full cached registry; invalidate so the next fetch caches the complete list
+    invalidateGipCaches({ applicants: true })
+
     return data as GipApplicantRow
   },
 
@@ -182,6 +185,7 @@ export const applicantEntryService = {
           targetTable: 'esmdd.gip_applicants',
           success: true,
           recordId: gipRow?.id,
+          gipRow,
         })
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
@@ -438,7 +442,7 @@ export const applicantEntryService = {
 
     const updatedApplicant = data as ApplicantRow
     removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
-    removePersistentCacheValue('peso:gip:applicants')
+    invalidateGipCaches({ applicants: true })
 
     // Automatically check what the applicant has been referred to and route to ESMDD tables
     let referralResults: ProgramReferralSummary[] = []

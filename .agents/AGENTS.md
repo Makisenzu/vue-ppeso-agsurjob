@@ -9,6 +9,12 @@
   - Use `rtk pnpm` / `rtk npm` for package listing or management tasks
   - Use `rtk npx <command>` (e.g., `rtk npx eslint`, `rtk npx vitest`, `rtk npx tsc`) when running one-off executables
 
+- **Context & Workspace Limits**:
+  - **No Broad Scans**: Never read whole directories, run workspace-wide `grep`, or scan unrequested folders.
+  - **Scoped File Reading**: Read only files explicitly referenced or directly imported by the active file being edited.
+  - **Strict Limits**: Inspect/modify a maximum of 3 files per turn. Ask for permission before opening additional files.
+  - **Concise Diffs**: Output only minimal code diffs and targeted changes in chat responses—avoid repeating unchanged code.
+
 > **Purpose**: This is the **authoritative primary entry point** for all AI coding agents working on the AGSURJOBS codebase.
 > Every AI model — regardless of provider (Claude, Gemini, GPT, Copilot, Cursor, etc.) — **MUST read this file first**
 > before executing ANY coding request. This document defines the project structure, global constraints,

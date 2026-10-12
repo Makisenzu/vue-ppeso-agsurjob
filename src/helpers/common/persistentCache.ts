@@ -43,6 +43,10 @@ export function removePersistentCacheValue(key: string) {
 	}
 }
 
+export function setPersistentCacheValue<T>(key: string, value: T, ttlMs: number) {
+	writeCacheEntry(key, value, ttlMs)
+}
+
 function writeCacheEntry<T>(key: string, value: T, ttlMs: number) {
 	if (!canUseLocalStorage()) return
 

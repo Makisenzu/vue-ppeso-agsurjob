@@ -4,6 +4,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantEntryService, APPLICANT_ENTRY_CACHE_KEY } from '@/services/peso/provincialPeso/applicantEntryService'
 import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
@@ -98,6 +99,16 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       toastAlert.success('Applicant Created', `${newRecord.fullName} has been successfully registered${progDetail}.`)
       isAddApplicantOpen.value = false
 
+      // If referred to GIP, seamlessly sync GIP store so the new jobseeker is visible without a manual refresh
+      if (progs.some((p) => p.toUpperCase().includes('GIP'))) {
+        try {
+          const gipStore = useGipStore()
+          await gipStore.fetchApplicantsData(true, true)
+        } catch (gipErr) {
+          console.warn('[applicantEntryStore] Non-blocking GIP sync error:', gipErr)
+        }
+      }
+
       // Silent background fetch to guarantee complete sync with database defaults and triggers
       fetchApplicants(false, true).catch((err) => {
         console.error('[applicantEntryStore] Background sync failed:', err)
@@ -157,6 +168,16 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
         'Applicant Linked to Program',
         `${updatedRecord.fullName} has been linked to ${newProgram}.${referralInfo ? ` Routed to: ${referralInfo}.` : ''}`
       )
+
+      // If linked to GIP, seamlessly sync GIP store so the new jobseeker is visible without a manual refresh
+      if (newProgram.toUpperCase().includes('GIP')) {
+        try {
+          const gipStore = useGipStore()
+          await gipStore.fetchApplicantsData(true, true)
+        } catch (gipErr) {
+          console.warn('[applicantEntryStore] Non-blocking GIP sync error on link:', gipErr)
+        }
+      }
 
       // Silent background sync
       fetchApplicants(false, true).catch((err) => {

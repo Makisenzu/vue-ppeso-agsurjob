@@ -5,6 +5,8 @@ import type {
   GenderDataPoint,
   GipApplicantInsert,
   GipApplicantRecord,
+  GipApplicantRow,
+  ApplicantRow,
   GipPriorityApplicantRecord,
   GipInsert,
   GipInternRecord,
@@ -26,6 +28,7 @@ import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
 import {
   LPII_CONFIG,
   computeApplicantStatusBreakdown,
+  computeApplicantLpiiBreakdown,
   exportGipApplicantsCsv,
   exportGipInternsCsv,
   exportPriorityApplicantsCsv,
@@ -33,6 +36,9 @@ import {
   extractAvailableYears,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+
+// In-memory only: cleared on every page load (Ctrl+R / F5), so each dataset revalidates against the database once per load
+const revalidatedThisPageLoad = new Set<'dashboard' | 'details' | 'applicants'>()
 
 export const useGipStore = defineStore('gipStore', () => {
   const toastAlert = useToastAlert()
@@ -290,11 +296,14 @@ export const useGipStore = defineStore('gipStore', () => {
       isLoading.value = true
     }
 
+    const bypassCache = forceRefresh || !revalidatedThisPageLoad.has('dashboard')
+
     try {
-      const yearly = await gipService.fetchYearlyDemographics(forceRefresh)
+      const yearly = await gipService.fetchYearlyDemographics(bypassCache)
       pgasYearlyData.value = [...yearly.pgas]
       doleYearlyData.value = [...yearly.dole]
       applicantsYearlyData.value = [...yearly.applicants]
+      revalidatedThisPageLoad.add('dashboard')
       if (forceRefresh) {
         toastAlert.success('Data Refreshed', 'GIP demographic data has been refreshed.')
       }
@@ -334,14 +343,17 @@ export const useGipStore = defineStore('gipStore', () => {
       isLoading.value = true
     }
 
+    const bypassCache = forceRefresh || !revalidatedThisPageLoad.has('details')
+
     try {
       const [lpii, list] = await Promise.all([
-        gipService.fetchLpiiData(forceRefresh),
-        gipService.fetchInterns(forceRefresh),
+        gipService.fetchLpiiData(bypassCache),
+        gipService.fetchInterns(bypassCache),
       ])
       pgasLpiiData.value = [...lpii.pgas]
       doleLpiiData.value = [...lpii.dole]
       interns.value = [...list]
+      revalidatedThisPageLoad.add('details')
       if (forceRefresh) {
         toastAlert.success('Data Refreshed', 'GIP details and registry data refreshed.')
       }
@@ -657,7 +669,7 @@ export const useGipStore = defineStore('gipStore', () => {
     return filteredApplicants.value.slice(start, start + applicantPageSize.value)
   })
 
-  const fetchApplicantsData = async (forceRefresh = false) => {
+  const fetchApplicantsData = async (forceRefresh = false, silent = false) => {
     errorMessage.value = null
 
     // 1. Instant Cache Hydration (stale-while-revalidate)
@@ -670,7 +682,7 @@ export const useGipStore = defineStore('gipStore', () => {
         female: LpiiDataPoint[]
       }>(GIP_LPII_APPLICANTS_CACHE_KEY)
 
-      if (cachedApplicants !== null) {
+      if (cachedApplicants !== null && cachedApplicants.length > 0) {
         applicants.value = cachedApplicants.map((a) => ({
           ...a,
           assessmentDate: a.assessmentDate || a.rawApplicant?.assessment_date || a.createdAt,
@@ -689,18 +701,21 @@ export const useGipStore = defineStore('gipStore', () => {
       isLoading.value = true
     }
 
+    const bypassCache = forceRefresh || !revalidatedThisPageLoad.has('applicants')
+
     try {
       const [lpiiBreakdown, list, priorityList] = await Promise.all([
-        gipService.fetchApplicantLpiiData(forceRefresh),
-        gipService.fetchApplicants(forceRefresh),
-        gipService.fetchPriorityApplicants(forceRefresh),
+        gipService.fetchApplicantLpiiData(bypassCache),
+        gipService.fetchApplicants(bypassCache),
+        gipService.fetchPriorityApplicants(bypassCache),
       ])
       applicantOverallLpiiData.value = [...lpiiBreakdown.overall]
       applicantMaleLpiiData.value = [...lpiiBreakdown.male]
       applicantFemaleLpiiData.value = [...lpiiBreakdown.female]
       applicants.value = [...list]
       priorityApplicants.value = [...priorityList]
-      if (forceRefresh) {
+      revalidatedThisPageLoad.add('applicants')
+      if (forceRefresh && !silent) {
         toastAlert.success('Data Refreshed', 'GIP applicants registry refreshed.')
       }
     } catch (err: any) {
@@ -797,6 +812,35 @@ export const useGipStore = defineStore('gipStore', () => {
     } finally {
       isSubmitting.value = false
     }
+  }
+
+  /**
+   * Directly adds a newly referred GIP applicant to the store state and persistent cache.
+   * Avoids requiring a manual refresh to see the newly registered applicant.
+   */
+  const addReferredApplicant = async (
+    applicant: ApplicantRow,
+    gipApplication: GipApplicantRow,
+  ): Promise<GipApplicantRecord> => {
+    const newRecord = await gipService.formatAndCacheReferredGipApplicant(gipApplication, applicant)
+
+    // Prepend to reactive state if not already present
+    const existingIndex = applicants.value.findIndex(
+      (a) => a.id === newRecord.id || (newRecord.applicantId && a.applicantId === newRecord.applicantId),
+    )
+    if (existingIndex >= 0) {
+      applicants.value[existingIndex] = newRecord
+    } else {
+      applicants.value = [newRecord, ...applicants.value]
+    }
+
+    // Immediately recalculate LPII breakdown metrics
+    const lpii = computeApplicantLpiiBreakdown(applicants.value)
+    applicantOverallLpiiData.value = [...lpii.overall]
+    applicantMaleLpiiData.value = [...lpii.male]
+    applicantFemaleLpiiData.value = [...lpii.female]
+
+    return newRecord
   }
 
   const batchImportApplicants = async (applicantsList: any[]) => {
@@ -1088,5 +1132,6 @@ export const useGipStore = defineStore('gipStore', () => {
     closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,
+    addReferredApplicant,
   }
 })

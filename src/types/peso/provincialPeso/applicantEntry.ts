@@ -125,6 +125,7 @@ export interface ProgramReferralSummary {
   success: boolean
   recordId?: string
   error?: string
+  gipRow?: any
 }
 
 export interface ApplicantMatchProfile {
