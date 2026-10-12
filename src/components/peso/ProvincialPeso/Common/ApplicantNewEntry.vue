@@ -544,7 +544,13 @@ const confirmDuplicateResolution = () => {
                     class="text-[11px] font-mono gap-1"
                   >
                     <span>{{ cn }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeContactNumber(idx)" />
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                      @click.stop="removeContactNumber(idx)"
+                    >
+                      <X class="h-3 w-3" />
+                    </button>
                   </Badge>
                 </div>
               </div>
@@ -1101,7 +1107,13 @@ const confirmDuplicateResolution = () => {
                     class="text-[11px] gap-1 py-0.5"
                   >
                     <span>{{ skill }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeSkillTag(otherSkills.indexOf(skill))" />
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                      @click.stop="removeSkillTag(otherSkills.indexOf(skill))"
+                    >
+                      <X class="h-3 w-3" />
+                    </button>
                   </Badge>
                 </div>
               </div>
@@ -1214,7 +1226,13 @@ const confirmDuplicateResolution = () => {
                   class="text-[11px] gap-1 py-0.5"
                 >
                   <span>{{ occ }}</span>
-                  <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeOccupation(idx)" />
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                    @click.stop="removeOccupation(idx)"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
                 </Badge>
               </div>
             </div>
@@ -1244,7 +1262,13 @@ const confirmDuplicateResolution = () => {
                     class="text-[11px] gap-1"
                   >
                     <span>{{ loc }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeLocalLocation(idx)" />
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                      @click.stop="removeLocalLocation(idx)"
+                    >
+                      <X class="h-3 w-3" />
+                    </button>
                   </Badge>
                 </div>
               </div>
@@ -1272,7 +1296,13 @@ const confirmDuplicateResolution = () => {
                     class="text-[11px] bg-primary/10 text-primary border-primary/30 gap-1"
                   >
                     <span>{{ os }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeOverseasLocation(idx)" />
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center text-primary/70 hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                      @click.stop="removeOverseasLocation(idx)"
+                    >
+                      <X class="h-3 w-3" />
+                    </button>
                   </Badge>
                 </div>
               </div>

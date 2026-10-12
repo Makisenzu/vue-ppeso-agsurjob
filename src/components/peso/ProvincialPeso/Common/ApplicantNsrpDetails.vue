@@ -1771,7 +1771,13 @@ const {
                   class="text-[11px] gap-1 py-0.5"
                 >
                   <span>{{ occ }}</span>
-                  <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeEditOccupation(idx)" />
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                    @click.stop="removeEditOccupation(idx)"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
                 </Badge>
               </div>
             </div>
@@ -1802,7 +1808,13 @@ const {
                   class="text-[11px] gap-1"
                 >
                   <span>{{ loc }}</span>
-                  <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeEditLocalLocation(idx)" />
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                    @click.stop="removeEditLocalLocation(idx)"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
                 </Badge>
               </div>
             </div>
@@ -1833,7 +1845,13 @@ const {
                   class="text-[11px] bg-primary/10 text-primary border-primary/30 gap-1"
                 >
                   <span>{{ os }}</span>
-                  <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeEditOverseasLocation(idx)" />
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center text-primary/70 hover:text-destructive cursor-pointer transition-colors focus:outline-none"
+                    @click.stop="removeEditOverseasLocation(idx)"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
                 </Badge>
               </div>
             </div>

@@ -381,9 +381,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     eligibilities.value.splice(index, 1)
   }
 
-  const otherSkills = ref<string[]>([
-    '',
-  ])
+  const otherSkills = ref<string[]>([])
   const newSkillTag = ref('')
   const otherSkillsSpecified = ref('')
 
@@ -435,9 +433,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   }
 
   // ─── STEP 6: Job Preferences & PESO Assessment ───
-  const preferredOccupations = ref<string[]>([
-    '',
-  ])
+  const preferredOccupations = ref<string[]>([])
   const newOccupationTag = ref('')
 
   const addOccupation = () => {
@@ -452,9 +448,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     preferredOccupations.value.splice(idx, 1)
   }
 
-  const preferredLocalLocations = ref<string[]>([
-    '',
-  ])
+  const preferredLocalLocations = ref<string[]>([])
   const newLocalLocationTag = ref('')
 
   const addLocalLocation = () => {
@@ -665,6 +659,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
         place_of_examination: el.place_of_examination?.trim() || '',
       }))
 
+    const cleanOtherSkills = otherSkills.value.map((s) => s.trim()).filter(Boolean)
+    const cleanPreferredOccupations = preferredOccupations.value.map((s) => s.trim()).filter(Boolean)
+    const cleanPreferredLocalLocations = preferredLocalLocations.value.map((s) => s.trim()).filter(Boolean)
+    const cleanPreferredOverseasLocations = preferredOverseasLocations.value.map((s) => s.trim()).filter(Boolean)
+
     return {
       // Identity & Demographics
       first_name: firstName.value.trim(),
@@ -719,13 +718,13 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
       // Eligibilities & Skills
       eligibilities: cleanEligibilities.length > 0 ? cleanEligibilities : null,
       language_proficiencies: languageProficiencies.value.length > 0 ? languageProficiencies.value : null,
-      other_skills: otherSkills.value.length > 0 ? otherSkills.value : null,
+      other_skills: cleanOtherSkills.length > 0 ? cleanOtherSkills : null,
       other_skills_specified: otherSkillsSpecified.value.trim() || null,
 
       // Preferences & Programs
-      preferred_occupations: preferredOccupations.value.length > 0 ? preferredOccupations.value : null,
-      preferred_local_locations: preferredLocalLocations.value.length > 0 ? preferredLocalLocations.value : null,
-      preferred_overseas_locations: preferredOverseasLocations.value.length > 0 ? preferredOverseasLocations.value : null,
+      preferred_occupations: cleanPreferredOccupations.length > 0 ? cleanPreferredOccupations : null,
+      preferred_local_locations: cleanPreferredLocalLocations.length > 0 ? cleanPreferredLocalLocations : null,
+      preferred_overseas_locations: cleanPreferredOverseasLocations.length > 0 ? cleanPreferredOverseasLocations : null,
       job_type_preference: jobTypePreference.value.length > 0 ? jobTypePreference.value : null,
       referred_programs: referredPrograms.value.length > 0 ? referredPrograms.value : null,
       documents_submitted: documentsSubmitted.value.length > 0 ? documentsSubmitted.value : null,
@@ -801,7 +800,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
 
     preferredOccupations.value = []
     newOccupationTag.value = ''
-    preferredLocalLocations.value = ['Agusan del Sur']
+    preferredLocalLocations.value = []
     newLocalLocationTag.value = ''
     preferredOverseasLocations.value = []
     newOverseasLocationTag.value = ''
