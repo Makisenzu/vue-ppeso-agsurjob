@@ -252,16 +252,19 @@ const {
             </select>
           </div>
 
-          <!-- Program Filter (GIP, TUPAD, SPES) -->
+          <!-- Program Filter (SPES, GIP, TUPAD, JobStart, DILEEP, TESDA) -->
           <div>
             <select
               v-model="selectedProgramFilter"
               class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="ALL">All Programs (GIP/TUPAD/SPES)</option>
+              <option value="ALL">All Programs</option>
+              <option value="SPES">SPES (Student Emp.)</option>
               <option value="GIP">GIP (Govt Internship)</option>
               <option value="TUPAD">TUPAD (Emergency Emp.)</option>
-              <option value="SPES">SPES (Student Emp.)</option>
+              <option value="JobStart">JobStart</option>
+              <option value="DILEEP">DILEEP</option>
+              <option value="TESDA">TESDA Training</option>
               <option value="NONE">No Program Assigned</option>
             </select>
           </div>
@@ -405,6 +408,30 @@ const {
                       >
                         SPES
                       </Badge>
+                      <!-- JobStart -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('JOBSTART'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 font-semibold"
+                      >
+                        JobStart
+                      </Badge>
+                      <!-- DILEEP -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('DILEEP'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 font-semibold"
+                      >
+                        DILEEP
+                      </Badge>
+                      <!-- TESDA -->
+                      <Badge
+                        v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('TESDA'))"
+                        variant="secondary"
+                        class="text-[10px] px-1.5 py-0 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold"
+                      >
+                        TESDA
+                      </Badge>
                       <!-- 4Ps -->
                       <Badge
                         v-if="applicant.is4psBeneficiary"
@@ -433,7 +460,7 @@ const {
                       <span
                         v-if="
                           !applicant.referredPrograms.some((p) =>
-                            ['GIP', 'TUPAD', 'SPES'].some((key) => p.toUpperCase().includes(key))
+                            ['SPES', 'GIP', 'TUPAD', 'JOBSTART', 'DILEEP', 'TESDA'].some((key) => p.toUpperCase().includes(key))
                           ) &&
                           !applicant.is4psBeneficiary &&
                           !applicant.hasDisability &&

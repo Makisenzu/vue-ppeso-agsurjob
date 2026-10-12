@@ -318,6 +318,30 @@ const {
               >
                 SPES Student
               </Badge>
+              <!-- JobStart -->
+              <Badge
+                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('JOBSTART'))"
+                variant="secondary"
+                class="text-xs px-2.5 py-0.5 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 font-semibold"
+              >
+                JobStart
+              </Badge>
+              <!-- DILEEP -->
+              <Badge
+                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('DILEEP'))"
+                variant="secondary"
+                class="text-xs px-2.5 py-0.5 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 font-semibold"
+              >
+                DILEEP
+              </Badge>
+              <!-- TESDA -->
+              <Badge
+                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('TESDA'))"
+                variant="secondary"
+                class="text-xs px-2.5 py-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold"
+              >
+                TESDA Training
+              </Badge>
               <!-- 4Ps -->
               <Badge
                 v-if="applicant.is4psBeneficiary"
@@ -346,7 +370,7 @@ const {
               <Badge
                 v-if="
                   !applicant.referredPrograms.some((p) =>
-                    ['GIP', 'TUPAD', 'SPES'].some((key) => p.toUpperCase().includes(key))
+                    ['SPES', 'GIP', 'TUPAD', 'JOBSTART', 'DILEEP', 'TESDA'].some((key) => p.toUpperCase().includes(key))
                   ) &&
                   !applicant.is4psBeneficiary &&
                   !applicant.hasDisability &&

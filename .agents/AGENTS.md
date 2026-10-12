@@ -7,6 +7,7 @@
   - Use `rtk git diff` instead of `git diff`
   - Use `rtk npm test` or `rtk vitest` instead of plain test runners
   - Use `rtk pnpm` / `rtk npm` for package listing or management tasks
+  - Use `rtk npx <command>` (e.g., `rtk npx eslint`, `rtk npx vitest`, `rtk npx tsc`) when running one-off executables
 
 > **Purpose**: This is the **authoritative primary entry point** for all AI coding agents working on the AGSURJOBS codebase.
 > Every AI model — regardless of provider (Claude, Gemini, GPT, Copilot, Cursor, etc.) — **MUST read this file first**

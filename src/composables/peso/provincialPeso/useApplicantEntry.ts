@@ -122,14 +122,17 @@ export function useApplicantEntry() {
         }
       }
 
-      // Program Filter (GIP, TUPAD, SPES)
+      // Program Filter (SPES, GIP, TUPAD, JobStart, DILEEP, TESDA)
       if (program !== 'ALL') {
         const progs = a.referredPrograms.map((p) => (p || '').toUpperCase())
         const progText = progs.join(' ')
+        if (program === 'SPES' && !progText.includes('SPES')) return false
         if (program === 'GIP' && !progText.includes('GIP')) return false
         if (program === 'TUPAD' && !progText.includes('TUPAD')) return false
-        if (program === 'SPES' && !progText.includes('SPES')) return false
-        if (program === 'NONE' && (progText.includes('GIP') || progText.includes('TUPAD') || progText.includes('SPES'))) {
+        if (program === 'JobStart' && !progText.includes('JOBSTART')) return false
+        if (program === 'DILEEP' && !progText.includes('DILEEP')) return false
+        if (program === 'TESDA' && !progText.includes('TESDA')) return false
+        if (program === 'NONE' && progs.length > 0) {
           return false
         }
       }

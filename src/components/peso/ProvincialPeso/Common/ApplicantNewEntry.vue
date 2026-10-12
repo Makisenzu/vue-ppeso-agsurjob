@@ -186,14 +186,14 @@ const {
 } = useApplicantNewEntry({ props, emit })
 
 const duplicateAction = ref<DuplicateResolutionAction>('link_program')
-const duplicateProgram = ref<string>('GIP')
+const duplicateProgram = ref<string>('SPES')
 
 watch(
   () => duplicateMatch.value,
   (match) => {
     if (match) {
       duplicateAction.value = 'link_program'
-      duplicateProgram.value = referredPrograms.value[0] || 'GIP'
+      duplicateProgram.value = referredPrograms.value[0] || programOptions[0] || 'SPES'
     }
   }
 )

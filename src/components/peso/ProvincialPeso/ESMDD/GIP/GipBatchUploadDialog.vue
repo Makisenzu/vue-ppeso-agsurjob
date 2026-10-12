@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
+import { PROGRAM_OPTIONS } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 import { LPII_CONFIG } from '@/helpers/peso/provincialPeso/gipHelper'
 import type { DuplicateResolutionAction } from '@/types/peso/provincialPeso/applicantEntry'
 import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
@@ -92,7 +93,7 @@ const {
 
 const selectedDuplicateAction = ref<DuplicateResolutionAction>('link_program')
 const selectedDuplicateProgram = ref<string>('GIP')
-const batchProgramOptions = ['GIP', 'TUPAD', 'SPES', 'Special Recruitment', 'PESO Job Fair']
+const batchProgramOptions = PROGRAM_OPTIONS
 
 watch(
   () => duplicateCandidate.value,

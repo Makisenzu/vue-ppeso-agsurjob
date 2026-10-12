@@ -53,11 +53,12 @@ export const JOB_TYPE_OPTIONS: readonly string[] = [
 ]
 
 export const PROGRAM_OPTIONS: readonly string[] = [
+  'SPES',
   'GIP',
   'TUPAD',
-  'SPES',
-  'Special Recruitment',
-  'PESO Job Fair',
+  'JobStart',
+  'DILEEP',
+  'TESDA Training',
 ]
 
 export const DOCUMENT_OPTIONS: readonly string[] = [
@@ -489,7 +490,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     }
   }
 
-  const referredPrograms = ref<string[]>(['PESO Job Fair'])
+  const referredPrograms = ref<string[]>([])
 
   const toggleProgram = (p: string) => {
     const idx = referredPrograms.value.indexOf(p)
@@ -813,7 +814,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     preferredOverseasLocations.value = []
     newOverseasLocationTag.value = ''
     jobTypePreference.value = ['Full-Time']
-    referredPrograms.value = ['PESO Job Fair']
+    referredPrograms.value = []
     documentsSubmitted.value = ['NSRP']
     assessedByName.value = 'Denmark Rivera'
     assessmentDate.value = new Date().toISOString().split('T')[0]
