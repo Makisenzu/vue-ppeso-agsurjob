@@ -33,13 +33,26 @@ export const useJobFairStore = defineStore('pesoJobFair', () => {
     }
   }
 
-  async function createJobFair(payload: JobFairInsert): Promise<boolean> {
+  async function createJobFair(payload: JobFairInsert, attachments: File[] = []): Promise<boolean> {
     isSubmitting.value = true
     try {
       const created = await jobFairService.createJobFair(payload)
       jobFairs.value = [created, ...jobFairs.value]
+
+      // The job fair is already saved, so a failed upload is reported but not treated as a failed create.
+      const { failed } = attachments.length
+        ? await jobFairService.uploadAttachments(created.id, attachments)
+        : { failed: [] }
+
       isFormDialogOpen.value = false
       toastAlert.success('Job fair added', `${created.title} has been created.`)
+      if (failed.length) {
+        console.error('Job fair attachment upload failed:', failed)
+        toastAlert.error(
+          'Some attachments were not uploaded',
+          failed.map((f) => `${f.name}: ${f.reason}`).join(' • ')
+        )
+      }
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -72,8 +85,12 @@ export const useJobFairStore = defineStore('pesoJobFair', () => {
 
     isDeleting.value = true
     try {
+      // Read the file paths first: the attachment rows are cascade-deleted with the job fair.
+      const attachments = await jobFairService.fetchAttachments(target.id)
       await jobFairService.deleteJobFair(target.id)
       jobFairs.value = jobFairs.value.filter((fair) => fair.id !== target.id)
+      // Best effort: the job fair is gone either way, so a storage hiccup shouldn't surface as a failed delete.
+      await jobFairService.removeAttachmentFiles(attachments.map((a) => a.path)).catch(() => {})
       jobFairToDelete.value = null
       toastAlert.success('Job fair deleted', `${target.title} has been deleted.`)
       return true

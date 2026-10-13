@@ -33,6 +33,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { useJobFairParticipants } from '@/composables/peso/provincialPeso/useJobFairParticipants'
 import { useJobFairParticipantForm } from '@/composables/peso/provincialPeso/useJobFairParticipantForm'
 import JobFairMapPreview from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairMapPreview.vue'
+import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
 
 const {
   table,
@@ -160,6 +161,9 @@ const textFields = {
               </div>
             </div>
           </dl>
+
+          <Separator />
+          <JobFairAttachmentManager :job-fair-id="jobFair.id" />
         </div>
 
         <JobFairMapPreview

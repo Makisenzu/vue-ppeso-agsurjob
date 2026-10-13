@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { CalendarDays, Loader2, Plus, RefreshCw } from '@lucide/vue'
+import { ref } from 'vue'
+import { CalendarDays, FileText, Loader2, Paperclip, Plus, RefreshCw, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,10 +26,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from '@/components/ui/attachment'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { useJobFairs } from '@/composables/peso/provincialPeso/useJobFairs'
 import { useJobFairForm } from '@/composables/peso/provincialPeso/useJobFairForm'
 import JobFairLocationPicker from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairLocationPicker.vue'
+import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
 
 const {
   table,
@@ -47,12 +58,36 @@ const {
   isFormDialogOpen,
   isSubmitting,
   isEditMode,
+  editingJobFairId,
   statusOptions,
   formValues,
   onFormDialogOpenChange,
   setMapLocation,
   submitJobFair,
+  attachments,
+  attachmentError,
+  canAddMoreAttachments,
+  attachmentAccept,
+  attachmentMaxSizeMB,
+  attachmentMaxFiles,
+  addAttachments,
+  removeAttachment,
 } = useJobFairForm()
+
+const isDraggingFiles = ref(false)
+
+function onAttachmentInputChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  addAttachments(input.files)
+  // Clear the input so picking the same file again still fires `change`
+  input.value = ''
+}
+
+function onAttachmentDrop(event: DragEvent) {
+  isDraggingFiles.value = false
+  if (isSubmitting.value || !canAddMoreAttachments.value) return
+  addAttachments(event.dataTransfer?.files ?? null)
+}
 </script>
 
 <template>
@@ -284,6 +319,68 @@ const {
             <FormMessage />
           </FormItem>
         </FormField>
+
+        <!-- Attachments (create only) -->
+        <div v-if="!isEditMode" class="grid gap-2">
+          <p class="text-sm font-medium">
+            Attachments <span class="font-normal text-muted-foreground">(optional)</span>
+          </p>
+
+          <label
+            class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors hover:bg-muted/50 has-disabled:cursor-not-allowed has-disabled:opacity-50"
+            :class="{ 'border-primary bg-primary/5': isDraggingFiles }"
+            @dragover.prevent="isDraggingFiles = true"
+            @dragleave.prevent="isDraggingFiles = false"
+            @drop.prevent="onAttachmentDrop"
+          >
+            <Paperclip class="size-5 text-muted-foreground" />
+            <span class="text-sm font-medium">Click to upload or drag files here</span>
+            <span class="text-xs text-muted-foreground">
+              Images or PDF · up to {{ attachmentMaxSizeMB }}MB each · max {{ attachmentMaxFiles }} files
+            </span>
+            <input
+              type="file"
+              class="sr-only"
+              multiple
+              :accept="attachmentAccept"
+              :disabled="isSubmitting || !canAddMoreAttachments"
+              @change="onAttachmentInputChange"
+            >
+          </label>
+
+          <p v-if="attachmentError" class="text-sm text-destructive">{{ attachmentError }}</p>
+
+          <div v-if="attachments.length" class="grid gap-2 sm:grid-cols-2">
+            <Attachment
+              v-for="attachment in attachments"
+              :key="attachment.id"
+              :state="isSubmitting ? 'uploading' : 'idle'"
+              class="w-full min-w-0"
+            >
+              <AttachmentMedia :variant="attachment.isImage ? 'image' : 'icon'">
+                <img v-if="attachment.previewUrl" :src="attachment.previewUrl" :alt="attachment.file.name">
+                <FileText v-else />
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle class="block truncate">{{ attachment.file.name }}</AttachmentTitle>
+                <AttachmentDescription>{{ attachment.sizeLabel }}</AttachmentDescription>
+              </AttachmentContent>
+              <AttachmentActions>
+                <AttachmentAction
+                  type="button"
+                  :aria-label="`Remove ${attachment.file.name}`"
+                  :disabled="isSubmitting"
+                  @click="removeAttachment(attachment.id)"
+                >
+                  <X />
+                </AttachmentAction>
+              </AttachmentActions>
+            </Attachment>
+          </div>
+        </div>
+
+        <!-- Attachments (edit: changes save immediately) -->
+        <JobFairAttachmentManager v-else-if="editingJobFairId" :job-fair-id="editingJobFairId" :disabled="isSubmitting" />
 
         <DialogFooter>
           <Button type="button" variant="outline" :disabled="isSubmitting" @click="onFormDialogOpenChange(false)">

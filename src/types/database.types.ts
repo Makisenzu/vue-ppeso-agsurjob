@@ -1014,6 +1014,50 @@ export type Database = {
           },
         ]
       }
+      job_fair_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          job_fair_id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          job_fair_id: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          job_fair_id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_fair_attachments_job_fair_id_fkey"
+            columns: ["job_fair_id"]
+            isOneToOne: false
+            referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_fair_participants: {
         Row: {
           acronym: string | null

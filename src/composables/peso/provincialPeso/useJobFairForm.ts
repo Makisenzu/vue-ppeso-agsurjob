@@ -1,10 +1,19 @@
-import { computed, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useJobFairStore } from '@/stores/peso/provincialPeso/jobFairStore'
-import { JOB_FAIR_STATUSES, type JobFairRow, type JobFairStatus } from '@/types/peso/provincialPeso/jobFair'
+import {
+  JOB_FAIR_ATTACHMENT_ACCEPT,
+  JOB_FAIR_ATTACHMENT_MAX_FILES,
+  JOB_FAIR_ATTACHMENT_MAX_SIZE_MB,
+  JOB_FAIR_ATTACHMENT_MIME_TYPES,
+  JOB_FAIR_STATUSES,
+  type JobFairRow,
+  type JobFairStatus,
+} from '@/types/peso/provincialPeso/jobFair'
+import { formatFileSize, validateUploadFile } from '@/helpers/common/uploadHelpers'
 import type { MapCoordinates } from '@/helpers/common/mapboxHelpers'
 
 const jobFairSchema = toTypedSchema(
@@ -39,6 +48,15 @@ const INITIAL_VALUES = {
   longitude: null as number | null,
 }
 
+export interface PendingAttachment {
+  id: string
+  file: File
+  isImage: boolean
+  /** Object URL for image thumbnails; revoked when the attachment is removed. */
+  previewUrl: string | null
+  sizeLabel: string
+}
+
 function toFormValues(row: JobFairRow): typeof INITIAL_VALUES {
   const status = JOB_FAIR_STATUSES.find((s) => s.toLowerCase() === row.status.toLowerCase()) ?? 'Upcoming'
   return {
@@ -66,11 +84,65 @@ export function useJobFairForm() {
   })
 
   const isEditMode = computed(() => editingJobFair.value !== null)
+  const editingJobFairId = computed(() => editingJobFair.value?.id ?? null)
+
+  // ─── Attachments (create mode only) ───
+  const attachments = ref<PendingAttachment[]>([])
+  const attachmentError = ref<string | null>(null)
+  const canAddMoreAttachments = computed(() => attachments.value.length < JOB_FAIR_ATTACHMENT_MAX_FILES)
+
+  const addAttachments = (files: FileList | File[] | null) => {
+    attachmentError.value = null
+    if (!files) return
+
+    const rejected: string[] = []
+    for (const file of Array.from(files)) {
+      if (!canAddMoreAttachments.value) {
+        attachmentError.value = `You can attach up to ${JOB_FAIR_ATTACHMENT_MAX_FILES} files.`
+        break
+      }
+      try {
+        validateUploadFile(file, {
+          allowedMimeTypes: JOB_FAIR_ATTACHMENT_MIME_TYPES,
+          maxSizeMB: JOB_FAIR_ATTACHMENT_MAX_SIZE_MB,
+        })
+      } catch (error: any) {
+        rejected.push(`${file.name}: ${error.message}`)
+        continue
+      }
+      const isImage = file.type.startsWith('image/')
+      attachments.value.push({
+        id: crypto.randomUUID(),
+        file,
+        isImage,
+        previewUrl: isImage ? URL.createObjectURL(file) : null,
+        sizeLabel: formatFileSize(file.size),
+      })
+    }
+
+    if (rejected.length) attachmentError.value = rejected.join(' ')
+  }
+
+  const removeAttachment = (id: string) => {
+    const target = attachments.value.find((a) => a.id === id)
+    if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+    attachments.value = attachments.value.filter((a) => a.id !== id)
+    attachmentError.value = null
+  }
+
+  const clearAttachments = () => {
+    attachments.value.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl))
+    attachments.value = []
+    attachmentError.value = null
+  }
+
+  onBeforeUnmount(clearAttachments)
 
   // Load the selected row (or blank values) each time the dialog opens.
   watch(isFormDialogOpen, (open) => {
     if (!open) return
     resetForm({ values: editingJobFair.value ? toFormValues(editingJobFair.value) : INITIAL_VALUES })
+    clearAttachments()
   })
 
   const onFormDialogOpenChange = (open: boolean) => {
@@ -99,7 +171,8 @@ export function useJobFairForm() {
     if (editingJobFair.value) {
       await updateJobFair(editingJobFair.value.id, payload)
     } else {
-      await createJobFair(payload)
+      const created = await createJobFair(payload, attachments.value.map((a) => a.file))
+      if (created) clearAttachments()
     }
   })
 
@@ -107,10 +180,19 @@ export function useJobFairForm() {
     isFormDialogOpen,
     isSubmitting,
     isEditMode,
+    editingJobFairId,
     statusOptions: JOB_FAIR_STATUSES,
     formValues: values,
     onFormDialogOpenChange,
     setMapLocation,
     submitJobFair,
+    attachments,
+    attachmentError,
+    canAddMoreAttachments,
+    attachmentAccept: JOB_FAIR_ATTACHMENT_ACCEPT,
+    attachmentMaxSizeMB: JOB_FAIR_ATTACHMENT_MAX_SIZE_MB,
+    attachmentMaxFiles: JOB_FAIR_ATTACHMENT_MAX_FILES,
+    addAttachments,
+    removeAttachment,
   }
 }

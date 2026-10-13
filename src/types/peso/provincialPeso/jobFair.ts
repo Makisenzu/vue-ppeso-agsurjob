@@ -13,7 +13,17 @@ export type JobFairWithCounts = JobFairRow & {
   job_vacancies: { vacancy_count: number | null }[]
 }
 
-export const JOB_FAIR_STATUSES = ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'] as const
+// ─── Attachments ───
+export type JobFairAttachmentRow = EsmddTables['job_fair_attachments']['Row']
+export type JobFairAttachmentInsert = EsmddTables['job_fair_attachments']['Insert']
+
+export const JOB_FAIR_ATTACHMENT_BUCKET = 'job-fair-attachments'
+export const JOB_FAIR_ATTACHMENT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+export const JOB_FAIR_ATTACHMENT_ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf'
+export const JOB_FAIR_ATTACHMENT_MAX_SIZE_MB = 20
+export const JOB_FAIR_ATTACHMENT_MAX_FILES = 10
+
+export const JOB_FAIR_STATUSES =['Upcoming', 'Ongoing', 'Completed', 'Cancelled'] as const
 export type JobFairStatus = (typeof JOB_FAIR_STATUSES)[number]
 
 // ─── Participants ───
