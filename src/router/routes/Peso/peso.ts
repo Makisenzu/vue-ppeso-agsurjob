@@ -100,11 +100,36 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: SPESDashboard,
         meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'SPES' }
       },
+      // ─── Job Fair (breadcrumb hierarchy: Job Fair > Participants > Vacancies) ───
       {
         path: 'job-fair',
-        name: 'provincial-peso-job-fair',
-        component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFair.vue'),
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Job Fair' }
+        meta: { breadcrumb: 'Job Fair', breadcrumbTo: { name: 'provincial-peso-job-fair' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-job-fair',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFair.vue'),
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: ':jobFairId',
+            meta: { breadcrumb: 'Participants', breadcrumbTo: { name: 'provincial-peso-job-fair-participants' } },
+            children: [
+              {
+                path: '',
+                name: 'provincial-peso-job-fair-participants',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairParticipants.vue'),
+                meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+              },
+              {
+                path: 'participants/:participantId',
+                name: 'provincial-peso-job-fair-participant-vacancies',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairParticipantVacancies.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Vacancies' },
+              },
+            ],
+          },
+        ],
       },
       {
         path: 'tupad',
