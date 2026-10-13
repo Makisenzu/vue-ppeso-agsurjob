@@ -55,6 +55,7 @@ export interface LpiiDataPoint {
 export interface LpiiCategoryConfig {
   label: string
   color: string
+  dotClass: string
   bgClass: string
   textClass: string
   badgeClass: string

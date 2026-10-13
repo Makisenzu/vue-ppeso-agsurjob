@@ -127,22 +127,14 @@ export function useGipPriorityApplicants() {
 
   // Visual helpers
   const getRankBadgeClass = (rank: number) => {
-    if (rank === 1) {
-      return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40 font-bold'
-    }
-    if (rank === 2) {
-      return 'bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-400/40 font-bold'
-    }
-    if (rank === 3) {
-      return 'bg-amber-700/20 text-amber-800 dark:text-amber-400 border-amber-700/40 font-bold'
-    }
+    if (rank <= 3) return 'bg-primary text-primary-foreground border-transparent font-bold'
     return 'bg-muted text-muted-foreground border-border font-semibold'
   }
 
   const getScoreColorClass = (score: number) => {
-    if (score >= 70) return 'text-emerald-600 dark:text-emerald-400 font-bold'
-    if (score >= 50) return 'text-blue-600 dark:text-blue-400 font-bold'
-    if (score >= 30) return 'text-amber-600 dark:text-amber-400 font-medium'
+    if (score >= 70) return 'text-success font-bold'
+    if (score >= 50) return 'text-info font-bold'
+    if (score >= 30) return 'text-warning font-medium'
     return 'text-muted-foreground'
   }
 

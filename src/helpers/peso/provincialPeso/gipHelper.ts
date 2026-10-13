@@ -52,58 +52,88 @@ export function invalidateGipCaches(options?: { interns?: boolean; applicants?: 
 export const LPII_CONFIG: Record<LpiiCategory, LpiiCategoryConfig> = {
   LOWLAND: {
     label: 'Lowland',
-    color: '#10b981', // Emerald 500
-    bgClass: 'bg-emerald-500/10',
-    textClass: 'text-emerald-600 dark:text-emerald-400',
-    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+    color: 'var(--success)',
+    dotClass: 'bg-success',
+    bgClass: 'bg-success/10',
+    textClass: 'text-success',
+    badgeClass: 'bg-success/10 text-success border-success/30',
   },
   UPLAND: {
     label: 'Upland',
-    color: '#f59e0b', // Amber 500
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-600 dark:text-amber-400',
-    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+    color: 'var(--warning)',
+    dotClass: 'bg-warning',
+    bgClass: 'bg-warning/10',
+    textClass: 'text-warning',
+    badgeClass: 'bg-warning/10 text-warning border-warning/30',
   },
   WETLAND: {
     label: 'Wetland',
-    color: '#0ea5e9', // Sky 500
-    bgClass: 'bg-sky-500/10',
-    textClass: 'text-sky-600 dark:text-sky-400',
-    badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+    color: 'var(--info)',
+    dotClass: 'bg-info',
+    bgClass: 'bg-info/10',
+    textClass: 'text-info',
+    badgeClass: 'bg-info/10 text-info border-info/30',
   },
+}
+
+// ─── Status Badge Classes (semantic tokens) ───
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  approved: 'bg-success/10 text-success border-success/30',
+  active: 'bg-success/10 text-success border-success/30',
+  completed: 'bg-success/10 text-success border-success/30',
+  hired: 'bg-info/10 text-info border-info/30',
+  pending: 'bg-warning/10 text-warning border-warning/30',
+  rejected: 'bg-destructive/10 text-destructive border-destructive/30',
+  resigned: 'bg-destructive/10 text-destructive border-destructive/30',
+  terminated: 'bg-destructive/10 text-destructive border-destructive/30',
+}
+
+export function getGipStatusBadgeClass(status?: string | null): string {
+  return STATUS_BADGE_CLASS[(status || '').toLowerCase()] ?? 'bg-muted text-muted-foreground border-border'
+}
+
+const STATUS_DOT_CLASS: Record<string, string> = {
+  hired: 'bg-info',
+  pending: 'bg-warning',
+  approved: 'bg-success',
+  rejected: 'bg-destructive',
+}
+
+export function getGipStatusDotClass(status?: string | null): string {
+  return STATUS_DOT_CLASS[(status || '').toLowerCase()] ?? 'bg-muted-foreground'
 }
 
 // ─── Chart Configs (PGAS, DOLE & Applicants) ───
 export const pgasChartConfig: ChartConfig = {
   male: {
     label: 'Male',
-    color: '#2563eb',
+    color: 'var(--chart-1)',
   },
   female: {
     label: 'Female',
-    color: '#dc14ea',
+    color: 'var(--chart-2)',
   },
 }
 
 export const doleChartConfig: ChartConfig = {
   male: {
     label: 'Male',
-    color: '#2563eb',
+    color: 'var(--chart-1)',
   },
   female: {
     label: 'Female',
-    color: '#dc14ea',
+    color: 'var(--chart-2)',
   },
 }
 
 export const applicantsChartConfig: ChartConfig = {
   male: {
     label: 'Male',
-    color: '#2563eb',
+    color: 'var(--chart-1)',
   },
   female: {
     label: 'Female',
-    color: '#dc14ea',
+    color: 'var(--chart-2)',
   },
 }
 
@@ -119,38 +149,28 @@ export const formatTooltipLabel = (dataList: GenderDataPoint[]) => (d: number | 
   return item ? `Year ${item.year}` : ''
 }
 
-export const donutTooltipTriggers = {
-  [VisDonutSelectors.segment]: (d: { data: LpiiDataPoint }): string => `
-    <div style="background: rgba(15, 23, 42, 0.92); color: #fff; padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);">
-      <div style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
-        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${d.data.color};"></span>
-        ${d.data.label} Ecosystem
-      </div>
-      <div style="margin-top: 4px; color: #cbd5e1;">
-        Interns: <span style="font-weight: 700; color: #fff;">${d.data.count.toLocaleString()}</span>
-      </div>
-      <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
-        ${d.data.description}
-      </div>
+const renderDonutTooltip = (dotClass: string, title: string, countLabel: string, count: number, description: string): string => `
+  <div class="grid min-w-36 gap-1 rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div class="flex items-center gap-1.5 font-medium text-foreground">
+      <span class="size-2.5 shrink-0 rounded-[2px] ${dotClass}"></span>
+      ${title}
     </div>
-  `,
+    <div class="flex items-center justify-between gap-4 text-muted-foreground">
+      <span>${countLabel}</span>
+      <span class="font-mono font-medium tabular-nums text-foreground">${count.toLocaleString()}</span>
+    </div>
+    <div class="text-[11px] text-muted-foreground">${description}</div>
+  </div>
+`
+
+export const donutTooltipTriggers = {
+  [VisDonutSelectors.segment]: (d: { data: LpiiDataPoint }): string =>
+    renderDonutTooltip(LPII_CONFIG[d.data.category].dotClass, `${d.data.label} Ecosystem`, 'Interns', d.data.count, d.data.description),
 }
 
 export const statusDonutTooltipTriggers = {
-  [VisDonutSelectors.segment]: (d: { data: ApplicantStatusDataPoint }): string => `
-    <div style="background: rgba(15, 23, 42, 0.92); color: #fff; padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);">
-      <div style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
-        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${d.data.color};"></span>
-        ${d.data.label} Status
-      </div>
-      <div style="margin-top: 4px; color: #cbd5e1;">
-        Applicants: <span style="font-weight: 700; color: #fff;">${d.data.count.toLocaleString()}</span>
-      </div>
-      <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
-        ${d.data.description}
-      </div>
-    </div>
-  `,
+  [VisDonutSelectors.segment]: (d: { data: ApplicantStatusDataPoint }): string =>
+    renderDonutTooltip(getGipStatusDotClass(d.data.status), `${d.data.label} Status`, 'Applicants', d.data.count, d.data.description),
 }
 
 // ─── Helpers: Address & Education Parsing ───
@@ -923,28 +943,28 @@ export function computeApplicantStatusBreakdown(
       status: 'Hired',
       label: 'Hired',
       count: countStatus('hired'),
-      color: '#3b82f6', // Blue 500
+      color: 'var(--info)',
       description: 'Candidates hired and actively deployed',
     },
     {
       status: 'Pending',
       label: 'Pending',
       count: countStatus('pending'),
-      color: '#f59e0b', // Amber 500
+      color: 'var(--warning)',
       description: 'Applications pending evaluation and review',
     },
     {
       status: 'Approved',
       label: 'Approved',
       count: countStatus('approved'),
-      color: '#10b981', // Emerald 500
+      color: 'var(--success)',
       description: 'Approved applicants qualified for deployment',
     },
     {
       status: 'Rejected',
       label: 'Rejected',
       count: countStatus('rejected'),
-      color: '#f43f5e', // Rose 500
+      color: 'var(--destructive)',
       description: 'Applications rejected or disqualified',
     },
   ]

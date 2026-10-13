@@ -5,7 +5,7 @@
 
 ---
 
-## 1. Design Philosophy
+## 1. Design Philosophy & UI/UX Core Principles
 
 AGSURJOBS is a **government job portal** for the Province of Agusan del Sur, Philippines.
 The design must be:
@@ -14,6 +14,28 @@ The design must be:
 - **Accessible** — usable by applicants across varying digital literacy levels
 - **Role-aware** — 5 roles share a design system but have distinct navigation and layout contexts
 - **Dark-mode native** — every component must work seamlessly in both light and dark themes
+
+### 1.1 UI/UX Guiding Principles
+
+Every component, page, and interaction must follow these principles. They are **non-negotiable**.
+
+| Principle                   | Meaning                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Visual hierarchy**        | The most important element on screen should be the most visually prominent. Use size, weight, and contrast — not icons or color quantity — to establish hierarchy. |
+| **Whitespace is structure**  | Generous spacing between groups creates scannable sections. Cramming elements together harms readability.  |
+| **Reduce cognitive load**    | Show only what the user needs at each step. Hide complexity behind progressive disclosure (`Accordion`, `Collapsible`, `Sheet`). |
+| **Consistency over creativity** | Every similar action should look and behave the same way across all roles and pages.                    |
+| **Text communicates, decoration does not** | Labels, headings, and descriptions carry meaning. Decorative icons, colored badges for non-status info, and ornamental borders add noise. |
+| **Feedback is immediate**    | Every user action (click, submit, delete) must produce visible feedback within 100ms — use loading states, disabled buttons, or `Skeleton` placeholders. |
+| **Content density must be intentional** | Dense UIs (data tables, dashboards) are acceptable. Dense forms and dialogs are not — space out form fields and use clear section breaks. |
+
+> [!CAUTION]
+> **Before adding ANY visual element** (icon, badge, border, color, shadow, animation), ask:
+> 1. Does this help the user **complete their task faster**?
+> 2. Does this **communicate information** that isn't already conveyed by text or layout?
+> 3. If I removed this, would the user **lose any understanding**?
+>
+> If the answer to all three is "no", **do not add it**.
 
 ---
 
@@ -33,6 +55,9 @@ All colors are defined as **CSS custom properties** using the `oklch()` color sp
 | `--muted`                  | `oklch(0.96 0.002 17.2)`            | Muted backgrounds                |
 | `--muted-foreground`       | `oklch(0.547 0.021 43.1)`           | Secondary/hint text              |
 | `--destructive`            | `oklch(0.577 0.245 27.325)`         | Error / danger states            |
+| `--success`                | `oklch(0.596 0.145 163.225)`        | Positive status (Approved, Active, Valid) |
+| `--warning`                | `oklch(0.666 0.179 58.318)`         | Attention status (Pending, Expiring, Needs Check) |
+| `--info`                   | `oklch(0.588 0.158 241.966)`        | Informational status (Hired)     |
 | `--border`                 | `oklch(0.922 0.005 34.3)`           | Default borders                  |
 | `--button`                 | `oklch(58.862% 0.18554 139.497)`    | Custom CTA button (green)        |
 | `--buttonTwo`              | `oklch(43.895% 0.12656 148.166)`    | Secondary CTA button (dark green)|
@@ -54,6 +79,7 @@ Dark tokens mirror light but shift toward `oklch` values with lower lightness. K
 > 2. **ALWAYS use semantic tokens**: `bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, etc.
 > 3. **NEVER use inline `style="color: ..."`** — use Tailwind utility classes with design tokens.
 > 4. **Charts use** `--chart-1` through `--chart-5` tokens.
+> 4a. **Status badges** use `--success` / `--warning` / `--info` / `--destructive` with the pattern `bg-{token}/10 text-{token} border-{token}/30` (e.g. `getGipStatusBadgeClass()` in `gipHelper.ts`). Never use raw palette colors like `amber-500` or `emerald-600`.
 > 5. **Sidebar uses** dedicated `--sidebar-*` tokens for all sidebar-scoped colors.
 
 ---
@@ -183,7 +209,7 @@ Only create a new `.vue` component when you are composing **significant business
 
 ---
 
-## 6. Icons — Lucide Vue
+## 6. Icons — Lucide Vue (Use Sparingly)
 
 | Setting        | Value                |
 | -------------- | -------------------- |
@@ -191,7 +217,64 @@ Only create a new `.vue` component when you are composing **significant business
 | Default size   | `class="size-4"`     |
 | Stroke width   | Lucide default (2px) |
 
-### Usage Pattern
+### 6.1 Icon Philosophy — Less Is More
+
+Icons should **aid comprehension**, not decorate every element. Overusing icons creates visual noise, slows scanning, and makes the interface feel cluttered rather than professional. Before adding an icon, ask: **"Does this icon communicate something that the text alone does not?"** If the answer is no, omit the icon.
+
+### 6.2 When to Use Icons
+
+| ✅ Use Icons Here                         | Why                                                            |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| **Sidebar navigation items**              | Icons help users scan and recognize sections quickly           |
+| **Icon-only buttons** (e.g., theme toggle, close) | No text label — the icon IS the label                   |
+| **Status indicators** (success ✓, error ✕, warning ⚠) | Reinforces meaning alongside color for accessibility |
+| **Empty states**                          | A single illustration-style icon sets the tone                 |
+| **Primary action buttons** (1 per toolbar max) | Draws attention to the main CTA                          |
+| **Breadcrumb separators / chevrons**      | Structural navigation cue                                      |
+
+### 6.3 When NOT to Use Icons
+
+| ❌ Avoid Icons Here                       | Why                                                            |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| **Every button in a button group**        | Text labels are sufficient; icons add clutter                  |
+| **Dialog / sheet titles**                 | The title text is clear enough on its own                      |
+| **Section headers / labels inside forms** | `<FormLabel>` text is self-explanatory                         |
+| **Every Badge**                           | Badges are already visually distinct via color/shape           |
+| **List item prefixes** (e.g., before every name) | Avatar or initials already identify the item            |
+| **Repeated icons in table rows**          | If every row has the same icon, it adds no information         |
+| **Secondary / outline action buttons**    | Text-only buttons keep secondary actions visually subordinate  |
+| **Inline text labels** (e.g., `<Globe class="h-3 w-3" /> Overseas Locations`) | The label text already says what it is |
+
+### 6.4 Before / After Example
+
+❌ **Over-decorated (avoid)**:
+```vue
+<DialogTitle class="flex items-center gap-2">
+  <Briefcase class="size-4 text-primary" />
+  Bulk GIP Deployment
+</DialogTitle>
+<!-- ... -->
+<Button @click="deploy">
+  <Briefcase class="size-4" />
+  Deploy Selected (5)
+</Button>
+<span class="flex items-center gap-1">
+  <Globe class="h-3 w-3 text-primary" />
+  Preferred Overseas Locations
+</span>
+```
+
+✅ **Clean and readable (preferred)**:
+```vue
+<DialogTitle>Bulk GIP Deployment</DialogTitle>
+<!-- ... -->
+<Button @click="deploy">Deploy Selected (5)</Button>
+<span class="text-muted-foreground text-[11px] font-semibold">
+  Preferred Overseas Locations
+</span>
+```
+
+### 6.5 Usage Pattern
 
 ```vue
 <script setup lang="ts">
@@ -199,7 +282,10 @@ import { Sun, Moon, ChevronRight } from '@lucide/vue'
 </script>
 
 <template>
-  <Sun class="size-4 shrink-0" />
+  <!-- Icon-only button — icon IS the label -->
+  <Button variant="ghost" size="icon">
+    <Sun class="size-4 shrink-0" />
+  </Button>
 </template>
 ```
 
@@ -209,6 +295,9 @@ import { Sun, Moon, ChevronRight } from '@lucide/vue'
 > 1. **Lucide icons ONLY.** Do not add Heroicons, FontAwesome, Material Icons, or any other icon library.
 > 2. Import icons individually — never import the entire library.
 > 3. Apply `shrink-0` when icons are inside flex containers to prevent unwanted shrinking.
+> 4. **Do NOT add icons to dialog/sheet titles, form labels, or text-labeled buttons by default.** Only add an icon when it communicates meaning that the text cannot.
+> 5. **Maximum 1 icon per button.** If a button has a text label, the icon is optional — prefer text-only for secondary actions.
+> 6. **Never prefix every item in a list or table column with the same icon** — it adds visual weight without information.
 
 ---
 
@@ -426,3 +515,116 @@ Toast notifications use the custom [`useToastAlert()`](file:///c:/Users/Denmark%
 > 6. **Always support dark mode** via semantic tokens or `dark:` prefix.
 > 7. **Chart components** use `@unovis/vue` + `@unovis/ts` — no other charting libraries.
 > 8. **Map components** use `mapbox-gl` — no other mapping libraries.
+
+---
+
+## 16. UI/UX Design Rules — Strict Compliance
+
+This section defines **mandatory UI/UX patterns** that all agents must follow when creating or modifying any component, dialog, page, or layout.
+
+### 16.1 Visual Hierarchy
+
+- **Page title** (`<h1>` or equivalent): largest, boldest text on the page. One per view.
+- **Section headings**: use `font-semibold text-base` or `text-lg` — never the same weight/size as body text.
+- **Body text**: `text-sm text-foreground` for primary content, `text-sm text-muted-foreground` for secondary.
+- **Hint/help text**: `text-xs text-muted-foreground`.
+- **Hierarchy is achieved through font size and weight** — not through adding icons, colored backgrounds, or borders to every heading.
+
+### 16.2 Spacing & Density
+
+| Context                  | Spacing Pattern                                    |
+| ------------------------ | -------------------------------------------------- |
+| Between page sections    | `space-y-6` or `gap-6`                             |
+| Between cards in a grid  | `gap-4` or `gap-6`                                 |
+| Inside a `Card`          | Use `CardHeader` + `CardContent` (built-in padding)|
+| Between form fields      | `space-y-4` minimum                                |
+| Between items in a list  | `divide-y` on the container, or `space-y-2`        |
+| Inside a dialog          | `DialogHeader` → content → `DialogFooter` (no extra wrappers) |
+| Inline label + value     | `flex justify-between` or `grid grid-cols-2`       |
+
+> [!IMPORTANT]
+> **Do NOT pack elements tightly.** If a section feels visually cramped, add spacing — don't add borders or backgrounds to "separate" things. Use `Separator` from shadcn-vue when a visual divider is truly needed.
+
+### 16.3 Information Density — Progressive Disclosure
+
+Not all information needs to be visible at once. Use installed shadcn-vue components to manage complexity:
+
+| Scenario                                  | Use This Pattern                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| Long list of details (10+ fields)         | Group into `Card` sections with clear headings, or use `Accordion`  |
+| Optional/advanced settings                | Hide in a `Collapsible` or `Sheet` — show a "More options" trigger  |
+| Bulk actions on selected rows             | Show action bar only when `selectedIds.length > 0`                  |
+| Supplementary context (history, metadata) | Place in a `Sheet` (side panel) triggered by a link or button       |
+| Viewing full record details               | Use `Dialog` or dedicated route — don't inline everything in a list |
+| Tooltips for field explanations            | Use `Tooltip` with concise text, not a paragraph                    |
+
+### 16.4 Content Layout Patterns
+
+**Key-value detail views** (e.g., applicant profile, deployment details):
+```vue
+<!-- Preferred: clean grid, no icons on labels -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+  <div>
+    <span class="text-xs text-muted-foreground">Full Name</span>
+    <p class="text-sm font-medium">{{ record.fullName }}</p>
+  </div>
+  <div>
+    <span class="text-xs text-muted-foreground">Municipality</span>
+    <p class="text-sm font-medium">{{ record.municipality }}</p>
+  </div>
+</div>
+```
+
+**Grouped sections** inside a detail view:
+```vue
+<!-- Use Card for visual grouping, Separator between sections -->
+<Card>
+  <CardHeader>
+    <CardTitle class="text-base">Personal Information</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <!-- key-value grid here -->
+  </CardContent>
+</Card>
+
+<Card>
+  <CardHeader>
+    <CardTitle class="text-base">Employment Preferences</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <!-- content -->
+  </CardContent>
+</Card>
+```
+
+### 16.5 Interactive Feedback & Loading States
+
+| State                | Implementation                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| Page loading         | `Skeleton` placeholders matching the layout shape (not a spinner)                           |
+| Button submitting    | Disable button + show `Loader2` (spin icon) + change label to gerund ("Saving...")          |
+| Data fetching        | `Skeleton` rows in tables, `Skeleton` cards in grids                                        |
+| Empty result         | `Empty` component with a clear message and optional action button                           |
+| Destructive action   | `AlertDialog` with explicit consequence description — never a bare `window.confirm()`       |
+| Success feedback     | `useToastAlert().success()` — brief, auto-dismissing                                        |
+| Error feedback       | `useToastAlert().error()` — includes actionable message when possible                       |
+| Progress (uploads)   | `Progress` bar with percentage — not just a spinner                                         |
+
+### 16.6 Common Anti-Patterns — DO NOT DO THESE
+
+| ❌ Anti-Pattern                                      | ✅ Correct Approach                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| Icon on every label, heading, and button              | Icons only where they add meaning (see Section 6)                  |
+| Colored badge for every piece of metadata             | Badges for **status values only** (Approved, Pending, Rejected)    |
+| Deep nesting of `div > div > div` for spacing         | Use `space-y-*`, `gap-*`, or `Card`/`Separator` for structure     |
+| Custom-built modal/dialog component                   | Use shadcn `Dialog` or `AlertDialog` inline (see Section 5.1)     |
+| `window.confirm()` or `window.alert()`                | Use `AlertDialog` for confirms, `useToastAlert()` for feedback     |
+| Showing all 20+ fields in a flat list                 | Group with `Card` sections or `Accordion`, use progressive disclosure |
+| Spinner for everything                                | `Skeleton` for content, `Loader2` for buttons, `Progress` for uploads |
+| Hardcoded `bg-orange-500/10 text-orange-700` colors   | Define a semantic token or use existing design tokens              |
+| Creating a `<style scoped>` block for one-off styling | Use Tailwind utility classes exclusively                           |
+| Adding `border` + `rounded` + `shadow` to everything  | Use `Card` when elevation is needed; plain containers otherwise    |
+| Avatar/initials on every list item in a dialog        | Only use Avatars in primary lists (member lists, profiles)         |
+
+> [!CAUTION]
+> **Every UI decision must be justifiable by a UX principle from Section 1.1.** If you cannot explain which principle a visual element serves, remove it.

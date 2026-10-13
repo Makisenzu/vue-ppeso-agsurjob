@@ -1,25 +1,20 @@
 <script setup lang="ts">
-import {
-  ArrowLeft,
-  Award,
-  Download,
-  Eye,
-  GraduationCap,
-  Info,
-  Loader2,
-  MapPin,
-  Mountain,
-  Plus,
-  RefreshCw,
-  Search,
-  TreePine,
-  Waves,
-  X,
-} from '@lucide/vue'
+import { computed } from 'vue'
+import { ArrowLeft, RefreshCw, Search, X } from '@lucide/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -34,7 +29,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Progress } from '@/components/ui/progress'
 import { useGipPriorityApplicants } from '@/composables/peso/provincialPeso/useGipPriorityApplicants'
 
 const {
@@ -61,431 +55,330 @@ const {
   getInitials,
   LPII_CONFIG,
 } = useGipPriorityApplicants()
+
+const hasActiveFilters = computed(
+  () => !!searchQuery.value || selectedMunicipality.value !== 'ALL' || selectedTier.value !== 'ALL',
+)
+
+const kpis = computed(() => [
+  { label: 'Total Ranked Applicants', value: stats.value.total, hint: 'Assessed across all municipalities' },
+  { label: 'Highest Priority Score', value: stats.value.maxScore, suffix: '/ 100', hint: 'Top composite score achieved' },
+  { label: 'Average Score', value: stats.value.avgScore, suffix: 'pts', hint: 'Mean rating among applicants' },
+  { label: 'High Priority Tier (≥70)', value: stats.value.highCount, hint: 'Top-recommendation applicants' },
+])
+
+const scoreBreakdown = (record: (typeof paginatedPriorityList.value)[number]) => [
+  { label: 'Student / Fresh Grad', score: record.statusScore, max: 15 },
+  { label: 'Academic Awards', score: record.academicScore, max: 15 },
+  { label: 'Civil Service / Board', score: record.eligibilityScore, max: 10 },
+  { label: 'Certifications / TESDA', score: record.certScore, max: 10 },
+  { label: 'Poverty Incidence (LPII)', score: record.povertyScore, max: 25 },
+  { label: 'Unemployment Rate (LPII)', score: record.unemploymentScore, max: 25 },
+]
 </script>
 
 <template>
   <div class="flex flex-col gap-6 pb-12">
-    <!-- ─── Header & Breadcrumb Navigation ─── -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <!-- ─── Header ─── -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" class="gap-1.5 px-2 cursor-pointer" @click="goBack">
-            <ArrowLeft class="h-4 w-4" />
-            <span>Back to Applicants</span>
-          </Button>
-        </div>
-        <div class="flex items-center gap-2.5 flex-wrap">
-          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-            GIP Applicants Priority Ranking
-          </h1>
-        </div>
+        <Button variant="ghost" size="sm" class="-ml-2 cursor-pointer" @click="goBack">
+          <ArrowLeft class="size-4 shrink-0" />
+          Back to Applicants
+        </Button>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Applicants Priority Ranking</h1>
         <p class="text-sm text-muted-foreground">
-          Auto-calculated priority rankings based on applicants submitted documents.
+          Auto-calculated priority rankings based on applicants' submitted documents.
         </p>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+      <div class="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
           size="sm"
-          class="gap-1.5 text-xs cursor-pointer"
-          :disabled="isPriorityLoading"
-          @click="handleRefresh"
-        >
-          <RefreshCw :class="['h-3.5 w-3.5', isPriorityLoading && 'animate-spin']" />
-          <span>Refresh</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          class="gap-1.5 text-xs cursor-pointer"
+          class="cursor-pointer"
           :disabled="priorityApplicants.length === 0"
           @click="exportPriorityCsv"
         >
-          <Download class="h-3.5 w-3.5" />
-          <span>Export CSV</span>
+          Export CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          class="cursor-pointer"
+          :disabled="isPriorityLoading"
+          @click="handleRefresh"
+        >
+          <RefreshCw :class="['size-4 shrink-0', isPriorityLoading && 'animate-spin']" />
+          {{ isPriorityLoading ? 'Refreshing...' : 'Refresh' }}
         </Button>
       </div>
     </div>
 
-    <!-- ─── KPI Metric Cards ─── -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <Card class="p-3.5 sm:p-4 shadow-2xs">
-        <span class="text-xs font-medium text-muted-foreground">Total Ranked Applicants</span>
-        <div class="mt-1 text-2xl font-bold font-mono">{{ stats.total }}</div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Assessed across all municipalities</p>
-      </Card>
-      <Card class="p-3.5 sm:p-4 shadow-2xs">
-        <span class="text-xs font-medium text-muted-foreground">Highest Priority Score</span>
-        <div class="mt-1 text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
-          {{ stats.maxScore }} <span class="text-xs text-muted-foreground font-normal">/ 100</span>
-        </div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Top composite score achieved</p>
-      </Card>
-      <Card class="p-3.5 sm:p-4 shadow-2xs">
-        <span class="text-xs font-medium text-muted-foreground">Average Score</span>
-        <div class="mt-1 text-2xl font-bold font-mono text-primary">
-          {{ stats.avgScore }} <span class="text-xs text-muted-foreground font-normal">pts</span>
-        </div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Mean rating among applicants</p>
-      </Card>
-      <Card class="p-3.5 sm:p-4 shadow-2xs">
-        <span class="text-xs font-medium text-muted-foreground">High Priority Tier (≥70)</span>
-        <div class="mt-1 text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-          {{ stats.highCount }}
-        </div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Top-recommendation applicants</p>
+    <!-- ─── KPI Cards ─── -->
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <Card v-for="kpi in kpis" :key="kpi.label">
+        <CardHeader>
+          <CardDescription>{{ kpi.label }}</CardDescription>
+          <Skeleton v-if="isPriorityLoading" class="h-8 w-16" />
+          <CardTitle v-else class="text-2xl font-semibold tabular-nums">
+            {{ kpi.value }}
+            <span v-if="kpi.suffix" class="text-sm font-normal text-muted-foreground">{{ kpi.suffix }}</span>
+          </CardTitle>
+          <p class="text-xs text-muted-foreground">{{ kpi.hint }}</p>
+        </CardHeader>
       </Card>
     </div>
 
-    <!-- ─── Search & Filter Bar ─── -->
-    <Card class="p-3.5 sm:p-4 shadow-2xs">
-      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-        <!-- Search Input -->
-        <div class="sm:col-span-5 relative">
-          <Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            v-model="searchQuery"
-            placeholder="Search applicant name, course, municipality, code..."
-            class="pl-8 text-xs h-9"
-          />
-          <button
-            v-if="searchQuery"
-            class="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
-            @click="searchQuery = ''"
-          >
-            <X class="h-3.5 w-3.5" />
-          </button>
+    <!-- ─── Ranked Registry ─── -->
+    <Card class="gap-0 py-0">
+      <CardHeader class="gap-4 border-b py-4 [.border-b]:pb-4">
+        <div class="space-y-1">
+          <CardTitle class="text-base">Ranked Applicant Registry</CardTitle>
+          <CardDescription>
+            Showing {{ filteredPriorityList.length }} of {{ priorityApplicants.length }} applicants
+          </CardDescription>
         </div>
 
-        <!-- Municipality Select -->
-        <div class="sm:col-span-3">
-          <select
-            v-model="selectedMunicipality"
-            class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="ALL">All Municipalities</option>
-            <option v-for="m in availableMunicipalities" :key="m" :value="m">
-              {{ m }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Score Tier Select -->
-        <div class="sm:col-span-3">
-          <select
-            v-model="selectedTier"
-            class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="ALL">All Score Tiers</option>
-            <option value="HIGH">High Priority (70–100 pts)</option>
-            <option value="MODERATE">Moderate Priority (40–69 pts)</option>
-            <option value="BASELINE">Baseline (0–39 pts)</option>
-          </select>
-        </div>
-
-        <!-- Reset Button -->
-        <div class="sm:col-span-1 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-9 w-full sm:w-auto px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            :disabled="!searchQuery && selectedMunicipality === 'ALL' && selectedTier === 'ALL'"
-            @click="resetFilters"
-            title="Reset Filters"
-          >
-            <X class="h-3.5 w-3.5 sm:mr-1" />
-            <span class="sm:inline hidden">Reset</span>
-          </Button>
-        </div>
-      </div>
-    </Card>
-
-    <!-- ─── Main Priority Table Card ─── -->
-    <Card class="border shadow-xs">
-      <CardHeader class="pb-4 border-b">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle class="text-base font-semibold flex items-center gap-2">
-              <span>Ranked Applicant Registry</span>
-            </CardTitle>
-            <CardDescription class="text-xs">
-              Showing <span class="font-semibold text-foreground">{{ filteredPriorityList.length }}</span> of {{ priorityApplicants.length }} applicants
-            </CardDescription>
-          </div>
-          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Show:</span>
-            <select
-              v-model="pageSize"
-              class="h-7 rounded border border-input bg-background px-2 text-xs"
+        <!-- Search & Filters -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+          <div class="relative sm:col-span-2 lg:col-span-5">
+            <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              v-model="searchQuery"
+              placeholder="Search name, course, municipality, code..."
+              class="pr-9 pl-8"
+              aria-label="Search priority applicants"
+            />
+            <Button
+              v-if="searchQuery"
+              variant="ghost"
+              size="icon"
+              class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
+              aria-label="Clear search"
+              @click="searchQuery = ''"
             >
-              <option :value="10">10 per page</option>
-              <option :value="25">25 per page</option>
-              <option :value="50">50 per page</option>
-            </select>
+              <X class="size-4 shrink-0" />
+            </Button>
           </div>
+
+          <Select v-model="selectedMunicipality">
+            <SelectTrigger class="w-full lg:col-span-3" aria-label="Filter by municipality">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Municipalities</SelectItem>
+              <SelectItem v-for="m in availableMunicipalities" :key="m" :value="m">{{ m }}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select v-model="selectedTier">
+            <SelectTrigger class="w-full lg:col-span-2" aria-label="Filter by score tier">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Score Tiers</SelectItem>
+              <SelectItem value="HIGH">High Priority (70–100)</SelectItem>
+              <SelectItem value="MODERATE">Moderate (40–69)</SelectItem>
+              <SelectItem value="BASELINE">Baseline (0–39)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select v-model="pageSize">
+            <SelectTrigger class="w-full lg:col-span-2" aria-label="Rows per page">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem :value="10">10 per page</SelectItem>
+              <SelectItem :value="25">25 per page</SelectItem>
+              <SelectItem :value="50">50 per page</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
       <CardContent class="p-0">
-        <!-- Loading State -->
-        <div v-if="isPriorityLoading" class="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
-          <Loader2 class="h-8 w-8 animate-spin text-primary" />
-          <p class="text-xs">Computing priority applicant scores...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else-if="filteredPriorityList.length === 0" class="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
-          <Award class="h-10 w-10 text-muted-foreground/40" />
-          <p class="text-sm font-medium text-foreground">No priority applicants found</p>
-          <p class="text-xs text-muted-foreground max-w-sm text-center">
-            No applicants match the current search or filters. Try adjusting your search query or tier filters.
-          </p>
-          <Button
-            v-if="searchQuery || selectedMunicipality !== 'ALL' || selectedTier !== 'ALL'"
-            variant="ghost"
-            size="sm"
-            class="text-xs mt-2"
-            @click="resetFilters"
-          >
-            Clear Filters
-          </Button>
-        </div>
-
-        <!-- Priority Table -->
-        <div v-else class="overflow-x-auto">
+        <div class="overflow-x-auto">
           <Table>
-            <TableHeader class="bg-muted/40">
-              <TableRow>
-                <TableHead class="w-16 text-center text-xs font-semibold">Rank</TableHead>
-                <TableHead class="text-xs font-semibold">Applicant Information</TableHead>
-                <TableHead class="text-xs font-semibold">Municipality & LPII</TableHead>
-                <TableHead class="text-xs font-semibold">Course / Attainment</TableHead>
-                <TableHead class="w-40 text-xs font-semibold">Priority Score</TableHead>
-                <TableHead class="w-28 text-center text-xs font-semibold">Score Details</TableHead>
-                <TableHead class="w-24 text-right text-xs font-semibold pr-4">Action</TableHead>
+            <TableHeader>
+              <TableRow class="bg-muted/40 hover:bg-muted/40">
+                <TableHead class="w-16 text-center">Rank</TableHead>
+                <TableHead class="min-w-50">Applicant</TableHead>
+                <TableHead>Municipality & LPII</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead class="w-40">Priority Score</TableHead>
+                <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow
-                v-for="record in paginatedPriorityList"
-                :key="record.applicantId"
-                class="transition-colors hover:bg-muted/30"
-              >
-                <!-- Rank -->
-                <TableCell class="py-3 text-center">
-                  <Badge
-                    variant="outline"
-                    :class="['h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs font-mono mx-auto', getRankBadgeClass(record.rank)]"
-                  >
-                    <span>{{ record.rank }}</span>
-                  </Badge>
-                </TableCell>
-
-                <!-- Candidate Info -->
-                <TableCell class="py-3">
-                  <div class="flex items-center gap-2.5">
-                    <Avatar class="h-8 w-8 rounded-full border bg-muted shrink-0">
-                      <AvatarFallback class="text-xs font-semibold text-primary">
-                        {{ getInitials(record.fullName) }}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div class="flex flex-col min-w-0">
-                      <span class="text-xs font-semibold text-foreground truncate flex items-center gap-1.5">
-                        {{ record.fullName }}
-                        <Badge
-                          v-if="record.rank <= 3"
-                          variant="secondary"
-                          class="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0"
-                        >
-                          Top {{ record.rank }}
-                        </Badge>
-                      </span>
-                      <div class="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                        <span class="font-mono">{{ record.code }}</span>
-                        <span>•</span>
-                        <span>{{ record.gender }}</span>
-                        <span v-if="record.age">• {{ record.age }} y.o</span>
+              <!-- Loading -->
+              <template v-if="isPriorityLoading">
+                <TableRow v-for="n in 5" :key="`skeleton-${n}`">
+                  <TableCell><Skeleton class="mx-auto size-6 rounded-full" /></TableCell>
+                  <TableCell>
+                    <div class="flex items-center gap-2.5">
+                      <Skeleton class="size-8 rounded-full" />
+                      <div class="space-y-1.5">
+                        <Skeleton class="h-4 w-32" />
+                        <Skeleton class="h-3 w-20" />
                       </div>
                     </div>
-                  </div>
-                </TableCell>
+                  </TableCell>
+                  <TableCell><Skeleton class="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton class="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton class="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton class="ml-auto h-8 w-32" /></TableCell>
+                </TableRow>
+              </template>
 
-                <!-- Municipality & LPII -->
-                <TableCell class="py-3">
-                  <div class="flex flex-col gap-1">
-                    <div class="flex items-center gap-1 text-xs text-foreground font-medium">
-                      <MapPin class="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span class="truncate">{{ record.municipality }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                      <Badge
-                        variant="outline"
-                        :class="['text-[10px] px-1.5 py-0 flex items-center gap-1', LPII_CONFIG[record.lpiiTag]?.badgeClass]"
-                      >
-                        <TreePine v-if="record.lpiiTag === 'UPLAND'" class="h-2.5 w-2.5" />
-                        <Waves v-else-if="record.lpiiTag === 'WETLAND'" class="h-2.5 w-2.5" />
-                        <Mountain v-else class="h-2.5 w-2.5" />
-                        <span>{{ LPII_CONFIG[record.lpiiTag]?.label }}</span>
-                      </Badge>
-                      <span class="text-[10px] text-muted-foreground truncate">{{ record.barangay }}</span>
-                    </div>
-                  </div>
-                </TableCell>
-
-                <!-- Course -->
-                <TableCell class="py-3">
-                  <div class="flex items-center gap-1.5 text-xs text-foreground max-w-50">
-                    <GraduationCap class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span class="truncate" :title="record.course">{{ record.course }}</span>
-                  </div>
-                </TableCell>
-
-                <!-- Priority Score & Progress -->
-                <TableCell class="py-3">
-                  <div class="flex flex-col gap-1.5 max-w-35">
-                    <div class="flex items-center justify-between text-xs">
-                      <span :class="['font-mono font-bold', getScoreColorClass(record.totalPriorityScore)]">
-                        {{ record.totalPriorityScore }}
-                      </span>
-                      <span class="text-[10px] text-muted-foreground font-mono">/ 100 pts</span>
-                    </div>
-                    <Progress
-                      :model-value="record.totalPriorityScore"
-                      :max="100"
-                      class="h-1.5 bg-muted"
-                    />
-                  </div>
-                </TableCell>
-
-                <!-- Score Details Popover -->
-                <TableCell class="py-3 text-center">
-                  <Popover>
-                    <PopoverTrigger as-child>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                      >
-                        <Info class="h-3 w-3" />
-                        <span>Breakdown</span>
+              <!-- Empty -->
+              <TableRow v-else-if="filteredPriorityList.length === 0" class="hover:bg-transparent">
+                <TableCell colspan="6" class="p-0 whitespace-normal">
+                  <Empty class="py-10">
+                    <EmptyHeader>
+                      <EmptyTitle>No priority applicants found</EmptyTitle>
+                      <EmptyDescription>
+                        {{ hasActiveFilters ? 'No applicants match the current search or filters.' : 'Priority scores appear once applicants are registered.' }}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent v-if="hasActiveFilters">
+                      <Button size="sm" variant="outline" class="cursor-pointer" @click="resetFilters">
+                        Clear Filters
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-72 p-3 text-xs shadow-lg" align="end">
-                      <div class="font-semibold text-xs pb-2 mb-2 border-b flex items-center justify-between">
-                        <span>Score Breakdown</span>
-                        <span class="font-mono text-primary font-bold">{{ record.totalPriorityScore }} / 100</span>
-                      </div>
-
-                      <div class="space-y-2 text-[11px]">
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Student / Fresh Grad:</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.statusScore }} / 15 pts
-                          </Badge>
-                        </div>
-
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Academic Awards:</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.academicScore }} / 15 pts
-                          </Badge>
-                        </div>
-
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Civil Service / Board:</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.eligibilityScore }} / 10 pts
-                          </Badge>
-                        </div>
-
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Certifications / TESDA:</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.certScore }} / 10 pts
-                          </Badge>
-                        </div>
-
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Poverty Incidence (LPII):</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.povertyScore }} / 25 pts
-                          </Badge>
-                        </div>
-
-                        <div class="flex items-center justify-between">
-                          <span class="text-muted-foreground">Unemployment Rate (LPII):</span>
-                          <Badge variant="outline" class="font-mono text-[10px]">
-                            {{ record.unemploymentScore }} / 25 pts
-                          </Badge>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </TableCell>
-
-                <!-- Action -->
-                <TableCell class="py-3 text-right pr-4">
-                  <div class="flex items-center justify-end gap-1.5">
-                    <Button
-                      size="sm"
-                      class="h-7 text-xs gap-1 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-                      @click="navigateToDeploy(record)"
-                    >
-                      <Plus class="h-3 w-3" />
-                      <span>Deploy</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="h-7 text-xs gap-1 cursor-pointer"
-                      @click="navigateToProfile(record)"
-                    >
-                      <Eye class="h-3 w-3" />
-                      <span>Profile</span>
-                    </Button>
-                  </div>
+                    </EmptyContent>
+                  </Empty>
                 </TableCell>
               </TableRow>
+
+              <!-- Rows -->
+              <template v-else>
+                <TableRow v-for="record in paginatedPriorityList" :key="record.applicantId">
+                  <TableCell class="text-center">
+                    <Badge
+                      variant="outline"
+                      :class="['mx-auto size-7 justify-center rounded-full p-0 tabular-nums', getRankBadgeClass(record.rank)]"
+                    >
+                      {{ record.rank }}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <div class="flex items-center gap-2.5">
+                      <Avatar class="size-8 shrink-0 border">
+                        <AvatarFallback class="text-xs font-semibold">
+                          {{ getInitials(record.fullName) }}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div class="flex min-w-0 flex-col">
+                        <span class="truncate text-sm font-medium">{{ record.fullName }}</span>
+                        <span class="text-xs text-muted-foreground">
+                          <span class="font-mono">{{ record.code }}</span> · {{ record.gender }}<template v-if="record.age"> · {{ record.age }} y.o.</template>
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div class="flex flex-col items-start gap-1">
+                      <span class="text-sm">{{ record.municipality }}</span>
+                      <div class="flex items-center gap-1.5">
+                        <Badge variant="outline" :class="LPII_CONFIG[record.lpiiTag]?.badgeClass">
+                          {{ LPII_CONFIG[record.lpiiTag]?.label }}
+                        </Badge>
+                        <span class="truncate text-xs text-muted-foreground">{{ record.barangay }}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <span class="block max-w-50 truncate text-sm" :title="record.course">{{ record.course }}</span>
+                  </TableCell>
+
+                  <TableCell>
+                    <Popover>
+                      <PopoverTrigger as-child>
+                        <button
+                          type="button"
+                          class="flex w-full max-w-35 cursor-pointer flex-col gap-1.5 rounded-md p-1 text-left hover:bg-muted"
+                          :aria-label="`Score breakdown for ${record.fullName}`"
+                        >
+                          <span class="flex items-baseline justify-between text-sm">
+                            <span :class="['tabular-nums', getScoreColorClass(record.totalPriorityScore)]">
+                              {{ record.totalPriorityScore }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">/ 100</span>
+                          </span>
+                          <Progress :model-value="record.totalPriorityScore" :max="100" class="h-1.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent class="w-72" align="start">
+                        <div class="grid gap-3">
+                          <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-semibold">Score Breakdown</h4>
+                            <span class="text-sm font-semibold tabular-nums">{{ record.totalPriorityScore }} / 100</span>
+                          </div>
+                          <dl class="grid gap-2 text-sm">
+                            <div v-for="item in scoreBreakdown(record)" :key="item.label" class="flex items-center justify-between gap-4">
+                              <dt class="text-muted-foreground">{{ item.label }}</dt>
+                              <dd class="font-medium tabular-nums">{{ item.score }} / {{ item.max }}</dd>
+                            </div>
+                          </dl>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableCell>
+
+                  <TableCell class="text-right">
+                    <div class="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" class="cursor-pointer" @click="navigateToProfile(record)">
+                        Profile
+                      </Button>
+                      <Button size="sm" class="cursor-pointer" @click="navigateToDeploy(record)">
+                        Deploy
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </template>
             </TableBody>
           </Table>
         </div>
 
-        <!-- ─── Table Pagination Footer ─── -->
-        <div v-if="filteredPriorityList.length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t text-xs text-muted-foreground">
-          <div>
-            Showing <span class="font-medium text-foreground">{{ filteredPriorityList.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
-            to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredPriorityList.length) }}</span>
+        <!-- Pagination -->
+        <div
+          v-if="!isPriorityLoading && filteredPriorityList.length > 0"
+          class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row"
+        >
+          <p>
+            Showing
+            <span class="font-medium text-foreground">{{ (currentPage - 1) * pageSize + 1 }}</span>–<span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredPriorityList.length) }}</span>
             of <span class="font-medium text-foreground">{{ filteredPriorityList.length }}</span> applicants
-          </div>
-
-          <div class="flex items-center gap-2">
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-1">
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage <= 1"
               @click="currentPage--"
             >
               Previous
             </Button>
-            <div class="flex items-center gap-1">
-              <Button
-                v-for="p in totalPages"
-                :key="p"
-                size="sm"
-                :variant="currentPage === p ? 'default' : 'outline'"
-                class="h-8 w-8 p-0 text-xs cursor-pointer"
-                @click="currentPage = p"
-              >
-                {{ p }}
-              </Button>
-            </div>
+            <Button
+              v-for="p in totalPages"
+              :key="p"
+              size="icon"
+              :variant="currentPage === p ? 'default' : 'ghost'"
+              class="size-8 cursor-pointer"
+              :aria-current="currentPage === p ? 'page' : undefined"
+              @click="currentPage = p"
+            >
+              {{ p }}
+            </Button>
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage >= totalPages"
               @click="currentPage++"
             >

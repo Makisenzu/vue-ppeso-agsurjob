@@ -1,30 +1,23 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   Check,
   CheckCircle2,
   CheckIcon,
   ChevronsUpDownIcon,
-  Download,
-  Eye,
-  Filter,
   Loader2,
   Lock,
-  MapPin,
   Minus,
-  Mountain,
   Pencil,
   RefreshCw,
-  ScanText,
   Search,
   Trash2,
-  TreePine,
   UploadCloud,
   Users,
-  UserX,
-  Waves,
   X,
 } from '@lucide/vue'
 import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
@@ -34,6 +27,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { ChartContainer } from '@/components/ui/chart'
 import {
   Table,
   TableBody,
@@ -50,12 +46,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
-import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
-import GipEditCandidateDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipEditCandidateDialog.vue'
+import { useGipEditCandidate } from '@/composables/peso/provincialPeso/useGipEditCandidate'
+import { getGipStatusBadgeClass, getGipStatusDotClass } from '@/helpers/peso/provincialPeso/gipHelper'
 import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicantNsrpDetails.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
@@ -89,7 +94,7 @@ import {
 } from '@/components/ui/combobox'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import type { DirectoryRow } from '@/types/common/directory'
 import { useGipEditApplicant } from '@/composables/peso/provincialPeso/useGipEditApplicant'
 import { useGipBulkDeploy } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
@@ -174,8 +179,11 @@ const {
   ocrProgress,
   validApplicantsCount,
   invalidApplicantsCount,
+  duplicatesCount,
+  skippedCount,
   hasParsedData,
   isSubmitting,
+  isOpen: isBatchUploadOpen,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -186,7 +194,37 @@ const {
   confirmImport,
   resetBatchState,
   downloadTemplate,
+
+  // Duplicate Review Dialog
+  duplicateCandidate,
+  isDuplicateModalOpen,
+  openDuplicateModal,
+  setAllDuplicatesAction,
+  selectedDuplicateAction,
+  selectedDuplicateProgram,
+  duplicateActionOptions,
+  duplicateProgramOptions,
+  confirmDuplicateResolution,
 } = useGipBatchUpload()
+
+const {
+  form: candidateForm,
+  skillsInput: candidateSkillsInput,
+  validationErrors: candidateValidationErrors,
+  isValid: isCandidateValid,
+  municipalities: candidateMunicipalities,
+  documentOptions: candidateDocumentOptions,
+  lpiiOptions: candidateLpiiOptions,
+  setLpiiCategory: setCandidateLpii,
+  toggleDocument: toggleCandidateDocument,
+  handleSave: saveCandidateEdits,
+  handleClose: closeCandidateEdit,
+} = useGipEditCandidate({
+  isOpen: isEditModalOpen,
+  candidate: editingCandidate,
+  index: editingCandidateIndex,
+  onSave: saveEditedCandidate,
+})
 
 const {
   applicantToEdit,
@@ -221,6 +259,17 @@ const {
   onBulkDeployOpenChange,
   submitBulkDeploy,
 } = useGipBulkDeploy(selectedApplicants, isBulkDeployDialogOpen, clearSelection)
+
+const statusTabs = ['ALL', 'Pending', 'Approved', 'Hired', 'Rejected'] as const
+
+const lpiiCharts = computed(() => [
+  { key: 'male', title: 'Male Applicants', data: applicantMaleLpiiData.value, total: totalMaleApplicantLpii.value },
+  { key: 'female', title: 'Female Applicants', data: applicantFemaleLpiiData.value, total: totalFemaleApplicantLpii.value },
+])
+
+const percentOf = (count: number, total: number) => (total ? ((count / total) * 100).toFixed(1) : '0')
+
+const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-label-text-color:var(--foreground)] [--vis-donut-central-sub-label-text-color:var(--muted-foreground)]'
 </script>
 
 <template>
@@ -233,312 +282,159 @@ const {
 
   <!-- ─── REGISTRY MASTER VIEW (CHARTS & TABLE) ─── -->
   <div v-else class="flex flex-col gap-6 pb-12">
-    <!-- ─── Header & Breadcrumb ─── -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <!-- ─── Header ─── -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" class="gap-1.5 px-2 cursor-pointer" @click="goBack">
-            <ArrowLeft class="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Button>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-          GIP — Applicant Registry
-        </h1>
+        <Button variant="ghost" size="sm" class="-ml-2 cursor-pointer" @click="goBack">
+          <ArrowLeft class="size-4 shrink-0" />
+          Back to Dashboard
+        </Button>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP — Applicant Registry</h1>
         <p class="text-sm text-muted-foreground">
           Tracks GIP applicant allocation, slot availability, and partner agency distribution across Agusan del Sur.
         </p>
       </div>
 
-      <!-- Quick Status Filter Tabs -->
-      <div class="flex items-center gap-2 self-start sm:self-auto rounded-lg border bg-muted/40 p-1">
+      <!-- Quick Status Filter -->
+      <div class="flex flex-wrap items-center gap-1 self-start rounded-lg bg-muted p-1 sm:self-auto">
         <Button
+          v-for="tab in statusTabs"
+          :key="tab"
           size="sm"
-          :variant="statusTab === 'ALL' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="statusTab = 'ALL'"
+          variant="ghost"
+          :class="['h-7 cursor-pointer px-3', statusTab === tab && 'bg-background shadow-xs hover:bg-background']"
+          @click="statusTab = tab"
         >
-          All
-        </Button>
-        <Button
-          size="sm"
-          :variant="statusTab === 'Pending' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="statusTab = 'Pending'"
-        >
-          Pending
-        </Button>
-        <Button
-          size="sm"
-          :variant="statusTab === 'Approved' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="statusTab = 'Approved'"
-        >
-          Approved
-        </Button>
-        <Button
-          size="sm"
-          :variant="statusTab === 'Hired' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="statusTab = 'Hired'"
-        >
-          Hired
-        </Button>
-        <Button
-          size="sm"
-          :variant="statusTab === 'Rejected' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="statusTab = 'Rejected'"
-        >
-          Rejected
+          {{ tab === 'ALL' ? 'All' : tab }}
         </Button>
       </div>
     </div>
 
-    <!-- ─── 1 ROW OF PIE / DONUT CHARTS: APPLICANT STATUS & LPII BREAKDOWN ─── -->
-    <div class="space-y-3">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- ─── Pie Chart 1: Combined Applicant Status Breakdown ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div>
-                  <CardTitle class="text-base font-semibold">Combined Applicant Status</CardTitle>
-                  <CardDescription class="text-xs">Hired, Pending, Approved & Rejected</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalApplicantStatus.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
+    <!-- ─── Applicant Status & LPII Breakdown ─── -->
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <!-- Combined Applicant Status -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="text-base">Applicant Status</CardTitle>
+          <CardDescription>
+            {{ totalApplicantStatus.toLocaleString() }} total · select a status to filter
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <Skeleton v-if="isLoading" class="mx-auto aspect-square h-55 rounded-full" />
+          <ChartContainer v-else-if="totalApplicantStatus > 0" :config="{}" :class="donutClass">
+            <VisSingleContainer :data="applicantStatusData" :height="220">
+              <VisDonut
+                :value="(d: ApplicantStatusDataPoint) => d.count"
+                :color="(d: ApplicantStatusDataPoint) => d.color"
+                :pad-angle="0.03"
+                :corner-radius="4"
+                :arc-width="38"
+                :central-label="totalApplicantStatus.toLocaleString()"
+                central-sub-label="Total Applicants"
+              />
+              <VisTooltip :triggers="statusDonutTooltipTriggers" />
+            </VisSingleContainer>
+          </ChartContainer>
+          <p v-else class="flex h-55 items-center justify-center text-sm text-muted-foreground">
+            No applicant records yet
+          </p>
 
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalApplicantStatus > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="applicantStatusData" :height="220">
-                <VisDonut
-                  :value="(d: ApplicantStatusDataPoint) => d.count"
-                  :color="(d: ApplicantStatusDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalApplicantStatus.toLocaleString()}`"
-                  central-sub-label="Total Applicants"
-                />
-                <VisTooltip :triggers="statusDonutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No applicant records yet</p>
-            </div>
-
-            <!-- Legend and counts (Hired, Pending, Approved, Rejected) -->
-            <div class="w-full mt-3 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-1.5 pt-3 border-t text-center">
-              <div
-                v-for="item in applicantStatusData"
-                :key="item.status"
-                class="flex flex-col items-center rounded-lg p-2 transition cursor-pointer select-none"
-                :class="[
-                  statusTab.toLowerCase() === item.status.toLowerCase()
-                    ? 'bg-muted ring-1 ring-primary/40 font-semibold'
-                    : 'bg-muted/40 hover:bg-muted/70',
-                ]"
-                :title="`Filter applicants by ${item.label}`"
-                @click="toggleStatusTab(item.status)"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full shrink-0" :style="{ backgroundColor: item.color }" />
-                  <span class="truncate">{{ item.label }}</span>
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalApplicantStatus ? ((item.count / totalApplicantStatus) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- ─── Pie Chart 2: Male Applicants LPII Breakdown ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div>
-                  <CardTitle class="text-base font-semibold">Male Applicants</CardTitle>
-                  <CardDescription class="text-xs">LPII Breakdown by Zone</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalMaleApplicantLpii.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalMaleApplicantLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="applicantMaleLpiiData" :height="220">
-                <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalMaleApplicantLpii.toLocaleString()}`"
-                  central-sub-label="Male Applicants"
-                />
-                <VisTooltip :triggers="donutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No male applicant records yet</p>
-            </div>
-
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
-              <div
-                v-for="item in applicantMaleLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalMaleApplicantLpii ? ((item.count / totalMaleApplicantLpii) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- ─── Pie Chart 3: Female Applicants LPII Breakdown ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div>
-                  <CardTitle class="text-base font-semibold">Female Applicants</CardTitle>
-                  <CardDescription class="text-xs">LPII Breakdown by Zone</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalFemaleApplicantLpii.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalFemaleApplicantLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="applicantFemaleLpiiData" :height="220">
-                <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalFemaleApplicantLpii.toLocaleString()}`"
-                  central-sub-label="Female Applicants"
-                />
-                <VisTooltip :triggers="donutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No female applicant records yet</p>
-            </div>
-
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
-              <div
-                v-for="item in applicantFemaleLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalFemaleApplicantLpii ? ((item.count / totalFemaleApplicantLpii) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-
-    <!-- ─── DATA TABLE COMPONENT ─── -->
-    <Card class="border shadow-xs">
-      <CardHeader class="pb-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle class="text-lg font-semibold flex items-center gap-2">
-              GIP Applicant Master Registry
-            </CardTitle>
-            <CardDescription class="text-xs">
-              Filtering applicants for
-              <span class="font-semibold text-foreground">
-                {{ statusTab === 'ALL' ? 'All Applicants' : `Status: ${statusTab}` }}
+          <div class="grid grid-cols-2 gap-2 border-t pt-4 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
+            <button
+              v-for="item in applicantStatusData"
+              :key="item.status"
+              type="button"
+              :aria-pressed="statusTab === item.status"
+              :class="[
+                'flex cursor-pointer flex-col items-start rounded-md px-2 py-1.5 text-left transition-colors',
+                statusTab === item.status ? 'bg-muted ring-1 ring-ring' : 'hover:bg-muted/60',
+              ]"
+              @click="toggleStatusTab(item.status)"
+            >
+              <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span :class="['size-2 shrink-0 rounded-full', getGipStatusDotClass(item.status)]" />
+                {{ item.label }}
               </span>
-              • Showing {{ filteredApplicants.length }} of {{ applicants.length }} records
+              <span class="text-sm font-semibold tabular-nums">{{ item.count.toLocaleString() }}</span>
+              <span class="text-xs text-muted-foreground tabular-nums">{{ percentOf(item.count, totalApplicantStatus) }}%</span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Male / Female LPII Breakdown -->
+      <Card v-for="chart in lpiiCharts" :key="chart.key">
+        <CardHeader>
+          <CardTitle class="text-base">{{ chart.title }}</CardTitle>
+          <CardDescription>{{ chart.total.toLocaleString() }} total · LPII breakdown by zone</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <Skeleton v-if="isLoading" class="mx-auto aspect-square h-55 rounded-full" />
+          <ChartContainer v-else-if="chart.total > 0" :config="{}" :class="donutClass">
+            <VisSingleContainer :data="chart.data" :height="220">
+              <VisDonut
+                :value="(d: LpiiDataPoint) => d.count"
+                :color="(d: LpiiDataPoint) => d.color"
+                :pad-angle="0.03"
+                :corner-radius="4"
+                :arc-width="38"
+                :central-label="chart.total.toLocaleString()"
+                :central-sub-label="chart.title"
+              />
+              <VisTooltip :triggers="donutTooltipTriggers" />
+            </VisSingleContainer>
+          </ChartContainer>
+          <p v-else class="flex h-55 items-center justify-center text-sm text-muted-foreground">
+            No {{ chart.key }} applicant records yet
+          </p>
+
+          <div class="grid grid-cols-3 gap-2 border-t pt-4">
+            <div v-for="item in chart.data" :key="item.category" class="flex flex-col px-2 py-1.5">
+              <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span :class="['size-2 shrink-0 rounded-full', LPII_CONFIG[item.category].dotClass]" />
+                {{ item.label }}
+              </span>
+              <span class="text-sm font-semibold tabular-nums">{{ item.count.toLocaleString() }}</span>
+              <span class="text-xs text-muted-foreground tabular-nums">{{ percentOf(item.count, chart.total) }}%</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- ─── Master Registry Table ─── -->
+    <Card class="gap-0 py-0">
+      <CardHeader class="gap-4 border-b py-4 [.border-b]:pb-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="space-y-1">
+            <CardTitle class="text-base">Applicant Master Registry</CardTitle>
+            <CardDescription>
+              {{ statusTab === 'ALL' ? 'All applicants' : `Status: ${statusTab}` }}
+              · Showing {{ filteredApplicants.length }} of {{ applicants.length }} records
             </CardDescription>
           </div>
 
-          <!-- Action buttons -->
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <!-- Deploy Selected Button in Header Toolbar -->
-            <Button
-              v-if="selectedApplicantIds.length > 0"
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
-              @click="isBulkDeployDialogOpen = true"
-            >
-              <span>Deploy Selected ({{ selectedApplicantIds.length }})</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" class="cursor-pointer" @click="navigateToPriority">
+              Priority Applicants
             </Button>
-
-            <!-- Delete Selected Button in Header Toolbar -->
-            <Button
-              v-if="selectedApplicantIds.length > 0"
-              variant="destructive"
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
-              @click="isBulkDeleteDialogOpen = true"
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-              <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+            <Button variant="outline" size="sm" class="cursor-pointer" @click="exportCsv">
+              Export CSV
             </Button>
-
-            <!-- Priority Applicants Button -->
             <Button
               variant="outline"
               size="sm"
-              class="gap-1.5 text-xs font-medium cursor-pointer border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/20"
-              @click="navigateToPriority"
+              class="cursor-pointer"
+              :disabled="isLoading"
+              @click="refreshApplicantsData"
             >
-              <span>Priority Applicants</span>
+              <RefreshCw :class="['size-4 shrink-0', isLoading && 'animate-spin']" />
+              {{ isLoading ? 'Refreshing...' : 'Refresh' }}
             </Button>
-
-            <Button
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer"
-              @click="handleUploadBatchClick"
-            >
-              <UploadCloud class="h-3.5 w-3.5" />
-              <span>Upload Batch</span>
+            <Button size="sm" class="cursor-pointer" @click="handleUploadBatchClick">
+              <UploadCloud class="size-4 shrink-0" />
+              Upload Batch
             </Button>
             <input
               :ref="setFileInputRef"
@@ -547,139 +443,109 @@ const {
               class="hidden"
               @change="onFileInputChange"
             />
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer" @click="exportCsv">
-              <Download class="h-3.5 w-3.5" />
-              <span>Export CSV</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer"
-              :disabled="isLoading"
-              @click="refreshApplicantsData"
-            >
-              <RefreshCw :class="['h-3.5 w-3.5', isLoading && 'animate-spin']" />
-              <span>Refresh</span>
-            </Button>
           </div>
         </div>
 
-        <!-- ─── Search & Multi-Filter Bar ─── -->
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <!-- Search input -->
-          <div class="sm:col-span-2 relative">
-            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <!-- Search & Filters -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div class="relative sm:col-span-2">
+            <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               v-model="searchQuery"
-              placeholder="Search by applicant name, course, municipality..."
-              class="pl-9 text-xs h-9"
+              placeholder="Search name, course, municipality..."
+              class="pr-9 pl-8"
+              aria-label="Search applicants"
             />
-            <button
+            <Button
               v-if="searchQuery"
-              class="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+              variant="ghost"
+              size="icon"
+              class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
+              aria-label="Clear search"
               @click="searchQuery = ''"
             >
-              <X class="h-4 w-4" />
-            </button>
+              <X class="size-4 shrink-0" />
+            </Button>
           </div>
 
-          <!-- LPII Filter -->
-          <div>
-            <select
-              v-model="selectedLpiiFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All LPII Zones</option>
-              <option value="LOWLAND">Lowland Only</option>
-              <option value="UPLAND">Upland Only</option>
-              <option value="WETLAND">Wetland Only</option>
-            </select>
-          </div>
+          <Select v-model="selectedLpiiFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by LPII zone">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All LPII Zones</SelectItem>
+              <SelectItem value="LOWLAND">Lowland</SelectItem>
+              <SelectItem value="UPLAND">Upland</SelectItem>
+              <SelectItem value="WETLAND">Wetland</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Month Filter -->
-          <div>
-            <select
-              v-model="selectedMonthFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option v-for="m in availableMonths" :key="m.value" :value="m.value">
+          <Select v-model="selectedMonthFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by month">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="m in availableMonths" :key="m.value" :value="m.value">
                 {{ m.label }}
-              </option>
-            </select>
-          </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Gender Filter -->
-          <div>
-            <select
-              v-model="selectedGenderFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Genders</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
+          <Select v-model="selectedGenderFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by gender">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Genders</SelectItem>
+              <SelectItem value="Male">Male</SelectItem>
+              <SelectItem value="Female">Female</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Status Filter -->
-          <div>
-            <select
-              v-model="selectedStatusFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Hired">Hired</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
+          <Select v-model="selectedStatusFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Hired">Hired</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
       <CardContent class="p-0">
-        <!-- ─── Bulk Action Bar ─── -->
+        <!-- Bulk Action Bar -->
         <div
           v-if="selectedApplicantIds.length > 0"
-          class="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-t border-b border-primary/20 text-xs text-foreground transition-all animate-in fade-in"
+          class="flex flex-col gap-2 border-b bg-muted/50 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-primary">{{ selectedApplicantIds.length }}</span>
-            <span class="text-muted-foreground">applicant{{ selectedApplicantIds.length > 1 ? 's' : '' }} selected</span>
-            <span class="text-muted-foreground">•</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              @click="clearSelection"
-            >
+          <div class="flex items-center gap-3">
+            <span class="font-medium">
+              {{ selectedApplicantIds.length }} applicant{{ selectedApplicantIds.length > 1 ? 's' : '' }} selected
+            </span>
+            <Button variant="link" size="sm" class="h-auto cursor-pointer p-0 text-muted-foreground" @click="clearSelection">
               Clear selection
             </Button>
           </div>
           <div class="flex items-center gap-2">
-            <Button
-              size="sm"
-              class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
-              @click="isBulkDeployDialogOpen = true"
-            >
-              <span>Deploy Selected ({{ selectedApplicantIds.length }})</span>
+            <Button variant="destructive" size="sm" class="cursor-pointer" @click="isBulkDeleteDialogOpen = true">
+              Delete Selected
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
-              @click="isBulkDeleteDialogOpen = true"
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-              <span>Delete Selected ({{ selectedApplicantIds.length }})</span>
+            <Button size="sm" class="cursor-pointer" @click="isBulkDeployDialogOpen = true">
+              Deploy Selected ({{ selectedApplicantIds.length }})
             </Button>
           </div>
         </div>
 
-        <!-- ─── Table ─── -->
-        <div class="relative overflow-x-auto border-t">
+        <!-- Table -->
+        <div class="overflow-x-auto">
           <Table>
-            <TableHeader class="bg-muted/40">
-              <TableRow>
+            <TableHeader>
+              <TableRow class="bg-muted/40 hover:bg-muted/40">
                 <TableHead class="w-12 px-4 text-center">
                   <Checkbox
                     :model-value="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
@@ -687,472 +553,366 @@ const {
                     @update:model-value="toggleSelectAll"
                   >
                     <template #default="{ modelValue }">
-                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-3" />
-                      <Check v-else class="h-3.5 w-3.5" />
+                      <Minus v-if="modelValue === 'indeterminate'" class="size-3 stroke-3" />
+                      <Check v-else class="size-3.5" />
                     </template>
                   </Checkbox>
                 </TableHead>
-                <TableHead class="w-50 text-xs font-semibold">Applicant Information</TableHead>
-                <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
-                <TableHead class="text-xs font-semibold">LPII Classification</TableHead>
-                <TableHead class="text-xs font-semibold">Academic Course</TableHead>
-                <TableHead class="text-xs font-semibold">Date Applied</TableHead>
-                <TableHead class="text-xs font-semibold">Documents Submitted</TableHead>
-                <TableHead class="text-xs font-semibold">Status</TableHead>
-                <TableHead class="text-right text-xs font-semibold">Action</TableHead>
+                <TableHead class="min-w-50">Applicant</TableHead>
+                <TableHead>Municipality & Barangay</TableHead>
+                <TableHead>LPII</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Date Applied</TableHead>
+                <TableHead>Documents</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              <!-- Loading -->
               <template v-if="isLoading">
-                <TableRow>
-                  <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
-                    <div class="flex flex-col items-center justify-center gap-2 py-4">
-                      <Loader2 class="h-7 w-7 animate-spin text-muted-foreground" />
-                      <p class="text-xs text-muted-foreground">Loading GIP applicant records...</p>
+                <TableRow v-for="n in 5" :key="`skeleton-${n}`">
+                  <TableCell class="px-4"><Skeleton class="mx-auto size-4" /></TableCell>
+                  <TableCell>
+                    <div class="flex items-center gap-2.5">
+                      <Skeleton class="size-8 rounded-full" />
+                      <div class="space-y-1.5">
+                        <Skeleton class="h-4 w-32" />
+                        <Skeleton class="h-3 w-20" />
+                      </div>
                     </div>
                   </TableCell>
+                  <TableCell v-for="c in 6" :key="c"><Skeleton class="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton class="ml-auto h-8 w-24" /></TableCell>
                 </TableRow>
               </template>
+
               <template v-else-if="paginatedApplicants.length > 0">
                 <TableRow
                   v-for="applicant in paginatedApplicants"
                   :key="applicant.id"
-                  :class="[
-                    'transition-colors hover:bg-muted/30',
-                    selectedApplicantIds.includes(applicant.id) ? 'bg-primary/5 dark:bg-primary/10' : '',
-                  ]"
+                  :data-state="selectedApplicantIds.includes(applicant.id) ? 'selected' : undefined"
                 >
-                  <!-- Multi-select Checkbox -->
-                  <TableCell class="py-3 px-4 text-center" @click.stop>
+                  <TableCell class="px-4 text-center" @click.stop>
                     <Checkbox
                       :model-value="selectedApplicantIds.includes(applicant.id)"
                       :aria-label="'Select ' + applicant.fullName"
                       @update:model-value="(val) => toggleSelectApplicant(applicant.id, val)"
                     />
                   </TableCell>
-                  <!-- Applicant Info -->
-                  <TableCell class="py-3">
+
+                  <TableCell>
                     <div class="flex items-center gap-2.5">
-                      <Avatar class="h-8 w-8 rounded-full border bg-muted">
-                        <AvatarFallback class="text-xs font-semibold text-primary">
+                      <Avatar class="size-8 border">
+                        <AvatarFallback class="text-xs font-semibold">
                           {{ getInitials(applicant.fullName) }}
                         </AvatarFallback>
                       </Avatar>
-                      <div class="flex flex-col">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="font-semibold text-xs sm:text-sm text-foreground">
-                            {{ applicant.fullName }}
-                          </span>
-
-                        </div>
-                        <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <span>{{ applicant.gender }}</span>
-                          <span>•</span>
-                          <span class="font-mono">{{ applicant.code }}</span>
-                        </div>
+                      <div class="flex min-w-0 flex-col">
+                        <span class="truncate text-sm font-medium">{{ applicant.fullName }}</span>
+                        <span class="text-xs text-muted-foreground">
+                          {{ applicant.gender }} · <span class="font-mono">{{ applicant.code }}</span>
+                        </span>
                       </div>
                     </div>
                   </TableCell>
 
-                  <!-- Location -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col text-xs">
-                      <span class="font-medium text-foreground flex items-center gap-1">
-                        <MapPin class="h-3 w-3 text-muted-foreground" />
-                        {{ applicant.municipality }}
-                      </span>
-                      <span class="text-[11px] text-muted-foreground pl-4">
-                        Brgy. {{ applicant.barangay }}
-                      </span>
+                  <TableCell>
+                    <div class="flex flex-col">
+                      <span class="text-sm">{{ applicant.municipality }}</span>
+                      <span class="text-xs text-muted-foreground">Brgy. {{ applicant.barangay }}</span>
                     </div>
                   </TableCell>
 
-                  <!-- LPII Tag -->
-                  <TableCell class="py-3">
-                    <Badge
-                      variant="outline"
-                      :class="['text-xs font-semibold gap-1.5 py-0.5 px-2', LPII_CONFIG[applicant.lpiiTag].badgeClass]"
-                    >
-                      <TreePine v-if="applicant.lpiiTag === 'LOWLAND'" class="h-3.5 w-3.5" />
-                      <Mountain v-else-if="applicant.lpiiTag === 'UPLAND'" class="h-3.5 w-3.5" />
-                      <Waves v-else class="h-3.5 w-3.5" />
+                  <TableCell>
+                    <Badge variant="outline" :class="LPII_CONFIG[applicant.lpiiTag].badgeClass">
                       {{ LPII_CONFIG[applicant.lpiiTag].label }}
                     </Badge>
                   </TableCell>
 
-                  <!-- Course -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col text-xs max-w-45">
-                      <span class="font-medium truncate text-foreground" :title="applicant.course">
-                        {{ applicant.course }}
-                      </span>
-                    </div>
+                  <TableCell>
+                    <span class="block max-w-45 truncate text-sm" :title="applicant.course">
+                      {{ applicant.course }}
+                    </span>
                   </TableCell>
 
-                  <!-- Date Applied -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col text-xs">
-                      <span class="font-medium text-foreground">
+                  <TableCell>
+                    <div class="flex flex-col">
+                      <span class="text-sm">
                         {{ formatDateDisplay(applicant.assessmentDate || applicant.rawApplicant?.assessment_date || applicant.createdAt) }}
                       </span>
-                      <span class="text-[11px] text-muted-foreground font-mono">
-                        Batch {{ applicant.batchYear }}
-                      </span>
+                      <span class="text-xs text-muted-foreground">Batch {{ applicant.batchYear }}</span>
                     </div>
                   </TableCell>
 
-                  <!-- Documents Submitted -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-wrap items-center gap-1 max-w-50">
-                      <template v-if="getApplicantDocuments(applicant).length > 0">
-                        <Badge
-                          v-for="doc in getApplicantDocuments(applicant).slice(0, 2)"
-                          :key="doc"
-                          variant="secondary"
-                          class="text-[10px] px-1.5 py-0 font-normal truncate max-w-25"
-                          :title="doc"
-                        >
-                          {{ doc }}
-                        </Badge>
-                        <Badge
-                          v-if="getApplicantDocuments(applicant).length > 2"
-                          variant="outline"
-                          class="text-[10px] px-1.5 py-0 font-mono"
-                        >
-                          +{{ getApplicantDocuments(applicant).length - 2 }}
-                        </Badge>
-                      </template>
-                      <span v-else class="text-[11px] text-muted-foreground">None submitted</span>
-                    </div>
+                  <TableCell>
+                    <span
+                      v-if="getApplicantDocuments(applicant).length > 0"
+                      class="text-sm"
+                      :title="getApplicantDocuments(applicant).join(', ')"
+                    >
+                      {{ getApplicantDocuments(applicant).length }} submitted
+                    </span>
+                    <span v-else class="text-sm text-muted-foreground">None</span>
                   </TableCell>
 
-                  <!-- Status -->
-                  <TableCell class="py-3">
-                    <Badge
-                      v-if="applicant.status === 'Approved'"
-                      variant="outline"
-                      class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] gap-1"
-                    >
-                      Approved
-                    </Badge>
-                    <Badge
-                      v-else-if="applicant.status === 'Hired'"
-                      variant="outline"
-                      class="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[11px] gap-1"
-                    >
-                      Hired
-                    </Badge>
-                    <Badge
-                      v-else-if="applicant.status === 'Pending'"
-                      variant="outline"
-                      class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px] gap-1"
-                    >
-                      Pending
-                    </Badge>
-                    <Badge
-                      v-else
-                      variant="outline"
-                      class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-[11px] gap-1"
-                    >
-                      <UserX class="h-3 w-3" />
+                  <TableCell>
+                    <Badge variant="outline" :class="getGipStatusBadgeClass(applicant.status)">
                       {{ applicant.status }}
                     </Badge>
                   </TableCell>
 
-                  <!-- Action -->
-                  <TableCell class="py-3 text-right">
+                  <TableCell class="text-right">
                     <div class="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-8 gap-1.5 text-xs cursor-pointer"
-                        @click="openApplicantDetails(applicant)"
-                      >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Details</span>
+                      <Button variant="ghost" size="sm" class="cursor-pointer" @click="openApplicantDetails(applicant)">
+                        View
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground"
                         title="Edit status & documents"
                         :aria-label="'Edit ' + applicant.fullName"
                         @click="openEditApplicantDialog(applicant)"
                       >
-                        <Pencil class="h-3.5 w-3.5" />
+                        <Pencil class="size-4 shrink-0" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                        title="Remove from GIP Registry"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                        title="Remove from GIP registry"
+                        :aria-label="'Remove ' + applicant.fullName"
                         @click="promptRemoveApplicant(applicant)"
                       >
-                        <Trash2 class="h-3.5 w-3.5" />
+                        <Trash2 class="size-4 shrink-0" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               </template>
 
-              <!-- ─── Empty State ─── -->
-              <!-- Case A: No applicants exist — full-width inline drag-and-drop zone -->
-              <TableRow v-else-if="applicants.length === 0 && !hasParsedData && !ocrProgress.isProcessing && !isParsing">
-                <TableCell colspan="8" class="p-3 sm:p-5 text-center">
+              <!-- No applicants yet: inline drop zone -->
+              <TableRow
+                v-else-if="applicants.length === 0 && !hasParsedData && !ocrProgress.isProcessing && !isParsing"
+                class="hover:bg-transparent"
+              >
+                <TableCell colspan="9" class="p-4 sm:p-6">
                   <div
+                    role="button"
+                    tabindex="0"
                     :class="[
-                      'w-full min-h-80 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 text-center transition-all cursor-pointer group',
-                      isDragging
-                        ? 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[0.998]'
-                        : 'border-muted-foreground/30 hover:border-primary/60 hover:bg-muted/30 bg-muted/10',
+                      'flex min-h-72 w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-8 text-center whitespace-normal transition-colors',
+                      isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/40',
                     ]"
                     @dragover="onDragOver"
                     @dragleave="onDragLeave"
                     @drop="onDrop"
                     @click="triggerFileInput"
+                    @keydown.enter="triggerFileInput"
                   >
-                    <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:scale-110 group-hover:bg-primary/15 transition-all mb-4 shadow-xs">
-                      <ScanText class="h-8 w-8" />
+                    <div class="flex size-12 items-center justify-center rounded-lg bg-muted">
+                      <UploadCloud class="size-6 text-muted-foreground" />
                     </div>
-
-                    <h3 class="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                      No GIP Applicants Registered Yet
-                    </h3>
-                    <p class="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed mt-1.5">
-                      Drag and drop an <span class="font-semibold text-foreground">Excel spreadsheet</span> (.xlsx, .csv) or
-                      <span class="font-semibold text-foreground">scanned NSRP Form 1 PDF</span> here to bulk-import applicants.
-                    </p>
-
-                    <div class="flex flex-wrap items-center justify-center gap-3 mt-6" @click.stop>
-                      <Button size="sm" class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs" @click="triggerFileInput">
-                        <UploadCloud class="h-4 w-4" />
-                        <span>Browse Files</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        class="gap-1.5 text-xs font-medium cursor-pointer shadow-xs bg-background hover:bg-muted"
-                        @click="downloadTemplate"
-                      >
-                        <Download class="h-4 w-4" />
-                        <span>Download Template</span>
-                      </Button>
-                    </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-
-              <!-- Case A-2: OCR / Parsing in-progress state -->
-              <TableRow v-else-if="applicants.length === 0 && (ocrProgress.isProcessing || isParsing) && !hasParsedData">
-                <TableCell colspan="8" class="p-3 sm:p-5 text-center">
-                  <div class="w-full min-h-80 flex flex-col items-center justify-center rounded-xl border border-border/80 bg-muted/20 p-8 sm:p-12 text-center space-y-4">
-                    <div class="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs">
-                      <Loader2 class="h-8 w-8 animate-spin" />
-                      <ScanText class="absolute h-4 w-4" />
-                    </div>
-                    <div class="space-y-1.5 max-w-md">
-                      <h3 class="font-bold text-base text-foreground">
-                        {{ ocrProgress.statusMessage || 'Processing file...' }}
-                      </h3>
-                      <p class="text-xs text-muted-foreground leading-relaxed">
-                        Reading document structure, running OCR text recognition, and extracting applicant fields.
+                    <div class="max-w-md space-y-1">
+                      <h3 class="text-base font-semibold">No GIP applicants registered yet</h3>
+                      <p class="text-sm text-muted-foreground">
+                        Drop an Excel spreadsheet (.xlsx, .csv) or a scanned NSRP Form 1 PDF here to bulk-import applicants.
                       </p>
                     </div>
-                    <div class="w-full max-w-md space-y-2 pt-2">
-                      <Progress :model-value="ocrProgress.progressPercent" class="h-2.5 rounded-full" />
-                      <div class="flex justify-between text-xs font-medium text-muted-foreground">
+                    <div class="flex flex-wrap items-center justify-center gap-2" @click.stop>
+                      <Button size="sm" class="cursor-pointer" @click="triggerFileInput">Browse Files</Button>
+                      <Button variant="outline" size="sm" class="cursor-pointer" @click="downloadTemplate">
+                        Download Template
+                      </Button>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <!-- OCR / parsing in progress -->
+              <TableRow
+                v-else-if="applicants.length === 0 && (ocrProgress.isProcessing || isParsing) && !hasParsedData"
+                class="hover:bg-transparent"
+              >
+                <TableCell colspan="9" class="p-4 sm:p-6">
+                  <div class="flex min-h-72 w-full flex-col items-center justify-center gap-4 rounded-lg border p-8 text-center whitespace-normal">
+                    <Loader2 class="size-8 animate-spin text-muted-foreground" />
+                    <div class="max-w-md space-y-1">
+                      <h3 class="text-base font-semibold">{{ ocrProgress.statusMessage || 'Processing file...' }}</h3>
+                      <p class="text-sm text-muted-foreground">
+                        Reading document structure, running OCR, and extracting applicant fields.
+                      </p>
+                    </div>
+                    <div class="w-full max-w-md space-y-2">
+                      <Progress :model-value="ocrProgress.progressPercent" />
+                      <div class="flex justify-between text-xs text-muted-foreground">
                         <span>Page {{ ocrProgress.currentPage }} of {{ ocrProgress.totalPages }}</span>
-                        <span class="font-mono">{{ ocrProgress.progressPercent }}%</span>
+                        <span class="tabular-nums">{{ ocrProgress.progressPercent }}%</span>
                       </div>
                     </div>
                   </div>
                 </TableCell>
               </TableRow>
 
-              <!-- Case A-3: Parsed data review table (inline, no modal) -->
+              <!-- Parsed data review (inline) -->
               <template v-else-if="applicants.length === 0 && hasParsedData">
-                <!-- Summary banner row -->
-                <TableRow>
-                  <TableCell colspan="8" class="py-3 px-4 bg-muted/10 border-b">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" class="font-medium text-xs">
-                          File: {{ uploadedFile?.name }}
-                        </Badge>
-                        <Badge variant="outline" class="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                          {{ validApplicantsCount }} Ready
-                        </Badge>
-                        <Badge
-                          v-if="invalidApplicantsCount > 0"
-                          variant="outline"
-                          class="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                        >
-                          <AlertCircle class="h-3 w-3 mr-1" />
-                          {{ invalidApplicantsCount }} Needs Review
-                        </Badge>
-                      </div>
-                      <div class="flex items-center gap-2 self-end sm:self-auto">
+                <TableRow class="bg-muted/40 hover:bg-muted/40">
+                  <TableCell colspan="9" class="px-4 py-3">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p class="text-sm">
+                        <span class="font-medium">{{ uploadedFile?.name }}</span>
+                        <span class="text-muted-foreground">
+                          · {{ validApplicantsCount }} ready
+                          <template v-if="invalidApplicantsCount > 0">· {{ invalidApplicantsCount }} need review</template>
+                        </span>
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <Button variant="outline" size="sm" class="cursor-pointer" @click="resetBatchState">
+                          Discard
+                        </Button>
                         <Button
                           size="sm"
-                          class="h-7 text-xs cursor-pointer gap-1.5"
+                          class="cursor-pointer"
                           :disabled="validApplicantsCount === 0 || isSubmitting"
                           @click="confirmImport"
                         >
-                          <Loader2 v-if="isSubmitting" class="h-3.5 w-3.5 animate-spin" />
-                          <span>Import {{ validApplicantsCount }} Applicants</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          class="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                          @click="resetBatchState"
-                        >
-                          <X class="h-3.5 w-3.5 mr-1" />
-                          Discard
+                          <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+                          {{ isSubmitting ? 'Importing...' : `Import ${validApplicantsCount} Applicants` }}
                         </Button>
                       </div>
                     </div>
                   </TableCell>
                 </TableRow>
 
-                <!-- Parsed applicant rows -->
-                <TableRow
-                  v-for="(candidate, idx) in parsedApplicants"
-                  :key="candidate.id || idx"
-                  class="hover:bg-muted/30"
-                >
-                  <TableCell class="py-2">
+                <TableRow v-for="(candidate, idx) in parsedApplicants" :key="candidate.id || idx">
+                  <TableCell />
+                  <TableCell>
                     <div class="flex flex-col">
-                      <span class="font-semibold text-xs text-foreground">
+                      <span class="text-sm font-medium">
                         {{ candidate.surname }}, {{ candidate.firstName }} {{ candidate.middleName }}
                       </span>
-                      <span class="text-[10px] text-muted-foreground">
-                        {{ candidate.sex }} • {{ candidate.dateOfBirth || 'DOB N/A' }}
+                      <span class="text-xs text-muted-foreground">
+                        {{ candidate.sex }} · {{ candidate.dateOfBirth || 'DOB N/A' }}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell class="py-2">
-                    <div class="flex flex-col text-[11px]">
-                      <span class="font-medium text-foreground">{{ candidate.municipality }}</span>
-                      <span class="text-muted-foreground">Brgy. {{ candidate.barangay }}</span>
+                  <TableCell>
+                    <div class="flex flex-col">
+                      <span class="text-sm">{{ candidate.municipality }}</span>
+                      <span class="text-xs text-muted-foreground">Brgy. {{ candidate.barangay }}</span>
                     </div>
                   </TableCell>
-                  <TableCell class="py-2">
-                    <Badge
-                      variant="outline"
-                      :class="['text-[10px] py-0.5 px-2 font-semibold gap-1', LPII_CONFIG[candidate.lpiiTag].badgeClass]"
-                    >
-                      <TreePine v-if="candidate.lpiiTag === 'LOWLAND'" class="h-3 w-3" />
-                      <Mountain v-else-if="candidate.lpiiTag === 'UPLAND'" class="h-3 w-3" />
-                      <Waves v-else class="h-3 w-3" />
+                  <TableCell>
+                    <Badge variant="outline" :class="LPII_CONFIG[candidate.lpiiTag].badgeClass">
                       {{ LPII_CONFIG[candidate.lpiiTag].label }}
                     </Badge>
                   </TableCell>
-                  <TableCell class="py-2">
-                    <span class="text-[11px] font-medium truncate max-w-40 block" :title="candidate.course">
-                      {{ candidate.course }}
-                    </span>
+                  <TableCell>
+                    <span class="block max-w-40 truncate text-sm" :title="candidate.course">{{ candidate.course }}</span>
                   </TableCell>
-                  <TableCell class="py-2">
-                    <span class="text-[10px] font-mono text-muted-foreground">
-                      {{ candidate.pageRange || 'Row Data' }}
-                    </span>
+                  <TableCell>
+                    <span class="font-mono text-xs text-muted-foreground">{{ candidate.pageRange || 'Row data' }}</span>
                   </TableCell>
-                  <TableCell class="py-2">
+                  <TableCell />
+                  <TableCell>
                     <Badge
                       v-if="candidate.isValid !== false"
                       variant="outline"
-                      class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]"
+                      class="border-success/30 bg-success/10 text-success"
                     >
                       Valid
                     </Badge>
                     <Badge
                       v-else
                       variant="outline"
-                      class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px]"
+                      class="border-warning/30 bg-warning/10 text-warning"
                       :title="candidate.validationErrors?.join(', ')"
                     >
                       Needs Check
                     </Badge>
                   </TableCell>
-                  <TableCell class="py-2 text-right">
+                  <TableCell class="text-right">
                     <div class="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
-                        title="Edit Scanned Information"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground"
+                        title="Edit scanned information"
+                        aria-label="Edit scanned information"
                         @click="openEditCandidateModal(candidate, idx)"
                       >
-                        <Pencil class="h-3.5 w-3.5" />
+                        <Pencil class="size-4 shrink-0" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                        title="Delete Candidate"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                        title="Remove candidate"
+                        aria-label="Remove candidate"
                         @click="removeCandidate(idx)"
                       >
-                        <Trash2 class="h-3.5 w-3.5" />
+                        <Trash2 class="size-4 shrink-0" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               </template>
 
-              <!-- Case B: Search or dropdown filters returned 0 matches -->
-              <TableRow v-else>
-                <TableCell colspan="9" class="h-36 text-center text-muted-foreground">
-                  <div class="flex flex-col items-center justify-center gap-2 py-4">
-                    <Filter class="h-7 w-7 text-muted-foreground/50" />
-                    <p class="text-sm font-semibold text-foreground">No applicant records match the selected criteria</p>
-                    <p class="text-xs text-muted-foreground">
-                      Try adjusting the search keyword, LPII category, or status filters.
-                    </p>
-                    <Button size="sm" variant="outline" class="mt-2 text-xs cursor-pointer" @click="resetFilters">
-                      Clear Filters
-                    </Button>
-                  </div>
+              <!-- Filters returned no matches -->
+              <TableRow v-else class="hover:bg-transparent">
+                <TableCell colspan="9" class="p-0 whitespace-normal">
+                  <Empty class="py-10">
+                    <EmptyHeader>
+                      <EmptyTitle>No matching applicants</EmptyTitle>
+                      <EmptyDescription>
+                        Try adjusting the search keyword, LPII zone, or status filters.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                      <Button size="sm" variant="outline" class="cursor-pointer" @click="resetFilters">
+                        Clear Filters
+                      </Button>
+                    </EmptyContent>
+                  </Empty>
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
 
-        <!-- ─── Table Pagination ─── -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t text-xs text-muted-foreground">
-          <div>
-            Showing <span class="font-medium text-foreground">{{ filteredApplicants.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
-            to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredApplicants.length) }}</span>
+        <!-- Pagination -->
+        <div class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row">
+          <p>
+            Showing
+            <span class="font-medium text-foreground">{{ filteredApplicants.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>–<span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredApplicants.length) }}</span>
             of <span class="font-medium text-foreground">{{ filteredApplicants.length }}</span> applicants
-          </div>
-
-          <div class="flex items-center gap-2">
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-1">
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage <= 1"
               @click="currentPage--"
             >
               Previous
             </Button>
-            <div class="flex items-center gap-1">
-              <Button
-                v-for="p in totalApplicantPages"
-                :key="p"
-                size="sm"
-                :variant="currentPage === p ? 'default' : 'outline'"
-                class="h-8 w-8 p-0 text-xs cursor-pointer"
-                @click="currentPage = p"
-              >
-                {{ p }}
-              </Button>
-            </div>
+            <Button
+              v-for="p in totalApplicantPages"
+              :key="p"
+              size="icon"
+              :variant="currentPage === p ? 'default' : 'ghost'"
+              class="size-8 cursor-pointer"
+              :aria-current="currentPage === p ? 'page' : undefined"
+              @click="currentPage = p"
+            >
+              {{ p }}
+            </Button>
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage >= totalApplicantPages"
               @click="currentPage++"
             >
@@ -1165,7 +925,335 @@ const {
   </div>
 
   <!-- ─── BATCH IMPORT APPLICANTS DIALOG ─── -->
-  <GipBatchUploadDialog />
+  <Dialog v-model:open="isBatchUploadOpen">
+    <DialogContent class="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-220">
+      <DialogHeader class="border-b p-6 pr-14">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="space-y-1.5">
+            <DialogTitle>Batch Import GIP Applicants</DialogTitle>
+            <DialogDescription>
+              Upload an Excel spreadsheet (.xlsx, .csv) or scanned DOLE NSRP Form 1 PDFs (2 pages per applicant).
+            </DialogDescription>
+          </div>
+          <Button variant="outline" size="sm" class="shrink-0 cursor-pointer" @click="downloadTemplate">
+            Download Template
+          </Button>
+        </div>
+      </DialogHeader>
+
+      <div class="flex-1 space-y-4 overflow-y-auto p-6">
+        <!-- Drop zone -->
+        <div
+          v-if="!hasParsedData && !ocrProgress.isProcessing"
+          role="button"
+          tabindex="0"
+          :class="[
+            'flex cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-8 text-center transition-colors',
+            isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/40',
+          ]"
+          @dragover="onDragOver"
+          @dragleave="onDragLeave"
+          @drop="onDrop"
+          @click="triggerFileInput"
+          @keydown.enter="triggerFileInput"
+        >
+          <div class="flex size-12 items-center justify-center rounded-lg bg-muted">
+            <UploadCloud class="size-6 text-muted-foreground" />
+          </div>
+          <div class="max-w-md space-y-1">
+            <p class="text-sm font-semibold">Drop your Excel or NSRP PDF file here</p>
+            <p class="text-sm text-muted-foreground">
+              Supports .xlsx, .xls, .csv data files, or .pdf scanned NSRP Form 1 documents for automatic OCR.
+            </p>
+          </div>
+          <Button size="sm" class="pointer-events-none" tabindex="-1">Browse Files</Button>
+        </div>
+
+        <!-- OCR / parsing progress -->
+        <div
+          v-else-if="ocrProgress.isProcessing || isParsing"
+          class="flex flex-col items-center justify-center gap-4 rounded-lg border p-8 text-center"
+        >
+          <Loader2 class="size-8 animate-spin text-muted-foreground" />
+          <div class="max-w-md space-y-1">
+            <h3 class="text-sm font-semibold">
+              {{ ocrProgress.statusMessage || 'Processing file and checking for duplicate records...' }}
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Reading document structure, running OCR, and checking the provincial registry for matches.
+            </p>
+          </div>
+          <div class="w-full max-w-sm space-y-2">
+            <Progress :model-value="ocrProgress.progressPercent" />
+            <div class="flex justify-between text-xs text-muted-foreground">
+              <span>Page {{ ocrProgress.currentPage }} of {{ ocrProgress.totalPages }}</span>
+              <span class="tabular-nums">{{ ocrProgress.progressPercent }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review -->
+        <template v-else>
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm">
+              <span class="font-medium">{{ uploadedFile?.name }}</span>
+              <span class="text-muted-foreground">
+                · {{ validApplicantsCount }} ready
+                <template v-if="duplicatesCount > 0">· {{ duplicatesCount }} already registered</template>
+                <template v-if="skippedCount > 0">· {{ skippedCount }} skipped</template>
+                <template v-if="invalidApplicantsCount > 0">· {{ invalidApplicantsCount }} need review</template>
+              </span>
+            </p>
+            <Button variant="ghost" size="sm" class="self-start cursor-pointer sm:self-auto" @click="resetBatchState">
+              Upload Different File
+            </Button>
+          </div>
+
+          <Alert v-if="duplicatesCount > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
+            <AlertTriangle />
+            <AlertTitle>{{ duplicatesCount }} applicant{{ duplicatesCount > 1 ? 's' : '' }} already exist in the database</AlertTitle>
+            <AlertDescription>
+              <p>By default they will be linked to GIP instead of creating duplicate records.</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" class="cursor-pointer" @click="setAllDuplicatesAction('link_program', 'GIP')">
+                  Link All to GIP
+                </Button>
+                <Button variant="outline" size="sm" class="cursor-pointer" @click="setAllDuplicatesAction('skip')">
+                  Skip All Duplicates
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          <div class="overflow-hidden rounded-lg border">
+            <div class="max-h-75 overflow-auto">
+              <Table>
+                <TableHeader class="sticky top-0 z-10 bg-muted">
+                  <TableRow class="hover:bg-muted">
+                    <TableHead>Applicant</TableHead>
+                    <TableHead>Municipality & Barangay</TableHead>
+                    <TableHead>LPII</TableHead>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Review</TableHead>
+                    <TableHead class="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    v-for="(candidate, idx) in parsedApplicants"
+                    :key="candidate.id || idx"
+                    :class="candidate.resolutionAction === 'skip' ? 'opacity-50' : ''"
+                  >
+                    <TableCell>
+                      <div class="flex flex-col">
+                        <span class="text-sm font-medium">
+                          {{ candidate.surname }}, {{ candidate.firstName }} {{ candidate.middleName }}
+                        </span>
+                        <span class="text-xs text-muted-foreground">
+                          {{ candidate.sex }} · {{ candidate.dateOfBirth || 'DOB N/A' }}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div class="flex flex-col">
+                        <span class="text-sm">{{ candidate.municipality }}</span>
+                        <span class="text-xs text-muted-foreground">Brgy. {{ candidate.barangay }}</span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant="outline" :class="LPII_CONFIG[candidate.lpiiTag].badgeClass">
+                        {{ LPII_CONFIG[candidate.lpiiTag].label }}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell>
+                      <span class="block max-w-40 truncate text-sm" :title="candidate.course">{{ candidate.course }}</span>
+                    </TableCell>
+
+                    <TableCell>
+                      <span class="font-mono text-xs text-muted-foreground">{{ candidate.pageRange || 'Row data' }}</span>
+                    </TableCell>
+
+                    <TableCell>
+                      <div class="flex flex-col items-start gap-1">
+                        <Button
+                          v-if="candidate.existingMatch"
+                          variant="link"
+                          size="sm"
+                          class="h-auto cursor-pointer p-0 text-xs"
+                          @click="openDuplicateModal(candidate, idx)"
+                        >
+                          {{
+                            candidate.resolutionAction === 'link_program'
+                              ? `Link to ${candidate.selectedProgram || 'GIP'}`
+                              : candidate.resolutionAction === 'create_new'
+                                ? 'Create new record'
+                                : 'Skipped'
+                          }}
+                        </Button>
+                        <Badge
+                          v-if="candidate.isValid !== false"
+                          variant="outline"
+                          class="border-success/30 bg-success/10 text-success"
+                        >
+                          Valid
+                        </Badge>
+                        <Badge
+                          v-else
+                          variant="outline"
+                          class="border-warning/30 bg-warning/10 text-warning"
+                          :title="candidate.validationErrors?.join(', ')"
+                        >
+                          Needs Check
+                        </Badge>
+                      </div>
+                    </TableCell>
+
+                    <TableCell class="text-right">
+                      <div class="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-8 cursor-pointer text-muted-foreground"
+                          title="Edit scanned information"
+                          aria-label="Edit scanned information"
+                          @click="openEditCandidateModal(candidate, idx)"
+                        >
+                          <Pencil class="size-4 shrink-0" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                          title="Remove candidate"
+                          aria-label="Remove candidate"
+                          @click="removeCandidate(idx)"
+                        >
+                          <Trash2 class="size-4 shrink-0" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <DialogFooter class="border-t p-4">
+        <Button variant="outline" class="cursor-pointer" @click="isBatchUploadOpen = false">Cancel</Button>
+        <Button
+          v-if="hasParsedData"
+          class="cursor-pointer"
+          :disabled="validApplicantsCount === 0 || isSubmitting"
+          @click="confirmImport"
+        >
+          <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+          {{ isSubmitting ? 'Importing...' : `Import ${validApplicantsCount} Applicants` }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ─── DUPLICATE APPLICANT REVIEW DIALOG ─── -->
+  <Dialog v-model:open="isDuplicateModalOpen">
+    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Existing applicant record found</DialogTitle>
+        <DialogDescription>
+          <strong class="font-medium text-foreground">{{ duplicateCandidate ? `${duplicateCandidate.firstName} ${duplicateCandidate.surname}` : '' }}</strong>
+          matches an existing profile in the provincial database.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div v-if="duplicateCandidate?.existingMatch" class="grid gap-6">
+        <!-- Existing profile -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-sm font-semibold">
+              {{ duplicateCandidate.existingMatch.existingApplicant.surname }}, {{ duplicateCandidate.existingMatch.existingApplicant.first_name }} {{ duplicateCandidate.existingMatch.existingApplicant.middle_name || '' }}
+            </h3>
+            <Badge variant="outline">
+              {{ duplicateCandidate.existingMatch.confidence === 'exact' ? 'Exact match' : duplicateCandidate.existingMatch.confidence === 'high' ? 'High match' : 'Possible match' }}
+            </Badge>
+          </div>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3">
+            <div>
+              <span class="text-xs text-muted-foreground">Date of Birth</span>
+              <p class="text-sm font-medium">{{ duplicateCandidate.existingMatch.existingApplicant.date_of_birth || 'N/A' }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Sex</span>
+              <p class="text-sm font-medium">{{ duplicateCandidate.existingMatch.existingApplicant.sex || 'N/A' }}</p>
+            </div>
+            <div class="col-span-2">
+              <span class="text-xs text-muted-foreground">Existing Programs</span>
+              <div class="mt-1 flex flex-wrap gap-1">
+                <template v-if="duplicateCandidate.existingMatch.existingPrograms?.length">
+                  <Badge v-for="p in duplicateCandidate.existingMatch.existingPrograms" :key="p" variant="secondary">
+                    {{ p }}
+                  </Badge>
+                </template>
+                <span v-else class="text-sm text-muted-foreground">None</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Resolution -->
+        <section class="grid gap-2">
+          <Label>Action for this candidate</Label>
+          <div role="radiogroup" class="grid gap-2">
+            <button
+              v-for="opt in duplicateActionOptions"
+              :key="opt.value"
+              type="button"
+              role="radio"
+              :aria-checked="selectedDuplicateAction === opt.value"
+              :class="[
+                'flex cursor-pointer flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors',
+                selectedDuplicateAction === opt.value
+                  ? opt.value === 'skip'
+                    ? 'border-destructive bg-destructive/5 ring-2 ring-destructive/20'
+                    : 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  : 'hover:bg-muted/50',
+              ]"
+              @click="selectedDuplicateAction = opt.value"
+            >
+              <span class="flex items-center gap-2 text-sm font-semibold">
+                {{ opt.label }}
+                <Badge v-if="opt.value === 'link_program'" variant="secondary">Recommended</Badge>
+              </span>
+              <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
+            </button>
+          </div>
+
+          <div v-if="selectedDuplicateAction === 'link_program'" class="grid gap-2 pt-2">
+            <Label for="duplicateTargetProgram">Target Program</Label>
+            <Select v-model="selectedDuplicateProgram">
+              <SelectTrigger id="duplicateTargetProgram" class="w-full sm:w-56">
+                <SelectValue placeholder="Select program" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="prog in duplicateProgramOptions" :key="prog" :value="prog">
+                  {{ prog }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </section>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" class="cursor-pointer" @click="isDuplicateModalOpen = false">Cancel</Button>
+        <Button class="cursor-pointer" @click="confirmDuplicateResolution">Apply Resolution</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
   <!-- ─── EDIT APPLICANT STATUS & DOCUMENTS DIALOG ─── -->
   <Dialog :open="isEditApplicantDialogOpen" @update:open="onEditDialogOpenChange">
@@ -1261,115 +1349,290 @@ const {
     </DialogContent>
   </Dialog>
 
-  <!-- ─── EDIT SCANNED CANDIDATE DIALOG (INLINE TABLE SUPPORT) ─── -->
-  <GipEditCandidateDialog
-    v-model:open="isEditModalOpen"
-    :candidate="editingCandidate"
-    :index="editingCandidateIndex"
-    @save="saveEditedCandidate"
-  />
-
-  <!-- ─── REMOVE APPLICANT CONFIRMATION DIALOG ─── -->
-  <Dialog v-model:open="isRemoveDialogOpen">
-    <DialogContent class="sm:max-w-md">
-      <DialogHeader>
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive shrink-0">
-            <Trash2 class="h-5 w-5" />
-          </div>
-          <div>
-            <DialogTitle class="text-base font-semibold">Remove GIP Applicant</DialogTitle>
-            <DialogDescription class="text-xs text-muted-foreground mt-0.5">
-              Remove applicant record from GIP registry.
-            </DialogDescription>
-          </div>
+  <!-- ─── EDIT SCANNED CANDIDATE DIALOG ─── -->
+  <Dialog v-model:open="isEditModalOpen">
+    <DialogContent class="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-180">
+      <DialogHeader class="border-b p-6 pr-14">
+        <DialogTitle>Edit Scanned Applicant</DialogTitle>
+        <DialogDescription>
+          Review and correct the extracted OCR fields before adding them to the GIP registry.
+          <template v-if="editingCandidate?.pageRange"> Source: <span class="font-mono">{{ editingCandidate.pageRange }}</span>.</template>
+        </DialogDescription>
+        <div class="pt-1">
+          <Badge v-if="isCandidateValid" variant="outline" class="border-success/30 bg-success/10 text-success">
+            Ready to import
+          </Badge>
+          <Badge v-else variant="outline" class="border-warning/30 bg-warning/10 text-warning">
+            {{ candidateValidationErrors.length }} field{{ candidateValidationErrors.length > 1 ? 's' : '' }} need correction
+          </Badge>
         </div>
       </DialogHeader>
 
-      <div v-if="applicantToRemove" class="py-2 space-y-3 text-xs">
-        <div class="rounded-lg border bg-muted/30 p-3 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">Full Name:</span>
-            <span class="font-semibold text-foreground">{{ applicantToRemove.fullName }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">Status:</span>
-            <Badge variant="outline" class="text-[10px]">{{ applicantToRemove.status }}</Badge>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">LPII Category:</span>
-            <span class="font-medium text-foreground">{{ applicantToRemove.lpiiTag }}</span>
-          </div>
-        </div>
+      <div class="flex-1 space-y-6 overflow-y-auto p-6">
+        <Alert v-if="candidateValidationErrors.length > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
+          <AlertCircle />
+          <AlertTitle>Required fields are missing or incomplete</AlertTitle>
+          <AlertDescription>
+            <ul class="list-inside list-disc">
+              <li v-for="(err, i) in candidateValidationErrors" :key="i">{{ err }}</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
 
-        <p class="text-muted-foreground leading-relaxed">
-          Are you sure you want to remove <strong class="text-foreground">{{ applicantToRemove.fullName }}</strong> from the GIP applicant registry?
-          Note: Applicants who have active intern deployments in GIP cannot be removed.
-        </p>
+        <!-- LPII Zone -->
+        <section class="grid gap-2">
+          <Label>LPII Ecosystem Zone</Label>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1 rounded-lg bg-muted p-1" role="radiogroup" aria-label="LPII zone">
+              <Button
+                v-for="zone in candidateLpiiOptions"
+                :key="zone"
+                type="button"
+                variant="ghost"
+                size="sm"
+                role="radio"
+                :aria-checked="candidateForm.lpiiTag === zone"
+                :class="['h-7 cursor-pointer px-3', candidateForm.lpiiTag === zone && 'bg-background shadow-xs hover:bg-background']"
+                @click="setCandidateLpii(zone)"
+              >
+                {{ LPII_CONFIG[zone].label }}
+              </Button>
+            </div>
+            <span class="text-sm text-muted-foreground">
+              Brgy. {{ candidateForm.barangay || 'Poblacion' }}, {{ candidateForm.municipality }}
+            </span>
+          </div>
+        </section>
+
+        <Separator />
+
+        <!-- I. Personal Information -->
+        <section class="space-y-4">
+          <h3 class="text-sm font-semibold">Personal Information</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <div class="grid gap-2">
+              <Label for="ec-surname">Surname <span class="text-destructive">*</span></Label>
+              <Input id="ec-surname" v-model="candidateForm.surname" placeholder="e.g. Dela Cruz" required />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-first">First Name <span class="text-destructive">*</span></Label>
+              <Input id="ec-first" v-model="candidateForm.firstName" placeholder="e.g. Juan" required />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-middle">Middle Name</Label>
+              <Input id="ec-middle" v-model="candidateForm.middleName" placeholder="Middle" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-suffix">Suffix</Label>
+              <Input id="ec-suffix" v-model="candidateForm.suffix" placeholder="Jr / III" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="grid gap-2">
+              <Label for="ec-sex">Sex</Label>
+              <Select v-model="candidateForm.sex">
+                <SelectTrigger id="ec-sex" class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-dob">Date of Birth</Label>
+              <Input id="ec-dob" v-model="candidateForm.dateOfBirth" type="date" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-civil">Civil Status</Label>
+              <Select v-model="candidateForm.civilStatus">
+                <SelectTrigger id="ec-civil" class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single">Single</SelectItem>
+                  <SelectItem value="Married">Married</SelectItem>
+                  <SelectItem value="Widowed">Widowed</SelectItem>
+                  <SelectItem value="Separated">Separated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-tin">TIN (optional)</Label>
+              <Input id="ec-tin" v-model="candidateForm.tin" placeholder="000-000-000" class="font-mono" />
+            </div>
+          </div>
+        </section>
+
+        <Separator />
+
+        <!-- II. Residence & Contact -->
+        <section class="space-y-4">
+          <h3 class="text-sm font-semibold">Residence & Contact Information</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid gap-2">
+              <Label for="ec-muni">Municipality / City <span class="text-destructive">*</span></Label>
+              <Select v-model="candidateForm.municipality">
+                <SelectTrigger id="ec-muni" class="w-full">
+                  <SelectValue placeholder="Select municipality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="m in candidateMunicipalities" :key="m" :value="m">{{ m }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-brgy">Barangay <span class="text-destructive">*</span></Label>
+              <Input id="ec-brgy" v-model="candidateForm.barangay" placeholder="e.g. Poblacion" required />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-street">House No. / Street / Purok</Label>
+              <Input id="ec-street" v-model="candidateForm.houseStreet" placeholder="e.g. Purok 3B" />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+              <Label for="ec-contact">Contact Number</Label>
+              <Input id="ec-contact" v-model="candidateForm.contactNumber" placeholder="09123456789" class="font-mono" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-email">Email Address</Label>
+              <Input id="ec-email" v-model="candidateForm.email" type="email" placeholder="applicant@example.com" />
+            </div>
+          </div>
+        </section>
+
+        <Separator />
+
+        <!-- III. Academic Background -->
+        <section class="space-y-4">
+          <h3 class="text-sm font-semibold">Academic Background & Competencies</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid gap-2">
+              <Label for="ec-course">Degree / Course <span class="text-destructive">*</span></Label>
+              <Input id="ec-course" v-model="candidateForm.course" placeholder="e.g. BS Information Technology" required />
+            </div>
+            <div class="grid gap-2">
+              <Label for="ec-level">Educational Level</Label>
+              <Select v-model="candidateForm.educationalLevel">
+                <SelectTrigger id="ec-level" class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="College Graduate">College Graduate</SelectItem>
+                  <SelectItem value="College Level">College Level</SelectItem>
+                  <SelectItem value="Tech-Voc Graduate">Tech-Voc / TVET Graduate</SelectItem>
+                  <SelectItem value="Senior High Graduate">Senior High School Graduate</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="grid gap-2">
+                <Label for="ec-year">Year Graduated</Label>
+                <Input id="ec-year" v-model="candidateForm.yearGraduated" placeholder="Year" class="font-mono" />
+              </div>
+              <div class="grid gap-2">
+                <Label for="ec-batch">Batch</Label>
+                <Input id="ec-batch" v-model.number="candidateForm.batchYear" type="number" placeholder="Batch" class="font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="ec-skills">Skills & Competencies</Label>
+            <Input
+              id="ec-skills"
+              v-model="candidateSkillsInput"
+              placeholder="e.g. Computer Literacy, Data Entry, Agricultural Research"
+            />
+            <p class="text-xs text-muted-foreground">Separate multiple skills with commas.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-6">
+            <Label class="cursor-pointer font-normal">
+              <Checkbox v-model="candidateForm.is4ps" />
+              4Ps Beneficiary
+            </Label>
+            <Label class="cursor-pointer font-normal">
+              <Checkbox v-model="candidateForm.hasDisability" />
+              Person with Disability (PWD)
+            </Label>
+          </div>
+
+          <div class="grid gap-2">
+            <Label>Documents Submitted</Label>
+            <div role="group" class="grid gap-2 sm:grid-cols-2">
+              <Label
+                v-for="doc in candidateDocumentOptions"
+                :key="doc"
+                :class="[
+                  'flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 font-normal transition-colors',
+                  (candidateForm.documentsSubmitted || []).includes(doc) ? 'border-primary/40 bg-primary/5' : 'hover:bg-muted/50',
+                ]"
+              >
+                <Checkbox
+                  :model-value="(candidateForm.documentsSubmitted || []).includes(doc)"
+                  @update:model-value="toggleCandidateDocument(doc)"
+                />
+                <span class="min-w-0 flex-1 truncate" :title="doc">{{ doc }}</span>
+              </Label>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          class="text-xs cursor-pointer"
-          :disabled="isRemoving"
-          @click="cancelRemoveApplicant"
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          class="text-xs gap-1.5 cursor-pointer"
-          :disabled="isRemoving"
-          @click="confirmRemoveApplicant"
-        >
-          <Loader2 v-if="isRemoving" class="h-3.5 w-3.5 animate-spin" />
-          <span>{{ isRemoving ? 'Removing...' : 'Confirm Remove' }}</span>
-        </Button>
+      <DialogFooter class="border-t p-4">
+        <Button type="button" variant="outline" class="cursor-pointer" @click="closeCandidateEdit">Cancel</Button>
+        <Button type="button" class="cursor-pointer" @click="saveCandidateEdits">Save Changes</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 
-  <!-- ─── Bulk Remove Applicants Dialog ─── -->
-  <Dialog :open="isBulkDeleteDialogOpen" @update:open="isBulkDeleteDialogOpen = $event">
-    <DialogContent class="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle class="text-destructive flex items-center gap-2">
-          <Trash2 class="h-5 w-5" />
-          <span>Remove Selected GIP Applicants</span>
-        </DialogTitle>
-        <DialogDescription class="text-xs leading-relaxed">
-          Are you sure you want to remove <strong class="text-foreground">{{ selectedApplicantIds.length }}</strong> selected applicant record{{ selectedApplicantIds.length > 1 ? 's' : '' }} from the GIP registry?
-          Note: Applicants who have active deployments in GIP will not be removed.
-        </DialogDescription>
-      </DialogHeader>
-
-      <DialogFooter class="flex flex-row items-center justify-end gap-2 pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          class="text-xs cursor-pointer"
-          :disabled="isBulkDeleting"
-          @click="isBulkDeleteDialogOpen = false"
-        >
+  <!-- ─── REMOVE APPLICANT CONFIRMATION ─── -->
+  <AlertDialog v-model:open="isRemoveDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Remove GIP applicant?</AlertDialogTitle>
+        <AlertDialogDescription>
+          <strong class="font-medium text-foreground">{{ applicantToRemove?.fullName }}</strong>
+          ({{ applicantToRemove?.status }}, {{ applicantToRemove?.lpiiTag }}) will be removed from the GIP applicant registry.
+          Applicants with active intern deployments cannot be removed.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel class="cursor-pointer" :disabled="isRemoving" @click="cancelRemoveApplicant">
           Cancel
+        </AlertDialogCancel>
+        <Button variant="destructive" class="cursor-pointer" :disabled="isRemoving" @click="confirmRemoveApplicant">
+          <Loader2 v-if="isRemoving" class="size-4 shrink-0 animate-spin" />
+          {{ isRemoving ? 'Removing...' : 'Remove Applicant' }}
         </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          class="text-xs gap-1.5 cursor-pointer"
-          :disabled="isBulkDeleting"
-          @click="handleBulkDelete"
-        >
-          <Loader2 v-if="isBulkDeleting" class="h-3.5 w-3.5 animate-spin" />
-          <Trash2 v-else class="h-3.5 w-3.5" />
-          <span>{{ isBulkDeleting ? 'Removing...' : `Remove ${selectedApplicantIds.length} Applicants` }}</span>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  <!-- ─── BULK REMOVE APPLICANTS CONFIRMATION ─── -->
+  <AlertDialog v-model:open="isBulkDeleteDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>
+          Remove {{ selectedApplicantIds.length }} selected applicant{{ selectedApplicantIds.length > 1 ? 's' : '' }}?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          The selected records will be removed from the GIP registry. Applicants with active deployments will be skipped.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel class="cursor-pointer" :disabled="isBulkDeleting">Cancel</AlertDialogCancel>
+        <Button variant="destructive" class="cursor-pointer" :disabled="isBulkDeleting" @click="handleBulkDelete">
+          <Loader2 v-if="isBulkDeleting" class="size-4 shrink-0 animate-spin" />
+          {{ isBulkDeleting ? 'Removing...' : `Remove ${selectedApplicantIds.length} Applicant${selectedApplicantIds.length > 1 ? 's' : ''}` }}
         </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 
   <!-- ─── BULK GIP DEPLOYMENT DIALOG ─── -->
   <Dialog :open="isBulkDeployDialogOpen" @update:open="onBulkDeployOpenChange">

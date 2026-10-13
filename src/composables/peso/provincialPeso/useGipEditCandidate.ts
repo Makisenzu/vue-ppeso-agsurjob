@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import type { NsrpParsedApplicant } from '@/types/peso/provincialPeso/nsrpOcr'
 import type { LpiiCategory } from '@/types/peso/provincialPeso/gip'
 import {
@@ -7,21 +7,16 @@ import {
 } from '@/helpers/peso/provincialPeso/excelImportHelper'
 import { GIP_DOCUMENT_OPTIONS } from '@/helpers/peso/provincialPeso/gipHelper'
 
-interface EditCandidateProps {
-  open: boolean
-  candidate: NsrpParsedApplicant | null
-  index: number
+const LPII_OPTIONS: LpiiCategory[] = ['LOWLAND', 'UPLAND', 'WETLAND']
+
+interface EditCandidateOptions {
+  isOpen: Ref<boolean>
+  candidate: Ref<NsrpParsedApplicant | null>
+  index: Ref<number>
+  onSave: (updated: NsrpParsedApplicant, index: number) => void
 }
 
-type EditCandidateEmit = {
-  (e: 'update:open', val: boolean): void
-  (e: 'save', updated: NsrpParsedApplicant, index: number): void
-}
-
-export function useGipEditCandidate(
-  props: EditCandidateProps,
-  emit: EditCandidateEmit
-) {
+export function useGipEditCandidate({ isOpen, candidate, index, onSave }: EditCandidateOptions) {
   const currentYear = new Date().getFullYear()
 
   const defaultCandidateState = (): NsrpParsedApplicant => ({
@@ -61,7 +56,7 @@ export function useGipEditCandidate(
 
   // Sync state whenever selected candidate prop updates
   watch(
-    () => props.candidate,
+    candidate,
     (newCandidate) => {
       if (newCandidate) {
         form.value = JSON.parse(JSON.stringify(newCandidate))
@@ -156,12 +151,12 @@ export function useGipEditCandidate(
       isValid: isValid.value,
     }
 
-    emit('save', updatedRecord, props.index)
-    emit('update:open', false)
+    onSave(updatedRecord, index.value)
+    isOpen.value = false
   }
 
   const handleClose = () => {
-    emit('update:open', false)
+    isOpen.value = false
   }
 
   return {
@@ -171,6 +166,7 @@ export function useGipEditCandidate(
     isValid,
     municipalities: AGSUR_MUNICIPALITIES,
     documentOptions: GIP_DOCUMENT_OPTIONS,
+    lpiiOptions: LPII_OPTIONS,
     setLpiiCategory,
     toggleDocument,
     handleSave,

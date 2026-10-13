@@ -1,4 +1,4 @@
-import { ref, shallowRef, computed } from 'vue'
+import { ref, shallowRef, computed, watch } from 'vue'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type {
@@ -15,6 +15,25 @@ import {
 } from '@/helpers/peso/provincialPeso/excelImportHelper'
 import { ocrService } from '@/services/peso/provincialPeso/ocrService'
 import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
+import { PROGRAM_OPTIONS } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
+
+const DUPLICATE_ACTION_OPTIONS: { value: DuplicateResolutionAction; label: string; description: string }[] = [
+  {
+    value: 'link_program',
+    label: 'Link to program',
+    description: "Connects this application to the existing profile and registers them in the program queue without creating a duplicate record.",
+  },
+  {
+    value: 'create_new',
+    label: 'Create new master profile',
+    description: 'Creates a separate applicant record. Only use if verified to be a different person.',
+  },
+  {
+    value: 'skip',
+    label: 'Skip / do not import',
+    description: 'Excludes this applicant from the batch import entirely.',
+  },
+]
 
 export function useGipBatchUpload() {
   const store = useGipStore()
@@ -273,6 +292,26 @@ export function useGipBatchUpload() {
     closeDuplicateModal()
   }
 
+  // Draft choice inside the duplicate dialog, seeded from the candidate's current resolution
+  const selectedDuplicateAction = ref<DuplicateResolutionAction>('link_program')
+  const selectedDuplicateProgram = ref<string>('GIP')
+
+  watch(duplicateCandidate, (candidate) => {
+    if (candidate) {
+      selectedDuplicateAction.value = candidate.resolutionAction || 'link_program'
+      selectedDuplicateProgram.value = candidate.selectedProgram || 'GIP'
+    }
+  })
+
+  const confirmDuplicateResolution = () => {
+    if (!duplicateCandidate.value?.existingMatch) return
+    resolveDuplicate({
+      action: selectedDuplicateAction.value,
+      targetProgram: selectedDuplicateProgram.value,
+      existingApplicantId: duplicateCandidate.value.existingMatch.existingApplicant.id,
+    })
+  }
+
   /**
    * Set bulk action for all detected duplicates (e.g. bulk link or bulk skip)
    */
@@ -375,6 +414,11 @@ export function useGipBatchUpload() {
     openDuplicateModal,
     closeDuplicateModal,
     resolveDuplicate,
+    selectedDuplicateAction,
+    selectedDuplicateProgram,
+    duplicateActionOptions: DUPLICATE_ACTION_OPTIONS,
+    duplicateProgramOptions: PROGRAM_OPTIONS,
+    confirmDuplicateResolution,
     setAllDuplicatesAction,
     confirmImport,
     resetBatchState,

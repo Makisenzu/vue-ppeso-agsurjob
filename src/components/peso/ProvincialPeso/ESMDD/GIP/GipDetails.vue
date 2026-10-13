@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -6,26 +7,15 @@ import {
   Check,
   CheckCircle2,
   CheckIcon,
+  ChevronDown,
   ChevronsUpDownIcon,
-  Clock,
-  Coins,
-  Download,
-  Eye,
-  FileCheck,
-  Filter,
   Loader2,
-  MapPin,
   Minus,
-  Mountain,
   Pencil,
   Plus,
   RefreshCw,
-  Save,
   Search,
   Trash2,
-  TreePine,
-  UserX,
-  Waves,
   X,
 } from '@lucide/vue'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,7 +24,21 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { ChartContainer } from '@/components/ui/chart'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -51,6 +55,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Combobox,
   ComboboxAnchor,
@@ -74,9 +96,10 @@ import { cn } from '@/lib/utils'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
+import type { DirectoryRow } from '@/types/common/directory'
 import { useGipDetails } from '@/composables/peso/provincialPeso/useGipDetails'
-import GipBatchUploadDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipBatchUploadDialog.vue'
-import GipRenewAppointmentDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipRenewAppointmentDialog.vue'
+import { useGipRenewAppointment } from '@/composables/peso/provincialPeso/useGipRenewAppointment'
+import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
 
 const {
   pgasLpiiData,
@@ -154,464 +177,347 @@ const {
   // Documents
   internDocumentsSubmitted,
 } = useGipDetails()
+
+const {
+  isRenewalDialogOpen,
+  intern: renewalIntern,
+  isSubmitting: isSubmittingRenewal,
+  actionMode: renewalActionMode,
+  currentTermNumber,
+  nextTermNumber,
+  programOptions: renewalProgramOptions,
+  concludeOptions,
+  durationPresets,
+  officeSearchQuery: renewalOfficeSearchQuery,
+  filteredOffices: renewalFilteredOffices,
+  isLoadingOffices: isLoadingRenewalOffices,
+  findOffice,
+  renewSchema,
+  renewInitialValues,
+  concludeSchema,
+  concludeInitialValues,
+  stipendForProgram,
+  addDurationMonths,
+  formatDeploymentDate,
+  onOpenChange: onRenewalOpenChange,
+  submitRenewal,
+  submitConclusion,
+} = useGipRenewAppointment()
+
+const programTabs = [
+  { value: 'ALL', label: 'All Programs' },
+  { value: 'PGAS', label: 'PGAS' },
+  { value: 'DOLE', label: 'DOLE' },
+] as const
+
+const programOptions = [
+  { value: 'PGAS', label: 'PGAS', logo: pgasLogo, description: 'Provincial · ₱479.35/day' },
+  { value: 'DOLE', label: 'DOLE', logo: doleLogo, description: 'National · ₱475/day' },
+] as const
+
+const lpiiCharts = computed(() => [
+  {
+    key: 'overall',
+    title: 'Combined LPII Distribution',
+    description: 'Overall Agsur GIP (PGAS + DOLE)',
+    logo: null,
+    data: overallLpiiData.value,
+    total: totalOverallLpii.value,
+    subLabel: 'Total Interns',
+    emptyLabel: 'No intern records yet',
+  },
+  {
+    key: 'pgas',
+    title: 'PGAS',
+    description: "Provincial Gov't of Agusan del Sur",
+    logo: pgasLogo,
+    data: pgasLpiiData.value,
+    total: totalPgasLpii.value,
+    subLabel: 'PGAS Interns',
+    emptyLabel: 'No PGAS interns yet',
+  },
+  {
+    key: 'dole',
+    title: 'DOLE',
+    description: 'Department of Labor & Employment',
+    logo: doleLogo,
+    data: doleLpiiData.value,
+    total: totalDoleLpii.value,
+    subLabel: 'DOLE Interns',
+    emptyLabel: 'No DOLE interns yet',
+  },
+])
+
+const internDetailFields = computed(() => {
+  const intern = selectedIntern.value
+  if (!intern) return []
+  return [
+    { label: 'Assigned Office / Station', value: intern.assignedOffice },
+    { label: 'Designated Supervisor', value: intern.supervisor },
+    { label: 'Academic Background / Degree', value: intern.course },
+    { label: 'Daily Allowance / Stipend', value: intern.stipend, mono: true },
+    { label: 'Deployment Period', value: intern.period },
+    { label: 'Contact Information', value: intern.contact, mono: true },
+  ]
+})
+
+const percentOf = (count: number, total: number) => (total ? ((count / total) * 100).toFixed(1) : '0')
+
+const formatCalendarDate = (date: { year: number; month: number; day: number }) =>
+  new Date(date.year, date.month - 1, date.day).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-label-text-color:var(--foreground)] [--vis-donut-central-sub-label-text-color:var(--muted-foreground)]'
 </script>
 
 <template>
   <div class="flex flex-col gap-6 pb-12">
-    <!-- ─── Header & Breadcrumb ─── -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <!-- ─── Header ─── -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" class="gap-1.5 px-2 cursor-pointer" @click="goBack">
-            <ArrowLeft class="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Button>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-          GIP Records
-        </h1>
+        <Button variant="ghost" size="sm" class="-ml-2 cursor-pointer" @click="goBack">
+          <ArrowLeft class="size-4 shrink-0" />
+          Back to Dashboard
+        </Button>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Records</h1>
         <p class="text-sm text-muted-foreground">
           Geographic distribution monitoring across Agusan del Sur with intern registry.
         </p>
       </div>
 
-      <!-- Quick Program Tabs -->
-      <div class="flex items-center gap-2 self-start sm:self-auto rounded-lg border bg-muted/40 p-1">
+      <!-- Program Filter -->
+      <div class="flex items-center gap-1 self-start rounded-lg bg-muted p-1 sm:self-auto">
         <Button
+          v-for="tab in programTabs"
+          :key="tab.value"
           size="sm"
-          :variant="programTab === 'ALL' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="programTab = 'ALL'"
+          variant="ghost"
+          :class="['h-7 cursor-pointer px-3', programTab === tab.value && 'bg-background shadow-xs hover:bg-background']"
+          @click="programTab = tab.value"
         >
-          All Programs
-        </Button>
-        <Button
-          size="sm"
-          :variant="programTab === 'PGAS' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="programTab = 'PGAS'"
-        >
-          PGAS
-        </Button>
-        <Button
-          size="sm"
-          :variant="programTab === 'DOLE' ? 'default' : 'ghost'"
-          class="h-8 px-3 text-xs cursor-pointer"
-          @click="programTab = 'DOLE'"
-        >
-          DOLE
+          {{ tab.label }}
         </Button>
       </div>
     </div>
 
-    <!-- ─── 1 ROW OF PIE / DONUT CHARTS: LPII (Lowland, Upland, Wetland) ─── -->
-    <div class="space-y-3">
-      <!-- 1 Row Grid with 3 Pie Charts -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- ─── Pie Chart 1: Overall LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div>
-                <CardTitle class="text-base font-semibold flex items-center gap-2">
-                  Combined LPII Distribution
-                </CardTitle>
-                <CardDescription class="text-xs">
-                  Overall Agsur GIP (PGAS + DOLE)
-                </CardDescription>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalOverallLpii.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalOverallLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="overallLpiiData" :height="220">
-                <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalOverallLpii.toLocaleString()}`"
-                  central-sub-label="Total Interns"
-                />
-                <VisTooltip :triggers="donutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No intern records yet</p>
-            </div>
-
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
-              <div
-                v-for="item in overallLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalOverallLpii ? ((item.count / totalOverallLpii) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- ─── Pie Chart 2: PGAS LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <Avatar class="h-7 w-7 rounded-md border bg-background">
-                  <img :src="pgasLogo" alt="PGAS" class="object-cover" />
-                </Avatar>
-                <div>
-                  <CardTitle class="text-base font-semibold">PGAS - LPII Breakdown</CardTitle>
-                  <CardDescription class="text-xs">Provincial Gov't of Agusan del Sur</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalPgasLpii.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalPgasLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="pgasLpiiData" :height="220">
-                <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalPgasLpii.toLocaleString()}`"
-                  central-sub-label="PGAS Interns"
-                />
-                <VisTooltip :triggers="donutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No PGAS interns yet</p>
-            </div>
-
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
-              <div
-                v-for="item in pgasLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalPgasLpii ? ((item.count / totalPgasLpii) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- ─── Pie Chart 3: DOLE LPII Distribution ─── -->
-        <Card class="relative overflow-hidden flex flex-col justify-between border shadow-xs">
-          <CardHeader class="pb-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <Avatar class="h-7 w-7 rounded-md border bg-background">
-                  <img :src="doleLogo" alt="DOLE" class="object-cover" />
-                </Avatar>
-                <div>
-                  <CardTitle class="text-base font-semibold">DOLE - LPII Breakdown</CardTitle>
-                  <CardDescription class="text-xs">Department of Labor & Employment</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="font-mono text-xs">
-                Total: {{ totalDoleLpii.toLocaleString() }}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div v-if="isLoading" class="flex h-55 w-full items-center justify-center">
-              <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            <div v-else-if="totalDoleLpii > 0" class="relative w-full max-w-65 aspect-square flex items-center justify-center">
-              <VisSingleContainer :data="doleLpiiData" :height="220">
-                <VisDonut
-                  :value="(d: LpiiDataPoint) => d.count"
-                  :color="(d: LpiiDataPoint) => d.color"
-                  :pad-angle="0.03"
-                  :corner-radius="4"
-                  :arc-width="38"
-                  :central-label="`${totalDoleLpii.toLocaleString()}`"
-                  central-sub-label="DOLE Interns"
-                />
-                <VisTooltip :triggers="donutTooltipTriggers" />
-              </VisSingleContainer>
-            </div>
-            <div v-else class="flex h-55 w-full flex-col items-center justify-center text-xs text-muted-foreground">
-              <p>No DOLE interns yet</p>
-            </div>
-
-            <!-- Legend and counts -->
-            <div class="w-full mt-3 grid grid-cols-3 gap-2 pt-3 border-t text-center">
-              <div
-                v-for="item in doleLpiiData"
-                :key="item.category"
-                class="flex flex-col items-center rounded-lg bg-muted/40 p-2 transition hover:bg-muted/70"
-              >
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: item.color }" />
-                  {{ item.label }}
-                </div>
-                <span class="text-sm font-bold font-mono mt-0.5">{{ item.count.toLocaleString() }}</span>
-                <span class="text-[10px] text-muted-foreground">
-                  {{ totalDoleLpii ? ((item.count / totalDoleLpii) * 100).toFixed(1) : 0 }}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-
-    <!-- ─── APPOINTMENT RENEWAL ATTENTION BANNER ─── -->
-    <div
-      v-if="pendingDecisionCount > 0"
-      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
-    >
-      <div class="flex items-center gap-2.5">
-        <div class="p-1.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
-          <AlertTriangle class="h-4 w-4" />
-        </div>
-        <div>
-          <p class="text-xs font-semibold">
-            Action Required: {{ pendingDecisionCount }} Intern Appointment{{ pendingDecisionCount > 1 ? 's' : '' }} Pending Provincial PESO Decision
+    <!-- ─── LPII Distribution ─── -->
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <Card v-for="chart in lpiiCharts" :key="chart.key">
+        <CardHeader class="flex flex-row items-center gap-3">
+          <Avatar v-if="chart.logo" class="size-9 shrink-0 rounded-md border bg-background">
+            <img :src="chart.logo" :alt="`${chart.title} logo`" class="object-cover" />
+          </Avatar>
+          <div class="space-y-1">
+            <CardTitle class="text-base">{{ chart.title }}</CardTitle>
+            <CardDescription>{{ chart.description }} · {{ chart.total.toLocaleString() }} total</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <Skeleton v-if="isLoading" class="mx-auto aspect-square h-55 rounded-full" />
+          <ChartContainer v-else-if="chart.total > 0" :config="{}" :class="donutClass">
+            <VisSingleContainer :data="chart.data" :height="220">
+              <VisDonut
+                :value="(d: LpiiDataPoint) => d.count"
+                :color="(d: LpiiDataPoint) => d.color"
+                :pad-angle="0.03"
+                :corner-radius="4"
+                :arc-width="38"
+                :central-label="chart.total.toLocaleString()"
+                :central-sub-label="chart.subLabel"
+              />
+              <VisTooltip :triggers="donutTooltipTriggers" />
+            </VisSingleContainer>
+          </ChartContainer>
+          <p v-else class="flex h-55 items-center justify-center text-sm text-muted-foreground">
+            {{ chart.emptyLabel }}
           </p>
-          <p class="text-[11px] text-amber-800/80 dark:text-amber-300/80">
-            <span v-if="expiredAppointmentsCount > 0">
-              <strong class="font-semibold">{{ expiredAppointmentsCount }}</strong> term{{ expiredAppointmentsCount > 1 ? 's' : '' }} expired
-            </span>
-            <span v-if="expiredAppointmentsCount > 0 && expiringAppointmentsCount > 0"> and </span>
-            <span v-if="expiringAppointmentsCount > 0">
-              <strong class="font-semibold">{{ expiringAppointmentsCount }}</strong> expiring within 30 days
-            </span>
-            — Provincial PESO renewal or conclusion needed.
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
-        <Button
-          v-if="selectedAppointmentFilter === 'ALL'"
-          size="sm"
-          variant="outline"
-          class="h-7 text-xs border-amber-500/40 bg-background/80 hover:bg-amber-500/15 cursor-pointer text-amber-900 dark:text-amber-200"
-          @click="selectedAppointmentFilter = 'EXPIRING'"
-        >
-          View Pending Interns
-        </Button>
-        <Button
-          v-else
-          size="sm"
-          variant="outline"
-          class="h-7 text-xs border-amber-500/40 bg-background/80 hover:bg-amber-500/15 cursor-pointer text-amber-900 dark:text-amber-200"
-          @click="selectedAppointmentFilter = 'ALL'"
-        >
-          Show All Interns
-        </Button>
-      </div>
-    </div>
 
-    <!-- ─── DATA TABLE COMPONENT (Below Pie Chart Row) ─── -->
-    <Card class="border shadow-xs">
-      <CardHeader class="pb-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle class="text-lg font-semibold flex items-center gap-2">
-              GIP Intern Master Registry
-            </CardTitle>
-            <CardDescription class="text-xs">
-              Filtering interns for
-              <span class="font-semibold text-foreground">
-                {{ programTab === 'ALL' ? 'All GIP Programs' : `GIP - ${programTab}` }}
+          <div class="grid grid-cols-3 gap-2 border-t pt-4">
+            <div v-for="item in chart.data" :key="item.category" class="flex flex-col px-2 py-1.5">
+              <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span :class="['size-2 shrink-0 rounded-full', LPII_CONFIG[item.category].dotClass]" />
+                {{ item.label }}
               </span>
-              • Showing {{ filteredInterns.length }} of {{ interns.length }} records
+              <span class="text-sm font-semibold tabular-nums">{{ item.count.toLocaleString() }}</span>
+              <span class="text-xs text-muted-foreground tabular-nums">{{ percentOf(item.count, chart.total) }}%</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- ─── Appointment Renewal Attention ─── -->
+    <Alert v-if="pendingDecisionCount > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
+      <AlertTriangle />
+      <AlertTitle>
+        {{ pendingDecisionCount }} intern appointment{{ pendingDecisionCount > 1 ? 's' : '' }} pending Provincial PESO decision
+      </AlertTitle>
+      <AlertDescription>
+        <p>
+          <template v-if="expiredAppointmentsCount > 0">
+            {{ expiredAppointmentsCount }} term{{ expiredAppointmentsCount > 1 ? 's' : '' }} expired
+          </template>
+          <template v-if="expiredAppointmentsCount > 0 && expiringAppointmentsCount > 0"> and </template>
+          <template v-if="expiringAppointmentsCount > 0">
+            {{ expiringAppointmentsCount }} expiring within 30 days
+          </template>
+          — renew or conclude each appointment.
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          class="mt-2 cursor-pointer"
+          @click="selectedAppointmentFilter = selectedAppointmentFilter === 'ALL' ? 'EXPIRING' : 'ALL'"
+        >
+          {{ selectedAppointmentFilter === 'ALL' ? 'View Pending Interns' : 'Show All Interns' }}
+        </Button>
+      </AlertDescription>
+    </Alert>
+
+    <!-- ─── Intern Master Registry ─── -->
+    <Card class="gap-0 py-0">
+      <CardHeader class="gap-4 border-b py-4 [.border-b]:pb-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="space-y-1">
+            <CardTitle class="text-base">Intern Master Registry</CardTitle>
+            <CardDescription>
+              {{ programTab === 'ALL' ? 'All GIP programs' : `GIP - ${programTab}` }}
+              · Showing {{ filteredInterns.length }} of {{ interns.length }} records
             </CardDescription>
           </div>
 
-          <!-- Action buttons -->
-          <div class="flex items-center gap-2">
-            <!-- Delete Selected Button in Header Toolbar -->
-            <Button
-              v-if="selectedInternIds.length > 0"
-              variant="destructive"
-              size="sm"
-              class="gap-1.5 text-xs cursor-pointer shadow-xs animate-in fade-in"
-              @click="isBulkDeleteDialogOpen = true"
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-              <span>Delete Selected ({{ selectedInternIds.length }})</span>
-            </Button>
-
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90" @click="navigateToAddIntern">
-              <Plus class="h-3.5 w-3.5" />
-              <span>Add GIP</span>
-            </Button>
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs cursor-pointer" @click="exportCsv">
-              <Download class="h-3.5 w-3.5" />
-              <span>Export CSV</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" class="cursor-pointer" @click="exportCsv">
+              Export CSV
             </Button>
             <Button
               variant="outline"
               size="sm"
-              class="gap-1.5 text-xs cursor-pointer"
+              class="cursor-pointer"
               :disabled="isLoading"
               @click="refreshDetailsData"
             >
-              <RefreshCw :class="['h-3.5 w-3.5', isLoading && 'animate-spin']" />
-              <span>Refresh</span>
+              <RefreshCw :class="['size-4 shrink-0', isLoading && 'animate-spin']" />
+              {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+            </Button>
+            <Button size="sm" class="cursor-pointer" @click="navigateToAddIntern">
+              <Plus class="size-4 shrink-0" />
+              Add GIP Intern
             </Button>
           </div>
         </div>
 
-        <!-- ─── Search & Multi-Filter Bar ─── -->
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
-          <!-- Search input -->
-          <div class="sm:col-span-2 relative">
-            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <!-- Search & Filters -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+          <div class="relative sm:col-span-2">
+            <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               v-model="searchQuery"
-              placeholder="Search by intern name, office, barangay..."
-              class="pl-9 text-xs h-9"
+              placeholder="Search name, office, barangay..."
+              class="pr-9 pl-8"
+              aria-label="Search interns"
             />
-            <button
+            <Button
               v-if="searchQuery"
-              class="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+              variant="ghost"
+              size="icon"
+              class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
+              aria-label="Clear search"
               @click="searchQuery = ''"
             >
-              <X class="h-4 w-4" />
-            </button>
+              <X class="size-4 shrink-0" />
+            </Button>
           </div>
 
-          <!-- Appointment Term Filter -->
-          <div>
-            <select
-              v-model="selectedAppointmentFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Appointments</option>
-              <option value="EXPIRING">Expiring Soon (≤ 30d)</option>
-              <option value="EXPIRED">Expired Terms</option>
-              <option value="ACTIVE">Active Appointments</option>
-              <option value="COMPLETED">Completed / Concluded</option>
-            </select>
-          </div>
+          <Select v-model="selectedAppointmentFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by appointment term">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Appointments</SelectItem>
+              <SelectItem value="EXPIRING">Expiring Soon (≤ 30d)</SelectItem>
+              <SelectItem value="EXPIRED">Expired Terms</SelectItem>
+              <SelectItem value="ACTIVE">Active Appointments</SelectItem>
+              <SelectItem value="COMPLETED">Completed / Concluded</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- LPII Filter -->
-          <div>
-            <select
-              v-model="selectedLpiiFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All LPII Zones</option>
-              <option value="LOWLAND">Lowland Only</option>
-              <option value="UPLAND">Upland Only</option>
-              <option value="WETLAND">Wetland Only</option>
-            </select>
-          </div>
+          <Select v-model="selectedLpiiFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by LPII zone">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All LPII Zones</SelectItem>
+              <SelectItem value="LOWLAND">Lowland</SelectItem>
+              <SelectItem value="UPLAND">Upland</SelectItem>
+              <SelectItem value="WETLAND">Wetland</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Year Filter -->
-          <div>
-            <select
-              v-model="selectedYearFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Batch Years</option>
-              <option v-for="y in availableYears" :key="y" :value="y.toString()">
+          <Select v-model="selectedYearFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by batch year">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Batch Years</SelectItem>
+              <SelectItem v-for="y in availableYears" :key="y" :value="y.toString()">
                 Batch {{ y }}
-              </option>
-            </select>
-          </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Gender Filter -->
-          <div>
-            <select
-              v-model="selectedGenderFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Genders</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
+          <Select v-model="selectedGenderFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by gender">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Genders</SelectItem>
+              <SelectItem value="Male">Male</SelectItem>
+              <SelectItem value="Female">Female</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <!-- Status Filter -->
-          <div>
-            <select
-              v-model="selectedStatusFilter"
-              class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Hired">Hired</option>
-              <option value="Resigned">Resigned</option>
-            </select>
-          </div>
+          <Select v-model="selectedStatusFilter">
+            <SelectTrigger class="w-full" aria-label="Filter by status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Hired">Hired</SelectItem>
+              <SelectItem value="Resigned">Resigned</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
       <CardContent class="p-0">
-        <!-- ─── Bulk Action Bar ─── -->
+        <!-- Bulk Action Bar -->
         <div
           v-if="selectedInternIds.length > 0"
-          class="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-t border-b border-primary/20 text-xs text-foreground transition-all animate-in fade-in"
+          class="flex flex-col gap-2 border-b bg-muted/50 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-primary">{{ selectedInternIds.length }}</span>
-            <span class="text-muted-foreground">intern{{ selectedInternIds.length > 1 ? 's' : '' }} selected</span>
-            <span class="text-muted-foreground">•</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              @click="clearSelection"
-            >
+          <div class="flex items-center gap-3">
+            <span class="font-medium">
+              {{ selectedInternIds.length }} intern{{ selectedInternIds.length > 1 ? 's' : '' }} selected
+            </span>
+            <Button variant="link" size="sm" class="h-auto cursor-pointer p-0 text-muted-foreground" @click="clearSelection">
               Clear selection
             </Button>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            class="h-7 text-xs gap-1.5 cursor-pointer shadow-xs"
-            @click="isBulkDeleteDialogOpen = true"
-          >
-            <Trash2 class="h-3.5 w-3.5" />
-            <span>Delete Selected ({{ selectedInternIds.length }})</span>
+          <Button variant="destructive" size="sm" class="cursor-pointer" @click="isBulkDeleteDialogOpen = true">
+            Delete Selected ({{ selectedInternIds.length }})
           </Button>
         </div>
 
-        <!-- ─── Table ─── -->
-        <div class="relative overflow-x-auto border-t">
+        <!-- Table -->
+        <div class="overflow-x-auto">
           <Table>
-            <TableHeader class="bg-muted/40">
-              <TableRow>
+            <TableHeader>
+              <TableRow class="bg-muted/40 hover:bg-muted/40">
                 <TableHead class="w-12 px-4 text-center">
                   <Checkbox
                     :model-value="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
@@ -619,222 +525,154 @@ const {
                     @update:model-value="toggleSelectAll"
                   >
                     <template #default="{ modelValue }">
-                      <Minus v-if="modelValue === 'indeterminate'" class="h-3 w-3 stroke-3" />
-                      <Check v-else class="h-3.5 w-3.5" />
+                      <Minus v-if="modelValue === 'indeterminate'" class="size-3 stroke-3" />
+                      <Check v-else class="size-3.5" />
                     </template>
                   </Checkbox>
                 </TableHead>
-                <TableHead class="w-50 text-xs font-semibold">Intern Information</TableHead>
-                <TableHead class="text-xs font-semibold">Program</TableHead>
-                <TableHead class="text-xs font-semibold">Municipality & Barangay</TableHead>
-                <TableHead class="text-xs font-semibold">LPII Classification</TableHead>
-                <TableHead class="text-xs font-semibold">Assigned Office / Station</TableHead>
-                <TableHead class="text-xs font-semibold">Period / Batch</TableHead>
-                <TableHead class="text-xs font-semibold">Status</TableHead>
-                <TableHead class="text-right text-xs font-semibold">Action</TableHead>
+                <TableHead class="min-w-50">Intern</TableHead>
+                <TableHead>Program</TableHead>
+                <TableHead>Municipality & Barangay</TableHead>
+                <TableHead>LPII</TableHead>
+                <TableHead>Assigned Office</TableHead>
+                <TableHead>Period / Term</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              <!-- Loading -->
               <template v-if="isLoading">
-                <TableRow>
-                  <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
-                    <div class="flex flex-col items-center justify-center gap-2 py-4">
-                      <Loader2 class="h-7 w-7 animate-spin text-muted-foreground" />
-                      <p class="text-xs text-muted-foreground">Loading GIP intern records...</p>
+                <TableRow v-for="n in 5" :key="`skeleton-${n}`">
+                  <TableCell class="px-4"><Skeleton class="mx-auto size-4" /></TableCell>
+                  <TableCell>
+                    <div class="flex items-center gap-2.5">
+                      <Skeleton class="size-8 rounded-full" />
+                      <div class="space-y-1.5">
+                        <Skeleton class="h-4 w-32" />
+                        <Skeleton class="h-3 w-20" />
+                      </div>
                     </div>
                   </TableCell>
+                  <TableCell v-for="c in 6" :key="c"><Skeleton class="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton class="ml-auto h-8 w-28" /></TableCell>
                 </TableRow>
               </template>
+
               <template v-else-if="paginatedInterns.length > 0">
                 <TableRow
                   v-for="intern in paginatedInterns"
                   :key="intern.id"
-                  :class="[
-                    'transition-colors hover:bg-muted/30',
-                    selectedInternIds.includes(intern.id) ? 'bg-primary/5 dark:bg-primary/10' : '',
-                  ]"
+                  :data-state="selectedInternIds.includes(intern.id) ? 'selected' : undefined"
                 >
-                  <!-- Multi-select Checkbox -->
-                  <TableCell class="py-3 px-4 text-center" @click.stop>
+                  <TableCell class="px-4 text-center" @click.stop>
                     <Checkbox
                       :model-value="selectedInternIds.includes(intern.id)"
                       :aria-label="'Select ' + intern.fullName"
                       @update:model-value="(val) => toggleSelectIntern(intern.id, val)"
                     />
                   </TableCell>
-                  <!-- Intern Info -->
-                  <TableCell class="py-3">
+
+                  <TableCell>
                     <div class="flex items-center gap-2.5">
-                      <Avatar class="h-8 w-8 rounded-full border bg-muted">
-                        <AvatarFallback class="text-xs font-semibold text-primary">
+                      <Avatar class="size-8 border">
+                        <AvatarFallback class="text-xs font-semibold">
                           {{ getInitials(intern.fullName) }}
                         </AvatarFallback>
                       </Avatar>
-                      <div class="flex flex-col">
-                        <span class="font-semibold text-xs sm:text-sm text-foreground">
-                          {{ intern.fullName }}
+                      <div class="flex min-w-0 flex-col">
+                        <span class="truncate text-sm font-medium">{{ intern.fullName }}</span>
+                        <span class="text-xs text-muted-foreground">
+                          {{ intern.gender }} · <span class="font-mono">{{ intern.code }}</span>
                         </span>
-                        <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <span>{{ intern.gender }}</span>
-                          <span>•</span>
-                          <span class="font-mono">{{ intern.code }}</span>
-                        </div>
                       </div>
                     </div>
                   </TableCell>
 
-                  <!-- Program -->
-                  <TableCell class="py-3">
-                    <Badge
-                      :variant="intern.program === 'PGAS' ? 'default' : 'secondary'"
-                      class="text-[11px] font-semibold px-2 py-0.5 gap-1"
-                    >
-                      {{ intern.program }}
-                    </Badge>
-                  </TableCell>
+                  <TableCell class="text-sm font-medium">{{ intern.program }}</TableCell>
 
-                  <!-- Location -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col text-xs">
-                      <span class="font-medium text-foreground flex items-center gap-1">
-                        <MapPin class="h-3 w-3 text-muted-foreground" />
-                        {{ intern.municipality }}
-                      </span>
-                      <span class="text-[11px] text-muted-foreground pl-4">
-                        Brgy. {{ intern.barangay }}
-                      </span>
+                  <TableCell>
+                    <div class="flex flex-col">
+                      <span class="text-sm">{{ intern.municipality }}</span>
+                      <span class="text-xs text-muted-foreground">Brgy. {{ intern.barangay }}</span>
                     </div>
                   </TableCell>
 
-                  <!-- LPII Tag -->
-                  <TableCell class="py-3">
-                    <Badge
-                      variant="outline"
-                      :class="['text-xs font-semibold gap-1.5 py-0.5 px-2', LPII_CONFIG[intern.lpiiTag].badgeClass]"
-                    >
-                      <TreePine v-if="intern.lpiiTag === 'LOWLAND'" class="h-3.5 w-3.5" />
-                      <Mountain v-else-if="intern.lpiiTag === 'UPLAND'" class="h-3.5 w-3.5" />
-                      <Waves v-else class="h-3.5 w-3.5" />
+                  <TableCell>
+                    <Badge variant="outline" :class="LPII_CONFIG[intern.lpiiTag].badgeClass">
                       {{ LPII_CONFIG[intern.lpiiTag].label }}
                     </Badge>
                   </TableCell>
 
-                  <!-- Assigned Office -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col text-xs max-w-50">
-                      <span class="font-medium truncate text-foreground" :title="intern.assignedOffice">
-                        {{ intern.assignedOffice }}
-                      </span>
-                      <span class="text-[11px] text-muted-foreground truncate" :title="intern.course">
-                        {{ intern.course }}
-                      </span>
+                  <TableCell>
+                    <div class="flex max-w-50 flex-col">
+                      <span class="truncate text-sm" :title="intern.assignedOffice">{{ intern.assignedOffice }}</span>
+                      <span class="truncate text-xs text-muted-foreground" :title="intern.course">{{ intern.course }}</span>
                     </div>
                   </TableCell>
 
-                  <!-- Period / Batch & Appointment Term -->
-                  <TableCell class="py-3">
-                    <div class="flex flex-col gap-1 text-xs">
-                      <div class="flex items-center gap-1.5">
-                        <span class="font-mono text-foreground font-medium">{{ intern.batchYear }}</span>
-                        <Badge
-                          variant="outline"
-                          class="text-[10px] py-0 px-1 font-mono bg-muted/50"
-                        >
-                          Term #{{ intern.currentAppointment?.termNumber || 1 }}
-                        </Badge>
-                      </div>
-                      <span class="text-[11px] text-muted-foreground">{{ intern.period }}</span>
-                      <!-- Relative Expiration Badge -->
-                      <div v-if="intern.currentAppointment" class="pt-0.5">
-                        <Badge
-                          v-if="intern.currentAppointment.isExpired && intern.status === 'Active'"
-                          variant="destructive"
-                          class="text-[10px] py-0 px-1.5 gap-1 font-medium"
-                        >
-                          <Clock class="h-2.5 w-2.5" />
-                          Term Expired
+                  <TableCell>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-sm">
+                        {{ intern.batchYear }}
+                        <span class="text-muted-foreground">· Term {{ intern.currentAppointment?.termNumber || 1 }}</span>
+                      </span>
+                      <span class="text-xs text-muted-foreground">{{ intern.period }}</span>
+                      <template v-if="intern.currentAppointment && intern.status === 'Active'">
+                        <Badge v-if="intern.currentAppointment.isExpired" variant="destructive">
+                          Term expired
                         </Badge>
                         <Badge
-                          v-else-if="intern.currentAppointment.isExpiringSoon && intern.status === 'Active'"
+                          v-else-if="intern.currentAppointment.isExpiringSoon"
                           variant="outline"
-                          class="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] py-0 px-1.5 gap-1 font-medium"
+                          class="border-warning/30 bg-warning/10 text-warning"
                         >
-                          <Clock class="h-2.5 w-2.5" />
                           Ends in {{ intern.daysRemaining }}d
                         </Badge>
-                      </div>
+                      </template>
                     </div>
                   </TableCell>
 
-                  <!-- Status -->
-                  <TableCell class="py-3">
-                    <Badge
-                      v-if="intern.status === 'Active'"
-                      variant="outline"
-                      class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] gap-1"
-                    >
-                      <Clock class="h-3 w-3" />
-                      Active
-                    </Badge>
-                    <Badge
-                      v-else-if="intern.status === 'Hired'"
-                      variant="outline"
-                      class="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[11px] gap-1"
-                    >
-                      <CheckCircle2 class="h-3 w-3" />
-                      Hired
-                    </Badge>
-                    <Badge
-                      v-else
-                      variant="outline"
-                      class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-[11px] gap-1"
-                    >
-                      <UserX class="h-3 w-3" />
+                  <TableCell>
+                    <Badge variant="outline" :class="getGipStatusBadgeClass(intern.status)">
                       {{ intern.status }}
                     </Badge>
                   </TableCell>
 
-                  <!-- Action -->
-                  <TableCell class="py-3 text-right">
+                  <TableCell class="text-right">
                     <div class="flex items-center justify-end gap-1">
                       <Button
                         v-if="intern.status === 'Active'"
                         variant="outline"
                         size="sm"
-                        class="h-8 gap-1 text-xs cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
-                        title="Renew or Conclude Appointment"
+                        class="cursor-pointer"
+                        title="Renew or conclude appointment"
                         @click="openRenewalDialog(intern)"
                       >
-                        <RefreshCw class="h-3.5 w-3.5" />
-                        <span>Renew</span>
+                        Renew
+                      </Button>
+                      <Button variant="ghost" size="sm" class="cursor-pointer" @click="openInternDetails(intern)">
+                        View
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-8 gap-1.5 text-xs cursor-pointer"
-                        title="Edit Deployment Details"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground"
+                        title="Edit deployment details"
+                        :aria-label="'Edit ' + intern.fullName"
                         @click="openInternEdit(intern)"
                       >
-                        <Pencil class="h-3.5 w-3.5" />
-                        <span>Edit</span>
+                        <Pencil class="size-4 shrink-0" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        class="h-8 gap-1.5 text-xs cursor-pointer"
-                        @click="openInternDetails(intern)"
-                      >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Details</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                        title="Delete Intern Deployment"
+                        size="icon"
+                        class="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                        title="Delete intern deployment"
+                        :aria-label="'Delete ' + intern.fullName"
                         @click="promptDeleteIntern(intern)"
                       >
-                        <Trash2 class="h-3.5 w-3.5" />
+                        <Trash2 class="size-4 shrink-0" />
                       </Button>
                     </div>
                   </TableCell>
@@ -842,58 +680,59 @@ const {
               </template>
 
               <!-- Empty State -->
-              <TableRow v-else>
-                <TableCell colspan="9" class="h-32 text-center text-muted-foreground">
-                  <div class="flex flex-col items-center justify-center gap-2 py-4">
-                    <Filter class="h-7 w-7 text-muted-foreground/50" />
-                    <p class="text-sm font-semibold">No intern records match the selected criteria</p>
-                    <p class="text-xs text-muted-foreground">
-                      Try adjusting the search keyword, LPII category, or program filters.
-                    </p>
-                    <Button size="sm" variant="outline" class="mt-2 text-xs cursor-pointer" @click="resetFilters">
-                      Clear Filters
-                    </Button>
-                  </div>
+              <TableRow v-else class="hover:bg-transparent">
+                <TableCell colspan="9" class="p-0 whitespace-normal">
+                  <Empty class="py-10">
+                    <EmptyHeader>
+                      <EmptyTitle>No matching interns</EmptyTitle>
+                      <EmptyDescription>
+                        Try adjusting the search keyword, LPII zone, or program filters.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                      <Button size="sm" variant="outline" class="cursor-pointer" @click="resetFilters">
+                        Clear Filters
+                      </Button>
+                    </EmptyContent>
+                  </Empty>
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
 
-        <!-- ─── Table Pagination ─── -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t text-xs text-muted-foreground">
-          <div>
-            Showing <span class="font-medium text-foreground">{{ filteredInterns.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
-            to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredInterns.length) }}</span>
+        <!-- Pagination -->
+        <div class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row">
+          <p>
+            Showing
+            <span class="font-medium text-foreground">{{ filteredInterns.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>–<span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredInterns.length) }}</span>
             of <span class="font-medium text-foreground">{{ filteredInterns.length }}</span> interns
-          </div>
-
-          <div class="flex items-center gap-2">
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-1">
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage <= 1"
               @click="currentPage--"
             >
               Previous
             </Button>
-            <div class="flex items-center gap-1">
-              <Button
-                v-for="p in totalPages"
-                :key="p"
-                size="sm"
-                :variant="currentPage === p ? 'default' : 'outline'"
-                class="h-8 w-8 p-0 text-xs cursor-pointer"
-                @click="currentPage = p"
-              >
-                {{ p }}
-              </Button>
-            </div>
+            <Button
+              v-for="p in totalPages"
+              :key="p"
+              size="icon"
+              :variant="currentPage === p ? 'default' : 'ghost'"
+              class="size-8 cursor-pointer"
+              :aria-current="currentPage === p ? 'page' : undefined"
+              @click="currentPage = p"
+            >
+              {{ p }}
+            </Button>
             <Button
               variant="outline"
               size="sm"
-              class="h-8 text-xs px-2.5 cursor-pointer"
+              class="cursor-pointer"
               :disabled="currentPage >= totalPages"
               @click="currentPage++"
             >
@@ -904,185 +743,97 @@ const {
       </CardContent>
     </Card>
 
-    <!-- ─── INTERN DETAILS DIALOG ─── -->
+    <!-- ─── INTERN DETAILS / EDIT DIALOG ─── -->
     <Dialog v-model:open="isDetailsModalOpen">
-      <DialogContent class="sm:max-w-140 max-h-[92vh] overflow-y-auto">
-        <DialogHeader class="pr-6">
-          <div class="flex items-center justify-between gap-3 w-full">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <Avatar class="h-10 w-10 border bg-muted shrink-0">
-                <AvatarFallback class="font-semibold text-sm text-primary">
-                  {{ selectedIntern ? getInitials(selectedIntern.fullName) : '' }}
-                </AvatarFallback>
-              </Avatar>
-              <div class="min-w-0">
-                <DialogTitle class="text-base font-semibold truncate">{{ selectedIntern?.fullName }}</DialogTitle>
-                <DialogDescription class="text-xs flex items-center gap-1.5 mt-0.5">
-                  <span class="font-mono">{{ selectedIntern?.code }}</span>
-                  <span>•</span>
-                  <template v-if="!isEditingIntern">
-                    <span>GIP {{ selectedIntern?.program }} Intern</span>
-                    <span>•</span>
-                    <span class="font-semibold text-foreground">{{ selectedIntern?.status }}</span>
-                  </template>
-                  <template v-else>
-                    <Badge variant="secondary" class="text-[10px] py-0 px-1.5 font-medium">
-                      Edit Mode
-                    </Badge>
-                  </template>
-                </DialogDescription>
-              </div>
-            </div>
-          </div>
+      <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-140">
+        <DialogHeader>
+          <DialogTitle>{{ selectedIntern?.fullName }}</DialogTitle>
+          <DialogDescription>
+            <span class="font-mono">{{ selectedIntern?.code }}</span>
+            · GIP {{ selectedIntern?.program }} Intern
+            <template v-if="isEditingIntern"> · Editing deployment</template>
+          </DialogDescription>
         </DialogHeader>
 
-        <div v-if="selectedIntern" class="grid gap-4 py-2 text-xs">
-          <!-- Ecosystem Banner (Always Read-Only) -->
-          <div
-            :class="[
-              'flex items-center justify-between rounded-lg p-3 border',
-              LPII_CONFIG[selectedIntern.lpiiTag].bgClass,
-              LPII_CONFIG[selectedIntern.lpiiTag].badgeClass,
-            ]"
-          >
-            <div class="flex items-center gap-2">
-              <TreePine v-if="selectedIntern.lpiiTag === 'LOWLAND'" class="h-4 w-4" />
-              <Mountain v-else-if="selectedIntern.lpiiTag === 'UPLAND'" class="h-4 w-4" />
-              <Waves v-else class="h-4 w-4" />
-              <div>
-                <span class="font-bold uppercase tracking-wider">
-                  {{ LPII_CONFIG[selectedIntern.lpiiTag].label }} Ecosystem Tagging
-                </span>
-                <p class="text-[11px] opacity-90">
-                  Barangay {{ selectedIntern.barangay }}, {{ selectedIntern.municipality }}
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline" class="bg-background text-foreground font-mono text-[10px]">
-              Agsur LPII
+        <div v-if="selectedIntern" class="grid gap-6">
+          <!-- Summary -->
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <Badge variant="outline" :class="getGipStatusBadgeClass(selectedIntern.status)">
+              {{ selectedIntern.status }}
             </Badge>
+            <Badge variant="outline" :class="LPII_CONFIG[selectedIntern.lpiiTag].badgeClass">
+              {{ LPII_CONFIG[selectedIntern.lpiiTag].label }}
+            </Badge>
+            <span class="text-muted-foreground">
+              Brgy. {{ selectedIntern.barangay }}, {{ selectedIntern.municipality }}
+            </span>
           </div>
 
-          <!-- Section Title with Contextual Action -->
-          <div class="flex items-center justify-between pt-0.5">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <span>{{ isEditingIntern ? 'Deployment Configuration' : 'Deployment Information' }}</span>
-            </h4>
-            <Button
-              v-if="!isEditingIntern"
-              variant="ghost"
-              size="sm"
-              class="h-6 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 px-2 cursor-pointer"
-              @click="startEdit"
-            >
-            </Button>
-          </div>
+          <!-- ─── Read-only ─── -->
+          <template v-if="!isEditingIntern">
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold">Deployment Information</h3>
+                <Button variant="ghost" size="sm" class="cursor-pointer" @click="startEdit">
+                  Edit
+                </Button>
+              </div>
+              <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div v-for="field in internDetailFields" :key="field.label">
+                  <span class="text-xs text-muted-foreground">{{ field.label }}</span>
+                  <p :class="['text-sm font-medium', field.mono && 'font-mono']">{{ field.value || '—' }}</p>
+                </div>
+              </div>
+            </section>
 
-          <!-- ─── Read-Only Details Mode ─── -->
-          <div v-if="!isEditingIntern" class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Assigned Office / Station</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.assignedOffice }}</span>
-              </div>
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Designated Supervisor</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.supervisor }}</span>
-              </div>
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Academic Background / Degree</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.course }}</span>
-              </div>
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Daily Allowance / Stipend</span>
-                <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.stipend }}</span>
-              </div>
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Deployment Period</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ selectedIntern.period }}</span>
-              </div>
-              <div class="rounded-lg border p-2.5 bg-muted/20">
-                <span class="text-muted-foreground block text-[11px]">Contact Information</span>
-                <span class="font-medium text-foreground mt-0.5 block font-mono">{{ selectedIntern.contact }}</span>
-              </div>
-            </div>
+            <Separator />
 
-            <!-- Documents Submitted -->
-            <div class="rounded-lg border p-2.5 bg-muted/20">
-              <span class="text-muted-foreground block text-[11px] font-semibold mb-1.5 flex items-center gap-1.5">
-                <FileCheck class="h-3.5 w-3.5 text-primary" />
-                <span>Documents Submitted</span>
-              </span>
-              <div
-                v-if="internDocumentsSubmitted.length > 0"
-                class="flex flex-wrap gap-1.5 pt-0.5"
-              >
-                <Badge
-                  v-for="doc in internDocumentsSubmitted"
-                  :key="doc"
-                  variant="secondary"
-                  class="text-[11px] font-medium"
-                >
-                  <FileCheck class="h-3 w-3 mr-1 text-primary" />
+            <section class="space-y-3">
+              <h3 class="text-sm font-semibold">Documents Submitted</h3>
+              <div v-if="internDocumentsSubmitted.length > 0" class="flex flex-wrap gap-1.5">
+                <Badge v-for="doc in internDocumentsSubmitted" :key="doc" variant="secondary">
                   {{ doc }}
                 </Badge>
               </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">
-                No documents uploaded yet.
-              </p>
-            </div>
-          </div>
+              <p v-else class="text-sm text-muted-foreground">No documents uploaded yet.</p>
+            </section>
+          </template>
 
-          <!-- ─── Edit Mode Inputs ─── -->
-          <div v-else class="space-y-3.5">
-            <!-- Program Funding Selection -->
-            <div class="space-y-1.5">
-              <Label class="text-xs font-semibold">Funding Program</Label>
-              <div class="grid grid-cols-2 gap-2">
-                <!-- PGAS Card -->
-                <div
-                  class="flex items-center gap-2.5 rounded-lg border p-2 cursor-pointer transition-all"
-                  :class="editForm.program === 'PGAS' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/40 border-border'"
-                  @click="setEditProgram('PGAS')"
+          <!-- ─── Edit Mode ─── -->
+          <div v-else class="grid gap-4">
+            <!-- Funding Program -->
+            <div class="grid gap-2">
+              <Label>Funding Program</Label>
+              <div role="radiogroup" class="grid grid-cols-2 gap-3">
+                <button
+                  v-for="opt in programOptions"
+                  :key="opt.value"
+                  type="button"
+                  role="radio"
+                  :aria-checked="editForm.program === opt.value"
+                  :class="[
+                    'flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+                    editForm.program === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
+                  ]"
+                  @click="setEditProgram(opt.value)"
                 >
-                  <Avatar class="h-6 w-6 rounded-md border bg-background shrink-0">
-                    <img :src="pgasLogo" alt="PGAS" class="object-cover" />
+                  <Avatar class="size-8 shrink-0 rounded-md border bg-background">
+                    <img :src="opt.logo" :alt="opt.label" class="object-cover" />
                   </Avatar>
-                  <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-xs flex items-center justify-between">
-                      <span>PGAS</span>
-                      <CheckCircle2 v-if="editForm.program === 'PGAS'" class="h-3.5 w-3.5 text-primary" />
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2 text-sm font-semibold">
+                      {{ opt.label }}
+                      <CheckCircle2 v-if="editForm.program === opt.value" class="size-4 shrink-0 text-primary" />
                     </div>
-                    <p class="text-[10px] text-muted-foreground">Provincial • ₱479.35/day</p>
+                    <p class="text-xs text-muted-foreground">{{ opt.description }}</p>
                   </div>
-                </div>
-
-                <!-- DOLE Card -->
-                <div
-                  class="flex items-center gap-2.5 rounded-lg border p-2 cursor-pointer transition-all"
-                  :class="editForm.program === 'DOLE' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/40 border-border'"
-                  @click="setEditProgram('DOLE')"
-                >
-                  <Avatar class="h-6 w-6 rounded-md border bg-background shrink-0">
-                    <img :src="doleLogo" alt="DOLE" class="object-cover" />
-                  </Avatar>
-                  <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-xs flex items-center justify-between">
-                      <span>DOLE</span>
-                      <CheckCircle2 v-if="editForm.program === 'DOLE'" class="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <p class="text-[10px] text-muted-foreground">National • ₱475/day</p>
-                  </div>
-                </div>
+                </button>
               </div>
             </div>
 
-            <!-- Assigned Office / Station — Searchable Combobox -->
-            <div class="space-y-1.5">
-              <Label class="text-xs font-semibold flex items-center gap-1.5">
-                <span>Assigned Office / Station</span>
-                <span class="text-destructive">*</span>
-              </Label>
+            <!-- Assigned Office -->
+            <div class="grid gap-2">
+              <Label>Assigned Office / Station</Label>
               <Combobox
                 v-model="selectedOffice"
                 v-model:search-term="officeSearchQuery"
@@ -1092,16 +843,19 @@ const {
                 <ComboboxAnchor as-child>
                   <ComboboxTrigger as-child>
                     <Button
+                      type="button"
                       variant="outline"
-                      class="w-full justify-between overflow-hidden h-8.5 text-xs"
-                      :class="isLoadingOffices ? 'opacity-60' : ''"
+                      class="w-full justify-between overflow-hidden font-normal"
+                      :disabled="isLoadingOffices"
                     >
-                      <span class="truncate text-left flex-1">
+                      <span class="min-w-0 flex-1 truncate text-left">
                         <template v-if="isLoadingOffices">Loading offices...</template>
                         <template v-else-if="selectedOffice">{{ selectedOffice.office_name }}</template>
-                        <template v-else>{{ editForm.assignedOffice || 'Select office...' }}</template>
+                        <span v-else :class="!editForm.assignedOffice && 'text-muted-foreground'">
+                          {{ editForm.assignedOffice || 'Select office...' }}
+                        </span>
                       </span>
-                      <ChevronsUpDownIcon class="h-3.5 w-3.5 opacity-50 shrink-0" />
+                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
                     </Button>
                   </ComboboxTrigger>
                 </ComboboxAnchor>
@@ -1109,26 +863,16 @@ const {
                 <ComboboxList>
                   <ComboboxInput
                     placeholder="Search offices..."
-                    class="text-xs"
                     @input="officeSearchQuery = ($event.target as HTMLInputElement).value"
                   />
                   <ComboboxViewport>
-                    <ComboboxEmpty class="text-xs">No office found.</ComboboxEmpty>
+                    <ComboboxEmpty>No office found.</ComboboxEmpty>
                     <ComboboxGroup>
-                      <ComboboxItem
-                        v-for="office in filteredOffices"
-                        :key="office.id"
-                        :value="office"
-                        class="text-xs"
-                      >
-                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                          <span class="truncate">{{ office.office_name }}</span>
-                          <Badge variant="secondary" class="text-[10px] py-0 px-1.5 shrink-0">
-                            {{ office.office_code }}
-                          </Badge>
-                        </div>
+                      <ComboboxItem v-for="office in filteredOffices" :key="office.id" :value="office">
+                        <span class="min-w-0 flex-1 truncate">{{ office.office_name }}</span>
+                        <Badge variant="secondary" class="shrink-0">{{ office.office_code }}</Badge>
                         <ComboboxItemIndicator>
-                          <CheckIcon class="h-3.5 w-3.5" />
+                          <CheckIcon class="size-4 shrink-0" />
                         </ComboboxItemIndicator>
                       </ComboboxItem>
                     </ComboboxGroup>
@@ -1138,165 +882,107 @@ const {
             </div>
 
             <!-- Supervisor & Stipend -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1.5">
-                <Label for="editSupervisor" class="text-xs font-semibold flex items-center gap-1.5">
-                  <span>Designated Supervisor</span>
-                </Label>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="grid gap-2">
+                <Label for="editSupervisor">Designated Supervisor</Label>
                 <Input
                   id="editSupervisor"
                   v-model="editForm.supervisor"
                   placeholder="e.g. Maria Santos"
-                  class="text-xs h-8.5"
                   :class="selectedOffice?.office_head ? 'bg-muted/40' : ''"
                   :readonly="!!selectedOffice?.office_head"
                 />
-                <p v-if="selectedOffice?.office_head" class="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <CheckCircle2 class="h-3 w-3 text-emerald-500 shrink-0" />
+                <p v-if="selectedOffice?.office_head" class="text-xs text-muted-foreground">
                   Auto-filled from office directory
                 </p>
               </div>
 
-              <div class="space-y-1.5">
-                <Label for="editStipend" class="text-xs font-semibold flex items-center gap-1.5">
-                  <Coins class="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Stipend Rate</span>
-                </Label>
-                <Input
-                  id="editStipend"
-                  v-model="editForm.stipend"
-                  placeholder="e.g. ₱479.35 / day"
-                  class="text-xs h-8.5 font-mono"
-                />
+              <div class="grid gap-2">
+                <Label for="editStipend">Stipend Rate</Label>
+                <Input id="editStipend" v-model="editForm.stipend" placeholder="e.g. ₱479.35 / day" class="font-mono" />
               </div>
             </div>
 
-            <!-- Deployment Period — Calendar Date Range Picker -->
-            <div class="space-y-1.5">
-              <Label class="text-xs font-semibold flex items-center gap-1.5">
-                <span>Deployment Period</span>
-              </Label>
-
-              <div class="grid grid-cols-2 gap-2.5">
-                <!-- Start Date -->
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground font-medium">Start Date</span>
-                  <Popover>
-                    <PopoverTrigger as-child>
-                      <Button
-                        variant="outline"
-                        :class="cn('w-full justify-start text-left font-normal h-8.5 text-xs', !deploymentStartDate && 'text-muted-foreground')"
-                      >
-                        <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
-                        <template v-if="deploymentStartDate">
-                          {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentStartDate.month - 1]} ${deploymentStartDate.day}, ${deploymentStartDate.year}` }}
-                        </template>
-                        <template v-else>Pick start date</template>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-auto p-0" align="start">
-                      <Calendar v-model="deploymentStartDate" initial-focus />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <!-- End Date -->
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground font-medium">End Date</span>
-                  <Popover>
-                    <PopoverTrigger as-child>
-                      <Button
-                        variant="outline"
-                        :class="cn('w-full justify-start text-left font-normal h-8.5 text-xs', !deploymentEndDate && 'text-muted-foreground')"
-                      >
-                        <CalendarDays class="mr-2 h-3.5 w-3.5 shrink-0" />
-                        <template v-if="deploymentEndDate">
-                          {{ `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][deploymentEndDate.month - 1]} ${deploymentEndDate.day}, ${deploymentEndDate.year}` }}
-                        </template>
-                        <template v-else>Pick end date</template>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-auto p-0" align="start">
-                      <Calendar v-model="deploymentEndDate" initial-focus />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+            <!-- Deployment Period -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="grid gap-2">
+                <Label>Start Date</Label>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      :class="cn('w-full justify-start font-normal', !deploymentStartDate && 'text-muted-foreground')"
+                    >
+                      <CalendarDays class="size-4 shrink-0" />
+                      {{ deploymentStartDate ? formatCalendarDate(deploymentStartDate) : 'Pick start date' }}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-auto p-0" align="start">
+                    <Calendar v-model="deploymentStartDate" initial-focus />
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              <!-- Formatted period preview -->
-              <div v-if="formattedPeriod" class="rounded-md border bg-muted/30 px-2.5 py-1.5 text-xs text-foreground flex items-center gap-2">
-                <CalendarDays class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span class="font-medium">{{ formattedPeriod }}</span>
+              <div class="grid gap-2">
+                <Label>End Date</Label>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      :class="cn('w-full justify-start font-normal', !deploymentEndDate && 'text-muted-foreground')"
+                    >
+                      <CalendarDays class="size-4 shrink-0" />
+                      {{ deploymentEndDate ? formatCalendarDate(deploymentEndDate) : 'Pick end date' }}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-auto p-0" align="start">
+                    <Calendar v-model="deploymentEndDate" initial-focus />
+                  </PopoverContent>
+                </Popover>
               </div>
+
+              <p v-if="formattedPeriod" class="col-span-2 text-sm text-muted-foreground">
+                Period: <span class="font-medium text-foreground">{{ formattedPeriod }}</span>
+              </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1.5">
-                <Label for="editStatus" class="text-xs font-semibold">Deployment Status</Label>
-                <select
-                  id="editStatus"
-                  v-model="editForm.status"
-                  class="w-full h-8.5 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="Active">Active (Ongoing Deployment)</option>
-                  <option value="Hired">Hired (Absorbed / Employed)</option>
-                  <option value="Resigned">Resigned (Completed / Resigned)</option>
-                </select>
-              </div>
-
-              <!-- Read-only Academic & Contact preview -->
-              <div class="space-y-1.5">
-                <span class="text-xs font-semibold text-muted-foreground block">Degree & Contact</span>
-                <div class="text-[11px] bg-muted/30 border rounded-md px-2.5 py-1 truncate text-muted-foreground">
-                  <span class="text-foreground font-medium block truncate">{{ selectedIntern.course }}</span>
-                  <span class="font-mono text-[10px] truncate block">{{ selectedIntern.contact }}</span>
-                </div>
-              </div>
+            <!-- Status -->
+            <div class="grid gap-2">
+              <Label for="editStatus">Deployment Status</Label>
+              <Select v-model="editForm.status">
+                <SelectTrigger id="editStatus" class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active (Ongoing Deployment)</SelectItem>
+                  <SelectItem value="Hired">Hired (Absorbed / Employed)</SelectItem>
+                  <SelectItem value="Resigned">Resigned (Completed / Resigned)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
 
-        <DialogFooter class="flex flex-row items-center justify-between sm:justify-between gap-2 pt-3 border-t mt-2">
+        <DialogFooter>
           <template v-if="!isEditingIntern">
+            <Button variant="outline" class="cursor-pointer" @click="closeInternDetails">Close</Button>
             <Button
               v-if="selectedIntern?.status === 'Active'"
-              variant="outline"
-              size="sm"
-              class="text-xs cursor-pointer gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+              class="cursor-pointer"
               @click="openRenewalDialog(selectedIntern); closeInternDetails()"
             >
-              <RefreshCw class="h-3.5 w-3.5" />
-              <span>Renew / Conclude Term</span>
-            </Button>
-            <div v-else></div>
-            <Button
-              variant="outline"
-              size="sm"
-              class="text-xs cursor-pointer"
-              @click="closeInternDetails"
-            >
-              Close
+              Renew / Conclude Term
             </Button>
           </template>
           <template v-else>
-            <Button
-              variant="outline"
-              size="sm"
-              class="text-xs cursor-pointer"
-              :disabled="isUpdatingIntern"
-              @click="cancelEdit"
-            >
+            <Button variant="outline" class="cursor-pointer" :disabled="isUpdatingIntern" @click="cancelEdit">
               Cancel
             </Button>
-            <Button
-              size="sm"
-              class="text-xs cursor-pointer gap-1.5"
-              :disabled="isUpdatingIntern"
-              @click="saveEdit"
-            >
-              <Loader2 v-if="isUpdatingIntern" class="h-3.5 w-3.5 animate-spin" />
-              <Save v-else class="h-3.5 w-3.5" />
-              <span>{{ isUpdatingIntern ? 'Saving...' : 'Save Changes' }}</span>
+            <Button class="cursor-pointer" :disabled="isUpdatingIntern" @click="saveEdit">
+              <Loader2 v-if="isUpdatingIntern" class="size-4 shrink-0 animate-spin" />
+              {{ isUpdatingIntern ? 'Saving...' : 'Save Changes' }}
             </Button>
           </template>
         </DialogFooter>
@@ -1304,86 +990,471 @@ const {
     </Dialog>
 
     <!-- ─── APPOINTMENT RENEWAL / CONCLUSION DIALOG ─── -->
-    <GipRenewAppointmentDialog />
-
-    <!-- ─── BATCH UPLOAD / OCR MODAL (ACCESSIBLE VIA OCR SCAN) ─── -->
-    <GipBatchUploadDialog />
-
-    <!-- ─── Single Delete Intern Confirmation Dialog ─── -->
-    <Dialog :open="isSingleDeleteDialogOpen" @update:open="isSingleDeleteDialogOpen = $event">
-      <DialogContent class="sm:max-w-md">
+    <Dialog :open="isRenewalDialogOpen" @update:open="onRenewalOpenChange">
+      <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle class="text-destructive flex items-center gap-2">
-            <Trash2 class="h-5 w-5" />
-            <span>Delete GIP Intern Record</span>
-          </DialogTitle>
-          <DialogDescription class="text-xs leading-relaxed">
-            Are you sure you want to permanently delete
-            <span class="font-semibold text-foreground">{{ internToDelete?.fullName }}</span>'s
-            deployment record? This will also remove associated appointment records. This action cannot be undone.
+          <DialogTitle>Renew or conclude appointment</DialogTitle>
+          <DialogDescription>
+            {{ renewalIntern?.fullName }} · <span class="font-mono">{{ renewalIntern?.code }}</span> · {{ renewalIntern?.municipality }}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            class="text-xs cursor-pointer"
-            :disabled="isDeleting"
-            @click="isSingleDeleteDialogOpen = false"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            class="text-xs gap-1.5 cursor-pointer"
-            :disabled="isDeleting"
-            @click="handleSingleDelete"
-          >
-            <Loader2 v-if="isDeleting" class="h-3.5 w-3.5 animate-spin" />
-            <Trash2 v-else class="h-3.5 w-3.5" />
-            <span>{{ isDeleting ? 'Deleting...' : 'Confirm Delete' }}</span>
-          </Button>
-        </DialogFooter>
+
+        <div v-if="renewalIntern" class="grid min-w-0 gap-6">
+          <!-- ─── Current Appointment ─── -->
+          <section class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-base font-semibold">Current Appointment · Term {{ currentTermNumber }}</h3>
+              <Badge v-if="renewalIntern.currentAppointment?.isExpired" variant="destructive">Expired</Badge>
+              <Badge
+                v-else-if="renewalIntern.currentAppointment?.isExpiringSoon"
+                variant="outline"
+                class="border-warning/30 bg-warning/10 text-warning"
+              >
+                Ends in {{ renewalIntern.daysRemaining }} days
+              </Badge>
+              <Badge v-else variant="outline" :class="getGipStatusBadgeClass('Active')">Active</Badge>
+            </div>
+            <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+              <div class="min-w-0">
+                <span class="text-xs text-muted-foreground">Host Office</span>
+                <p class="text-sm font-medium">
+                  {{ renewalIntern.assignedOffice || '—' }}
+                  <span v-if="findOffice(renewalIntern.assignedOffice)" class="font-mono text-xs text-muted-foreground">
+                    ({{ findOffice(renewalIntern.assignedOffice)?.office_code }})
+                  </span>
+                </p>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-muted-foreground">Supervisor</span>
+                <p class="text-sm font-medium">{{ renewalIntern.supervisor || '—' }}</p>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-muted-foreground">Program & Rate</span>
+                <p class="text-sm font-medium">{{ renewalIntern.program }} · {{ renewalIntern.stipend }}</p>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-muted-foreground">Period Coverage</span>
+                <p class="text-sm font-medium">{{ renewalIntern.period }}</p>
+              </div>
+              <div v-if="renewalIntern.currentAppointment?.appointmentCode" class="min-w-0">
+                <span class="text-xs text-muted-foreground">Appointment Code</span>
+                <p class="font-mono text-sm font-medium">{{ renewalIntern.currentAppointment.appointmentCode }}</p>
+              </div>
+            </div>
+
+            <!-- Appointment History -->
+            <Collapsible v-if="renewalIntern.appointmentHistory && renewalIntern.appointmentHistory.length > 0">
+              <CollapsibleTrigger as-child>
+                <Button variant="link" size="sm" class="group h-auto cursor-pointer p-0 text-muted-foreground">
+                  View appointment history ({{ renewalIntern.appointmentHistory.length }} term{{ renewalIntern.appointmentHistory.length > 1 ? 's' : '' }})
+                  <ChevronDown class="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ul class="mt-3 divide-y rounded-lg border">
+                  <li
+                    v-for="apt in renewalIntern.appointmentHistory"
+                    :key="apt.id"
+                    class="flex items-center justify-between gap-3 px-3 py-2"
+                  >
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium">Term {{ apt.termNumber }} · {{ apt.assignedOffice }}</p>
+                      <p class="text-xs text-muted-foreground">
+                        {{ apt.startDate }} to {{ apt.endDate }} · {{ apt.dailyStipend }}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      class="shrink-0"
+                      :class="apt.status === 'Renewed' ? 'border-info/30 bg-info/10 text-info' : getGipStatusBadgeClass(apt.status)"
+                    >
+                      {{ apt.status }}
+                    </Badge>
+                  </li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
+          </section>
+
+          <Separator />
+
+          <!-- ─── Decision ─── -->
+          <section class="grid min-w-0 gap-4">
+            <div class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                role="tab"
+                :aria-selected="renewalActionMode === 'renew'"
+                :disabled="isSubmittingRenewal"
+                :class="['cursor-pointer', renewalActionMode === 'renew' && 'bg-background shadow-xs hover:bg-background']"
+                @click="renewalActionMode = 'renew'"
+              >
+                Renew (Term {{ nextTermNumber }})
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                role="tab"
+                :aria-selected="renewalActionMode === 'conclude'"
+                :disabled="isSubmittingRenewal"
+                :class="['cursor-pointer', renewalActionMode === 'conclude' && 'bg-background shadow-xs hover:bg-background']"
+                @click="renewalActionMode = 'conclude'"
+              >
+                Conclude Internship
+              </Button>
+            </div>
+
+            <!-- Renew -->
+            <template v-if="renewalActionMode === 'renew'">
+              <div v-if="!renewInitialValues" class="grid gap-4">
+                <Skeleton class="h-16 w-full" />
+                <Skeleton class="h-9 w-full" />
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Skeleton class="h-9 w-full" />
+                  <Skeleton class="h-9 w-full" />
+                </div>
+              </div>
+
+              <Form
+                v-else
+                :key="renewalIntern.id"
+                v-slot="{ values, setFieldValue }"
+                :validation-schema="renewSchema"
+                :initial-values="renewInitialValues"
+                class="grid min-w-0 gap-4"
+                @submit="submitRenewal"
+              >
+                <!-- Funding program -->
+                <FormField v-slot="{ value, handleChange }" name="program">
+                  <FormItem>
+                    <FormLabel>Funding Program</FormLabel>
+                    <FormControl>
+                      <div role="radiogroup" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <button
+                          v-for="opt in renewalProgramOptions"
+                          :key="opt.value"
+                          type="button"
+                          role="radio"
+                          :aria-checked="value === opt.value"
+                          :disabled="isSubmittingRenewal"
+                          :class="[
+                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+                            value === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
+                          ]"
+                          @click="() => {
+                            handleChange(opt.value)
+                            const stipend = stipendForProgram(opt.value, values.stipend)
+                            if (stipend) setFieldValue('stipend', stipend)
+                          }"
+                        >
+                          <img :src="opt.logo" :alt="opt.value" class="size-8 shrink-0 rounded-md border bg-background object-cover" />
+                          <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-semibold">{{ opt.label }}</p>
+                            <p class="text-xs text-muted-foreground">{{ opt.description }}</p>
+                          </div>
+                        </button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+
+                <!-- Term period -->
+                <div class="grid min-w-0 gap-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-sm font-medium">Renewed Term Period</span>
+                    <div class="flex items-center gap-1">
+                      <Button
+                        v-for="months in durationPresets"
+                        :key="months"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="h-7 cursor-pointer"
+                        :disabled="!values.startDate || isSubmittingRenewal"
+                        @click="setFieldValue('endDate', addDurationMonths(values.startDate, months))"
+                      >
+                        {{ months }} months
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField v-slot="{ value, handleChange }" name="startDate">
+                      <FormItem class="min-w-0">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger as-child>
+                            <FormControl>
+                              <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isSubmittingRenewal">
+                                <span v-if="value">{{ formatDeploymentDate(value) }}</span>
+                                <span v-else class="text-muted-foreground">Pick start date</span>
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent class="w-auto p-0" align="start">
+                            <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    </FormField>
+
+                    <FormField v-slot="{ value, handleChange }" name="endDate">
+                      <FormItem class="min-w-0">
+                        <FormLabel>End Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger as-child>
+                            <FormControl>
+                              <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isSubmittingRenewal">
+                                <span v-if="value">{{ formatDeploymentDate(value) }}</span>
+                                <span v-else class="text-muted-foreground">Pick end date</span>
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent class="w-auto p-0" align="start">
+                            <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    </FormField>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <!-- Assigned office (full row so long names never spill into the supervisor field) -->
+                  <FormField v-slot="{ value, handleChange }" name="office">
+                    <FormItem class="min-w-0 sm:col-span-2">
+                      <FormLabel>Assigned Office / Station</FormLabel>
+                      <Combobox
+                        v-model:search-term="renewalOfficeSearchQuery"
+                        class="min-w-0"
+                        :model-value="value"
+                        :ignore-filter="true"
+                        by="id"
+                        @update:model-value="(office) => {
+                          handleChange(office)
+                          setFieldValue('supervisor', (office as DirectoryRow | null)?.office_head ?? '')
+                        }"
+                      >
+                        <ComboboxAnchor as-child>
+                          <ComboboxTrigger as-child>
+                            <FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                class="w-full min-w-0 justify-between overflow-hidden font-normal"
+                                :disabled="isLoadingRenewalOffices || isSubmittingRenewal"
+                              >
+                                <span v-if="isLoadingRenewalOffices" class="truncate text-muted-foreground">Loading offices...</span>
+                                <span v-else-if="value" class="flex min-w-0 flex-1 items-center gap-2 text-left">
+                                  <span class="truncate">{{ (value as DirectoryRow).office_name }}</span>
+                                  <span class="shrink-0 font-mono text-xs text-muted-foreground">
+                                    {{ (value as DirectoryRow).office_code }}
+                                  </span>
+                                </span>
+                                <span v-else class="truncate text-muted-foreground">Select office...</span>
+                                <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </ComboboxTrigger>
+                        </ComboboxAnchor>
+
+                        <ComboboxList>
+                          <ComboboxInput
+                            placeholder="Search office, abbreviation, or head..."
+                            @input="renewalOfficeSearchQuery = ($event.target as HTMLInputElement).value"
+                          />
+                          <ComboboxViewport>
+                            <ComboboxEmpty>No office found.</ComboboxEmpty>
+                            <ComboboxGroup>
+                              <ComboboxItem v-for="office in renewalFilteredOffices" :key="office.id" :value="office">
+                                <div class="flex min-w-0 flex-1 flex-col">
+                                  <span class="truncate">{{ office.office_name }}</span>
+                                  <span class="truncate text-xs text-muted-foreground">
+                                    {{ office.office_head || 'No head designated' }}
+                                  </span>
+                                </div>
+                                <span class="shrink-0 font-mono text-xs text-muted-foreground">{{ office.office_code }}</span>
+                                <ComboboxItemIndicator>
+                                  <CheckIcon class="size-4 shrink-0" />
+                                </ComboboxItemIndicator>
+                              </ComboboxItem>
+                            </ComboboxGroup>
+                          </ComboboxViewport>
+                        </ComboboxList>
+                      </Combobox>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+
+                  <!-- Supervisor -->
+                  <FormField v-slot="{ componentField }" name="supervisor">
+                    <FormItem class="min-w-0">
+                      <FormLabel>Designated Supervisor</FormLabel>
+                      <FormControl>
+                        <Input
+                          v-bind="componentField"
+                          placeholder="e.g. Maria Santos, Division Head"
+                          :readonly="!!values.office?.office_head"
+                          :class="values.office?.office_head ? 'bg-muted/40' : ''"
+                          :disabled="isSubmittingRenewal"
+                        />
+                      </FormControl>
+                      <FormDescription v-if="values.office?.office_head">Auto-filled from office directory</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+
+                  <!-- Stipend -->
+                  <FormField v-slot="{ componentField }" name="stipend">
+                    <FormItem class="min-w-0">
+                      <FormLabel>Daily Stipend</FormLabel>
+                      <FormControl>
+                        <Input v-bind="componentField" placeholder="e.g. ₱479.35 / day" class="font-mono" :disabled="isSubmittingRenewal" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                </div>
+
+                <!-- Notes -->
+                <FormField v-slot="{ componentField }" name="notes">
+                  <FormItem>
+                    <FormLabel>Renewal Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        v-bind="componentField"
+                        rows="3"
+                        :placeholder="`e.g. Satisfactory performance in Term ${currentTermNumber}`"
+                        :disabled="isSubmittingRenewal"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
+                    Cancel
+                  </Button>
+                  <Button type="submit" class="cursor-pointer" :disabled="isSubmittingRenewal">
+                    <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
+                    {{ isSubmittingRenewal ? 'Renewing...' : `Renew for Term ${nextTermNumber}` }}
+                  </Button>
+                </DialogFooter>
+              </Form>
+            </template>
+
+            <!-- Conclude -->
+            <Form
+              v-else
+              :key="`conclude-${renewalIntern.id}`"
+              :validation-schema="concludeSchema"
+              :initial-values="concludeInitialValues"
+              class="grid gap-4"
+              @submit="submitConclusion"
+            >
+              <FormField v-slot="{ value, handleChange }" name="action">
+                <FormItem>
+                  <FormLabel>Concluding Status</FormLabel>
+                  <FormControl>
+                    <div role="radiogroup" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <button
+                        v-for="opt in concludeOptions"
+                        :key="opt.value"
+                        type="button"
+                        role="radio"
+                        :aria-checked="value === opt.value"
+                        :disabled="isSubmittingRenewal"
+                        :class="[
+                          'flex cursor-pointer flex-col items-start rounded-lg border p-3 text-left transition-colors',
+                          value === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
+                        ]"
+                        @click="handleChange(opt.value)"
+                      >
+                        <span class="text-sm font-semibold">{{ opt.label }}</span>
+                        <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="notes">
+                <FormItem>
+                  <FormLabel>Exit / Concluding Remarks</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      v-bind="componentField"
+                      rows="3"
+                      placeholder="e.g. Completed standard 6-month GIP program. Certificate issued."
+                      :disabled="isSubmittingRenewal"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="destructive" class="cursor-pointer" :disabled="isSubmittingRenewal">
+                  <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
+                  {{ isSubmittingRenewal ? 'Concluding...' : 'Conclude Internship' }}
+                </Button>
+              </DialogFooter>
+            </Form>
+          </section>
+        </div>
       </DialogContent>
     </Dialog>
 
-    <!-- ─── Bulk Delete Interns Confirmation Dialog ─── -->
-    <Dialog :open="isBulkDeleteDialogOpen" @update:open="isBulkDeleteDialogOpen = $event">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle class="text-destructive flex items-center gap-2">
-            <Trash2 class="h-5 w-5" />
-            <span>Delete Selected Interns</span>
-          </DialogTitle>
-          <DialogDescription class="text-xs leading-relaxed">
-            Are you sure you want to permanently delete <strong class="text-foreground">{{ selectedInternIds.length }}</strong> selected intern deployment record{{ selectedInternIds.length > 1 ? 's' : '' }}?
-            This will also remove their associated appointment records. This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            class="text-xs cursor-pointer"
-            :disabled="isDeleting"
-            @click="isBulkDeleteDialogOpen = false"
-          >
-            Cancel
+    <!-- ─── Single Delete Confirmation ─── -->
+    <AlertDialog v-model:open="isSingleDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete GIP intern record?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <strong class="font-medium text-foreground">{{ internToDelete?.fullName }}</strong>'s deployment record and
+            associated appointment records will be permanently deleted. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="handleSingleDelete">
+            <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
+            {{ isDeleting ? 'Deleting...' : 'Delete Record' }}
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            class="text-xs gap-1.5 cursor-pointer"
-            :disabled="isDeleting"
-            @click="handleBulkDelete"
-          >
-            <Loader2 v-if="isDeleting" class="h-3.5 w-3.5 animate-spin" />
-            <Trash2 v-else class="h-3.5 w-3.5" />
-            <span>{{ isDeleting ? 'Deleting...' : `Delete ${selectedInternIds.length} Interns` }}</span>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- ─── Bulk Delete Confirmation ─── -->
+    <AlertDialog v-model:open="isBulkDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Delete {{ selectedInternIds.length }} selected intern{{ selectedInternIds.length > 1 ? 's' : '' }}?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            The selected deployment records and their appointment records will be permanently deleted. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="handleBulkDelete">
+            <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
+            {{ isDeleting ? 'Deleting...' : `Delete ${selectedInternIds.length} Intern${selectedInternIds.length > 1 ? 's' : ''}` }}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
