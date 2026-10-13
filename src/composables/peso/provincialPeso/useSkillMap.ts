@@ -11,15 +11,17 @@ import {
   watch,
   type MaybeRef,
   type Ref,
+  type VNode,
 } from 'vue'
+import { useColorMode } from '@vueuse/core'
 import mapboxgl from 'mapbox-gl'
+import { Button } from '@/components/ui/button'
 import {
   AGUSAN_DEL_SUR_MUNICIPALITIES,
   DEFAULT_MAP_CENTER,
-  DEFAULT_MAPBOX_STYLE,
+  type MapCoordinates,
   resolveMapboxStyle,
   resolveMapboxToken,
-  type MapCoordinates,
 } from '@/helpers/common/mapboxHelpers'
 import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
 import {
@@ -39,7 +41,40 @@ export interface UseSkillMapOptions {
 interface MarkerHandle {
   marker: mapboxgl.Marker
   app: { unmount: () => void }
+  popupApp: { unmount: () => void }
   municipality: string
+}
+
+type TerrainKey = 'lowlandApplicants' | 'uplandApplicants' | 'wetlandApplicants'
+
+/**
+ * LPII terrain zones, mapped to semantic tokens so they stay theme-aware.
+ * Shared with the legend in SkillMapboxMap.vue to keep colors in sync.
+ */
+export const SKILL_MAP_TERRAINS: { key: TerrainKey; label: string; swatchClass: string }[] = [
+  { key: 'lowlandApplicants', label: 'Lowland', swatchClass: 'bg-success' },
+  { key: 'uplandApplicants', label: 'Upland', swatchClass: 'bg-warning' },
+  { key: 'wetlandApplicants', label: 'Wetland', swatchClass: 'bg-info' },
+]
+
+// Mapbox Standard closely matches the Google Maps look (road hierarchy, POIs, land cover).
+// Its lightPreset switches day/night in place, so theme changes don't reload the style.
+const SKILL_MAP_STYLE = 'mapbox://styles/mapbox/standard'
+const BASEMAP_IMPORT_ID = 'basemap'
+
+const OVERVIEW_ZOOM = 8.8
+const FOCUS_ZOOM = 11.5
+
+// Marker is anchored at its bottom tip, so popups above it must clear the marker body
+const POPUP_OFFSET: mapboxgl.PopupOptions['offset'] = {
+  top: [0, 6],
+  'top-left': [0, 6],
+  'top-right': [0, 6],
+  bottom: [0, -48],
+  'bottom-left': [0, -48],
+  'bottom-right': [0, -48],
+  left: [14, -24],
+  right: [-14, -24],
 }
 
 const AGUSAN_DEL_SUR_COORDINATES_MAP = new Map<string, MapCoordinates>()
@@ -57,6 +92,106 @@ function getMunicipalityCoordinates(name?: string | null): MapCoordinates | unde
   )
 }
 
+function toPercent(value: number, total: number): number {
+  return total > 0 ? Math.round((value / total) * 100) : 0
+}
+
+/**
+ * Proportional terrain-mix bar. Segment widths are data-driven,
+ * so flex-grow is the one value that must be set inline.
+ */
+function renderTerrainBar(row: MunicipalitySkillSummaryRow, barClass: string): VNode {
+  return h(
+    'div',
+    { class: ['flex w-full gap-px overflow-hidden rounded-full bg-muted', barClass], 'aria-hidden': 'true' },
+    SKILL_MAP_TERRAINS.filter((t) => row[t.key] > 0).map((t) =>
+      h('span', { class: ['h-full', t.swatchClass], style: { flexGrow: row[t.key] } })
+    )
+  )
+}
+
+function renderPopupContent(row: MunicipalitySkillSummaryRow, onView?: (name: string) => void): VNode {
+  const total = row.totalApplicants
+  const skills = row.topSkills.slice(0, 4)
+  const maxSkillCount = Math.max(1, ...skills.map((s) => s.count))
+
+  return h('div', { class: 'w-72 font-sans text-card-foreground' }, [
+    // Header
+    h('div', { class: 'px-4 pt-4 pb-3 pr-10' }, [
+      h('h3', { class: 'text-sm font-semibold leading-tight' }, row.name),
+      h('p', { class: 'mt-0.5 text-xs text-muted-foreground' }, `${row.barangays} barangays · Agusan del Sur`),
+    ]),
+
+    h('div', { class: 'space-y-4 border-t border-border px-4 py-3' }, [
+      // Headline metric
+      h('div', { class: 'flex items-baseline justify-between gap-2' }, [
+        h('span', { class: 'text-xs text-muted-foreground' }, 'Registered applicants'),
+        h('span', { class: 'text-2xl font-bold tracking-tight tabular-nums' }, total.toLocaleString()),
+      ]),
+
+      // Terrain composition
+      total > 0
+        ? h('div', { class: 'space-y-2' }, [
+            renderTerrainBar(row, 'h-2'),
+            h(
+              'div',
+              { class: 'grid grid-cols-3 gap-2' },
+              SKILL_MAP_TERRAINS.map((t) =>
+                h('div', { class: 'space-y-0.5' }, [
+                  h('div', { class: 'flex items-center gap-1.5' }, [
+                    h('span', { class: ['size-2 shrink-0 rounded-full', t.swatchClass] }),
+                    h('span', { class: 'text-[11px] text-muted-foreground' }, t.label),
+                  ]),
+                  h('p', { class: 'text-sm font-semibold tabular-nums' }, [
+                    `${row[t.key]}`,
+                    h(
+                      'span',
+                      { class: 'ml-1 text-[11px] font-normal text-muted-foreground' },
+                      `${toPercent(row[t.key], total)}%`
+                    ),
+                  ]),
+                ])
+              )
+            ),
+          ])
+        : null,
+
+      // Top skills — ranked list with relative bars
+      h('div', { class: 'space-y-2' }, [
+        h('p', { class: 'text-xs font-medium text-muted-foreground' }, 'Top skills'),
+        skills.length > 0
+          ? h(
+              'ol',
+              { class: 'space-y-2' },
+              skills.map((s) =>
+                h('li', { class: 'space-y-1' }, [
+                  h('div', { class: 'flex items-center justify-between gap-2 text-xs' }, [
+                    h('span', { class: 'truncate font-medium' }, s.name),
+                    h('span', { class: 'shrink-0 tabular-nums text-muted-foreground' }, `${s.count}`),
+                  ]),
+                  h('div', { class: 'h-1 overflow-hidden rounded-full bg-muted' }, [
+                    h('div', {
+                      class: 'h-full rounded-full bg-primary/70',
+                      style: { width: `${(s.count / maxSkillCount) * 100}%` },
+                    }),
+                  ]),
+                ])
+              )
+            )
+          : h('p', { class: 'text-xs text-muted-foreground' }, 'No registered skills yet.'),
+      ]),
+    ]),
+
+    h('div', { class: 'px-4 pb-4' }, [
+      h(
+        Button,
+        { size: 'sm', class: 'w-full cursor-pointer', onClick: () => onView?.(row.name) },
+        () => 'View municipality skills'
+      ),
+    ]),
+  ])
+}
+
 export function useSkillMap(options: UseSkillMapOptions = {}) {
   const internalMapContainer = ref<HTMLDivElement | null>(null)
   const mapContainer = options.mapContainer ?? internalMapContainer
@@ -64,7 +199,11 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
   const markerHandles = shallowRef<MarkerHandle[]>([])
   const isReady = ref(false)
   const mapboxToken = resolveMapboxToken()
-  const mapStyle = computed(() => resolveMapboxStyle(DEFAULT_MAPBOX_STYLE))
+
+  const colorMode = useColorMode()
+  const isDark = computed(() => colorMode.state.value === 'dark')
+  const mapStyle = computed(() => resolveMapboxStyle(SKILL_MAP_STYLE))
+  const lightPreset = computed(() => (isDark.value ? 'night' : 'day'))
 
   const selectedProvince = ref('Agusan del Sur')
 
@@ -103,10 +242,15 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     }))
   })
 
+  const totalApplicants = computed(() =>
+    municipalitiesList.value.reduce((sum, m) => sum + m.applicants, 0)
+  )
+
   function clearMarkers() {
     for (const h of markerHandles.value) {
       h.marker.remove()
       h.app.unmount()
+      h.popupApp.unmount()
     }
     markerHandles.value = []
   }
@@ -123,26 +267,15 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
         const hasApplicants = row.totalApplicants > 0
         const isSelected = matchesGeographicLabel(selectedMunicipality.value, row.name)
 
-        // Dominant terrain dot indicator
-        let dotColorClass = 'bg-muted-foreground/40'
-        if (
-          row.lowlandApplicants >= row.uplandApplicants &&
-          row.lowlandApplicants >= row.wetlandApplicants &&
-          row.lowlandApplicants > 0
-        ) {
-          dotColorClass = 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
-        } else if (row.uplandApplicants >= row.wetlandApplicants && row.uplandApplicants > 0) {
-          dotColorClass = 'bg-amber-500 shadow-xs shadow-amber-500/50'
-        } else if (row.wetlandApplicants > 0) {
-          dotColorClass = 'bg-sky-500 shadow-xs shadow-sky-500/50'
-        }
-
         return h(
           'div',
           {
+            role: 'button',
+            tabindex: 0,
+            'aria-label': `${row.name}, ${row.totalApplicants} applicants`,
             class: [
-              'relative flex flex-col items-center transition-transform duration-150',
-              isSelected ? 'scale-105 z-40' : 'z-10 group-hover:z-30',
+              'relative flex flex-col items-center transition-transform duration-150 ease-out',
+              isSelected ? 'z-40 -translate-y-1' : 'z-10 group-hover:z-30 group-hover:-translate-y-0.5',
             ],
             onClick: (e: MouseEvent) => {
               e.stopPropagation()
@@ -152,87 +285,51 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
                 selectedMunicipality.value = matchesGeographicLabel(selectedMunicipality.value, row.name) ? '' : row.name
               }
             },
+            onKeydown: (e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                ;(e.currentTarget as HTMLElement).click()
+              }
+            },
           },
           [
-            // Hover micro-tooltip preview (smooth opacity & translate transition, avoiding reflow glitches)
-            hasApplicants
-              ? h(
-                  'div',
-                  {
-                    class: [
-                      'pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-50',
-                      'flex items-center gap-1.5 rounded-md bg-foreground/95 px-2 py-0.5 text-[9px] font-semibold text-background shadow-lg backdrop-blur-xs whitespace-nowrap',
-                      'opacity-0 translate-y-1 transition-all duration-150 ease-out',
-                      'group-hover:opacity-100 group-hover:translate-y-0',
-                    ],
-                  },
-                  [
-                    h('span', { class: 'text-emerald-400 font-bold' }, `${row.lowlandApplicants}L`),
-                    h('span', { class: 'opacity-40' }, '•'),
-                    h('span', { class: 'text-amber-400 font-bold' }, `${row.uplandApplicants}U`),
-                    h('span', { class: 'opacity-40' }, '•'),
-                    h('span', { class: 'text-sky-400 font-bold' }, `${row.wetlandApplicants}W`),
-                    row.topSkills.length > 0
-                      ? h('span', { class: 'opacity-60 ml-0.5' }, `| ${row.topSkills[0].name}`)
-                      : null,
-                  ].filter(Boolean)
-                )
-              : null,
-
-            // Single unified, sleek marker pill with hit-box buffer to prevent border jitter
+            // Marker card: name + count, with terrain mix underneath
             h(
               'div',
               {
                 class: [
-                  'relative flex items-center gap-1.5 rounded-full px-2.5 py-1 shadow-md backdrop-blur-md border transition-all duration-150',
-                  'before:absolute before:-inset-1 before:rounded-full before:content-[\'\']',
+                  'flex flex-col gap-1 rounded-lg border px-2 py-1 shadow-md transition-all duration-150',
                   isSelected
-                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 ring-2 ring-primary/40'
+                    ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-primary/20'
                     : hasApplicants
-                    ? 'bg-card/95 text-card-foreground border-border/80 group-hover:border-primary/50 group-hover:bg-card group-hover:shadow-lg'
-                    : 'bg-muted/80 text-muted-foreground border-border/40 opacity-70 group-hover:opacity-100',
+                      ? 'border-border bg-card/95 text-card-foreground backdrop-blur-sm group-hover:border-primary/60 group-hover:shadow-lg'
+                      : 'border-border/60 bg-muted/90 text-muted-foreground opacity-75 group-hover:opacity-100',
                 ],
               },
               [
-                // Dominant Terrain Dot Indicator
-                h('span', {
-                  class: ['size-1.5 rounded-full shrink-0', isSelected ? 'bg-primary-foreground' : dotColorClass],
-                }),
-
-                // Municipality Name
-                h(
-                  'span',
-                  {
-                    class: [
-                      'text-[11px] font-bold tracking-tight whitespace-nowrap',
-                      isSelected ? 'text-primary-foreground' : 'text-foreground',
-                    ],
-                  },
-                  row.name
-                ),
-
-                // Applicants Count Pill
-                h(
-                  'span',
-                  {
-                    class: [
-                      'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-black leading-none tabular-nums',
-                      isSelected
-                        ? 'bg-primary-foreground text-primary'
-                        : hasApplicants
-                        ? 'bg-primary/10 text-primary dark:bg-primary/25'
-                        : 'bg-muted text-muted-foreground',
-                    ],
-                  },
-                  `${row.totalApplicants}`
-                ),
+                h('div', { class: 'flex items-center gap-2' }, [
+                  h('span', { class: 'text-[11px] font-semibold tracking-tight whitespace-nowrap' }, row.name),
+                  h(
+                    'span',
+                    {
+                      class: [
+                        'text-[11px] font-bold leading-none tabular-nums',
+                        isSelected ? 'text-primary-foreground' : hasApplicants ? 'text-primary' : 'text-muted-foreground',
+                      ],
+                    },
+                    `${row.totalApplicants}`
+                  ),
+                ]),
+                hasApplicants
+                  ? renderTerrainBar(row, isSelected ? 'h-1 bg-primary-foreground/30' : 'h-1')
+                  : null,
               ]
             ),
 
-            // Subtle stem pointer
+            // Pointer stem
             h('div', {
               class: [
-                'size-0 border-x-4 border-x-transparent border-t-[5px] -mt-px pointer-events-none',
+                'size-0 -mt-px border-x-[5px] border-t-[6px] border-x-transparent pointer-events-none',
                 isSelected ? 'border-t-primary' : 'border-t-border',
               ],
             }),
@@ -248,86 +345,18 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
       throw new Error('Map is not ready')
     }
 
+    // Rendered via Vue (not innerHTML) so DB-sourced skill names are always escaped
     const popupContent = document.createElement('div')
-    popupContent.className = 'w-72 overflow-hidden text-foreground font-sans'
-
-    const topSkillsHtml =
-      row.topSkills.length > 0
-        ? row.topSkills
-            .slice(0, 4)
-            .map(
-              (s) =>
-                `<span class="inline-flex items-center gap-1 rounded-md bg-muted/60 dark:bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-foreground border border-border/50">
-                  <span>${s.name}</span>
-                  <span class="rounded bg-primary/10 dark:bg-primary/25 px-1 font-bold text-primary text-[9px]">${s.count}</span>
-                </span>`
-            )
-            .join(' ')
-        : '<span class="text-xs text-muted-foreground italic">No registered skills yet</span>'
-
-    popupContent.innerHTML = `
-      <div class="border-b border-border/60 bg-muted/30 px-3.5 py-2.5">
-        <div class="flex items-center justify-between gap-2 pr-6">
-          <h3 class="font-bold text-sm tracking-tight text-foreground">${row.name}</h3>
-          <span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-secondary-foreground border border-border/60">
-            ${row.barangays} Barangays
-          </span>
-        </div>
-        <p class="text-[11px] text-muted-foreground mt-0.5">Agusan del Sur Municipality</p>
-      </div>
-
-      <div class="p-3.5 space-y-3">
-        <!-- Applicant breakdown metric box -->
-        <div class="rounded-lg border border-border/60 bg-card p-2.5 shadow-2xs space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-muted-foreground">Total Applicants</span>
-            <span class="text-base font-extrabold text-foreground tracking-tight">${row.totalApplicants}</span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1.5 pt-1 border-t border-border/40 text-center">
-            <div class="rounded-md bg-emerald-500/10 px-1 py-1 border border-emerald-500/20">
-              <span class="block text-[9px] font-bold text-emerald-700 dark:text-emerald-300">Lowland</span>
-              <span class="block text-xs font-black text-emerald-700 dark:text-emerald-300 tabular-nums">${row.lowlandApplicants}</span>
-            </div>
-            <div class="rounded-md bg-amber-500/10 px-1 py-1 border border-amber-500/20">
-              <span class="block text-[9px] font-bold text-amber-700 dark:text-amber-300">Upland</span>
-              <span class="block text-xs font-black text-amber-700 dark:text-amber-300 tabular-nums">${row.uplandApplicants}</span>
-            </div>
-            <div class="rounded-md bg-sky-500/10 px-1 py-1 border border-sky-500/20">
-              <span class="block text-[9px] font-bold text-sky-700 dark:text-sky-300">Wetland</span>
-              <span class="block text-xs font-black text-sky-700 dark:text-sky-300 tabular-nums">${row.wetlandApplicants}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Top Skills -->
-        <div class="space-y-1.5">
-          <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Top Skills in LGU</span>
-          <div class="flex flex-wrap gap-1">${topSkillsHtml}</div>
-        </div>
-      </div>
-    `
-
-    const buttonWrapper = document.createElement('div')
-    buttonWrapper.className = 'px-3.5 pb-3.5 pt-0'
-
-    const viewBtn = document.createElement('button')
-    viewBtn.className =
-      'w-full rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]'
-    viewBtn.innerHTML = '<span>Explore Municipality Skills</span><svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
-    viewBtn.addEventListener('click', () => {
-      if (options.onViewMunicipality) {
-        options.onViewMunicipality(row.name)
-      }
+    const popupApp = createApp({
+      render: () => renderPopupContent(row, options.onViewMunicipality),
     })
-    buttonWrapper.appendChild(viewBtn)
-    popupContent.appendChild(buttonWrapper)
+    popupApp.mount(popupContent)
 
     const popup = new mapboxgl.Popup({
-      offset: 14,
+      offset: POPUP_OFFSET,
       closeButton: true,
       closeOnClick: false,
-      maxWidth: '290px',
+      maxWidth: '300px',
       focusAfterOpen: false,
     }).setDOMContent(popupContent)
 
@@ -336,7 +365,7 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
       .setPopup(popup)
       .addTo(targetMap)
 
-    return { marker, app, municipality: row.name }
+    return { marker, app, popupApp, municipality: row.name }
   }
 
   function openMarkerPopup(name: string) {
@@ -375,7 +404,7 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     if (!name) {
       map.value.flyTo({
         center: [DEFAULT_MAP_CENTER.longitude, DEFAULT_MAP_CENTER.latitude],
-        zoom: 8.8,
+        zoom: OVERVIEW_ZOOM,
         duration: 900,
       })
       return
@@ -385,7 +414,7 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     if (coords) {
       map.value.flyTo({
         center: [coords.longitude, coords.latitude],
-        zoom: 11.5,
+        zoom: FOCUS_ZOOM,
         duration: 900,
       })
     }
@@ -407,6 +436,11 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     { deep: true }
   )
 
+  // Follow the app theme without reloading the style
+  watch(lightPreset, (preset) => {
+    map.value?.setConfigProperty(BASEMAP_IMPORT_ID, 'lightPreset', preset)
+  })
+
   function initializeMap() {
     if (!mapContainer.value) return
     if (map.value) return
@@ -416,14 +450,28 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     const instance = new mapboxgl.Map({
       container: mapContainer.value,
       style: mapStyle.value,
+      config: {
+        [BASEMAP_IMPORT_ID]: {
+          lightPreset: lightPreset.value,
+          // Flat, 2D presentation like Google Maps' default view
+          show3dObjects: false,
+          showPointOfInterestLabels: true,
+          showTransitLabels: true,
+          showPlaceLabels: true,
+          showRoadLabels: true,
+        },
+      },
+      pitch: 0,
       center: [DEFAULT_MAP_CENTER.longitude, DEFAULT_MAP_CENTER.latitude],
-      zoom: 8.8,
+      zoom: OVERVIEW_ZOOM,
       minZoom: 7,
       maxZoom: 16,
+      attributionControl: false,
     })
 
     instance.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right')
     instance.addControl(new mapboxgl.FullscreenControl(), 'top-right')
+    instance.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right')
 
     instance.on('load', () => {
       isReady.value = true
@@ -475,6 +523,7 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     selectedProvince,
     selectedMunicipality,
     municipalitiesList,
+    totalApplicants,
     flyToMunicipality,
     resetView,
     renderAllMarkers,

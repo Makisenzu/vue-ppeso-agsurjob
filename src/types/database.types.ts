@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   applicants: {
     Tables: {
@@ -951,7 +951,7 @@ export type Database = {
       }
       hots: {
         Row: {
-          applicant_contact_phone: string | null
+          applicant_contact_phone: string
           applicant_email: string | null
           applicant_first_name: string
           applicant_last_name: string
@@ -969,7 +969,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          applicant_contact_phone?: string | null
+          applicant_contact_phone: string
           applicant_email?: string | null
           applicant_first_name: string
           applicant_last_name: string
@@ -987,7 +987,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          applicant_contact_phone?: string | null
+          applicant_contact_phone?: string
           applicant_email?: string | null
           applicant_first_name?: string
           applicant_last_name?: string
@@ -1012,126 +1012,262 @@ export type Database = {
             referencedRelation: "job_fairs"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      job_fair_participants: {
+        Row: {
+          acronym: string | null
+          barangay: string | null
+          business_name: string
+          city_municipality: string | null
+          company_id: string | null
+          contact_person_name: string | null
+          contact_person_position: string | null
+          created_at: string | null
+          email_address: string | null
+          employer_category: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number: string | null
+          id: string
+          industry_line: string | null
+          is_main_office: boolean | null
+          job_fair_id: string
+          mobile_number: string | null
+          owner_president_name: string | null
+          private_employer_type:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province: string | null
+          public_employer_type:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          registered_at: string | null
+          status: string | null
+          street: string | null
+          telephone_number: string | null
+          tin: string | null
+          total_workforce:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acronym?: string | null
+          barangay?: string | null
+          business_name: string
+          city_municipality?: string | null
+          company_id?: string | null
+          contact_person_name?: string | null
+          contact_person_position?: string | null
+          created_at?: string | null
+          email_address?: string | null
+          employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number?: string | null
+          id?: string
+          industry_line?: string | null
+          is_main_office?: boolean | null
+          job_fair_id: string
+          mobile_number?: string | null
+          owner_president_name?: string | null
+          private_employer_type?:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province?: string | null
+          public_employer_type?:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          registered_at?: string | null
+          status?: string | null
+          street?: string | null
+          telephone_number?: string | null
+          tin?: string | null
+          total_workforce?:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acronym?: string | null
+          barangay?: string | null
+          business_name?: string
+          city_municipality?: string | null
+          company_id?: string | null
+          contact_person_name?: string | null
+          contact_person_position?: string | null
+          created_at?: string | null
+          email_address?: string | null
+          employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number?: string | null
+          id?: string
+          industry_line?: string | null
+          is_main_office?: boolean | null
+          job_fair_id?: string
+          mobile_number?: string | null
+          owner_president_name?: string | null
+          private_employer_type?:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province?: string | null
+          public_employer_type?:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          registered_at?: string | null
+          status?: string | null
+          street?: string | null
+          telephone_number?: string | null
+          tin?: string | null
+          total_workforce?:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "hots_job_vacancy_id_fkey"
-            columns: ["job_vacancy_id"]
+            foreignKeyName: "job_fair_participants_job_fair_id_fkey"
+            columns: ["job_fair_id"]
             isOneToOne: false
-            referencedRelation: "job_vacancies"
+            referencedRelation: "job_fairs"
             referencedColumns: ["id"]
           },
         ]
       }
       job_fairs: {
         Row: {
-          company_id: string | null
-          contact_email: string | null
-          contact_phone: string | null
           created_at: string
           description: string | null
           end_date: string
           id: string
+          latitude: number | null
           location: string
-          organizer_name: string | null
+          longitude: number | null
           registration_link: string | null
           start_date: string
           status: string
           title: string
           updated_at: string
-          venue_address: string | null
         }
         Insert: {
-          company_id?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
           created_at?: string
           description?: string | null
           end_date: string
           id?: string
+          latitude?: number | null
           location: string
-          organizer_name?: string | null
+          longitude?: number | null
           registration_link?: string | null
           start_date: string
           status?: string
           title: string
           updated_at?: string
-          venue_address?: string | null
         }
         Update: {
-          company_id?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
           created_at?: string
           description?: string | null
           end_date?: string
           id?: string
+          latitude?: number | null
           location?: string
-          organizer_name?: string | null
+          longitude?: number | null
           registration_link?: string | null
           start_date?: string
           status?: string
           title?: string
           updated_at?: string
-          venue_address?: string | null
         }
         Relationships: []
       }
       job_vacancies: {
         Row: {
-          application_deadline: string | null
-          company_id: string | null
-          company_name: string
-          created_at: string
-          currency: string | null
-          description: string | null
+          accepts_pwd: boolean | null
+          accepts_returning_ofw: boolean | null
+          certification: string | null
+          course_shs_strand: string | null
+          created_at: string | null
+          educational_level: string | null
+          eligibility: string | null
           id: string
-          job_fair_id: string | null
-          job_type: Database["esmdd"]["Enums"]["job_type"] | null
-          location_type: Database["esmdd"]["Enums"]["location_type"] | null
-          qualifications: string[] | null
-          salary_max: number | null
-          salary_min: number | null
-          slots_available: number | null
-          status: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
-          title: string
-          updated_at: string
+          job_description: string | null
+          job_fair_id: string
+          language_dialect_spoken: string[] | null
+          license: string | null
+          nature_of_work: Database["esmdd"]["Enums"]["nature_of_work_enum"]
+          other_qualifications: string[] | null
+          participant_id: string
+          place_of_work: string | null
+          position_title: string
+          posting_date: string | null
+          pwd_disabilities:
+            | Database["esmdd"]["Enums"]["disability_type_enum"][]
+            | null
+          pwd_other_disability: string | null
+          salary: string | null
+          status: string | null
+          updated_at: string | null
+          vacancy_count: number | null
+          valid_until: string | null
+          work_experience_months: number | null
         }
         Insert: {
-          application_deadline?: string | null
-          company_id?: string | null
-          company_name: string
-          created_at?: string
-          currency?: string | null
-          description?: string | null
+          accepts_pwd?: boolean | null
+          accepts_returning_ofw?: boolean | null
+          certification?: string | null
+          course_shs_strand?: string | null
+          created_at?: string | null
+          educational_level?: string | null
+          eligibility?: string | null
           id?: string
-          job_fair_id?: string | null
-          job_type?: Database["esmdd"]["Enums"]["job_type"] | null
-          location_type?: Database["esmdd"]["Enums"]["location_type"] | null
-          qualifications?: string[] | null
-          salary_max?: number | null
-          salary_min?: number | null
-          slots_available?: number | null
-          status?: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
-          title: string
-          updated_at?: string
+          job_description?: string | null
+          job_fair_id: string
+          language_dialect_spoken?: string[] | null
+          license?: string | null
+          nature_of_work?: Database["esmdd"]["Enums"]["nature_of_work_enum"]
+          other_qualifications?: string[] | null
+          participant_id: string
+          place_of_work?: string | null
+          position_title: string
+          posting_date?: string | null
+          pwd_disabilities?:
+            | Database["esmdd"]["Enums"]["disability_type_enum"][]
+            | null
+          pwd_other_disability?: string | null
+          salary?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vacancy_count?: number | null
+          valid_until?: string | null
+          work_experience_months?: number | null
         }
         Update: {
-          application_deadline?: string | null
-          company_id?: string | null
-          company_name?: string
-          created_at?: string
-          currency?: string | null
-          description?: string | null
+          accepts_pwd?: boolean | null
+          accepts_returning_ofw?: boolean | null
+          certification?: string | null
+          course_shs_strand?: string | null
+          created_at?: string | null
+          educational_level?: string | null
+          eligibility?: string | null
           id?: string
-          job_fair_id?: string | null
-          job_type?: Database["esmdd"]["Enums"]["job_type"] | null
-          location_type?: Database["esmdd"]["Enums"]["location_type"] | null
-          qualifications?: string[] | null
-          salary_max?: number | null
-          salary_min?: number | null
-          slots_available?: number | null
-          status?: Database["esmdd"]["Enums"]["job_vacancy_status"] | null
-          title?: string
-          updated_at?: string
+          job_description?: string | null
+          job_fair_id?: string
+          language_dialect_spoken?: string[] | null
+          license?: string | null
+          nature_of_work?: Database["esmdd"]["Enums"]["nature_of_work_enum"]
+          other_qualifications?: string[] | null
+          participant_id?: string
+          place_of_work?: string | null
+          position_title?: string
+          posting_date?: string | null
+          pwd_disabilities?:
+            | Database["esmdd"]["Enums"]["disability_type_enum"][]
+            | null
+          pwd_other_disability?: string | null
+          salary?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vacancy_count?: number | null
+          valid_until?: string | null
+          work_experience_months?: number | null
         }
         Relationships: [
           {
@@ -1139,6 +1275,13 @@ export type Database = {
             columns: ["job_fair_id"]
             isOneToOne: false
             referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_vacancies_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "job_fair_participants"
             referencedColumns: ["id"]
           },
         ]
@@ -1290,6 +1433,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      disability_type_enum:
+        | "Visual"
+        | "Physical"
+        | "Hearing"
+        | "Mental"
+        | "Speech"
+        | "Others"
+      employer_category_enum: "Public" | "Private"
       job_type:
         | "full_time"
         | "part_time"
@@ -1298,6 +1449,28 @@ export type Database = {
         | "temporary"
       job_vacancy_status: "open" | "closed" | "filled" | "cancelled"
       location_type: "onsite" | "remote" | "hybrid"
+      nature_of_work_enum:
+        | "Permanent"
+        | "Contractual"
+        | "Project-based"
+        | "Internship / OJT"
+        | "Part-time"
+        | "Work from home / online job"
+      private_employer_type_enum:
+        | "Direct Hire"
+        | "Local Recruitment Agency"
+        | "Overseas Recruitment Agency"
+        | "D.O. 174"
+      public_employer_type_enum:
+        | "National Government Agency"
+        | "Local Government Unit"
+        | "Government-owned and Controlled Corporation"
+        | "State/Local University or College"
+      total_workforce_enum:
+        | "Micro (1-9)"
+        | "Small (10-99)"
+        | "Medium (100-199)"
+        | "Large (200 and up)"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2133,6 +2306,15 @@ export const Constants = {
   },
   esmdd: {
     Enums: {
+      disability_type_enum: [
+        "Visual",
+        "Physical",
+        "Hearing",
+        "Mental",
+        "Speech",
+        "Others",
+      ],
+      employer_category_enum: ["Public", "Private"],
       job_type: [
         "full_time",
         "part_time",
@@ -2142,6 +2324,32 @@ export const Constants = {
       ],
       job_vacancy_status: ["open", "closed", "filled", "cancelled"],
       location_type: ["onsite", "remote", "hybrid"],
+      nature_of_work_enum: [
+        "Permanent",
+        "Contractual",
+        "Project-based",
+        "Internship / OJT",
+        "Part-time",
+        "Work from home / online job",
+      ],
+      private_employer_type_enum: [
+        "Direct Hire",
+        "Local Recruitment Agency",
+        "Overseas Recruitment Agency",
+        "D.O. 174",
+      ],
+      public_employer_type_enum: [
+        "National Government Agency",
+        "Local Government Unit",
+        "Government-owned and Controlled Corporation",
+        "State/Local University or College",
+      ],
+      total_workforce_enum: [
+        "Micro (1-9)",
+        "Small (10-99)",
+        "Medium (100-199)",
+        "Large (200 and up)",
+      ],
     },
   },
   jobs: {

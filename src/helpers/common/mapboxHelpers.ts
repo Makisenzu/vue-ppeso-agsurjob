@@ -27,7 +27,7 @@ export const AGUSAN_DEL_SUR_MUNICIPALITIES: AgusanMunicipalityCoordinate[] = [
 	{ province: 'Agusan del Sur', municipality: 'San Francisco', latitude: 8.505163822596515, longitude: 125.97695600151802 },
 	{ province: 'Agusan del Sur', municipality: 'San Luis', latitude: 8.477717564524182, longitude: 125.74466737311792 },
 	{ province: 'Agusan del Sur', municipality: 'Santa Josefa', latitude: 7.991982, longitude: 126.003941 },
-	{ province: 'Agusan del Sur', municipality: 'Sibagat', latitude: 8.820286, longitude: 125.977841 },
+	{ province: 'Agusan del Sur', municipality: 'Sibagat', latitude: 8.821027, longitude: 125.692704 },
 	{ province: 'Agusan del Sur', municipality: 'Talacogon', latitude: 8.450263774712683, longitude: 125.78592465151321 },
 	{ province: 'Agusan del Sur', municipality: 'Trento', latitude: 8.044078940694366, longitude: 126.06278599367083 },
 	{ province: 'Agusan del Sur', municipality: 'Veruela', latitude: 8.028639, longitude: 125.944172 },
