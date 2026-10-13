@@ -108,7 +108,7 @@ The database uses **7 Postgres schemas**. Every Supabase query MUST specify `.sc
 | `employers`   | Company/employer data                            | `companies`, `company_members`, `employer_requirements`, `employer_requirement_media` |
 | `jobs`        | Job applications, interviews, referrals          | `job_applications`, `job_application_attachments`, `job_interview_schedules`, `referrals` |
 | `system`      | System-level logging and notifications           | `notifications`, `system_audit_logs` |
-| `esmdd`       | PESO ESMDD programs (GIP, SPES)                  | `gip_applicants`, `gips`, `spes_applicants`, `spes` |
+| `esmdd`       | PESO ESMDD programs (GIP, SPES)                  | `gip_applicants`, `gips`, `spes` |
 
 ### Correct Usage
 

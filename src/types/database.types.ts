@@ -348,6 +348,230 @@ export type Database = {
         }
         Relationships: []
       }
+      spes_form: {
+        Row: {
+          age: number | null
+          applicant_id: string | null
+          availment_1_establishment: string | null
+          availment_1_spes_id: string | null
+          availment_1_year: string | null
+          availment_2_establishment: string | null
+          availment_2_spes_id: string | null
+          availment_2_year: string | null
+          availment_3_establishment: string | null
+          availment_3_spes_id: string | null
+          availment_3_year: string | null
+          availment_4_establishment: string | null
+          availment_4_spes_id: string | null
+          availment_4_year: string | null
+          citizenship: string | null
+          civil_status:
+            | Database["applicants"]["Enums"]["spes_civil_status_type"]
+            | null
+          contact_number: string | null
+          created_at: string
+          date_of_birth: string
+          elementary_date_of_attendance: string | null
+          elementary_degree_course: string | null
+          elementary_school_name: string | null
+          elementary_year_level: string | null
+          email_address: string | null
+          father_contact_no: string | null
+          father_name: string | null
+          father_occupation: string | null
+          first_name: string
+          gsis_beneficiary_relationship: string | null
+          has_birth_certificate: boolean
+          has_income_proof: boolean
+          has_osy_certification: boolean
+          has_passing_grade_proof: boolean
+          has_registrar_certification: boolean
+          id: string
+          middle_name: string | null
+          mother_contact_no: string | null
+          mother_maiden_name: string | null
+          mother_occupation: string | null
+          other_dole_interventions: string | null
+          parents_status: Database["applicants"]["Enums"]["spes_parents_status_type"][]
+          permanent_address: string | null
+          place_of_birth: string | null
+          present_address: string | null
+          profile_id: string | null
+          remarks: string | null
+          secondary_date_of_attendance: string | null
+          secondary_degree_course: string | null
+          secondary_school_name: string | null
+          secondary_year_level: string | null
+          sex: Database["applicants"]["Enums"]["spes_sex_type"] | null
+          social_media_account: string | null
+          special_skills: string[]
+          status: string
+          student_category:
+            | Database["applicants"]["Enums"]["spes_student_category_type"]
+            | null
+          surname: string
+          techvoc_date_of_attendance: string | null
+          techvoc_degree_course: string | null
+          techvoc_school_name: string | null
+          techvoc_year_level: string | null
+          tertiary_date_of_attendance: string | null
+          tertiary_degree_course: string | null
+          tertiary_school_name: string | null
+          tertiary_year_level: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          age?: number | null
+          applicant_id?: string | null
+          availment_1_establishment?: string | null
+          availment_1_spes_id?: string | null
+          availment_1_year?: string | null
+          availment_2_establishment?: string | null
+          availment_2_spes_id?: string | null
+          availment_2_year?: string | null
+          availment_3_establishment?: string | null
+          availment_3_spes_id?: string | null
+          availment_3_year?: string | null
+          availment_4_establishment?: string | null
+          availment_4_spes_id?: string | null
+          availment_4_year?: string | null
+          citizenship?: string | null
+          civil_status?:
+            | Database["applicants"]["Enums"]["spes_civil_status_type"]
+            | null
+          contact_number?: string | null
+          created_at?: string
+          date_of_birth: string
+          elementary_date_of_attendance?: string | null
+          elementary_degree_course?: string | null
+          elementary_school_name?: string | null
+          elementary_year_level?: string | null
+          email_address?: string | null
+          father_contact_no?: string | null
+          father_name?: string | null
+          father_occupation?: string | null
+          first_name: string
+          gsis_beneficiary_relationship?: string | null
+          has_birth_certificate?: boolean
+          has_income_proof?: boolean
+          has_osy_certification?: boolean
+          has_passing_grade_proof?: boolean
+          has_registrar_certification?: boolean
+          id?: string
+          middle_name?: string | null
+          mother_contact_no?: string | null
+          mother_maiden_name?: string | null
+          mother_occupation?: string | null
+          other_dole_interventions?: string | null
+          parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
+          permanent_address?: string | null
+          place_of_birth?: string | null
+          present_address?: string | null
+          profile_id?: string | null
+          remarks?: string | null
+          secondary_date_of_attendance?: string | null
+          secondary_degree_course?: string | null
+          secondary_school_name?: string | null
+          secondary_year_level?: string | null
+          sex?: Database["applicants"]["Enums"]["spes_sex_type"] | null
+          social_media_account?: string | null
+          special_skills?: string[]
+          status?: string
+          student_category?:
+            | Database["applicants"]["Enums"]["spes_student_category_type"]
+            | null
+          surname: string
+          techvoc_date_of_attendance?: string | null
+          techvoc_degree_course?: string | null
+          techvoc_school_name?: string | null
+          techvoc_year_level?: string | null
+          tertiary_date_of_attendance?: string | null
+          tertiary_degree_course?: string | null
+          tertiary_school_name?: string | null
+          tertiary_year_level?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          age?: number | null
+          applicant_id?: string | null
+          availment_1_establishment?: string | null
+          availment_1_spes_id?: string | null
+          availment_1_year?: string | null
+          availment_2_establishment?: string | null
+          availment_2_spes_id?: string | null
+          availment_2_year?: string | null
+          availment_3_establishment?: string | null
+          availment_3_spes_id?: string | null
+          availment_3_year?: string | null
+          availment_4_establishment?: string | null
+          availment_4_spes_id?: string | null
+          availment_4_year?: string | null
+          citizenship?: string | null
+          civil_status?:
+            | Database["applicants"]["Enums"]["spes_civil_status_type"]
+            | null
+          contact_number?: string | null
+          created_at?: string
+          date_of_birth?: string
+          elementary_date_of_attendance?: string | null
+          elementary_degree_course?: string | null
+          elementary_school_name?: string | null
+          elementary_year_level?: string | null
+          email_address?: string | null
+          father_contact_no?: string | null
+          father_name?: string | null
+          father_occupation?: string | null
+          first_name?: string
+          gsis_beneficiary_relationship?: string | null
+          has_birth_certificate?: boolean
+          has_income_proof?: boolean
+          has_osy_certification?: boolean
+          has_passing_grade_proof?: boolean
+          has_registrar_certification?: boolean
+          id?: string
+          middle_name?: string | null
+          mother_contact_no?: string | null
+          mother_maiden_name?: string | null
+          mother_occupation?: string | null
+          other_dole_interventions?: string | null
+          parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
+          permanent_address?: string | null
+          place_of_birth?: string | null
+          present_address?: string | null
+          profile_id?: string | null
+          remarks?: string | null
+          secondary_date_of_attendance?: string | null
+          secondary_degree_course?: string | null
+          secondary_school_name?: string | null
+          secondary_year_level?: string | null
+          sex?: Database["applicants"]["Enums"]["spes_sex_type"] | null
+          social_media_account?: string | null
+          special_skills?: string[]
+          status?: string
+          student_category?:
+            | Database["applicants"]["Enums"]["spes_student_category_type"]
+            | null
+          surname?: string
+          techvoc_date_of_attendance?: string | null
+          techvoc_degree_course?: string | null
+          techvoc_school_name?: string | null
+          techvoc_year_level?: string | null
+          tertiary_date_of_attendance?: string | null
+          tertiary_degree_course?: string | null
+          tertiary_school_name?: string | null
+          tertiary_year_level?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spes_form_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -356,7 +580,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      spes_civil_status_type: "Single" | "Married" | "Widow/er" | "Separated"
+      spes_parents_status_type:
+        | "Living together"
+        | "Solo Parent"
+        | "Separated"
+        | "Person With Disability"
+        | "Senior Citizen"
+        | "Sugar Plantation Worker"
+        | "Indigenous People"
+        | "Displaced Worker (1) Local"
+        | "Displaced Worker (2) OFW"
+      spes_sex_type: "Male" | "Female"
+      spes_student_category_type:
+        | "Student"
+        | "ALS student"
+        | "out-of-school (OSY)"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1358,53 +1597,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "spes_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "spes_applicants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      spes_applicants: {
-        Row: {
-          applicant_id: string | null
-          beneficiary: string | null
-          created_at: string | null
-          id: string
-          remarks: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          applicant_id?: string | null
-          beneficiary?: string | null
-          created_at?: string | null
-          id?: string
-          remarks?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          applicant_id?: string | null
-          beneficiary?: string | null
-          created_at?: string | null
-          id?: string
-          remarks?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "spes_applicants_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "gip_applicant_priority_scores"
-            referencedColumns: ["applicant_id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -1872,6 +2065,56 @@ export type Database = {
         }
         Relationships: []
       }
+      job_posting_attachments: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          description: string | null
+          filename: string | null
+          id: number
+          job_posting_id: number
+          mime_type: string | null
+          path: string
+          size: number | null
+          updated_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: never
+          job_posting_id: number
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          description?: string | null
+          filename?: string | null
+          id?: never
+          job_posting_id?: number
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posting_attachments_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_posting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_posting_media: {
         Row: {
           alt_text: string | null
@@ -2313,7 +2556,26 @@ export type CompositeTypes<
 
 export const Constants = {
   applicants: {
-    Enums: {},
+    Enums: {
+      spes_civil_status_type: ["Single", "Married", "Widow/er", "Separated"],
+      spes_parents_status_type: [
+        "Living together",
+        "Solo Parent",
+        "Separated",
+        "Person With Disability",
+        "Senior Citizen",
+        "Sugar Plantation Worker",
+        "Indigenous People",
+        "Displaced Worker (1) Local",
+        "Displaced Worker (2) OFW",
+      ],
+      spes_sex_type: ["Male", "Female"],
+      spes_student_category_type: [
+        "Student",
+        "ALS student",
+        "out-of-school (OSY)",
+      ],
+    },
   },
   core: {
     Enums: {

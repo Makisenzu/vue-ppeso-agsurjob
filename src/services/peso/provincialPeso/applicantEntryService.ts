@@ -8,8 +8,9 @@ import type {
   ProgramReferralSummary,
 } from '@/types/peso/provincialPeso/applicantEntry'
 import type { GipApplicantInsert, GipApplicantRow } from '@/types/peso/provincialPeso/gip'
-import type { SpesApplicantInsert, SpesApplicantRow } from '@/types/peso/provincialPeso/spes'
+import type { SpesFormRow } from '@/types/peso/provincialPeso/spes'
 import { invalidateGipCaches } from '@/helpers/peso/provincialPeso/gipHelper'
+import { buildSpesFormPrefill, pickBlankSpesFields } from '@/helpers/peso/provincialPeso/spesHelper'
 
 export const APPLICANT_ENTRY_CACHE_KEY = 'peso:applicant-entry:applicants'
 const APPLICANT_ENTRY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
@@ -128,41 +129,98 @@ export const applicantEntryService = {
   },
 
   /**
-   * Refer an applicant to SPES by inserting a record into esmdd.spes_applicants
+   * Refer an applicant to SPES by creating their applicants.spes_form from the registry record.
+   * An existing form (by registry applicant, then by account) only gets its blank fields filled,
+   * so whatever PESO or the applicant already encoded is never overwritten.
    */
-  async referToSpes(applicant: ApplicantRow): Promise<SpesApplicantRow | null> {
-    const payload: SpesApplicantInsert = {
-      applicant_id: applicant.id,
-      status: 'Pending',
-      beneficiary: applicant.is_4ps_beneficiary ? '4Ps Beneficiary' : 'Student / Out-of-School Youth',
-      remarks: 'Referred via Provincial PESO Applicant Registry',
-    }
+  async referToSpes(applicant: ApplicantRow): Promise<Pick<SpesFormRow, 'id'>> {
+    const prefill = buildSpesFormPrefill(applicant)
 
-    // Check if referral record already exists to prevent duplicate entries
-    const { data: existing } = await supabase
-      .schema('esmdd')
-      .from('spes_applicants')
-      .select('*')
-      .eq('applicant_id', applicant.id)
-      .maybeSingle()
+    const findForm = (column: 'applicant_id' | 'profile_id', value: string) =>
+      supabase
+        .schema('applicants')
+        .from('spes_form')
+        .select('*')
+        .eq(column, value)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    let { data: existing, error: lookupErr } = await findForm('applicant_id', applicant.id)
+    if (!lookupErr && !existing && applicant.profile_id) {
+      ;({ data: existing, error: lookupErr } = await findForm('profile_id', applicant.profile_id))
+    }
+    if (lookupErr) throw new Error(lookupErr.message || 'Failed to look up the SPES application form')
 
     if (existing) {
-      return existing as SpesApplicantRow
+      const patch = {
+        ...pickBlankSpesFields(existing, prefill),
+        ...(existing.applicant_id ? {} : { applicant_id: applicant.id }),
+      }
+      if (Object.keys(patch).length === 0) return { id: existing.id }
+
+      const { error } = await supabase.schema('applicants').from('spes_form').update(patch).eq('id', existing.id)
+      if (error) {
+        console.error('[applicantEntryService] Failed to update applicants.spes_form:', error.message)
+        throw new Error(error.message || 'Failed to update the SPES application form')
+      }
+      return { id: existing.id }
     }
 
     const { data, error } = await supabase
-      .schema('esmdd')
-      .from('spes_applicants')
-      .insert(payload)
-      .select()
+      .schema('applicants')
+      .from('spes_form')
+      .insert({ ...prefill, applicant_id: applicant.id, profile_id: applicant.profile_id })
+      .select('id')
       .single()
 
     if (error) {
-      console.error('[applicantEntryService] Failed to insert into esmdd.spes_applicants:', error.message)
+      console.error('[applicantEntryService] Failed to insert into applicants.spes_form:', error.message)
       throw new Error(error.message || 'Failed to register applicant under SPES')
     }
 
-    return data as SpesApplicantRow
+    return data
+  },
+
+  /**
+   * Safely unrefer an applicant from SPES by deleting the SPES form PESO created for them.
+   * Business Policy:
+   * Only deletes forms without a user account (the applicant's own submissions are kept),
+   * still 'Pending', and with no beneficiary record in esmdd.spes.
+   */
+  async unreferFromSpes(applicantId: string): Promise<{ deleted: boolean; reason?: string }> {
+    const { data: spesForm, error: fetchErr } = await supabase
+      .schema('applicants')
+      .from('spes_form')
+      .select('id, profile_id, status')
+      .eq('applicant_id', applicantId)
+      .maybeSingle()
+
+    if (fetchErr || !spesForm) return { deleted: false, reason: 'No SPES application form found' }
+    if (spesForm.profile_id) return { deleted: false, reason: 'The SPES form belongs to the applicant account.' }
+    if (spesForm.status !== 'Pending') {
+      return { deleted: false, reason: `SPES form status is '${spesForm.status}'. Historical records are kept intact.` }
+    }
+
+    const { data: beneficiary, error: depErr } = await supabase
+      .schema('esmdd')
+      .from('spes')
+      .select('id')
+      .eq('application_id', spesForm.id)
+      .limit(1)
+
+    if (depErr) return { deleted: false, reason: depErr.message }
+    if (beneficiary && beneficiary.length > 0) {
+      return { deleted: false, reason: 'Applicant is already enrolled as a SPES beneficiary.' }
+    }
+
+    const { error: delErr } = await supabase.schema('applicants').from('spes_form').delete().eq('id', spesForm.id)
+    if (delErr) {
+      console.error('[applicantEntryService] Failed to delete applicants.spes_form row:', delErr.message)
+      return { deleted: false, reason: delErr.message }
+    }
+
+    return { deleted: true }
   },
 
   /**
@@ -198,13 +256,13 @@ export const applicantEntryService = {
       }
     }
 
-    // 2. SPES Referral check -> esmdd.spes_applicants
+    // 2. SPES Referral check -> applicants.spes_form
     if (programs.some((p) => p.includes('SPES'))) {
       try {
         const spesRow = await this.referToSpes(applicant)
         results.push({
           program: 'SPES',
-          targetTable: 'esmdd.spes_applicants',
+          targetTable: 'applicants.spes_form',
           success: true,
           recordId: spesRow?.id,
         })
@@ -212,7 +270,7 @@ export const applicantEntryService = {
         const message = err instanceof Error ? err.message : String(err)
         results.push({
           program: 'SPES',
-          targetTable: 'esmdd.spes_applicants',
+          targetTable: 'applicants.spes_form',
           success: false,
           error: message,
         })
@@ -224,7 +282,7 @@ export const applicantEntryService = {
 
   /**
    * Create a new applicant record in applicants.applicants schema
-   * and subsequently check & route to program tables (e.g. esmdd.gip_applicants, esmdd.spes_applicants)
+   * and subsequently check & route to program tables (e.g. esmdd.gip_applicants, applicants.spes_form)
    */
   async createApplicant(payload: ApplicantInsert): Promise<ApplicantRow> {
     const sanitizedPayload = normalizeApplicantEmploymentPayload(payload)
@@ -534,6 +592,12 @@ export const applicantEntryService = {
         } catch (spesErr: unknown) {
           console.error('[applicantEntryService] Failed to auto-route to SPES on update:', spesErr)
         }
+      } else {
+        try {
+          await this.unreferFromSpes(applicantId)
+        } catch (unreferErr: unknown) {
+          console.error('[applicantEntryService] Failed to unrefer from SPES on update:', unreferErr)
+        }
       }
     }
 
@@ -657,16 +721,30 @@ export const applicantEntryService = {
       throw new Error(`${label} is linked to a registered user account and cannot be deleted from the registry.`)
     }
 
+    // The applicant's SPES form (applicant_id) is removed by ON DELETE CASCADE with the master row
     const [gipRes, spesRes] = await Promise.all([
       supabase.schema('esmdd').from('gip_applicants').select('id').eq('applicant_id', applicantId),
-      supabase.schema('esmdd').from('spes_applicants').select('id').eq('applicant_id', applicantId),
+      supabase.schema('applicants').from('spes_form').select('id').eq('applicant_id', applicantId),
     ])
 
     if (gipRes.error) throw new Error(gipRes.error.message || 'Failed to check GIP referrals.')
     if (spesRes.error) throw new Error(spesRes.error.message || 'Failed to check SPES referrals.')
 
+    const spesFormIds = (spesRes.data ?? []).map((r) => r.id)
+    if (spesFormIds.length > 0) {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('spes')
+        .select('id')
+        .in('application_id', spesFormIds)
+        .limit(1)
+      if (error) throw new Error(error.message || 'Failed to check SPES beneficiaries.')
+      if (data && data.length > 0) {
+        throw new Error(`${label} is enrolled as a SPES beneficiary and cannot be deleted.`)
+      }
+    }
+
     const gipAppIds = (gipRes.data ?? []).map((r) => r.id)
-    const spesAppIds = (spesRes.data ?? []).map((r) => r.id)
 
     if (gipAppIds.length > 0) {
       const { data, error } = await supabase
@@ -681,27 +759,10 @@ export const applicantEntryService = {
       }
     }
 
-    if (spesAppIds.length > 0) {
-      const { data, error } = await supabase
-        .schema('esmdd')
-        .from('spes')
-        .select('id')
-        .in('application_id', spesAppIds)
-        .limit(1)
-      if (error) throw new Error(error.message || 'Failed to check SPES deployments.')
-      if (data && data.length > 0) {
-        throw new Error(`${label} has a SPES deployment record and cannot be deleted.`)
-      }
-    }
-
     const deleteReferrals = async () => {
       if (gipAppIds.length > 0) {
         const { error } = await supabase.schema('esmdd').from('gip_applicants').delete().in('id', gipAppIds)
         if (error) throw new Error(error.message || 'Failed to remove GIP referral.')
-      }
-      if (spesAppIds.length > 0) {
-        const { error } = await supabase.schema('esmdd').from('spes_applicants').delete().in('id', spesAppIds)
-        if (error) throw new Error(error.message || 'Failed to remove SPES referral.')
       }
     }
 

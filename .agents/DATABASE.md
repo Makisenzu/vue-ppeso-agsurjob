@@ -348,6 +348,8 @@ Document upload media linked to requirements.
 | `profiles_id`               | `uuid` | FK (note: `profiles_id` not `profile_id`)   |
 | `path`, `filename`, etc.    | various | Standard media fields                      |
 
+SPES requirement attachments (migration `014_spes_form_requirement_attachments.sql`): `applicant_requirements.spes_form_id` → `applicants.spes_form.id` (`ON DELETE CASCADE`, UNIQUE with `requirement_id`), pointing at the `public.requirement_templates` rows with `requirement_type = 'spes'` (names = `SPES_DOCUMENT_REQUIREMENTS` labels). The file is an `applicant_requirement_media` row (cascades with its requirement) in the `documents` bucket under `<uploader uid>/`. `spesAttachmentService` reads / syncs them; applicants must attach a file to every checked requirement, PESO staff may.
+
 > [!WARNING]
 > The `applicant_requirement_media` table uses `profiles_id` (with an 's') — not `profile_id`. This is a schema inconsistency to be aware of in queries.
 
@@ -478,10 +480,17 @@ Individual GIP entries linked to GIP applicants.
 | `status`         | `text` | nullable                          |
 | `remarks`        | `text` | nullable                          |
 
-#### `spes_applicants` / `spes`
-Special Program for Employment of Students — similar structure to GIP.
+#### `spes`
+Special Program for Employment of Students — beneficiaries enrolled from an approved SPES applicant.
+There is no separate SPES applicant table: **SPES applicants are the rows of `applicants.spes_form`**
+(`esmdd.spes_applicants` was dropped in migration `012_drop_spes_applicants.sql`).
 
-`spes` has an additional `beneficiary` field and `days_duration`.
+`spes` has `beneficiary`, `days_duration` and `status` (`Active` / `Completed` / `Terminated`).
+
+- `spes.application_id` → `applicants.spes_form.id` (UNIQUE, `ON DELETE CASCADE`). PostgREST cannot embed across schemas, so `spesService` fetches the forms separately and merges them by id.
+- `applicants.spes_form.applicant_id` → `applicants.applicants.id` (UNIQUE when set, `ON DELETE CASCADE`, migration `013_spes_form_applicant_link.sql`); `profile_id` is nullable so walk-in applicants without an account can have a form, and `spes_form_owner_check` requires one of the two. Referring an applicant to SPES in Entry of Applicants (`applicantEntryService.referToSpes`) creates the form prefilled from the registry record, or fills only the blank fields of an existing one (`buildSpesFormPrefill` / `pickBlankSpesFields` in `spesHelper`).
+- PESO review lives on the form: `applicants.spes_form.status` (`Pending` / `Approved` / `Rejected`, default `Pending`) and `remarks`. The `spes_form_guard_review` trigger keeps both staff-only and blocks applicant edits once a form is Approved / Rejected.
+- RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own rows via `spes_form.profile_id`.
 
 ---
 
@@ -555,7 +564,7 @@ erDiagram
 
     %% ESMDD
     gip_applicants ||--o{ gips : "has"
-    spes_applicants ||--o{ spes : "has"
+    spes_form ||--o| spes : "enrolled as"
 ```
 
 ---

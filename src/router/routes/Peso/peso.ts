@@ -94,11 +94,42 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      // ─── SPES (breadcrumb hierarchy: SPES > Applicants > New Applicant / Details) ───
       {
         path: 'spes',
-        name: 'provincial-peso-spes',
-        component: SPESDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'SPES' }
+        meta: { breadcrumb: 'SPES', breadcrumbTo: { name: 'provincial-peso-spes' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-spes',
+            component: SPESDashboard,
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: 'applicants',
+            meta: { breadcrumb: 'Applicants', breadcrumbTo: { name: 'provincial-peso-spes-applicants' } },
+            children: [
+              {
+                path: '',
+                name: 'provincial-peso-spes-applicants',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/SPES/SpesApplicants.vue'),
+                meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+              },
+              {
+                path: 'new',
+                name: 'provincial-peso-spes-applicants-new',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/SPES/SpesEntryForm.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'New Applicant' },
+              },
+              {
+                path: ':id',
+                name: 'provincial-peso-spes-applicants-details',
+                component: () => import('@/components/peso/ProvincialPeso/ESMDD/SPES/SpesEntryForm.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Details' },
+              },
+            ],
+          },
+        ],
       },
       // ─── Job Fair (breadcrumb hierarchy: Job Fair > Participants > Vacancies) ───
       {

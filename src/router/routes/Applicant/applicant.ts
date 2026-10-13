@@ -57,6 +57,12 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/ApplicantOffers.vue')
       },
       {
+        path: 'spes-application',
+        name: 'spes-application',
+        component: () => import('@/components/applicant/Spes/ApplicantSpesForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application' }
+      },
+      {
         path: 'profile/:username',
         name: 'profile',
         component: () => import('@/components/applicant/Profile/ApplicantProfile.vue'),
