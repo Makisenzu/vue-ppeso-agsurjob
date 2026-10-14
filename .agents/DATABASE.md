@@ -492,6 +492,26 @@ There is no separate SPES applicant table: **SPES applicants are the rows of `ap
 - PESO review lives on the form: `applicants.spes_form.status` (`Pending` / `Approved` / `Rejected`, default `Pending`) and `remarks`. The `spes_form_guard_review` trigger keeps both staff-only and blocks applicant edits once a form is Approved / Rejected.
 - RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own rows via `spes_form.profile_id`.
 
+#### `spes_appointments`
+Yearly SPES appointment of a beneficiary — the SPES counterpart of `gip_appointments` (migration `015_spes_appointments.sql`).
+SPES runs once a year, so `(spes_id, spes_year)` is UNIQUE; a former beneficiary who becomes SPES again gets a new row for the new year on the same `esmdd.spes` record (availment #2, #3, … counted client-side by year).
+
+- Columns: `spes_id` (FK → `spes.id`, `ON DELETE CASCADE`), `spes_year`, `appointment_code` (`SPES-<year>-<first 4 of spes id>`), `assigned_office`, `supervisor`, `daily_wage`, `days_duration` (int), `start_date`, `end_date`, `status` (`Active` / `Completed` / `Terminated`), `decision_notes`, `decided_by`, `decided_at`.
+- "Expiring Soon" (≤ 7 days left) / "Expired" are client-computed from `end_date` (`getSpesAppointmentTiming` in `spesHelper`), not stored.
+- The `trg_spes_appointment_sync_spes` trigger copies the latest year's `status` / `days_duration` onto `esmdd.spes` and sets `beneficiary = 'Returning'` once there is more than one appointment.
+- Not in `database.types.ts` until `npm run types:gen` is re-run; until then `spesService` queries it through one untyped accessor and types rows with `SpesAppointmentRow`.
+- RLS: same matrix as `spes` (applicants read their own via `spes.application_id → spes_form.profile_id`).
+
+#### SPES process (migration `016_spes_process.sql`)
+Entry (New / Returning) → 5 documentary requirements → **randomizer draw per municipality** → appointment of **10 or 20 days** → **DTR + Accomplishment Report PDFs** → Completed.
+
+- `applicants.spes_form.municipality` (text, Agusan del Sur municipality names from `AGUSAN_DEL_SUR_MUNICIPALITIES`); backfilled from the linked registry address / present address. Required on the SPES form.
+- Draw pool = `Pending` forms whose 5 requirements are all checked **and** have an `applicant_requirement_media` file (`groupSpesDrawPool` in `spesHelper`). Drawn forms are set to `Approved` with a draw remark (`spesService.approveDrawnForms`); the rest stay `Pending`. The draw itself uses `crypto.getRandomValues` client-side.
+- `spes_appointments_days_duration_options`: `days_duration IN (10, 20)` (`NOT VALID` — older rows keep their duration).
+- `esmdd.spes_completion_reports`: `appointment_id` (FK, cascade), `report_type` (`dtr` / `accomplishment_report`, UNIQUE per appointment), `filename`, `path` (documents bucket, uploader's folder), `mime_type` (= `application/pdf`), `size`, `uploaded_by`. Read / written through `spesCompletionReportService` (untyped accessor until `npm run types:gen`).
+- `trg_spes_appointment_guard_completion` rejects `status = 'Completed'` unless both reports exist.
+- RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; the beneficiary reads their own and inserts / replaces / deletes their own while the appointment is `Active`. Storage policy `applicant_spes_completion_report_documents_select` lets them open reports PESO uploaded for them.
+
 ---
 
 ## 9. Schema: `system` — Audit & Notifications

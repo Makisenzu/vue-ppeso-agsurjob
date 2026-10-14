@@ -1,5 +1,6 @@
 import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
@@ -28,8 +29,12 @@ function toFormValues(row: SpesFormRow): typeof INITIAL_VALUES {
   return { status, remarks: row.remarks ?? '' }
 }
 
-/** PESO review dialog — sets the status / remarks on a SPES applicant's form. */
+/**
+ * PESO edit card — sets the status / remarks on a SPES applicant's form after checking the
+ * submitted documents, and links to the full form editor for the applicant's details.
+ */
 export function useSpesApplicantForm() {
+  const router = useRouter()
   const store = useSpesStore()
   const { reviewingForm, isSubmitting, formAttachments, isLoadingAttachments } = storeToRefs(store)
   const { reviewSpesForm, closeReviewDialog } = store
@@ -50,6 +55,13 @@ export function useSpesApplicantForm() {
     if (!open) closeReviewDialog()
   }
 
+  const openEditDetails = () => {
+    const formId = reviewingForm.value?.id
+    if (!formId || isSubmitting.value) return
+    closeReviewDialog()
+    void router.push({ name: 'provincial-peso-spes-applicants-details', params: { id: formId } })
+  }
+
   const submitReview = handleSubmit(async (formValues) => {
     await reviewSpesForm({ status: formValues.status, remarks: formValues.remarks || null })
   })
@@ -62,6 +74,7 @@ export function useSpesApplicantForm() {
     reviewingForm,
     statusOptions: SPES_APPLICANT_STATUSES,
     onReviewDialogOpenChange,
+    openEditDetails,
     submitReview,
   }
 }

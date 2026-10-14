@@ -3,9 +3,22 @@ import { Constants, type Database } from '@/types/database.types'
 type ApplicantsTables = Database['applicants']['Tables']
 type ApplicantsEnums = Database['applicants']['Enums']
 
-export type SpesFormRow = ApplicantsTables['spes_form']['Row']
-export type SpesFormInsert = ApplicantsTables['spes_form']['Insert']
-export type SpesFormUpdate = ApplicantsTables['spes_form']['Update']
+/**
+ * `municipality` comes from migration 016 and is not in database.types.ts until `npm run types:gen`
+ * is re-run against the migrated database; drop the intersections then.
+ */
+type SpesFormMunicipality = { municipality?: string | null }
+
+export type SpesFormRow = ApplicantsTables['spes_form']['Row'] & SpesFormMunicipality
+export type SpesFormInsert = ApplicantsTables['spes_form']['Insert'] & SpesFormMunicipality
+export type SpesFormUpdate = ApplicantsTables['spes_form']['Update'] & SpesFormMunicipality
+
+/**
+ * The generated table payloads. The typed client rejects keys it does not know yet, so services cast
+ * to these when writing; `municipality` is still sent. Remove once types are regenerated.
+ */
+export type SpesFormTableInsert = ApplicantsTables['spes_form']['Insert']
+export type SpesFormTableUpdate = ApplicantsTables['spes_form']['Update']
 
 /** PESO's review of the applicant's form (status / remarks are staff-only, see migration 012). */
 export type SpesApplicationRecord = Pick<SpesFormRow, 'id' | 'status' | 'remarks' | 'created_at' | 'updated_at'>
@@ -60,3 +73,44 @@ export interface SpesDocumentAttachment {
 
 export type SpesDocumentAttachmentMap = Partial<Record<SpesDocumentKey, SpesDocumentAttachment>>
 export type SpesPendingAttachmentMap = Partial<Record<SpesDocumentKey, File>>
+
+// ─── Completion reports (esmdd.spes_completion_reports, migration 016) ───
+
+/** PDFs a beneficiary submits before PESO can mark their SPES appointment Completed. */
+export const SPES_COMPLETION_REPORTS = [
+  { key: 'dtr', label: 'Daily Time Record (DTR)', hint: 'Signed by your supervisor for the whole appointment period' },
+  { key: 'accomplishment_report', label: 'Accomplishment Report', hint: 'Summary of the work you did during SPES' },
+] as const
+
+export type SpesCompletionReportType = (typeof SPES_COMPLETION_REPORTS)[number]['key']
+
+export const SPES_COMPLETION_REPORT_MIME_TYPE = 'application/pdf'
+export const SPES_COMPLETION_REPORT_MAX_BYTES = 10 * 1024 * 1024
+
+/**
+ * `esmdd.spes_completion_reports` row. Declared here until `npm run types:gen` is re-run against
+ * the migrated database; then derive it from `Database['esmdd']['Tables']['spes_completion_reports']`.
+ */
+export interface SpesCompletionReportRow {
+  id: string
+  appointment_id: string
+  report_type: SpesCompletionReportType
+  filename: string
+  path: string
+  mime_type: string
+  size: number | null
+  uploaded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A report with a short-lived signed URL for viewing (null when it could not be created). */
+export type SpesCompletionReport = SpesCompletionReportRow & { url: string | null }
+
+export type SpesCompletionReportMap = Partial<Record<SpesCompletionReportType, SpesCompletionReport>>
+
+/** The applicant's own SPES appointment, as shown on their SPES page. */
+export type SpesOwnAppointment = Pick<
+  Database['esmdd']['Tables']['spes_appointments']['Row'],
+  'id' | 'spes_year' | 'appointment_code' | 'assigned_office' | 'supervisor' | 'days_duration' | 'start_date' | 'end_date' | 'status' | 'decision_notes'
+>

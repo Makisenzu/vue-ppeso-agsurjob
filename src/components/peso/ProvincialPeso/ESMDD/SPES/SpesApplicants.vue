@@ -2,6 +2,7 @@
 import { FlexRender } from '@tanstack/vue-table'
 import { computed } from 'vue'
 import { Loader2, Plus, RefreshCw, Users } from '@lucide/vue'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,9 +32,11 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { useSpesApplicants } from '@/composables/peso/provincialPeso/useSpesApplicants'
 import { useSpesApplicantForm } from '@/composables/peso/provincialPeso/useSpesApplicantForm'
 import SpesRequirementAttachments from '@/components/peso/ProvincialPeso/ESMDD/SPES/SpesRequirementAttachments.vue'
+import SpesRandomizerDialog from '@/components/peso/ProvincialPeso/ESMDD/SPES/SpesRandomizerDialog.vue'
 import {
   formatSpesDate,
   formatSpesFormName,
+  getSpesApplicantStatusBadgeClass,
   getSpesBeneficiaryType,
 } from '@/helpers/peso/provincialPeso/spesHelper'
 
@@ -46,23 +49,24 @@ const {
   isDeleting,
   spesFormToDelete,
   viewingForm,
-  formAttachments,
-  isLoadingAttachments,
   isDeleteDialogOpen,
   isDetailsDialogOpen,
   statusOptions,
+  municipalityOptions,
   refreshApplicants,
   openAddApplicant,
+  openDrawDialog,
   confirmDelete,
 } = useSpesApplicants()
 const {
   isReviewDialogOpen,
-  formAttachments: reviewAttachments,
-  isLoadingAttachments: isLoadingReviewAttachments,
+  formAttachments,
+  isLoadingAttachments,
   isSubmitting,
   reviewingForm,
   statusOptions: reviewStatusOptions,
   onReviewDialogOpenChange,
+  openEditDetails,
   submitReview,
 } = useSpesApplicantForm()
 
@@ -96,13 +100,17 @@ const previousAvailments = computed(() => {
       <div>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">SPES Applicants</h1>
         <p class="text-sm text-muted-foreground">
-          Review students who submitted a SPES application form.
+          Review students who submitted a SPES application form, then draw beneficiaries per municipality from those
+          with complete documents.
         </p>
       </div>
-      <Button @click="openAddApplicant">
-        <Plus class="size-4" />
-        Add Applicant
-      </Button>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <Button variant="outline" @click="openDrawDialog">Draw Applicants</Button>
+        <Button @click="openAddApplicant">
+          <Plus class="size-4" />
+          Add Applicant
+        </Button>
+      </div>
     </div>
 
     <!-- Toolbar -->
@@ -125,6 +133,20 @@ const previousAvailments = computed(() => {
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem v-for="status in statusOptions" :key="status" :value="status">
               {{ status }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          :model-value="(table.getColumn('municipality')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => table.getColumn('municipality')?.setFilterValue(val === 'all' ? undefined : val)"
+        >
+          <SelectTrigger class="w-full sm:w-48">
+            <SelectValue placeholder="Municipality" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Municipalities</SelectItem>
+            <SelectItem v-for="municipality in municipalityOptions" :key="municipality" :value="municipality">
+              {{ municipality }}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -219,66 +241,105 @@ const previousAvailments = computed(() => {
     </template>
   </div>
 
-  <!-- Review Applicant Dialog -->
+  <!-- Edit Applicant Card: review decision + documents, links to the full form editor -->
   <Dialog :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
-    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-      <form class="grid gap-4" @submit="submitReview">
+    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <form class="space-y-6" @submit="submitReview">
         <DialogHeader>
-          <DialogTitle>Review SPES Applicant</DialogTitle>
-          <DialogDescription>Approve or reject this student's SPES application.</DialogDescription>
+          <DialogTitle>{{ formatSpesFormName(reviewingForm) }}</DialogTitle>
+          <DialogDescription>
+            SPES application submitted {{ formatSpesDate(reviewingForm?.created_at) }}.
+          </DialogDescription>
         </DialogHeader>
 
-        <div>
-          <span class="text-xs text-muted-foreground">Applicant</span>
-          <p class="text-sm font-medium">{{ formatSpesFormName(reviewingForm) }}</p>
-        </div>
+        <template v-if="reviewingForm">
+          <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <span class="text-xs text-muted-foreground">Current Status</span>
+              <div class="mt-0.5">
+                <Badge variant="outline" :class="getSpesApplicantStatusBadgeClass(reviewingForm.status)">
+                  {{ reviewingForm.status || 'Pending' }}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Beneficiary Type</span>
+              <p class="text-sm font-medium">{{ getSpesBeneficiaryType(reviewingForm) }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Student Category</span>
+              <p class="text-sm font-medium">{{ reviewingForm.student_category || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Contact Number</span>
+              <p class="text-sm font-medium">{{ reviewingForm.contact_number || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Municipality</span>
+              <p class="text-sm font-medium">{{ reviewingForm.municipality || '—' }}</p>
+            </div>
+          </div>
 
-        <div v-if="reviewingForm" class="space-y-2">
-          <span class="text-xs text-muted-foreground">Submitted documents — open each file to verify it</span>
-          <SpesRequirementAttachments
-            :form="reviewingForm"
-            :attachments="reviewAttachments"
-            :is-loading="isLoadingReviewAttachments"
-          />
-        </div>
+          <Separator />
 
-        <FormField v-slot="{ componentField }" name="status">
-          <FormItem>
-            <FormLabel>Status</FormLabel>
-            <Select v-bind="componentField" :disabled="isSubmitting">
+          <section class="space-y-3">
+            <h2 class="text-base font-semibold">Documentary Requirements</h2>
+            <SpesRequirementAttachments
+              :form="reviewingForm"
+              :attachments="formAttachments"
+              :is-loading="isLoadingAttachments"
+            />
+          </section>
+
+          <Separator />
+        </template>
+
+        <section class="space-y-4">
+          <h2 class="text-base font-semibold">Review Decision</h2>
+
+          <FormField v-slot="{ componentField }" name="status">
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <Select v-bind="componentField" :disabled="isSubmitting">
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="Select a status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="status in reviewStatusOptions" :key="status" :value="status">
+                    {{ status }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ componentField }" name="remarks">
+            <FormItem>
+              <FormLabel>Remarks <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
               <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select a status" />
-                </SelectTrigger>
+                <Textarea v-bind="componentField" rows="3" placeholder="Notes from the review" :disabled="isSubmitting" />
               </FormControl>
-              <SelectContent>
-                <SelectItem v-for="status in reviewStatusOptions" :key="status" :value="status">
-                  {{ status }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </section>
 
-        <FormField v-slot="{ componentField }" name="remarks">
-          <FormItem>
-            <FormLabel>Remarks <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-            <FormControl>
-              <Textarea v-bind="componentField" rows="3" placeholder="Notes from the review" :disabled="isSubmitting" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" :disabled="isSubmitting" @click="onReviewDialogOpenChange(false)">
-            Cancel
+        <DialogFooter class="gap-2 sm:justify-between">
+          <Button type="button" variant="outline" :disabled="isSubmitting" @click="openEditDetails">
+            Edit Details
           </Button>
-          <Button type="submit" :disabled="isSubmitting">
-            <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
-            {{ isSubmitting ? 'Saving...' : 'Save Review' }}
-          </Button>
+          <div class="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button type="button" variant="outline" :disabled="isSubmitting" @click="onReviewDialogOpenChange(false)">
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isSubmitting">
+              <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+              {{ isSubmitting ? 'Saving...' : 'Save Review' }}
+            </Button>
+          </div>
         </DialogFooter>
       </form>
     </DialogContent>
@@ -288,7 +349,12 @@ const previousAvailments = computed(() => {
   <Dialog v-model:open="isDetailsDialogOpen">
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>{{ formatSpesFormName(viewingForm) }}</DialogTitle>
+        <div class="flex flex-wrap items-center gap-2 pr-8">
+          <DialogTitle>{{ formatSpesFormName(viewingForm) }}</DialogTitle>
+          <Badge v-if="viewingForm" variant="outline" :class="getSpesApplicantStatusBadgeClass(viewingForm.status)">
+            {{ viewingForm.status || 'Pending' }}
+          </Badge>
+        </div>
         <DialogDescription>
           SPES application form submitted {{ formatSpesDate(viewingForm?.created_at) }}.
         </DialogDescription>
@@ -331,6 +397,10 @@ const previousAvailments = computed(() => {
             <div>
               <span class="text-xs text-muted-foreground">Email</span>
               <p class="text-sm font-medium break-all">{{ viewingForm.email_address || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Municipality</span>
+              <p class="text-sm font-medium">{{ viewingForm.municipality || '—' }}</p>
             </div>
             <div class="sm:col-span-2">
               <span class="text-xs text-muted-foreground">Present Address</span>
@@ -381,16 +451,6 @@ const previousAvailments = computed(() => {
           </div>
         </section>
 
-        <Separator />
-
-        <section class="space-y-3">
-          <h2 class="text-base font-semibold">Documentary Requirements</h2>
-          <SpesRequirementAttachments
-            :form="viewingForm"
-            :attachments="formAttachments"
-            :is-loading="isLoadingAttachments"
-          />
-        </section>
 
         <template v-if="viewingForm.special_skills.length || previousAvailments.length || viewingForm.other_dole_interventions">
           <Separator />
@@ -415,17 +475,11 @@ const previousAvailments = computed(() => {
             </div>
           </section>
         </template>
-
-        <template v-if="viewingForm.remarks">
-          <Separator />
-          <section class="space-y-1">
-            <h2 class="text-base font-semibold">Review Remarks</h2>
-            <p class="text-sm whitespace-pre-line">{{ viewingForm.remarks }}</p>
-          </section>
-        </template>
       </div>
     </DialogContent>
   </Dialog>
+
+  <SpesRandomizerDialog />
 
   <!-- Delete Confirmation -->
   <AlertDialog v-model:open="isDeleteDialogOpen">

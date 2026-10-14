@@ -9,6 +9,7 @@ import type {
 } from '@/types/peso/provincialPeso/applicantEntry'
 import type { GipApplicantInsert, GipApplicantRow } from '@/types/peso/provincialPeso/gip'
 import type { SpesFormRow } from '@/types/peso/provincialPeso/spes'
+import type { SpesFormTableInsert, SpesFormTableUpdate } from '@/types/common/spesForm'
 import { invalidateGipCaches } from '@/helpers/peso/provincialPeso/gipHelper'
 import { buildSpesFormPrefill, pickBlankSpesFields } from '@/helpers/peso/provincialPeso/spesHelper'
 
@@ -159,7 +160,7 @@ export const applicantEntryService = {
       }
       if (Object.keys(patch).length === 0) return { id: existing.id }
 
-      const { error } = await supabase.schema('applicants').from('spes_form').update(patch).eq('id', existing.id)
+      const { error } = await supabase.schema('applicants').from('spes_form').update(patch as SpesFormTableUpdate).eq('id', existing.id)
       if (error) {
         console.error('[applicantEntryService] Failed to update applicants.spes_form:', error.message)
         throw new Error(error.message || 'Failed to update the SPES application form')
@@ -170,7 +171,7 @@ export const applicantEntryService = {
     const { data, error } = await supabase
       .schema('applicants')
       .from('spes_form')
-      .insert({ ...prefill, applicant_id: applicant.id, profile_id: applicant.profile_id })
+      .insert({ ...prefill, applicant_id: applicant.id, profile_id: applicant.profile_id } as SpesFormTableInsert)
       .select('id')
       .single()
 

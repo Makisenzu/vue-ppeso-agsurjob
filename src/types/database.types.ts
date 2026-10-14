@@ -101,6 +101,7 @@ export type Database = {
           profile_id: string | null
           remarks: string | null
           requirement_id: number | null
+          spes_form_id: string | null
           status: Database["core"]["Enums"]["status_type"] | null
           updated_at: string | null
         }
@@ -110,6 +111,7 @@ export type Database = {
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
+          spes_form_id?: string | null
           status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
@@ -119,10 +121,19 @@ export type Database = {
           profile_id?: string | null
           remarks?: string | null
           requirement_id?: number | null
+          spes_form_id?: string | null
           status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "applicant_requirements_spes_form_id_fkey"
+            columns: ["spes_form_id"]
+            isOneToOne: false
+            referencedRelation: "spes_form"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       applicant_skill_media: {
         Row: {
@@ -1598,6 +1609,71 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      spes_appointments: {
+        Row: {
+          appointment_code: string
+          assigned_office: string
+          created_at: string
+          daily_wage: number | null
+          days_duration: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          end_date: string
+          id: string
+          spes_id: string
+          spes_year: number
+          start_date: string
+          status: string
+          supervisor: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_code: string
+          assigned_office: string
+          created_at?: string
+          daily_wage?: number | null
+          days_duration: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          end_date: string
+          id?: string
+          spes_id: string
+          spes_year: number
+          start_date: string
+          status?: string
+          supervisor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_code?: string
+          assigned_office?: string
+          created_at?: string
+          daily_wage?: number | null
+          days_duration?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          end_date?: string
+          id?: string
+          spes_id?: string
+          spes_year?: number
+          start_date?: string
+          status?: string
+          supervisor?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spes_appointments_spes_id_fkey"
+            columns: ["spes_id"]
+            isOneToOne: false
+            referencedRelation: "spes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -37,6 +37,9 @@ Every component, page, and interaction must follow these principles. They are **
 >
 > If the answer to all three is "no", **do not add it**.
 
+> [!NOTE]
+> Design **taste skills** are installed for public-facing and marketing work. See **Section 17** for when to use them and how they yield to this document.
+
 ---
 
 ## 2. Color System — oklch Design Tokens
@@ -628,3 +631,59 @@ Not all information needs to be visible at once. Use installed shadcn-vue compon
 
 > [!CAUTION]
 > **Every UI decision must be justifiable by a UX principle from Section 1.1.** If you cannot explain which principle a visual element serves, remove it.
+
+---
+
+## 17. Taste Skills — Art Direction for Public-Facing Pages
+
+The **taste-skill** pack ([`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill)) is installed as agent skills. These skills give art direction and catch "AI-made" generic output. They were written for marketing sites, **not** for this app's dashboards, so they are **scoped and subordinate to this document**.
+
+### 17.1 Installation
+
+```bash
+npx skills add Leonxlnx/taste-skill
+```
+
+Skills install globally to `~/.agents/skills/` (symlinked into `~/.claude/skills/`). They are **not committed to this repo**. Each developer or agent environment must run the command above.
+
+### 17.2 Installed Skills & When to Use Them
+
+| Skill                     | Purpose                                                                                                   | Use In AGSURJOBS For                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `design-taste-frontend`   | tasteskill v2. Researched art directions, a strict no-slop house style, and a screenshot look-and-fix loop | Public landing page, `AuthLayout` pages (login/signup), program info pages (GIP, SPES, Job Fair promos) |
+| `high-end-visual-design`  | Agency-level spacing, shadows, card structure, and motion guidance                                        | Spacing and polish ideas for public pages only. Not used for its font, icon, or navbar rules            |
+| `gpt-taste`               | Layout variance, AIDA page structure, GSAP scroll motion                                                  | AIDA structure for a public landing page only. **Do not add GSAP** (see 17.4)                           |
+| `brandkit`                | Brand-guidelines boards and logo system **image generation**                                              | AGSURJOBS / PESO branding visuals and presentation boards. Does not produce code                        |
+| `imagegen-frontend-web`   | One design-reference **image** per page section                                                           | Mockup references before building a public page. Does not produce code                                  |
+
+### 17.3 Scope — Where Taste Skills Do NOT Apply
+
+> [!CAUTION]
+> **Do NOT invoke taste skills for authenticated app screens.** This includes everything under `/admin`, `/app`, `/employer`, `/provincial-peso`, and `/municipal-peso`: dashboards, data tables, forms, dialogs, sheets, steppers, and sidebars. Those screens follow Sections 1–16 only. Section 1.1 ("Consistency over creativity") wins there.
+
+### 17.4 Conflict Resolution — This Document Always Wins
+
+When a taste skill rule conflicts with DESIGN.md or AGENTS.md, **the project rule wins**. Known conflicts:
+
+| Taste Skill Says                                                    | AGSURJOBS Rule (Overrides)                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Ban Lucide; use Phosphor / Remix icons                              | **Lucide only** (Section 6)                                                                |
+| Use Geist / Satoshi / Clash Display / serif display fonts           | **Nunito Sans only** (Section 3)                                                           |
+| Use GSAP / ScrollTrigger                                             | **`@vueuse/motion`, `tw-animate-css`, Vue `<transition>` only.** No new animation libraries |
+| Hex values (`#050505`, `#FDFBF7`), raw `rgba()` shadows             | **Semantic `oklch` tokens only** (Section 2). Add new tokens to `src/style.css` if needed  |
+| `style={{ backgroundImage }}` inline styles, `<style>` blocks       | **Tailwind utilities only**, no inline styles (Section 15)                                 |
+| Custom pill buttons, double-bezel cards built from scratch          | **Compose shadcn-vue primitives** (`Button`, `Card`) with Tailwind classes (Section 5.1)    |
+| Floating pill navbar, avoid sticky edge-to-edge headers             | App shells keep the sticky header in Section 7. Public pages may vary                      |
+| React / JSX examples (`className`, `@gsap/react`)                   | Translate to **Vue 3 `<script setup lang="ts">`** and `class`                              |
+| Dark-only or light-only palettes                                    | **Must work in both modes** (Section 8)                                                    |
+| `scripts/assets.mjs` external images                                | Store and serve images through the project's media/storage services (see BACKEND.md). Credit sources |
+
+### 17.5 What to Take From Them
+
+Even within the project's constraints, these skill ideas are worth using on public pages:
+
+- **Subject-first concepts.** Ground visuals in Agusan del Sur itself: its municipalities, its PESO programs, and real program numbers. Avoid generic "job portal" imagery.
+- **No-slop checks.** Avoid centered hero + three icon cards + soft gradient defaults, meaningless eyebrow labels ("SECTION 01"), and dead cells in bento grids (use `grid-flow-dense`).
+- **Hero headings limited to 2–3 lines.** Use wide containers.
+- **Look-and-fix loop.** Screenshot at mobile, tablet, and desktop widths in both themes, then fix and re-check.
+- **Reduced motion.** Respect `prefers-reduced-motion` for any entrance or scroll animation.

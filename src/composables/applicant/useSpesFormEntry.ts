@@ -7,17 +7,29 @@ import {
   buildSpesFormPayload,
   calculateSpesAge,
   createEmptySpesFormValues,
+  matchSpesMunicipality,
   toSpesFormValues,
   type SpesFormDraft,
 } from '@/helpers/common/spesFormHelper'
-import { SPES_CIVIL_STATUS_OPTIONS, SPES_SEX_OPTIONS } from '@/types/common/spesForm'
+import { SPES_CIVIL_STATUS_OPTIONS, SPES_SEX_OPTIONS, type SpesCompletionReportType } from '@/types/common/spesForm'
 
 export function useSpesFormEntry() {
   const authStore = useAuthStore()
   const { user, applicantProfile } = storeToRefs(authStore)
   const store = useSpesFormStore()
-  const { myForm, attachments, applicationRecord, isLoading, isSubmitting, errorMessage, isLocked } = storeToRefs(store)
-  const { fetchMyForm, saveForm } = store
+  const {
+    myForm,
+    attachments,
+    applicationRecord,
+    isLoading,
+    isSubmitting,
+    errorMessage,
+    isLocked,
+    currentAppointment,
+    completionReports,
+    busyReportType,
+  } = storeToRefs(store)
+  const { fetchMyForm, saveForm, uploadCompletionReport, removeCompletionReport } = store
 
   // Applicants must back every checked requirement with an image / PDF
   const form = useSpesFormSteps({ requireAttachments: true })
@@ -38,8 +50,16 @@ export function useSpesFormEntry() {
       ? SPES_CIVIL_STATUS_OPTIONS.find((option) => option.toLowerCase() === applicant.civil_status!.toLowerCase())
       : undefined
 
+    // Read through `unknown`: the unwrapped Json type of `address` is too deep for TS to compare
+    const rawAddress = (applicant as { address?: unknown }).address
+    const address = (rawAddress && typeof rawAddress === 'object' ? rawAddress : {}) as Record<string, unknown>
+    const municipality = matchSpesMunicipality(
+      String(address.city_municipality ?? address.municipality ?? address.city ?? '')
+    )
+
     return {
       ...base,
+      municipality: municipality ?? undefined,
       surname: applicant.surname ?? '',
       first_name: applicant.first_name ?? '',
       middle_name: applicant.middle_name ?? '',
@@ -72,9 +92,26 @@ export function useSpesFormEntry() {
     }
   })
 
+  // ─── Appointment & completion reports (DTR / Accomplishment Report) ───
+  /** Reports can be sent while the appointment runs; afterwards they are read-only. */
+  const canSubmitReports = computed(() => currentAppointment.value?.status === 'Active')
+
+  const onReportPicked = (type: SpesCompletionReportType, file: File) => {
+    if (profileId.value) void uploadCompletionReport(profileId.value, type, file)
+  }
+  const onReportRemoved = (type: SpesCompletionReportType) => {
+    void removeCompletionReport(type)
+  }
+
   return {
     form,
     applicationRecord,
+    currentAppointment,
+    completionReports,
+    busyReportType,
+    canSubmitReports,
+    onReportPicked,
+    onReportRemoved,
     isLoading,
     isSubmitting,
     errorMessage,

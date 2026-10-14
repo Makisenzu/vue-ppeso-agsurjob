@@ -106,6 +106,47 @@ async function upsertRequirement(formId: string, profileId: string | null, requi
 }
 
 export const spesAttachmentService = {
+  /**
+   * Storage paths of every file attached to a SPES form. Read them before deleting the form:
+   * its requirement and media rows cascade away with it, leaving the files unreferenced.
+   */
+  async fetchFilePaths(formId: string): Promise<string[]> {
+    const requirements = await fetchFormRequirements(formId)
+    const media = await fetchMediaRows(requirements.map((r) => r.id))
+    return media.flatMap((m) => (m.path ? [m.path] : []))
+  },
+
+  /** Removes files from the documents bucket (best effort — see removeStorageFiles). */
+  removeFiles: removeStorageFiles,
+
+  /**
+   * Requirements that have a file attached, per SPES form — used to find the applicants whose
+   * 5 documents are complete (the randomizer draw pool) without creating signed URLs.
+   */
+  async fetchAttachedKeysByForm(formIds: string[]): Promise<Record<string, SpesDocumentKey[]>> {
+    const ids = [...new Set(formIds)]
+    if (!ids.length) return {}
+
+    const templateIds = await fetchTemplateIds()
+    const keyByTemplateId = new Map([...templateIds].map(([key, id]) => [id, key]))
+
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicant_requirements')
+      .select('spes_form_id, requirement_id, applicant_requirement_media(id)')
+      .in('spes_form_id', ids)
+
+    if (error) throw new Error(error.message || 'Failed to load the SPES requirement attachments.')
+
+    const attached: Record<string, SpesDocumentKey[]> = {}
+    for (const row of data ?? []) {
+      const key = row.requirement_id ? keyByTemplateId.get(row.requirement_id) : undefined
+      if (!row.spes_form_id || !key || !row.applicant_requirement_media?.length) continue
+      attached[row.spes_form_id] = [...(attached[row.spes_form_id] ?? []), key]
+    }
+    return attached
+  },
+
   /** Latest attachment per checked requirement of a SPES form, with signed URLs for viewing. */
   async fetchAttachments(formId: string): Promise<SpesDocumentAttachmentMap> {
     const [templateIds, requirements] = await Promise.all([fetchTemplateIds(), fetchFormRequirements(formId)])

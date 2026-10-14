@@ -1,11 +1,24 @@
-import { format, parseISO } from 'date-fns'
-import type { SpesBeneficiaryType, SpesFormInsert, SpesFormRow } from '@/types/peso/provincialPeso/spes'
+import { addBusinessDays, differenceInCalendarDays, format, isWeekend, nextMonday, parseISO, startOfToday } from 'date-fns'
+import type {
+  SpesAppointmentRow,
+  SpesAppointmentTiming,
+  SpesBeneficiaryType,
+  SpesDrawCandidate,
+  SpesDrawMunicipality,
+  SpesFormInsert,
+  SpesFormRow,
+} from '@/types/peso/provincialPeso/spes'
 import type { ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 import {
   SPES_CIVIL_STATUS_OPTIONS,
+  SPES_COMPLETION_REPORTS,
+  SPES_DOCUMENT_REQUIREMENTS,
   SPES_SEX_OPTIONS,
   type SpesCivilStatus,
+  type SpesCompletionReportMap,
+  type SpesDocumentKey,
 } from '@/types/common/spesForm'
+import { matchSpesMunicipality } from '@/helpers/common/spesFormHelper'
 import {
   formatAddressString,
   parseApplicantAddress,
@@ -29,6 +42,8 @@ const SPES_STATUS_BADGE_CLASS: Record<string, string> = {
   active: 'bg-success/10 text-success border-success/30',
   completed: 'bg-info/10 text-info border-info/30',
   terminated: 'bg-destructive/10 text-destructive border-destructive/30',
+  'expiring soon': 'bg-warning/10 text-warning border-warning/30',
+  expired: 'bg-destructive/10 text-destructive border-destructive/30',
 }
 
 export function getSpesStatusBadgeClass(status?: string | null): string {
@@ -79,6 +94,51 @@ export function formatSpesDays(value?: string | null): string {
   return /^\d+$/.test(value.trim()) ? `${value.trim()} days` : value
 }
 
+export function formatSpesWage(value?: number | null): string {
+  if (value == null) return '—'
+  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day`
+}
+
+// ─── Appointments (esmdd.spes_appointments) ───
+
+/** Days before end_date at which an Active SPES appointment is flagged "Expiring Soon". */
+export const SPES_EXPIRING_SOON_DAYS = 7
+
+/**
+ * Date-derived state of an appointment, like calculateAppointmentStatus for GIP:
+ * a concluded appointment keeps its stored status, an Active one becomes
+ * "Expiring Soon" / "Expired" as its end date approaches / passes.
+ */
+export function getSpesAppointmentTiming(appointment: Pick<SpesAppointmentRow, 'status' | 'end_date'>): SpesAppointmentTiming {
+  if (appointment.status !== 'Active') {
+    return { displayStatus: appointment.status, daysRemaining: null, isExpiringSoon: false, isExpired: false }
+  }
+
+  const end = parseISO(appointment.end_date)
+  if (Number.isNaN(end.getTime())) {
+    return { displayStatus: 'Active', daysRemaining: null, isExpiringSoon: false, isExpired: false }
+  }
+
+  const daysRemaining = differenceInCalendarDays(end, startOfToday())
+  if (daysRemaining < 0) return { displayStatus: 'Expired', daysRemaining, isExpiringSoon: false, isExpired: true }
+  if (daysRemaining <= SPES_EXPIRING_SOON_DAYS) {
+    return { displayStatus: 'Expiring Soon', daysRemaining, isExpiringSoon: true, isExpired: false }
+  }
+  return { displayStatus: 'Active', daysRemaining, isExpiringSoon: false, isExpired: false }
+}
+
+/** "SPES-2026-AB12" — unique per beneficiary and year, matching the migration backfill. */
+export function generateSpesAppointmentCode(spesYear: number, spesId: string): string {
+  return `SPES-${spesYear}-${spesId.slice(0, 4).toUpperCase()}`
+}
+
+/** Calendar days from start to end date, inclusive; null when either date is missing or invalid. */
+export function countSpesCalendarDays(startDate?: string | null, endDate?: string | null): number | null {
+  if (!startDate || !endDate) return null
+  const days = differenceInCalendarDays(parseISO(endDate), parseISO(startDate)) + 1
+  return Number.isNaN(days) ? null : days
+}
+
 /** Documentary requirements checklist from the SPES form, in display order. */
 export function getSpesDocumentChecklist(form: SpesFormRow): { label: string; submitted: boolean }[] {
   return [
@@ -88,6 +148,90 @@ export function getSpesDocumentChecklist(form: SpesFormRow): { label: string; su
     { label: 'Registrar certification', submitted: form.has_registrar_certification },
     { label: 'OSY certification', submitted: form.has_osy_certification },
   ]
+}
+
+/** Last working day (Mon–Fri) of an appointment of `days` working days starting on `startDate`. */
+export function computeSpesEndDate(startDate?: string | null, days?: number | null): string | null {
+  if (!startDate || !days || days < 1) return null
+  const start = parseISO(startDate)
+  if (Number.isNaN(start.getTime())) return null
+  const firstWorkingDay = isWeekend(start) ? nextMonday(start) : start
+  return format(addBusinessDays(firstWorkingDay, days - 1), 'yyyy-MM-dd')
+}
+
+// ─── Randomizer draw (per municipality) ───
+
+/**
+ * A form is drawable once all 5 documentary requirements are checked and each has a file
+ * attached (`attachedKeys` = requirements with an `applicant_requirement_media` row).
+ */
+export function hasCompleteSpesDocuments(form: SpesFormRow, attachedKeys: readonly SpesDocumentKey[] = []): boolean {
+  return SPES_DOCUMENT_REQUIREMENTS.every((doc) => form[doc.key] && attachedKeys.includes(doc.key))
+}
+
+/** Label used for forms whose municipality has not been filled in. */
+export const SPES_UNSPECIFIED_MUNICIPALITY = 'Municipality not set'
+
+/** Pending applicants with complete documents, grouped by municipality (alphabetical, unspecified last). */
+export function groupSpesDrawPool(
+  forms: SpesFormRow[],
+  attachedKeysByForm: Record<string, SpesDocumentKey[]>
+): SpesDrawMunicipality[] {
+  const groups = new Map<string, SpesDrawCandidate[]>()
+  for (const form of forms) {
+    if ((form.status ?? 'Pending').toLowerCase() !== 'pending') continue
+    if (!hasCompleteSpesDocuments(form, attachedKeysByForm[form.id])) continue
+    const municipality = form.municipality?.trim() || SPES_UNSPECIFIED_MUNICIPALITY
+    groups.set(municipality, [...(groups.get(municipality) ?? []), { form, name: formatSpesFormName(form) }])
+  }
+  return [...groups]
+    .map(([municipality, candidates]) => ({
+      municipality,
+      candidates: candidates.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => {
+      if (a.municipality === SPES_UNSPECIFIED_MUNICIPALITY) return 1
+      if (b.municipality === SPES_UNSPECIFIED_MUNICIPALITY) return -1
+      return a.municipality.localeCompare(b.municipality)
+    })
+}
+
+/** Uniform random integer in [0, max) from the Web Crypto API (no modulo bias). */
+export function secureRandomIndex(max: number): number {
+  if (max <= 1) return 0
+  const limit = Math.floor(0x100000000 / max) * max
+  const buffer = new Uint32Array(1)
+  do {
+    crypto.getRandomValues(buffer)
+  } while (buffer[0]! >= limit)
+  return buffer[0]! % max
+}
+
+/** `count` distinct random picks from `pool` (partial Fisher–Yates), in the order they were drawn. */
+export function drawRandomSpesCandidates<T>(pool: readonly T[], count: number, randomIndex = secureRandomIndex): T[] {
+  const remaining = [...pool]
+  const picks: T[] = []
+  while (picks.length < count && remaining.length) {
+    const [picked] = remaining.splice(randomIndex(remaining.length), 1)
+    picks.push(picked!)
+  }
+  return picks
+}
+
+/** Remark stored on a form approved through the randomizer. */
+export function buildSpesDrawRemark(municipality: string, drawnAt: Date = new Date()): string {
+  return `Selected through the SPES randomizer draw for ${municipality} on ${format(drawnAt, 'MMM d, yyyy h:mm a')}.`
+}
+
+// ─── Completion reports ───
+
+/** Both the DTR and the Accomplishment Report have been submitted. */
+export function hasAllSpesCompletionReports(reports?: SpesCompletionReportMap | null): boolean {
+  return SPES_COMPLETION_REPORTS.every((report) => !!reports?.[report.key])
+}
+
+export function countSpesCompletionReports(reports?: SpesCompletionReportMap | null): number {
+  return SPES_COMPLETION_REPORTS.filter((report) => !!reports?.[report.key]).length
 }
 
 // ─── Applicant registry → SPES form ───
@@ -142,7 +286,9 @@ export function buildSpesFormPrefill(applicant: ApplicantRow): SpesFormPrefill {
 
   // parseApplicantAddress fills defaults for missing parts, so only format a real address
   if (applicant.address && typeof applicant.address === 'object' && Object.keys(applicant.address).length > 0) {
-    prefill.present_address = formatAddressString(parseApplicantAddress(applicant.address))
+    const address = parseApplicantAddress(applicant.address)
+    prefill.present_address = formatAddressString(address)
+    prefill.municipality = matchSpesMunicipality(address.municipality)
   }
 
   // The most recent entry per level wins

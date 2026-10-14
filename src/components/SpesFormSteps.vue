@@ -6,7 +6,6 @@ import {
   Check,
   CheckCircle2,
   ExternalLink,
-  FileText,
   Loader2,
   RefreshCw,
   Upload,
@@ -78,6 +77,7 @@ const {
   sexOptions,
   civilStatusOptions,
   studentCategoryOptions,
+  municipalityOptions,
   parentsStatusOptions,
   educationLevels,
   availmentSlots,
@@ -396,6 +396,22 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
               </FormField>
 
               <Separator />
+
+              <FormField v-slot="{ componentField }" name="municipality">
+                <FormItem>
+                  <FormLabel>Municipality / City <span class="text-destructive">*</span></FormLabel>
+                  <Select v-bind="componentField" :disabled="isDisabled">
+                    <FormControl>
+                      <SelectTrigger class="w-full sm:w-72"><SelectValue placeholder="Select a municipality" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem v-for="option in municipalityOptions" :key="option" :value="option">{{ option }}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>SPES slots are filled per municipality in Agusan del Sur.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
               <FormField v-slot="{ componentField }" name="present_address">
                 <FormItem>
@@ -761,7 +777,11 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
                     {{ [values.contact_number, values.email_address].filter(Boolean).join(' · ') || '—' }}
                   </p>
                 </div>
-                <div class="sm:col-span-2">
+                <div>
+                  <span class="text-xs text-muted-foreground">Municipality / City</span>
+                  <p class="text-sm font-medium">{{ values.municipality || '—' }}</p>
+                </div>
+                <div>
                   <span class="text-xs text-muted-foreground">Present Address</span>
                   <p class="text-sm font-medium">{{ values.present_address || '—' }}</p>
                 </div>

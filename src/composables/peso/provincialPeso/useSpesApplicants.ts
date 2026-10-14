@@ -9,7 +9,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ArrowUpDown, ClipboardCheck } from '@lucide/vue'
+import { ArrowUpDown } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
@@ -30,8 +30,7 @@ import { SPES_APPLICANT_STATUSES, type SpesFormRow } from '@/types/peso/provinci
 export function useSpesApplicants() {
   const router = useRouter()
   const store = useSpesStore()
-  const { spesForms, isLoadingForms, formsError, isDeleting, spesFormToDelete, viewingForm, formAttachments, isLoadingAttachments } =
-    storeToRefs(store)
+  const { spesForms, isLoadingForms, formsError, isDeleting, spesFormToDelete, viewingForm } = storeToRefs(store)
   const {
     fetchSpesForms,
     openReviewDialog,
@@ -40,11 +39,10 @@ export function useSpesApplicants() {
     deleteSpesForm,
     openApplicantDetails,
     closeApplicantDetails,
+    openDrawDialog,
   } = store
 
   const openAddApplicant = () => router.push({ name: 'provincial-peso-spes-applicants-new' })
-  const openEditApplicant = (row: SpesFormRow) =>
-    router.push({ name: 'provincial-peso-spes-applicants-details', params: { id: row.id } })
 
   const sorting = ref<SortingState>([{ id: 'created_at', desc: true }])
   const columnFilters = ref<ColumnFiltersState>([])
@@ -69,6 +67,13 @@ export function useSpesApplicants() {
             ? h('div', { class: 'text-xs text-muted-foreground' }, row.original.email_address)
             : null,
         ]),
+    },
+    {
+      id: 'municipality',
+      accessorFn: (row) => row.municipality ?? '',
+      header: sortableHeader('Municipality'),
+      filterFn: 'equalsString',
+      cell: ({ getValue }) => h('div', { class: 'whitespace-nowrap text-sm' }, (getValue() as string) || '—'),
     },
     {
       id: 'student_category',
@@ -115,27 +120,14 @@ export function useSpesApplicants() {
       id: 'actions',
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
+      // Edit opens the review card (status, remarks, documents); it links on to the full form editor
       cell: ({ row }) =>
-        h('div', { class: 'flex items-center justify-end gap-1' }, [
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class: 'size-8',
-              title: 'Review',
-              'aria-label': 'Review',
-              onClick: () => openReviewDialog(row.original),
-            },
-            () => h(ClipboardCheck, { class: 'size-4' })
-          ),
-          renderRowActions({
-            onView: () => openApplicantDetails(row.original),
-            viewLabel: 'View SPES form',
-            onEdit: () => openEditApplicant(row.original),
-            onDelete: () => requestDeleteSpesForm(row.original),
-          }),
-        ]),
+        renderRowActions({
+          onView: () => openApplicantDetails(row.original),
+          viewLabel: 'View SPES form',
+          onEdit: () => openReviewDialog(row.original),
+          onDelete: () => requestDeleteSpesForm(row.original),
+        }),
     },
   ]
 
@@ -174,6 +166,11 @@ export function useSpesApplicants() {
     },
   })
 
+  /** Municipalities that appear on the forms, for the table filter. */
+  const municipalityOptions = computed(() =>
+    [...new Set(spesForms.value.map((form) => form.municipality?.trim()).filter((m): m is string => !!m))].sort()
+  )
+
   const refreshApplicants = () => fetchSpesForms()
 
   onMounted(() => {
@@ -189,11 +186,11 @@ export function useSpesApplicants() {
     isDeleting,
     spesFormToDelete,
     viewingForm,
-    formAttachments,
-    isLoadingAttachments,
     isDeleteDialogOpen,
     isDetailsDialogOpen,
     statusOptions: SPES_APPLICANT_STATUSES,
+    municipalityOptions,
+    openDrawDialog,
     refreshApplicants,
     openAddApplicant,
     confirmDelete: deleteSpesForm,

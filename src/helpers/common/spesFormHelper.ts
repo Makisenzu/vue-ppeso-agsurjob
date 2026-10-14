@@ -1,4 +1,4 @@
-import { differenceInYears, isValid, parseISO } from 'date-fns'
+import { differenceInYears, format, isValid, parseISO } from 'date-fns'
 import * as z from 'zod'
 import {
   SPES_CIVIL_STATUS_OPTIONS,
@@ -8,6 +8,23 @@ import {
   type SpesFormInsert,
   type SpesFormRow,
 } from '@/types/common/spesForm'
+import { AGUSAN_DEL_SUR_MUNICIPALITIES } from '@/helpers/common/mapboxHelpers'
+
+/** Agusan del Sur municipalities an applicant can belong to — the randomizer draws per municipality. */
+export const SPES_MUNICIPALITY_OPTIONS: readonly string[] = AGUSAN_DEL_SUR_MUNICIPALITIES.map((entry) => entry.municipality)
+
+const normalizeMunicipality = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/city of|city|municipality of/g, '')
+    .replace(/[^a-z]/g, '')
+
+/** The municipality option named in free text (an address or registry value), or null when none matches. */
+export function matchSpesMunicipality(text?: string | null): string | null {
+  const haystack = normalizeMunicipality(text ?? '')
+  if (!haystack) return null
+  return SPES_MUNICIPALITY_OPTIONS.find((option) => haystack.includes(normalizeMunicipality(option))) ?? null
+}
 
 const optionalText = z.string().trim().max(255, 'Must be 255 characters or fewer.').optional()
 const contactNumber = z
@@ -38,6 +55,9 @@ export const spesFormSchema = z.object({
   sex: z.enum(SPES_SEX_OPTIONS, { message: 'Select your sex.' }),
   student_category: z.enum(SPES_STUDENT_CATEGORY_OPTIONS, { message: 'Select your student category.' }),
   parents_status: z.array(z.enum(SPES_PARENTS_STATUS_OPTIONS)),
+  municipality: z
+    .string({ message: 'Select your municipality.' })
+    .refine((value) => SPES_MUNICIPALITY_OPTIONS.includes(value), 'Select your municipality.'),
   present_address: z.string().trim().min(1, 'Present address is required.'),
   permanent_address: optionalText,
 
@@ -95,8 +115,8 @@ export type SpesFormValues = z.infer<typeof spesFormSchema>
 export type SpesFormField = keyof SpesFormValues
 
 /** Form state before validation: required selects may still be unset. */
-export type SpesFormDraft = Omit<SpesFormValues, 'sex' | 'student_category'> &
-  Partial<Pick<SpesFormValues, 'sex' | 'student_category'>>
+export type SpesFormDraft = Omit<SpesFormValues, 'sex' | 'student_category' | 'municipality'> &
+  Partial<Pick<SpesFormValues, 'sex' | 'student_category' | 'municipality'>>
 
 const SPES_FORM_FIELDS = Object.keys(spesFormSchema.shape) as SpesFormField[]
 
@@ -110,6 +130,7 @@ export function createEmptySpesFormValues(): SpesFormDraft {
     civil_status: undefined,
     sex: undefined,
     student_category: undefined,
+    municipality: undefined,
     parents_status: [],
     special_skills: [],
     has_birth_certificate: false,
@@ -165,7 +186,7 @@ export const SPES_FORM_STEP_FIELDS: Record<number, SpesFormField[]> = {
   1: [
     'surname', 'first_name', 'middle_name', 'date_of_birth', 'age', 'place_of_birth', 'sex', 'civil_status',
     'citizenship', 'contact_number', 'email_address', 'social_media_account', 'gsis_beneficiary_relationship',
-    'student_category', 'parents_status', 'present_address', 'permanent_address',
+    'student_category', 'parents_status', 'municipality', 'present_address', 'permanent_address',
   ],
   2: ['father_name', 'father_contact_no', 'father_occupation', 'mother_maiden_name', 'mother_contact_no', 'mother_occupation'],
   3: SPES_FORM_FIELDS.filter((key) => /^(elementary|secondary|tertiary|techvoc)_/.test(key)),
@@ -181,4 +202,11 @@ const APPLICATION_STATUS_BADGE_CLASS: Record<string, string> = {
 
 export function getSpesApplicationStatusBadgeClass(status?: string | null): string {
   return APPLICATION_STATUS_BADGE_CLASS[(status || '').toLowerCase()] ?? 'bg-muted text-muted-foreground border-border'
+}
+
+/** "MMM d, yyyy", or an em dash when the date is missing or invalid. */
+export function formatSpesFormDate(value?: string | null): string {
+  if (!value) return '—'
+  const date = parseISO(value)
+  return isValid(date) ? format(date, 'MMM d, yyyy') : '—'
 }

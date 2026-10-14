@@ -1,4 +1,4 @@
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/vue-table'
 import {
@@ -8,37 +8,68 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ArrowUpDown } from '@lucide/vue'
+import { ArrowUpDown, CircleCheck, FileCheck, History, Pencil, Trash2 } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSpesStore } from '@/stores/peso/provincialPeso/spesStore'
 import {
+  countSpesCompletionReports,
   formatSpesDate,
-  formatSpesDays,
   formatSpesFormName,
-  getSpesEducationSummary,
+  getSpesAppointmentTiming,
   getSpesStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/spesHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
-import { SPES_STATUSES, type SpesWithApplicant } from '@/types/peso/provincialPeso/spes'
+import type { SpesAppointmentDisplayStatus, SpesAppointmentEntry } from '@/types/peso/provincialPeso/spes'
+import { SPES_COMPLETION_REPORTS, type SpesCompletionReportType } from '@/types/common/spesForm'
+
+const DISPLAY_STATUS_OPTIONS: SpesAppointmentDisplayStatus[] = [
+  'Active',
+  'Expiring Soon',
+  'Expired',
+  'Completed',
+  'Terminated',
+]
 
 export function useSpesBeneficiaries() {
   const store = useSpesStore()
-  const { spesBeneficiaries, spesForms, isLoadingBeneficiaries, beneficiariesError, isDeleting, spesToDelete } =
-    storeToRefs(store)
+  const {
+    spesForms,
+    yearAppointments,
+    selectedYear,
+    availableYears,
+    historyBeneficiary,
+    isLoadingBeneficiaries,
+    beneficiariesError,
+    isDeleting,
+    appointmentToDelete,
+    completionReports,
+    reportsAppointment,
+    busyReportType,
+    isLoadingReports,
+  } = storeToRefs(store)
   const {
     fetchSpesBeneficiaries,
     fetchSpesForms,
-    openAddSpesDialog,
-    openEditSpesDialog,
-    requestDeleteSpes,
-    cancelDeleteSpes,
-    deleteSpes,
+    setSelectedYear,
+    openAppointDialog,
+    openEditAppointmentDialog,
+    openConcludeDialog,
+    requestDeleteAppointment,
+    cancelDeleteAppointment,
+    deleteAppointment,
+    openHistoryDialog,
+    closeHistoryDialog,
+    openDrawDialog,
+    openReportsDialog,
+    closeReportsDialog,
+    uploadCompletionReport,
+    removeCompletionReport,
+    fetchCompletionReports,
   } = store
 
-  const sorting = ref<SortingState>([{ id: 'created_at', desc: true }])
+  const sorting = ref<SortingState>([{ id: 'name', desc: false }])
   const columnFilters = ref<ColumnFiltersState>([])
 
   const sortableHeader = (label: string) =>
@@ -49,69 +80,112 @@ export function useSpesBeneficiaries() {
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
 
-  const columns: ColumnDef<SpesWithApplicant>[] = [
+  const iconButton = (label: string, icon: typeof Pencil, onClick: () => void, extraClass = '') =>
+    h(
+      Button,
+      { variant: 'ghost', size: 'icon', class: `size-8 ${extraClass}`, title: label, 'aria-label': label, onClick },
+      () => h(icon, { class: 'size-4' })
+    )
+
+  const columns: ColumnDef<SpesAppointmentEntry>[] = [
     {
       id: 'name',
-      accessorFn: (row) => formatSpesFormName(row.spes_form),
+      accessorFn: (row) => formatSpesFormName(row.beneficiary.spes_form),
       header: sortableHeader('Beneficiary'),
       cell: ({ row }) => {
-        const form = row.original.spes_form
+        const form = row.original.beneficiary.spes_form
         return h('div', { class: 'min-w-[180px] space-y-0.5' }, [
           h('div', { class: 'font-medium' }, formatSpesFormName(form)),
-          form?.contact_number ? h('div', { class: 'text-xs text-muted-foreground' }, form.contact_number) : null,
+          h('div', { class: 'font-mono text-xs text-muted-foreground' }, row.original.appointment_code),
         ])
       },
     },
     {
-      id: 'education',
-      accessorFn: (row) => getSpesEducationSummary(row.spes_form),
-      header: 'Education',
-      enableSorting: false,
-      cell: ({ getValue }) => h('div', { class: 'max-w-[240px] truncate text-sm' }, getValue() as string),
-    },
-    {
-      accessorKey: 'beneficiary',
-      header: 'Type',
-      cell: ({ row }) => h('div', { class: 'text-sm' }, row.original.beneficiary || '—'),
-    },
-    {
-      id: 'days_duration',
-      accessorFn: (row) => Number(row.days_duration) || 0,
-      header: sortableHeader('Duration'),
+      id: 'availment',
+      accessorFn: (row) => row.availmentNumber,
+      header: sortableHeader('Availment'),
       cell: ({ row }) =>
-        h('div', { class: 'whitespace-nowrap text-sm tabular-nums' }, formatSpesDays(row.original.days_duration)),
+        h('div', { class: 'whitespace-nowrap text-sm' }, [
+          h('div', row.original.availmentNumber > 1 ? 'Returning' : 'New'),
+          h('div', { class: 'text-xs text-muted-foreground' }, `#${row.original.availmentNumber}`),
+        ]),
     },
     {
-      accessorKey: 'status',
+      id: 'office',
+      accessorFn: (row) => row.assigned_office,
+      header: sortableHeader('Establishment'),
+      cell: ({ row }) =>
+        h('div', { class: 'max-w-[240px] space-y-0.5' }, [
+          h('div', { class: 'truncate text-sm' }, row.original.assigned_office),
+          row.original.supervisor
+            ? h('div', { class: 'truncate text-xs text-muted-foreground' }, row.original.supervisor)
+            : null,
+        ]),
+    },
+    {
+      id: 'period',
+      accessorFn: (row) => row.start_date,
+      header: sortableHeader('Period'),
+      cell: ({ row }) =>
+        h('div', { class: 'whitespace-nowrap text-sm' }, [
+          h('div', `${formatSpesDate(row.original.start_date)} – ${formatSpesDate(row.original.end_date)}`),
+          h('div', { class: 'text-xs text-muted-foreground tabular-nums' }, `${row.original.days_duration} days`),
+        ]),
+    },
+    {
+      id: 'status',
+      accessorFn: (row) => row.displayStatus,
       header: 'Status',
       filterFn: 'equalsString',
-      cell: ({ row }) =>
-        h(
-          Badge,
-          { variant: 'outline', class: ['capitalize', getSpesStatusBadgeClass(row.original.status)].join(' ') },
-          () => row.original.status || 'Active'
-        ),
+      cell: ({ row }) => {
+        const { displayStatus, daysRemaining, isExpiringSoon } = row.original
+        return h('div', { class: 'space-y-0.5' }, [
+          h(Badge, { variant: 'outline', class: getSpesStatusBadgeClass(displayStatus) }, () => displayStatus),
+          isExpiringSoon && daysRemaining != null
+            ? h('div', { class: 'text-xs text-muted-foreground' }, `${daysRemaining} day(s) left`)
+            : null,
+        ])
+      },
     },
     {
-      accessorKey: 'created_at',
-      header: sortableHeader('Date Enrolled'),
-      cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-sm' }, formatSpesDate(row.original.created_at)),
+      id: 'reports',
+      accessorFn: (row) => countSpesCompletionReports(completionReports.value[row.id]),
+      header: 'DTR & Report',
+      cell: ({ row, getValue }) => {
+        const count = getValue() as number
+        const total = SPES_COMPLETION_REPORTS.length
+        return h(
+          Button,
+          { variant: 'link', class: 'h-auto px-0 text-sm tabular-nums', onClick: () => openReportsDialog(row.original) },
+          () => (count === total ? 'Submitted' : `${count}/${total} submitted`)
+        )
+      },
     },
     {
       id: 'actions',
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onEdit: () => openEditSpesDialog(row.original),
-          onDelete: () => requestDeleteSpes(row.original),
-        }),
+        h('div', { class: 'flex items-center justify-end gap-1' }, [
+          iconButton('Appointment history', History, () => openHistoryDialog(row.original.spes_id)),
+          iconButton('DTR & accomplishment report', FileCheck, () => openReportsDialog(row.original)),
+          iconButton('Edit appointment', Pencil, () => openEditAppointmentDialog(row.original)),
+          row.original.status === 'Active'
+            ? iconButton('Conclude appointment', CircleCheck, () => openConcludeDialog(row.original))
+            : null,
+          iconButton(
+            'Remove appointment',
+            Trash2,
+            () => requestDeleteAppointment(row.original),
+            'text-destructive hover:bg-destructive/10 hover:text-destructive'
+          ),
+        ]),
     },
   ]
 
   const table = useVueTable({
     get data() {
-      return spesBeneficiaries.value
+      return yearAppointments.value
     },
     columns,
     getCoreRowModel: getCoreRowModel(),
@@ -131,25 +205,94 @@ export function useSpesBeneficiaries() {
   })
 
   const isDeleteDialogOpen = computed({
-    get: () => spesToDelete.value !== null,
+    get: () => appointmentToDelete.value !== null,
     set: (open: boolean) => {
-      if (!open) cancelDeleteSpes()
+      if (!open) cancelDeleteAppointment()
     },
   })
 
-  // ─── Summary counts ───
+  // ─── Completion reports dialog ───
+  const isReportsDialogOpen = computed({
+    get: () => reportsAppointment.value !== null,
+    set: (open: boolean) => {
+      if (!open) closeReportsDialog()
+    },
+  })
+
+  const openReports = computed(() =>
+    reportsAppointment.value ? completionReports.value[reportsAppointment.value.id] ?? {} : {}
+  )
+
+  const onReportPicked = (type: SpesCompletionReportType, file: File) => uploadCompletionReport(type, file)
+  const onReportRemoved = (type: SpesCompletionReportType) => removeCompletionReport(type)
+
+  // The table shows how many reports each appointment of the selected year has
+  watch(
+    () => yearAppointments.value.map((entry) => entry.id).join(','),
+    (ids) => {
+      if (ids) void fetchCompletionReports(ids.split(','))
+    },
+    { immediate: true }
+  )
+
+  const isHistoryDialogOpen = computed({
+    get: () => historyBeneficiary.value !== null,
+    set: (open: boolean) => {
+      if (!open) closeHistoryDialog()
+    },
+  })
+
+  /** Appointment history of the open beneficiary, newest year first, with availment numbers. */
+  const historyAppointments = computed(() => {
+    const appointments = historyBeneficiary.value?.appointments ?? []
+    return appointments.map((appointment, index) => ({
+      ...appointment,
+      ...getSpesAppointmentTiming(appointment),
+      availmentNumber: appointments.length - index,
+    }))
+  })
+
+  /** The open beneficiary can still be appointed for the selected year. */
+  const canReappointHistoryBeneficiary = computed(
+    () =>
+      !!historyBeneficiary.value &&
+      !historyBeneficiary.value.appointments.some((a) => a.spes_year === selectedYear.value)
+  )
+
+  const reappointFromHistory = () => {
+    const spes = historyBeneficiary.value
+    if (!spes) return
+    closeHistoryDialog()
+    openAppointDialog({ kind: 'beneficiary', spesId: spes.id })
+  }
+
+  // ─── Summary counts (selected year) ───
   const summary = computed(() => {
-    const count = (status: string) =>
-      spesBeneficiaries.value.filter((spes) => (spes.status ?? '').toLowerCase() === status).length
+    const count = (predicate: (entry: SpesAppointmentEntry) => boolean) => yearAppointments.value.filter(predicate).length
     return {
       applicants: spesForms.value.length,
       pendingApplicants: spesForms.value.filter((form) => (form.status ?? '').toLowerCase() === 'pending').length,
-      active: count('active'),
-      completed: count('completed'),
+      appointed: yearAppointments.value.length,
+      active: count((entry) => entry.status === 'Active'),
+      completed: count((entry) => entry.status === 'Completed'),
+      returning: count((entry) => entry.availmentNumber > 1),
+      expired: count((entry) => entry.isExpired),
+      expiringSoon: count((entry) => entry.isExpiringSoon),
     }
   })
 
-  // Applicants are needed for the "Add Beneficiary" picker and the summary.
+  /** Shows only the appointments that ended or are about to, like GIP's pending-decision view. */
+  const showNeedsDecision = () => {
+    const current = table.getColumn('status')?.getFilterValue()
+    table.getColumn('status')?.setFilterValue(current === 'Expired' ? undefined : 'Expired')
+  }
+
+  const onYearChange = (value: unknown) => {
+    const year = Number(value)
+    if (Number.isInteger(year)) setSelectedYear(year)
+  }
+
+  // Applicants are needed for the appoint picker and the summary.
   const refreshBeneficiaries = () => Promise.all([fetchSpesBeneficiaries(), fetchSpesForms()])
 
   onMounted(() => {
@@ -159,16 +302,33 @@ export function useSpesBeneficiaries() {
   return {
     table,
     columns,
-    spesBeneficiaries,
+    yearAppointments,
+    selectedYear,
+    availableYears,
     summary,
     isLoading: isLoadingBeneficiaries,
     errorMessage: beneficiariesError,
     isDeleting,
-    spesToDelete,
+    appointmentToDelete,
     isDeleteDialogOpen,
-    statusOptions: SPES_STATUSES,
+    historyBeneficiary,
+    historyAppointments,
+    isHistoryDialogOpen,
+    canReappointHistoryBeneficiary,
+    statusOptions: DISPLAY_STATUS_OPTIONS,
+    reportsAppointment,
+    openReports,
+    busyReportType,
+    isLoadingReports,
+    isReportsDialogOpen,
+    onReportPicked,
+    onReportRemoved,
     refreshBeneficiaries,
-    openAddSpesDialog,
-    confirmDelete: deleteSpes,
+    onYearChange,
+    showNeedsDecision,
+    reappointFromHistory,
+    openAppointDialog: () => openAppointDialog(),
+    openDrawDialog,
+    confirmDelete: deleteAppointment,
   }
 }
