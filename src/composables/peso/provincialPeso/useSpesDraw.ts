@@ -11,8 +11,12 @@ import type { SpesDrawCandidate } from '@/types/peso/provincialPeso/spes'
 const SPIN_DURATION_MS = 4200
 const REDUCED_MOTION_SPIN_DURATION_MS = 300
 const EXTRA_TURNS = 5
+/** How long the landed segment stays highlighted before it leaves the wheel. */
+const REVEAL_PAUSE_MS = 1100
 /** Above this many names the wheel only shows numbers; the full list is beside it. */
 const MAX_WHEEL_LABELS = 24
+/** Literal class names so Tailwind generates them; alternates bright and deep tones so neighbours stand apart. */
+const SEGMENT_FILLS = ['fill-chart-4', 'fill-chart-1', 'fill-chart-5', 'fill-chart-2'] as const
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
 
@@ -34,7 +38,7 @@ function polar(radius: number, degrees: number) {
  * Provincial PESO randomizer: draws SPES applicants per municipality, by spinning the wheel one
  * name at a time or by drawing every remaining slot at once. Only Pending applicants who attached
  * all 5 documentary requirements are in the pool; the drawn ones are approved on confirmation and
- * can then be appointed, the others stay Pending.
+ * the appointment form opens for each of them, the others stay Pending.
  */
 export function useSpesDraw() {
   const store = useSpesStore()
@@ -49,7 +53,10 @@ export function useSpesDraw() {
   // ─── Wheel state ───
   const rotation = ref(0)
   const isSpinning = ref(false)
+  /** Segment the wheel just landed on, highlighted until it leaves the wheel. */
+  const landedId = ref<string | null>(null)
   let frameId: number | null = null
+  let revealTimer: ReturnType<typeof setTimeout> | null = null
 
   const municipalityOptions = computed(() =>
     drawPool.value.map((group) => ({
@@ -63,11 +70,12 @@ export function useSpesDraw() {
     () => drawPool.value.find((group) => group.municipality === selectedMunicipality.value) ?? null
   )
 
+  const drawnIds = computed(() => new Set(winners.value.map((winner) => winner.form.id)))
+
   /** Candidates still on the wheel. */
-  const remaining = computed(() => {
-    const drawn = new Set(winners.value.map((winner) => winner.form.id))
-    return (selectedGroup.value?.candidates ?? []).filter((candidate) => !drawn.has(candidate.form.id))
-  })
+  const remaining = computed(() =>
+    (selectedGroup.value?.candidates ?? []).filter((candidate) => !drawnIds.value.has(candidate.form.id))
+  )
 
   const maxSlots = computed(() => Math.max(1, selectedGroup.value?.candidates.length ?? 1))
   const slotsLeft = computed(() => Math.max(0, slots.value - winners.value.length))
@@ -91,21 +99,27 @@ export function useSpesDraw() {
       const to = polar(96, end)
       const largeArc = sweep > 180 ? 1 : 0
       const middle = start + sweep / 2
+      const peg = polar(90, start)
       return {
         id: candidate.form.id,
         // A single candidate fills the wheel, which an arc path cannot draw
         path: count === 1 ? null : `M 0 0 L ${from.x} ${from.y} A 96 96 0 ${largeArc} 1 ${to.x} ${to.y} Z`,
-        colorClass: `fill-chart-${(index % 5) + 1}`,
+        colorClass: SEGMENT_FILLS[index % SEGMENT_FILLS.length],
         label: showLabels ? shortName(candidate.name) : String(index + 1),
         // Text runs from the hub outwards along the middle of the segment
         labelTransform: `rotate(${middle - 90}) translate(${count === 1 ? 0 : 58} 0)`,
+        // Small peg on each segment boundary, like a prize wheel; hidden when the segments get too thin
+        peg: count > 1 && showLabels ? peg : null,
       }
     })
   })
 
   const resetWheel = () => {
     if (frameId !== null) cancelAnimationFrame(frameId)
+    if (revealTimer !== null) clearTimeout(revealTimer)
     frameId = null
+    revealTimer = null
+    landedId.value = null
     isSpinning.value = false
     rotation.value = 0
   }
@@ -164,11 +178,20 @@ export function useSpesDraw() {
         return
       }
       frameId = null
-      isSpinning.value = false
+      // Hold on the landed segment for a moment; the wheel stays locked until the winner leaves it
+      landedId.value = winner.form.id
       lastDrawn.value = winner
-      winners.value = [...winners.value, winner]
-      // The winner leaves the wheel, so its segments are redrawn from the top
-      rotation.value = 0
+      revealTimer = setTimeout(
+        () => {
+          revealTimer = null
+          landedId.value = null
+          isSpinning.value = false
+          winners.value = [...winners.value, winner]
+          // The winner leaves the wheel, so its segments are redrawn from the top
+          rotation.value = 0
+        },
+        prefersReducedMotion() ? 0 : REVEAL_PAUSE_MS
+      )
     }
     frameId = requestAnimationFrame(step)
   }
@@ -199,9 +222,7 @@ export function useSpesDraw() {
     closeDrawDialog()
   }
 
-  onBeforeUnmount(() => {
-    if (frameId !== null) cancelAnimationFrame(frameId)
-  })
+  onBeforeUnmount(resetWheel)
 
   return {
     isDrawOpen,
@@ -217,8 +238,10 @@ export function useSpesDraw() {
     winners,
     lastDrawn,
     remaining,
+    drawnIds,
     rotation,
     isSpinning,
+    landedId,
     wheelSegments,
     canDraw,
     canConfirm,

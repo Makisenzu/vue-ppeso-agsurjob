@@ -552,7 +552,6 @@ const handleUpdateDocumentStatus = async () => {
             </Button>
             <Button
               type="submit"
-              class="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
               :disabled="isSubmitting"
             >
               <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />

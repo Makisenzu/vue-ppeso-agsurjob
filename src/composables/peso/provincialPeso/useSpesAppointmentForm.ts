@@ -9,27 +9,18 @@ import { getBarangays, getCities, getProvinces, getRegions } from '@/helpers/com
 import {
   computeSpesEndDate,
   countSpesCalendarDays,
-  countSpesCompletionReports,
   formatSpesFormName,
   getSpesBeneficiaryType,
   getSpesHomeLocation,
-  hasAllSpesCompletionReports,
   normalizePsgcName,
 } from '@/helpers/peso/provincialPeso/spesHelper'
-import { SPES_COMPLETION_REPORTS } from '@/types/common/spesForm'
 import {
-  SPES_CONCLUDE_STATUSES,
   SPES_DURATION_OPTIONS,
   type SpesAppointee,
   type SpesAppointmentDetails,
   type SpesAppointmentEntry,
   type SpesDurationOption,
 } from '@/types/peso/provincialPeso/spes'
-
-export const SPES_CONCLUDE_OPTIONS = [
-  { value: 'Completed', label: 'Completed', description: 'Served the full duration; DTR and report submitted' },
-  { value: 'Terminated', label: 'Terminated', description: 'Resigned or removed early' },
-] as const
 
 /** Provincial PESO appoints SPES beneficiaries for either 10 or 20 working days. */
 const DEFAULT_DAYS_DURATION: SpesDurationOption = 20
@@ -76,28 +67,17 @@ const appointmentZodSchema = z
     assignedMunicipality: z.string().trim().min(1, 'Select a municipality.'),
     assignedBarangay: z.string().trim().min(1, 'Select a barangay.'),
     startDate: z.string().min(1, 'Pick a start date.'),
-    endDate: z.string().min(1, 'Pick an end date.'),
     daysDuration: z.coerce
       .number({ message: 'Choose 10 or 20 days.' })
       .refine((days) => (SPES_DURATION_OPTIONS as readonly number[]).includes(days), 'Choose 10 or 20 days.'),
     notes: z.string().trim().optional(),
   })
-  .refine((v) => v.endDate >= v.startDate, {
-    message: 'End date must be on or after the start date.',
-    path: ['endDate'],
+  .refine((v) => computeSpesEndDate(v.startDate, v.daysDuration) !== null, {
+    message: 'Enter a valid start date.',
+    path: ['startDate'],
   })
-  .refine((v) => v.daysDuration <= (countSpesCalendarDays(v.startDate, v.endDate) ?? Infinity), {
-    message: 'Duration cannot be longer than the appointment period.',
-    path: ['daysDuration'],
-  })
-
-const concludeZodSchema = z.object({
-  status: z.enum(SPES_CONCLUDE_STATUSES),
-  notes: z.string().trim().optional(),
-})
 
 type AppointmentFormValues = z.infer<typeof appointmentZodSchema>
-type ConcludeFormValues = z.infer<typeof concludeZodSchema>
 
 function toAppointeeValue(appointee: SpesAppointee): string {
   return appointee.kind === 'applicant' ? `form:${appointee.formId}` : `spes:${appointee.spesId}`
@@ -119,7 +99,6 @@ function toFormValues(entry: SpesAppointmentEntry): Partial<AppointmentFormValue
     assignedMunicipality: entry.assigned_municipality,
     assignedBarangay: entry.assigned_barangay ?? '',
     startDate: entry.start_date,
-    endDate: entry.end_date,
     daysDuration: entry.days_duration,
     notes: entry.decision_notes ?? '',
   }
@@ -131,24 +110,16 @@ export function useSpesAppointmentForm() {
     isAppointmentFormOpen,
     editingAppointment,
     presetAppointee,
-    concludingAppointment,
     isSubmitting,
     selectedYear,
     enrollableApplicants,
     reappointableBeneficiaries,
-    completionReports,
-    isLoadingReports,
     spesForms,
     spesBeneficiaries,
+    drawAppointQueue,
+    drawAppointTotal,
   } = storeToRefs(store)
-  const {
-    appointSpes,
-    updateAppointment,
-    concludeAppointment,
-    closeAppointmentDialog,
-    closeConcludeDialog,
-    openReportsDialog,
-  } = store
+  const { appointSpes, updateAppointment, closeAppointmentDialog } = store
 
   const isEditMode = computed(() => editingAppointment.value !== null)
 
@@ -173,6 +144,13 @@ export function useSpesAppointmentForm() {
     })
   )
 
+  /** "2 of 5" while appointing the applicants of a randomizer draw one after another, else null. */
+  const drawAppointProgress = computed(() => {
+    const total = drawAppointTotal.value
+    if (!total || !drawAppointQueue.value.length || isEditMode.value) return null
+    return { current: total - drawAppointQueue.value.length + 1, total }
+  })
+
   /** Name shown instead of the picker when editing or re-appointing a specific beneficiary. */
   const fixedAppointeeName = computed(() => {
     if (editingAppointment.value) return formatSpesFormName(editingAppointment.value.beneficiary.spes_form)
@@ -183,7 +161,6 @@ export function useSpesAppointmentForm() {
 
   // ─── Form Setup (the <Form> remounts per open via formKey) ───
   const appointmentSchema = toTypedSchema(appointmentZodSchema)
-  const concludeSchema = toTypedSchema(concludeZodSchema)
 
   const appointmentInitialValues = computed<Partial<AppointmentFormValues>>(() => {
     if (editingAppointment.value) return toFormValues(editingAppointment.value)
@@ -194,7 +171,6 @@ export function useSpesAppointmentForm() {
       assignedMunicipality: '',
       assignedBarangay: '',
       startDate: '',
-      endDate: '',
       daysDuration: DEFAULT_DAYS_DURATION,
       notes: '',
     }
@@ -373,49 +349,13 @@ export function useSpesAppointmentForm() {
     void loadBarangays(name)
   }
 
-  // ─── Conclude: Completed needs the DTR and Accomplishment Report ───
-  const concludeReports = computed(() =>
-    concludingAppointment.value ? completionReports.value[concludingAppointment.value.id] : undefined
-  )
-  const canMarkCompleted = computed(() => hasAllSpesCompletionReports(concludeReports.value))
-  const concludeReportCount = computed(() => countSpesCompletionReports(concludeReports.value))
-
-  const concludeInitialValues = computed<ConcludeFormValues>(() => ({
-    status: canMarkCompleted.value ? 'Completed' : 'Terminated',
-    notes: '',
-  }))
-
-  // Remounts once the reports have loaded so the default status follows them
-  const concludeFormKey = computed(
-    () => `conclude-${concludingAppointment.value?.id ?? 'none'}-${canMarkCompleted.value ? 'complete' : 'incomplete'}`
-  )
-
-  /** Opens the reports dialog from the conclude dialog to upload the missing PDFs. */
-  const openConcludeReports = () => {
-    const entry = concludingAppointment.value
-    if (!entry) return
-    closeConcludeDialog()
-    openReportsDialog(entry)
-  }
-
-  /** End date = last working day of the chosen duration; PESO can still adjust it. */
-  const fillEndDate = (
-    startDate: string | undefined,
-    daysDuration: number | undefined,
-    setFieldValue: (field: 'endDate', value: string) => void
-  ) => {
-    const endDate = computeSpesEndDate(startDate, daysDuration)
-    if (endDate) setFieldValue('endDate', endDate)
-  }
+  /** End date = last working day (Mon–Fri) of the chosen 10 or 20 working days, counted from the start date. */
+  const getEndDate = (startDate: string | undefined, daysDuration: number | string | undefined) =>
+    computeSpesEndDate(startDate, Number(daysDuration))
 
   const onAppointmentOpenChange = (open: boolean) => {
     if (open) return
     closeAppointmentDialog()
-  }
-
-  const onConcludeOpenChange = (open: boolean) => {
-    if (open) return
-    closeConcludeDialog()
   }
 
   const submitAppointment = async (formValues: GenericObject) => {
@@ -427,7 +367,8 @@ export function useSpesAppointmentForm() {
       assigned_barangay: values.assignedBarangay,
       days_duration: values.daysDuration,
       start_date: values.startDate,
-      end_date: values.endDate,
+      // Always derived, never typed in, so it only ever counts working days
+      end_date: getEndDate(values.startDate, values.daysDuration)!,
       decision_notes: values.notes || null,
     }
 
@@ -440,32 +381,18 @@ export function useSpesAppointmentForm() {
     if (appointee) await appointSpes(appointee, details)
   }
 
-  const submitConclusion = async (formValues: GenericObject) => {
-    const values = formValues as ConcludeFormValues
-    await concludeAppointment(values.status, values.notes || null)
-  }
-
   return {
     isAppointmentFormOpen,
     isSubmitting,
     isEditMode,
     editingAppointment,
-    concludingAppointment,
     applicantOptions,
     beneficiaryOptions,
     fixedAppointeeName,
+    drawAppointProgress,
     appointmentSchema,
     appointmentInitialValues,
     appointmentFormKey,
-    concludeSchema,
-    concludeInitialValues,
-    concludeFormKey,
-    concludeOptions: SPES_CONCLUDE_OPTIONS,
-    canMarkCompleted,
-    concludeReportCount,
-    totalReports: SPES_COMPLETION_REPORTS.length,
-    isLoadingReports,
-    openConcludeReports,
     provinces,
     municipalities,
     barangays,
@@ -480,11 +407,9 @@ export function useSpesAppointmentForm() {
     onProvinceChange,
     onMunicipalityChange,
     durationChoices: SPES_DURATION_CHOICES,
-    fillEndDate,
+    getEndDate,
     countSpesCalendarDays,
     onAppointmentOpenChange,
-    onConcludeOpenChange,
     submitAppointment,
-    submitConclusion,
   }
 }

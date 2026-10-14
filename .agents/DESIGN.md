@@ -52,8 +52,8 @@ All colors are defined as **CSS custom properties** using the `oklch()` color sp
 | -------------------------- | ----------------------------------- | -------------------------------- |
 | `--background`             | `oklch(1 0 0)`                      | Page background (white)          |
 | `--foreground`             | `oklch(0.147 0.004 49.3)`           | Primary text                     |
-| `--primary`                | `oklch(0.457 0.24 277.023)`         | Brand accent (deep indigo-blue)  |
-| `--primary-foreground`     | `oklch(0.962 0.018 272.314)`        | Text on primary surfaces         |
+| `--primary`                | `oklch(0.55 0.17 142)`              | Brand accent (green): buttons, checkboxes, switches, links, progress, active sidebar |
+| `--primary-foreground`     | `oklch(0.982 0.018 155.826)`        | Text on primary surfaces         |
 | `--secondary`              | `oklch(0.967 0.001 286.375)`        | Secondary surface                |
 | `--muted`                  | `oklch(0.96 0.002 17.2)`            | Muted backgrounds                |
 | `--muted-foreground`       | `oklch(0.547 0.021 43.1)`           | Secondary/hint text              |
@@ -62,10 +62,10 @@ All colors are defined as **CSS custom properties** using the `oklch()` color sp
 | `--warning`                | `oklch(0.666 0.179 58.318)`         | Attention status (Pending, Expiring, Needs Check) |
 | `--info`                   | `oklch(0.588 0.158 241.966)`        | Informational status (Hired)     |
 | `--border`                 | `oklch(0.922 0.005 34.3)`           | Default borders                  |
-| `--button`                 | `oklch(58.862% 0.18554 139.497)`    | Custom CTA button (green)        |
-| `--buttonTwo`              | `oklch(43.895% 0.12656 148.166)`    | Secondary CTA button (dark green)|
+| `--button`                 | `oklch(58.862% 0.18554 139.497)`    | Legacy green CTA (superseded by `--primary`) |
+| `--buttonTwo`              | `oklch(43.895% 0.12656 148.166)`    | Legacy dark green CTA (superseded by `--primary`) |
 | `--sidebar`                | `oklch(0.986 0.002 67.8)`           | Sidebar background               |
-| `--sidebar-primary`        | `oklch(0.511 0.262 276.966)`        | Active sidebar item              |
+| `--sidebar-primary`        | `oklch(0.55 0.17 142)`              | Active sidebar item              |
 
 ### Dark Mode Palette (`.dark`)
 
@@ -74,6 +74,7 @@ Dark tokens mirror light but shift toward `oklch` values with lower lightness. K
 - `--border`: `oklch(1 0 0 / 10%)` (translucent white borders)
 - `--input`: `oklch(1 0 0 / 15%)` (subtle translucent inputs)
 - `--card`: `oklch(0.214 0.009 43.1)` (elevated surfaces)
+- `--primary`: `oklch(0.627 0.194 149.214)` (lighter green) with dark `--primary-foreground` `oklch(0.145 0.02 150)`, so green text stays readable on dark surfaces
 
 ### Rules
 

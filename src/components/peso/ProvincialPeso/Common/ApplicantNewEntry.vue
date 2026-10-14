@@ -233,7 +233,7 @@ const confirmDuplicateResolution = () => {
         </Button>
         <Button
           size="sm"
-          class="h-9 gap-1.5 text-xs font-semibold cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+          class="h-9 gap-1.5 text-xs font-semibold cursor-pointer shadow-xs"
           :disabled="isFormSubmitting"
           @click="handleSubmit"
         >
@@ -1427,7 +1427,7 @@ const confirmDuplicateResolution = () => {
           <div class="flex items-center gap-2">
             <Button
               v-if="currentStep < steps.length"
-              class="gap-1.5 text-xs h-9 font-semibold cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              class="gap-1.5 text-xs h-9 font-semibold cursor-pointer shadow-xs"
               @click="nextStep"
             >
               <span>Next Step</span>
@@ -1436,7 +1436,7 @@ const confirmDuplicateResolution = () => {
 
             <Button
               v-else
-              class="gap-1.5 text-xs h-9 font-semibold cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              class="gap-1.5 text-xs h-9 font-semibold cursor-pointer shadow-xs"
               :disabled="isFormSubmitting"
               @click="handleSubmit"
             >

@@ -101,7 +101,7 @@ const {
       <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
         <Button
           size="sm"
-          class="gap-1.5 text-xs cursor-pointer shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+          class="gap-1.5 text-xs cursor-pointer shadow-xs"
           @click="openAddApplicant"
         >
           <UserPlus class="h-3.5 w-3.5" />

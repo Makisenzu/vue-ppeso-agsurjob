@@ -85,6 +85,9 @@ export const useSpesStore = defineStore('pesoSpes', () => {
 
   // ─── UI Flags: Randomizer ───
   const isDrawOpen = ref(false)
+  /** Drawn applicants still waiting for their appointment, in draw order (the first is in the open form). */
+  const drawAppointQueue = ref<string[]>([])
+  const drawAppointTotal = ref(0)
 
   // ─── Getters ───
   /** Approved applicants not yet enrolled — the choices for "Add Beneficiary". */
@@ -249,7 +252,10 @@ export const useSpesStore = defineStore('pesoSpes', () => {
     }
   }
 
-  /** Approves the drawn applicants so they can be given an appointment; the others stay Pending. */
+  /**
+   * Approves the drawn applicants (the others stay Pending), then closes the draw and opens the
+   * appointment form for each of them in draw order.
+   */
   async function approveDrawWinners(formIds: string[], municipality: string): Promise<boolean> {
     if (!formIds.length) return false
     isSubmitting.value = true
@@ -259,9 +265,11 @@ export const useSpesStore = defineStore('pesoSpes', () => {
       const skipped = formIds.length - approved.length
       toastAlert.success(
         'Applicants selected',
-        `${approved.length} applicant(s) from ${municipality} are approved and ready for appointment.` +
+        `${approved.length} applicant(s) from ${municipality} are approved. Fill in their appointments next.` +
           (skipped ? ` ${skipped} were already reviewed and were left unchanged.` : '')
       )
+      const approvedIds = new Set(approved.map((form) => form.id))
+      startDrawAppointments(formIds.filter((id) => approvedIds.has(id)))
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -430,11 +438,11 @@ export const useSpesStore = defineStore('pesoSpes', () => {
         updated = await spesService.fetchBeneficiaryById(appointee.spesId)
       }
       replaceBeneficiary(updated)
-      closeAppointmentDialog(true)
       toastAlert.success(
         'SPES appointment saved',
         `${formatSpesFormName(updated.spes_form)} has been appointed for SPES ${details.spes_year}.`
       )
+      if (!openNextDrawAppointment()) closeAppointmentDialog(true)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -574,6 +582,9 @@ export const useSpesStore = defineStore('pesoSpes', () => {
 
   function closeAppointmentDialog(force = false) {
     if (isSubmitting.value && !force) return
+    // Closing the form stops the draw queue; the rest stay Approved and can be appointed later
+    drawAppointQueue.value = []
+    drawAppointTotal.value = 0
     isAppointmentFormOpen.value = false
     editingAppointment.value = null
     presetAppointee.value = null
@@ -620,6 +631,27 @@ export const useSpesStore = defineStore('pesoSpes', () => {
     isDrawOpen.value = false
   }
 
+  /** Closes the draw and appoints the just-approved applicants one after another. */
+  function startDrawAppointments(formIds: string[]) {
+    if (!formIds.length) return
+    isDrawOpen.value = false
+    drawAppointQueue.value = formIds
+    drawAppointTotal.value = formIds.length
+    openAppointDialog({ kind: 'applicant', formId: formIds[0]! })
+  }
+
+  /** Moves the open form on to the next drawn applicant; false when the queue is done. */
+  function openNextDrawAppointment(): boolean {
+    // Skip anyone enrolled in the meantime
+    const enrollable = new Set(enrollableApplicants.value.map((form) => form.id))
+    const next = drawAppointQueue.value.slice(1).filter((id) => enrollable.has(id))
+    if (!next.length) return false
+    drawAppointQueue.value = next
+    editingAppointment.value = null
+    presetAppointee.value = { kind: 'applicant', formId: next[0]! }
+    return true
+  }
+
   function openHistoryDialog(spesId: string) {
     historySpesId.value = spesId
   }
@@ -658,6 +690,8 @@ export const useSpesStore = defineStore('pesoSpes', () => {
     drawPool,
     isLoadingDrawPool,
     isDrawOpen,
+    drawAppointQueue,
+    drawAppointTotal,
     completionReports,
     isLoadingReports,
     busyReportType,

@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import { RouterLink } from 'vue-router'
-import { AlertTriangle, GraduationCap, Loader2, Plus, RefreshCw } from '@lucide/vue'
+import { AlertTriangle, ChevronDown, Dices, GraduationCap, Loader2, Plus, RefreshCw } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -49,9 +51,10 @@ import {
 } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { useSpesBeneficiaries } from '@/composables/peso/provincialPeso/useSpesBeneficiaries'
+import { useSpesConcludeForm } from '@/composables/peso/provincialPeso/useSpesConcludeForm'
+import { useSpesDraw } from '@/composables/peso/provincialPeso/useSpesDraw'
 import { useSpesAppointmentForm } from '@/composables/peso/provincialPeso/useSpesAppointmentForm'
 import SpesCompletionReportList from '@/components/SpesCompletionReportList.vue'
-import SpesRandomizerDialog from '@/components/peso/ProvincialPeso/ESMDD/SPES/SpesRandomizerDialog.vue'
 import {
   formatSpesDate,
   formatSpesFormName,
@@ -92,16 +95,8 @@ const {
   confirmDelete,
 } = useSpesBeneficiaries()
 const {
-  isAppointmentFormOpen,
   isSubmitting,
-  isEditMode,
   concludingAppointment,
-  applicantOptions,
-  beneficiaryOptions,
-  fixedAppointeeName,
-  appointmentSchema,
-  appointmentInitialValues,
-  appointmentFormKey,
   concludeSchema,
   concludeInitialValues,
   concludeFormKey,
@@ -111,6 +106,48 @@ const {
   totalReports,
   isLoadingReports,
   openConcludeReports,
+  onConcludeOpenChange,
+  submitConclusion,
+} = useSpesConcludeForm()
+const {
+  isDrawOpen,
+  isLoadingDrawPool,
+  municipalityOptions: drawMunicipalityOptions,
+  selectedMunicipality,
+  selectedGroup,
+  isUnspecifiedMunicipality,
+  slots,
+  maxSlots,
+  slotsLeft,
+  winners,
+  lastDrawn,
+  remaining,
+  drawnIds,
+  rotation,
+  isSpinning,
+  landedId,
+  wheelSegments,
+  canDraw,
+  canConfirm,
+  setSlots,
+  spin,
+  drawRemaining,
+  resetDraw,
+  confirmWinners,
+  refreshPool: refreshDrawPool,
+  onOpenChange: onDrawOpenChange,
+} = useSpesDraw()
+// Mounted wherever the randomizer is, so drawn applicants go straight to their appointment after approval
+const {
+  isAppointmentFormOpen,
+  isEditMode,
+  applicantOptions,
+  beneficiaryOptions,
+  fixedAppointeeName,
+  drawAppointProgress,
+  appointmentSchema,
+  appointmentInitialValues,
+  appointmentFormKey,
   provinces,
   municipalities,
   barangays,
@@ -125,12 +162,10 @@ const {
   onProvinceChange,
   onMunicipalityChange,
   durationChoices,
-  fillEndDate,
+  getEndDate,
   countSpesCalendarDays,
   onAppointmentOpenChange,
-  onConcludeOpenChange,
   submitAppointment,
-  submitConclusion,
 } = useSpesAppointmentForm()
 </script>
 
@@ -141,8 +176,7 @@ const {
       <div class="max-w-2xl space-y-1">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Special Program for Employment of Students</h1>
         <p class="text-sm text-muted-foreground">
-          Draw applicants per municipality, appoint them for 10 or 20 days, then collect their DTR and accomplishment
-          report to complete SPES.
+          SPES Monitoring and Evaluation.
         </p>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -235,7 +269,7 @@ const {
       <CardHeader>
         <CardTitle class="text-base">SPES {{ selectedYear }} Appointments</CardTitle>
         <CardDescription>
-          Each SPES year has its own appointments. Former beneficiaries can be appointed again for a new year.
+          List of SPES Beneficiaries for the year {{ selectedYear }}.
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
@@ -368,7 +402,9 @@ const {
           {{
             isEditMode
               ? 'Update the establishment and period of this appointment.'
-              : `Appoint an approved applicant, or a former beneficiary returning for SPES ${selectedYear}.`
+              : drawAppointProgress
+                ? `Drawn applicant ${drawAppointProgress.current} of ${drawAppointProgress.total}. Saving moves on to the next one; closing leaves the rest Approved to appoint later.`
+                : `Appoint an approved applicant, or a former beneficiary returning for SPES ${selectedYear}.`
           }}
         </DialogDescription>
       </DialogHeader>
@@ -570,7 +606,7 @@ const {
                     'flex cursor-pointer flex-col items-start rounded-lg border p-3 text-left transition-colors',
                     Number(value) === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
                   ]"
-                  @click="handleChange(opt.value); fillEndDate(values.startDate, opt.value, setFieldValue)"
+                  @click="handleChange(opt.value)"
                 >
                   <span class="text-sm font-semibold">{{ opt.label }}</span>
                   <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
@@ -586,32 +622,31 @@ const {
             <FormItem>
               <FormLabel>Start Date</FormLabel>
               <FormControl>
-                <Input
-                  v-bind="componentField"
-                  type="date"
-                  :disabled="isSubmitting"
-                  @update:model-value="(value) => fillEndDate(String(value ?? ''), values.daysDuration, setFieldValue)"
-                />
+                <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
               </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="endDate">
-            <FormItem>
-              <FormLabel>End Date</FormLabel>
-              <FormControl>
-                <Input v-bind="componentField" type="date" :min="values.startDate" :disabled="isSubmitting" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="space-y-2">
+            <Label for="spes-appointment-end-date">End Date</Label>
+            <Input
+              id="spes-appointment-end-date"
+              type="date"
+              readonly
+              tabindex="-1"
+              class="bg-muted/50"
+              :model-value="getEndDate(values.startDate, values.daysDuration) ?? ''"
+            />
+          </div>
         </div>
         <p class="-mt-2 text-xs text-muted-foreground">
-          The end date is set to the last working day of the duration.
-          <template v-if="countSpesCalendarDays(values.startDate, values.endDate)">
-            The period covers {{ countSpesCalendarDays(values.startDate, values.endDate) }} calendar day(s).
+          <template v-if="getEndDate(values.startDate, values.daysDuration)">
+            {{ values.daysDuration }} working days, Monday to Friday, covering
+            {{ countSpesCalendarDays(values.startDate, getEndDate(values.startDate, values.daysDuration)) }} calendar
+            day(s). A weekend start date begins on the next Monday.
           </template>
+          <template v-else>Pick a start date and the end date is counted in working days (Monday to Friday).</template>
         </p>
 
         <Separator />
@@ -725,7 +760,294 @@ const {
     </DialogContent>
   </Dialog>
 
-  <SpesRandomizerDialog />
+  <!-- SPES Randomizer Draw: drawn applicants are approved, then the appointment form opens for each -->
+  <Dialog :open="isDrawOpen" @update:open="onDrawOpenChange">
+    <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+      <DialogHeader>
+        <DialogTitle>SPES Randomizer Draw</DialogTitle>
+        <DialogDescription>
+          Draw beneficiaries at random per municipality from Pending applicants with all 5 documentary requirements
+          attached. Drawn applicants are approved and appointed next; everyone else stays Pending.
+        </DialogDescription>
+      </DialogHeader>
+
+      <!-- Loading -->
+      <div
+        v-if="isLoadingDrawPool && !drawMunicipalityOptions.length"
+        class="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"
+      >
+        <Skeleton class="aspect-square w-full rounded-xl" />
+        <div class="space-y-3">
+          <Skeleton class="h-6 w-40" />
+          <Skeleton class="h-1.5 w-full" />
+          <Skeleton v-for="i in 4" :key="i" class="h-14 w-full" />
+        </div>
+      </div>
+
+      <!-- Nobody to draw -->
+      <Empty v-else-if="!drawMunicipalityOptions.length" class="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Dices />
+          </EmptyMedia>
+          <EmptyTitle>No applicants to draw</EmptyTitle>
+          <EmptyDescription>
+            Applicants enter the draw once their form is Pending and all 5 documentary requirements have a file
+            attached.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+
+      <div v-else class="space-y-6">
+        <!-- Draw settings -->
+        <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
+          <div class="space-y-2">
+            <Label for="spes-draw-municipality">Municipality</Label>
+            <Select v-model="selectedMunicipality" :disabled="isSpinning || isSubmitting">
+              <SelectTrigger id="spes-draw-municipality" class="w-full">
+                <SelectValue placeholder="Select a municipality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="option in drawMunicipalityOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div class="space-y-2">
+            <Label for="spes-draw-slots">Slots to fill</Label>
+            <Input
+              id="spes-draw-slots"
+              type="number"
+              min="1"
+              class="tabular-nums"
+              :max="maxSlots"
+              :model-value="slots"
+              :disabled="isSpinning || isSubmitting || winners.length > 0"
+              @update:model-value="setSlots"
+            />
+          </div>
+          <Button
+            variant="outline"
+            :disabled="isLoadingDrawPool || isSpinning || isSubmitting"
+            @click="refreshDrawPool"
+          >
+            <RefreshCw class="size-4 shrink-0" :class="{ 'animate-spin': isLoadingDrawPool }" />
+            <span class="sm:sr-only">Refresh</span>
+          </Button>
+        </div>
+
+        <Alert v-if="isUnspecifiedMunicipality" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
+          <AlertTriangle />
+          <AlertTitle>These applicants have no municipality</AlertTitle>
+          <AlertDescription>
+            Set the municipality on their SPES forms so they are drawn with the right municipality.
+          </AlertDescription>
+        </Alert>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <!-- Wheel stage -->
+          <section
+            aria-label="Randomizer wheel"
+            class="flex flex-col items-center gap-5 rounded-xl border bg-muted/30 p-4 sm:p-6"
+          >
+            <svg
+              viewBox="-106 -114 212 220"
+              class="w-full max-w-sm drop-shadow-sm"
+              role="img"
+              :aria-label="`Wheel with ${remaining.length} applicant(s)`"
+            >
+              <!-- Rim -->
+              <circle r="103" class="fill-card stroke-border" stroke-width="1" />
+              <circle v-if="!wheelSegments.length" r="96" class="fill-muted" />
+
+              <g :transform="`rotate(${rotation})`">
+                <template v-for="segment in wheelSegments" :key="segment.id">
+                  <g
+                    class="transition-opacity duration-300"
+                    :class="{ 'opacity-25': landedId !== null && segment.id !== landedId }"
+                  >
+                    <path
+                      v-if="segment.path"
+                      :d="segment.path"
+                      :class="segment.colorClass"
+                      class="stroke-card"
+                      stroke-width="1"
+                    />
+                    <circle v-else r="96" :class="segment.colorClass" />
+                    <text
+                      :transform="segment.labelTransform"
+                      text-anchor="middle"
+                      dominant-baseline="middle"
+                      class="fill-primary-foreground text-[7px] font-semibold"
+                    >
+                      {{ segment.label }}
+                    </text>
+                  </g>
+                  <circle v-if="segment.peg" :cx="segment.peg.x" :cy="segment.peg.y" r="1.6" class="fill-card" />
+                </template>
+              </g>
+
+              <!-- Hub: applicants still on the wheel -->
+              <circle r="18" class="fill-card stroke-border" stroke-width="1" />
+              <text
+                y="-2.5"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                class="fill-foreground text-[11px] font-bold tabular-nums"
+              >
+                {{ remaining.length }}
+              </text>
+              <text
+                y="8"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                class="fill-muted-foreground text-[4.5px] font-semibold uppercase"
+              >
+                left
+              </text>
+
+              <!-- Pointer -->
+              <path
+                d="M -8 -112 L 8 -112 L 0 -92 Z"
+                class="fill-foreground stroke-card"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+            </svg>
+
+            <!-- Draw result -->
+            <div class="flex min-h-16 flex-col items-center justify-center gap-0.5 text-center" aria-live="polite">
+              <template v-if="lastDrawn">
+                <span class="text-xs font-medium text-muted-foreground">
+                  Drawn #{{ winners.length + (landedId ? 1 : 0) }}
+                </span>
+                <p
+                  :key="lastDrawn.form.id"
+                  class="text-xl font-semibold tracking-tight animate-in fade-in zoom-in-95 duration-300"
+                >
+                  {{ lastDrawn.name }}
+                </p>
+                <span class="text-xs text-muted-foreground">
+                  {{ lastDrawn.form.student_category || 'Category not set' }}
+                </span>
+              </template>
+              <p v-else-if="isSpinning" class="text-sm text-muted-foreground">Drawing…</p>
+              <p v-else-if="!remaining.length" class="text-sm text-muted-foreground">
+                Everyone in {{ selectedMunicipality }} has been drawn.
+              </p>
+              <p v-else class="text-sm text-muted-foreground">{{ remaining.length }} applicant(s) on the wheel</p>
+            </div>
+
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button size="lg" :disabled="!canDraw" @click="spin">
+                <Loader2 v-if="isSpinning" class="size-4 shrink-0 animate-spin" />
+                <Dices v-else class="size-4 shrink-0" />
+                {{ isSpinning ? 'Spinning...' : 'Spin the Wheel' }}
+              </Button>
+              <Button size="lg" variant="outline" :disabled="!canDraw" @click="drawRemaining">
+                Draw {{ slotsLeft }} at Once
+              </Button>
+            </div>
+          </section>
+
+          <!-- Results -->
+          <section class="flex min-w-0 flex-col gap-4">
+            <div class="space-y-2">
+              <div class="flex items-baseline justify-between gap-2">
+                <h3 class="text-base font-semibold">Drawn Applicants</h3>
+                <span class="text-sm tabular-nums text-muted-foreground">
+                  <span class="font-semibold text-foreground">{{ winners.length }}</span> of {{ slots }} slots
+                </span>
+              </div>
+              <Progress
+                :model-value="Math.round((winners.length / Math.max(slots, 1)) * 100)"
+                class="h-1.5"
+                aria-label="Slots filled"
+              />
+            </div>
+
+            <ol class="max-h-80 divide-y overflow-y-auto rounded-lg border">
+              <li
+                v-for="(winner, index) in winners"
+                :key="winner.form.id"
+                class="flex items-center gap-3 p-3 transition-colors animate-in fade-in slide-in-from-bottom-1 duration-300"
+                :class="{ 'bg-primary/5': winner.form.id === lastDrawn?.form.id }"
+              >
+                <span
+                  class="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold tabular-nums text-primary"
+                >
+                  {{ index + 1 }}
+                </span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium">{{ winner.name }}</p>
+                  <p class="truncate text-xs text-muted-foreground">
+                    {{ winner.form.student_category || 'Category not set' }}
+                    <template v-if="winner.form.contact_number"> · {{ winner.form.contact_number }}</template>
+                  </p>
+                </div>
+              </li>
+              <li
+                v-for="n in Math.min(slotsLeft, 3)"
+                :key="`open-${n}`"
+                class="flex items-center gap-3 p-3 text-muted-foreground"
+              >
+                <span
+                  class="grid size-7 shrink-0 place-items-center rounded-full border border-dashed text-xs tabular-nums"
+                >
+                  {{ winners.length + n }}
+                </span>
+                <span class="text-sm">Open slot</span>
+              </li>
+            </ol>
+            <p v-if="slotsLeft > 3" class="-mt-2 text-xs text-muted-foreground">
+              + {{ slotsLeft - 3 }} more open slot(s)
+            </p>
+
+            <Collapsible v-if="selectedGroup">
+              <CollapsibleTrigger as-child>
+                <Button variant="ghost" size="sm" class="group -ml-2 text-muted-foreground">
+                  {{ selectedGroup.candidates.length }} eligible applicant(s) in {{ selectedGroup.municipality }}
+                  <ChevronDown class="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ul class="mt-2 max-h-48 divide-y overflow-y-auto rounded-lg border text-sm">
+                  <li
+                    v-for="candidate in selectedGroup.candidates"
+                    :key="candidate.form.id"
+                    class="flex items-center justify-between gap-2 px-3 py-2"
+                  >
+                    <span class="truncate" :class="{ 'text-muted-foreground': drawnIds.has(candidate.form.id) }">
+                      {{ candidate.name }}
+                    </span>
+                    <span v-if="drawnIds.has(candidate.form.id)" class="shrink-0 text-xs text-muted-foreground">
+                      Drawn
+                    </span>
+                  </li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
+          </section>
+        </div>
+      </div>
+
+      <DialogFooter v-if="drawMunicipalityOptions.length" class="gap-2 sm:justify-between">
+        <Button variant="ghost" :disabled="isSpinning || isSubmitting || !winners.length" @click="resetDraw">
+          Reset Draw
+        </Button>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row">
+          <Button variant="outline" :disabled="isSpinning || isSubmitting" @click="onDrawOpenChange(false)">
+            Close
+          </Button>
+          <Button :disabled="!canConfirm" @click="confirmWinners">
+            <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+            {{ isSubmitting ? 'Approving...' : `Approve & Appoint ${winners.length} Drawn Applicant(s)` }}
+          </Button>
+        </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
   <!-- DTR & Accomplishment Report Dialog -->
   <Dialog v-model:open="isReportsDialogOpen">
