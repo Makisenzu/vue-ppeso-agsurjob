@@ -112,5 +112,15 @@ export type SpesCompletionReportMap = Partial<Record<SpesCompletionReportType, S
 /** The applicant's own SPES appointment, as shown on their SPES page. */
 export type SpesOwnAppointment = Pick<
   Database['esmdd']['Tables']['spes_appointments']['Row'],
-  'id' | 'spes_year' | 'appointment_code' | 'assigned_office' | 'supervisor' | 'days_duration' | 'start_date' | 'end_date' | 'status' | 'decision_notes'
+  | 'id'
+  | 'spes_year'
+  | 'appointment_code'
+  | 'assigned_province'
+  | 'assigned_municipality'
+  | 'assigned_barangay'
+  | 'days_duration'
+  | 'start_date'
+  | 'end_date'
+  | 'status'
+  | 'decision_notes'
 >

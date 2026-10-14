@@ -39,7 +39,7 @@ export const spesFormService = {
     const { data, error } = await supabase
       .schema('esmdd')
       .from('spes_appointments')
-      .select('id, spes_year, appointment_code, assigned_office, supervisor, days_duration, start_date, end_date, status, decision_notes')
+      .select('id, spes_year, appointment_code, assigned_province, assigned_municipality, assigned_barangay, days_duration, start_date, end_date, status, decision_notes')
       .eq('spes_id', spes.id)
       .order('spes_year', { ascending: false })
 

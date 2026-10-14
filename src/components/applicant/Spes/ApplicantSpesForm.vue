@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import SpesFormSteps from '@/components/SpesFormSteps.vue'
 import SpesCompletionReportList from '@/components/SpesCompletionReportList.vue'
 import { useSpesFormEntry } from '@/composables/applicant/useSpesFormEntry'
-import { formatSpesFormDate, getSpesApplicationStatusBadgeClass } from '@/helpers/common/spesFormHelper'
+import {
+  formatSpesAssignment,
+  formatSpesFormDate,
+  getSpesApplicationStatusBadgeClass,
+} from '@/helpers/common/spesFormHelper'
 
 const {
   form,
@@ -93,12 +97,8 @@ const {
       <CardContent class="space-y-6">
         <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           <div>
-            <span class="text-xs text-muted-foreground">Establishment / Office</span>
-            <p class="text-sm font-medium">{{ currentAppointment.assigned_office }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground">Supervisor</span>
-            <p class="text-sm font-medium">{{ currentAppointment.supervisor || '—' }}</p>
+            <span class="text-xs text-muted-foreground">Assignment</span>
+            <p class="text-sm font-medium">{{ formatSpesAssignment(currentAppointment) }}</p>
           </div>
           <div>
             <span class="text-xs text-muted-foreground">Period</span>

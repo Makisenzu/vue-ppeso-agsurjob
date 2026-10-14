@@ -402,6 +402,7 @@ export type Database = {
           mother_contact_no: string | null
           mother_maiden_name: string | null
           mother_occupation: string | null
+          municipality: string | null
           other_dole_interventions: string | null
           parents_status: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address: string | null
@@ -473,6 +474,7 @@ export type Database = {
           mother_contact_no?: string | null
           mother_maiden_name?: string | null
           mother_occupation?: string | null
+          municipality?: string | null
           other_dole_interventions?: string | null
           parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address?: string | null
@@ -544,6 +546,7 @@ export type Database = {
           mother_contact_no?: string | null
           mother_maiden_name?: string | null
           mother_occupation?: string | null
+          municipality?: string | null
           other_dole_interventions?: string | null
           parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address?: string | null
@@ -588,7 +591,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_edit_spes_form: { Args: { p_form_id: string }; Returns: boolean }
+      owns_spes_form: { Args: { p_form_id: string }; Returns: boolean }
     }
     Enums: {
       spes_civil_status_type: "Single" | "Married" | "Widow/er" | "Separated"
@@ -1613,9 +1617,10 @@ export type Database = {
       spes_appointments: {
         Row: {
           appointment_code: string
-          assigned_office: string
+          assigned_barangay: string | null
+          assigned_municipality: string
+          assigned_province: string | null
           created_at: string
-          daily_wage: number | null
           days_duration: number
           decided_at: string | null
           decided_by: string | null
@@ -1626,14 +1631,14 @@ export type Database = {
           spes_year: number
           start_date: string
           status: string
-          supervisor: string | null
           updated_at: string
         }
         Insert: {
           appointment_code: string
-          assigned_office: string
+          assigned_barangay?: string | null
+          assigned_municipality: string
+          assigned_province?: string | null
           created_at?: string
-          daily_wage?: number | null
           days_duration: number
           decided_at?: string | null
           decided_by?: string | null
@@ -1644,14 +1649,14 @@ export type Database = {
           spes_year: number
           start_date: string
           status?: string
-          supervisor?: string | null
           updated_at?: string
         }
         Update: {
           appointment_code?: string
-          assigned_office?: string
+          assigned_barangay?: string | null
+          assigned_municipality?: string
+          assigned_province?: string | null
           created_at?: string
-          daily_wage?: number | null
           days_duration?: number
           decided_at?: string | null
           decided_by?: string | null
@@ -1662,7 +1667,6 @@ export type Database = {
           spes_year?: number
           start_date?: string
           status?: string
-          supervisor?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1671,6 +1675,53 @@ export type Database = {
             columns: ["spes_id"]
             isOneToOne: false
             referencedRelation: "spes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spes_completion_reports: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string
+          path: string
+          report_type: string
+          size: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type: string
+          path: string
+          report_type: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string
+          path?: string
+          report_type?: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spes_completion_reports_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "spes_appointments"
             referencedColumns: ["id"]
           },
         ]

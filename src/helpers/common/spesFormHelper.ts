@@ -7,6 +7,7 @@ import {
   SPES_STUDENT_CATEGORY_OPTIONS,
   type SpesFormInsert,
   type SpesFormRow,
+  type SpesOwnAppointment,
 } from '@/types/common/spesForm'
 import { AGUSAN_DEL_SUR_MUNICIPALITIES } from '@/helpers/common/mapboxHelpers'
 
@@ -202,6 +203,18 @@ const APPLICATION_STATUS_BADGE_CLASS: Record<string, string> = {
 
 export function getSpesApplicationStatusBadgeClass(status?: string | null): string {
   return APPLICATION_STATUS_BADGE_CLASS[(status || '').toLowerCase()] ?? 'bg-muted text-muted-foreground border-border'
+}
+
+/** "Brgy. X, Municipality, Province" — barangay / province are missing on appointments made before migration 018. */
+export function formatSpesAssignment(
+  appointment: Pick<SpesOwnAppointment, 'assigned_province' | 'assigned_municipality' | 'assigned_barangay'>
+): string {
+  const parts = [
+    appointment.assigned_barangay ? `Brgy. ${appointment.assigned_barangay}` : null,
+    appointment.assigned_municipality,
+    appointment.assigned_province,
+  ].filter((part): part is string => !!part?.trim())
+  return parts.length ? parts.join(', ') : '—'
 }
 
 /** "MMM d, yyyy", or an em dash when the date is missing or invalid. */

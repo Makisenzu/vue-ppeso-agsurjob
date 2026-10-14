@@ -1,16 +1,20 @@
-import { computed } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { GenericObject } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useSpesStore } from '@/stores/peso/provincialPeso/spesStore'
+import { spesService } from '@/services/peso/provincialPeso/spesService'
+import { getBarangays, getCities, getProvinces, getRegions } from '@/helpers/common/psgcHelpers'
 import {
   computeSpesEndDate,
   countSpesCalendarDays,
   countSpesCompletionReports,
   formatSpesFormName,
   getSpesBeneficiaryType,
+  getSpesHomeLocation,
   hasAllSpesCompletionReports,
+  normalizePsgcName,
 } from '@/helpers/peso/provincialPeso/spesHelper'
 import { SPES_COMPLETION_REPORTS } from '@/types/common/spesForm'
 import {
@@ -36,7 +40,28 @@ export const SPES_DURATION_CHOICES = SPES_DURATION_OPTIONS.map((days) => ({
   description: `${days} working days, Monday to Friday`,
 }))
 
-const blankToUndefined = (value: unknown) => (value === '' || value == null ? undefined : value)
+/** Province preselected on a new appointment — SPES is run by the Provincial PESO of Agusan del Sur. */
+const DEFAULT_ASSIGNED_PROVINCE = 'Agusan del Sur'
+
+/** Assignments are limited to the provinces of Caraga (Region XIII). */
+const ASSIGNMENT_REGION_PATTERN = /caraga/i
+
+interface PsgcLocation {
+  code: string
+  name: string
+}
+
+/** Exact (case-insensitive) match first, then a loose one so "Bayugan City" finds "City of Bayugan". */
+const byName = (list: PsgcLocation[], name: string | undefined) => {
+  const target = name?.trim().toLowerCase()
+  if (!target) return undefined
+  const exact = list.find((item) => item.name.trim().toLowerCase() === target)
+  if (exact) return exact
+  const key = normalizePsgcName(target)
+  return key ? list.find((item) => normalizePsgcName(item.name) === key) : undefined
+}
+
+const sortByName = (list: PsgcLocation[]) => [...list].sort((a, b) => a.name.localeCompare(b.name))
 
 const appointmentZodSchema = z
   .object({
@@ -47,9 +72,9 @@ const appointmentZodSchema = z
       .int('Enter a valid year.')
       .min(2000, 'Enter a valid year.')
       .max(2100, 'Enter a valid year.'),
-    assignedOffice: z.string().trim().min(1, 'Enter the establishment or office.'),
-    supervisor: z.string().trim().optional(),
-    dailyWage: z.preprocess(blankToUndefined, z.coerce.number().min(0, 'Wage cannot be negative.').optional()),
+    assignedProvince: z.string().trim().min(1, 'Select a province.'),
+    assignedMunicipality: z.string().trim().min(1, 'Select a municipality.'),
+    assignedBarangay: z.string().trim().min(1, 'Select a barangay.'),
     startDate: z.string().min(1, 'Pick a start date.'),
     endDate: z.string().min(1, 'Pick an end date.'),
     daysDuration: z.coerce
@@ -90,9 +115,9 @@ function toFormValues(entry: SpesAppointmentEntry): Partial<AppointmentFormValue
   return {
     appointee: `spes:${entry.spes_id}`,
     spesYear: entry.spes_year,
-    assignedOffice: entry.assigned_office,
-    supervisor: entry.supervisor ?? '',
-    dailyWage: entry.daily_wage ?? undefined,
+    assignedProvince: entry.assigned_province ?? '',
+    assignedMunicipality: entry.assigned_municipality,
+    assignedBarangay: entry.assigned_barangay ?? '',
     startDate: entry.start_date,
     endDate: entry.end_date,
     daysDuration: entry.days_duration,
@@ -113,6 +138,8 @@ export function useSpesAppointmentForm() {
     reappointableBeneficiaries,
     completionReports,
     isLoadingReports,
+    spesForms,
+    spesBeneficiaries,
   } = storeToRefs(store)
   const {
     appointSpes,
@@ -163,9 +190,9 @@ export function useSpesAppointmentForm() {
     return {
       appointee: presetAppointee.value ? toAppointeeValue(presetAppointee.value) : '',
       spesYear: selectedYear.value,
-      assignedOffice: '',
-      supervisor: '',
-      dailyWage: undefined,
+      assignedProvince: DEFAULT_ASSIGNED_PROVINCE,
+      assignedMunicipality: '',
+      assignedBarangay: '',
       startDate: '',
       endDate: '',
       daysDuration: DEFAULT_DAYS_DURATION,
@@ -178,6 +205,173 @@ export function useSpesAppointmentForm() {
       ? `edit-${editingAppointment.value.id}`
       : `new-${presetAppointee.value ? toAppointeeValue(presetAppointee.value) : 'any'}-${selectedYear.value}`
   )
+
+  // ─── Assignment location (PSGC: province → municipality → barangay) ───
+  const provinces = ref<PsgcLocation[]>([])
+  const municipalities = ref<PsgcLocation[]>([])
+  const barangays = ref<PsgcLocation[]>([])
+  const isLoadingProvinces = ref(false)
+  const isLoadingMunicipalities = ref(false)
+  const isLoadingBarangays = ref(false)
+  const locationError = ref<string | null>(null)
+
+  const loadMunicipalities = async (provinceName: string | undefined) => {
+    municipalities.value = []
+    barangays.value = []
+    const province = byName(provinces.value, provinceName)
+    if (!province) return
+    isLoadingMunicipalities.value = true
+    try {
+      municipalities.value = sortByName(await getCities(province.code))
+    } catch {
+      locationError.value = 'Could not load municipalities from PSGC. Check your connection and try again.'
+    } finally {
+      isLoadingMunicipalities.value = false
+    }
+  }
+
+  const loadBarangays = async (municipalityName: string | undefined) => {
+    barangays.value = []
+    const municipality = byName(municipalities.value, municipalityName)
+    if (!municipality) return
+    isLoadingBarangays.value = true
+    try {
+      barangays.value = sortByName(await getBarangays(municipality.code))
+    } catch {
+      locationError.value = 'Could not load barangays from PSGC. Check your connection and try again.'
+    } finally {
+      isLoadingBarangays.value = false
+    }
+  }
+
+  /** The appointment <Form> (`ref="appointmentForm"`), so the home address can be filled in after it mounts. */
+  const appointmentFormRef = useTemplateRef<{ setFieldValue: (field: string, value: unknown) => void }>('appointmentForm')
+  /** Tells PESO where the prefilled assignment came from (or that there was nothing to prefill). */
+  const homeLocationNote = ref<string | null>(null)
+  const isLoadingHomeLocation = ref(false)
+  let homeLocationRequest = 0
+
+  const ensureProvinces = async (): Promise<boolean> => {
+    if (provinces.value.length) return true
+    isLoadingProvinces.value = true
+    try {
+      const caraga = ((await getRegions()) as PsgcLocation[]).find((region) => ASSIGNMENT_REGION_PATTERN.test(region.name))
+      if (!caraga) throw new Error('Caraga region not found in PSGC')
+      provinces.value = sortByName(await getProvinces(caraga.code))
+      return true
+    } catch {
+      locationError.value = 'Could not load provinces from PSGC. Check your connection and try again.'
+      return false
+    } finally {
+      isLoadingProvinces.value = false
+    }
+  }
+
+  const findAppointeeForm = (value: string) => {
+    const appointee = parseAppointee(value)
+    if (!appointee) return null
+    if (appointee.kind === 'applicant') return spesForms.value.find((form) => form.id === appointee.formId) ?? null
+    return spesBeneficiaries.value.find((spes) => spes.id === appointee.spesId)?.spes_form ?? null
+  }
+
+  /**
+   * New appointments start at the appointee's home address (Entry of Applicants, else their
+   * SPES form municipality). PESO can still assign them to another place.
+   */
+  const autofillHomeLocation = async (appointeeValue: string) => {
+    const requestId = ++homeLocationRequest
+    homeLocationNote.value = null
+    const form = findAppointeeForm(appointeeValue)
+    if (!form) return
+
+    isLoadingHomeLocation.value = true
+    try {
+      const address = await spesService.fetchApplicantAddress(form).catch(() => null)
+      if (requestId !== homeLocationRequest) return
+      const home = getSpesHomeLocation(address, form)
+      if (!home || !(await ensureProvinces()) || requestId !== homeLocationRequest) {
+        if (requestId === homeLocationRequest) {
+          homeLocationNote.value = 'No address on record for this applicant. Pick the assignment manually.'
+        }
+        return
+      }
+
+      const setField = (field: LocationField, value: string) => appointmentFormRef.value?.setFieldValue(field, value)
+      const province = byName(provinces.value, home.province)
+      if (!province) {
+        homeLocationNote.value = `Their address (${home.province}) is outside Caraga. Pick a Caraga province to assign them.`
+        return
+      }
+      setField('assignedProvince', province.name)
+      setField('assignedMunicipality', '')
+      setField('assignedBarangay', '')
+      await loadMunicipalities(province.name)
+      if (requestId !== homeLocationRequest) return
+
+      const municipality = byName(municipalities.value, home.municipality)
+      if (municipality) {
+        setField('assignedMunicipality', municipality.name)
+        await loadBarangays(municipality.name)
+        if (requestId !== homeLocationRequest) return
+        const barangay = byName(barangays.value, home.barangay)
+        if (barangay) setField('assignedBarangay', barangay.name)
+      }
+
+      homeLocationNote.value = municipality
+        ? "Prefilled from the applicant's home address. Change it to assign them to another municipality."
+        : "Only the applicant's province is on record. Pick the municipality and barangay."
+    } finally {
+      if (requestId === homeLocationRequest) isLoadingHomeLocation.value = false
+    }
+  }
+
+  /** Loads the lists for the form's initial location so an edited appointment shows its saved place. */
+  const loadInitialLocation = async () => {
+    locationError.value = null
+    homeLocationNote.value = null
+    homeLocationRequest++
+    isLoadingHomeLocation.value = false
+    const { appointee, assignedProvince, assignedMunicipality } = appointmentInitialValues.value
+    if (!(await ensureProvinces())) return
+    // Re-appointing from the history dialog: the appointee is known when the form opens
+    if (!isEditMode.value && appointee) {
+      await autofillHomeLocation(appointee)
+      return
+    }
+    await loadMunicipalities(assignedProvince)
+    await loadBarangays(assignedMunicipality)
+  }
+
+  watch(
+    () => isAppointmentFormOpen.value && appointmentFormKey.value,
+    (key) => {
+      if (key) void loadInitialLocation()
+    },
+    { immediate: true }
+  )
+
+  /** Picking someone to appoint fills the assignment with where they live. */
+  const onAppointeeChange = (value: unknown) => {
+    if (isEditMode.value || typeof value !== 'string' || !value) return
+    void autofillHomeLocation(value)
+  }
+
+  type LocationField = 'assignedProvince' | 'assignedMunicipality' | 'assignedBarangay'
+
+  /** Picking a province clears the municipality and barangay below it. */
+  const onProvinceChange = (name: string, setFieldValue: (field: LocationField, value: string) => void) => {
+    setFieldValue('assignedProvince', name)
+    setFieldValue('assignedMunicipality', '')
+    setFieldValue('assignedBarangay', '')
+    void loadMunicipalities(name)
+  }
+
+  /** Picking a municipality clears the barangay below it. */
+  const onMunicipalityChange = (name: string, setFieldValue: (field: LocationField, value: string) => void) => {
+    setFieldValue('assignedMunicipality', name)
+    setFieldValue('assignedBarangay', '')
+    void loadBarangays(name)
+  }
 
   // ─── Conclude: Completed needs the DTR and Accomplishment Report ───
   const concludeReports = computed(() =>
@@ -228,9 +422,9 @@ export function useSpesAppointmentForm() {
     const values = formValues as AppointmentFormValues
     const details: SpesAppointmentDetails = {
       spes_year: values.spesYear,
-      assigned_office: values.assignedOffice,
-      supervisor: values.supervisor || null,
-      daily_wage: values.dailyWage ?? null,
+      assigned_province: values.assignedProvince,
+      assigned_municipality: values.assignedMunicipality,
+      assigned_barangay: values.assignedBarangay,
       days_duration: values.daysDuration,
       start_date: values.startDate,
       end_date: values.endDate,
@@ -272,6 +466,19 @@ export function useSpesAppointmentForm() {
     totalReports: SPES_COMPLETION_REPORTS.length,
     isLoadingReports,
     openConcludeReports,
+    provinces,
+    municipalities,
+    barangays,
+    isLoadingProvinces,
+    isLoadingMunicipalities,
+    isLoadingBarangays,
+    locationError,
+    retryLoadLocation: loadInitialLocation,
+    homeLocationNote,
+    isLoadingHomeLocation,
+    onAppointeeChange,
+    onProvinceChange,
+    onMunicipalityChange,
     durationChoices: SPES_DURATION_CHOICES,
     fillEndDate,
     countSpesCalendarDays,

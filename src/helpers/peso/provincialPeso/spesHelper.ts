@@ -7,6 +7,7 @@ import type {
   SpesDrawMunicipality,
   SpesFormInsert,
   SpesFormRow,
+  SpesHomeLocation,
 } from '@/types/peso/provincialPeso/spes'
 import type { ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 import {
@@ -94,9 +95,38 @@ export function formatSpesDays(value?: string | null): string {
   return /^\d+$/.test(value.trim()) ? `${value.trim()} days` : value
 }
 
-export function formatSpesWage(value?: number | null): string {
-  if (value == null) return '—'
-  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day`
+/**
+ * Where an appointee lives, to prefill their assignment: the Entry of Applicants address,
+ * else the municipality on their SPES form. Null when neither is recorded.
+ */
+export function getSpesHomeLocation(
+  address: unknown,
+  form: Pick<SpesFormRow, 'municipality'> | null | undefined
+): SpesHomeLocation | null {
+  // parseApplicantAddress fills defaults for missing parts, so drop those again
+  if (address && typeof address === 'object' && Object.keys(address).length > 0) {
+    const parsed = parseApplicantAddress(address)
+    const municipality = parsed.municipality === parsed.province ? '' : parsed.municipality
+    return {
+      province: parsed.province,
+      municipality,
+      barangay: municipality && parsed.barangay !== 'N/A' ? parsed.barangay : '',
+    }
+  }
+  if (form?.municipality?.trim()) {
+    return { province: 'Agusan del Sur', municipality: form.municipality.trim(), barangay: '' }
+  }
+  return null
+}
+
+/** Loose PSGC name key: "City of Bayugan", "Bayugan City" and "bayugan" all match. */
+export function normalizePsgcName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/^city of\s+/, '')
+    .replace(/\s+city$/, '')
+    .replace(/[^a-z0-9]/g, '')
 }
 
 // ─── Appointments (esmdd.spes_appointments) ───

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -53,9 +55,9 @@ import SpesRandomizerDialog from '@/components/peso/ProvincialPeso/ESMDD/SPES/Sp
 import {
   formatSpesDate,
   formatSpesFormName,
-  formatSpesWage,
   getSpesStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/spesHelper'
+import { formatSpesAssignment } from '@/helpers/common/spesFormHelper'
 
 const {
   table,
@@ -109,6 +111,19 @@ const {
   totalReports,
   isLoadingReports,
   openConcludeReports,
+  provinces,
+  municipalities,
+  barangays,
+  isLoadingProvinces,
+  isLoadingMunicipalities,
+  isLoadingBarangays,
+  locationError,
+  retryLoadLocation,
+  homeLocationNote,
+  isLoadingHomeLocation,
+  onAppointeeChange,
+  onProvinceChange,
+  onMunicipalityChange,
   durationChoices,
   fillEndDate,
   countSpesCalendarDays,
@@ -122,22 +137,32 @@ const {
 <template>
   <div class="w-full min-w-0 space-y-6">
     <!-- Header -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-2xl space-y-1">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Special Program for Employment of Students</h1>
         <p class="text-sm text-muted-foreground">
-          Appoint the applicants drawn per municipality for 10 or 20 days, then collect their DTR and accomplishment
+          Draw applicants per municipality, appoint them for 10 or 20 days, then collect their DTR and accomplishment
           report to complete SPES.
         </p>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Select :model-value="String(selectedYear)" @update:model-value="onYearChange">
+          <SelectTrigger class="w-full sm:w-36" aria-label="SPES year">
+            <SelectValue placeholder="SPES year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="year in availableYears" :key="year" :value="String(year)">
+              SPES {{ year }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="outline" as-child>
           <RouterLink :to="{ name: 'provincial-peso-spes-applicants' }">View Applicants</RouterLink>
         </Button>
         <Button variant="outline" @click="openDrawDialog">Draw Applicants</Button>
         <Button @click="openAppointDialog">
-          <Plus class="size-4" />
-          Appoint for SPES {{ selectedYear }}
+          <Plus class="size-4 shrink-0" />
+          Appoint
         </Button>
       </div>
     </div>
@@ -147,28 +172,37 @@ const {
       <Card>
         <CardHeader>
           <CardDescription>Applicants</CardDescription>
-          <CardTitle class="text-2xl tabular-nums">{{ summary.applicants }}</CardTitle>
+          <CardTitle class="text-3xl font-semibold tabular-nums">{{ summary.applicants }}</CardTitle>
           <p class="text-xs text-muted-foreground">{{ summary.pendingApplicants }} pending review</p>
         </CardHeader>
       </Card>
       <Card>
         <CardHeader>
           <CardDescription>Appointed · SPES {{ selectedYear }}</CardDescription>
-          <CardTitle class="text-2xl tabular-nums">{{ summary.appointed }}</CardTitle>
+          <CardTitle class="text-3xl font-semibold tabular-nums">{{ summary.appointed }}</CardTitle>
           <p class="text-xs text-muted-foreground">{{ summary.returning }} returning</p>
         </CardHeader>
       </Card>
       <Card>
         <CardHeader>
           <CardDescription>Active</CardDescription>
-          <CardTitle class="text-2xl tabular-nums">{{ summary.active }}</CardTitle>
+          <CardTitle class="text-3xl font-semibold tabular-nums">{{ summary.active }}</CardTitle>
+          <p class="text-xs text-muted-foreground">{{ summary.expiringSoon }} ending within 7 days</p>
         </CardHeader>
       </Card>
       <Card>
         <CardHeader>
           <CardDescription>Completed</CardDescription>
-          <CardTitle class="text-2xl tabular-nums">{{ summary.completed }}</CardTitle>
+          <CardTitle class="text-3xl font-semibold tabular-nums">{{ summary.completed }}</CardTitle>
+          <p class="text-xs text-muted-foreground">of {{ summary.appointed }} appointed</p>
         </CardHeader>
+        <CardContent>
+          <Progress
+            :model-value="summary.appointed ? Math.round((summary.completed / summary.appointed) * 100) : 0"
+            class="h-1.5"
+            aria-label="Completion progress"
+          />
+        </CardContent>
       </Card>
     </div>
 
@@ -208,16 +242,6 @@ const {
         <!-- Toolbar -->
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Select :model-value="String(selectedYear)" @update:model-value="onYearChange">
-              <SelectTrigger class="w-full sm:w-36" aria-label="SPES year">
-                <SelectValue placeholder="SPES year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="year in availableYears" :key="year" :value="String(year)">
-                  SPES {{ year }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
             <Input
               class="w-full sm:max-w-xs"
               placeholder="Search beneficiaries..."
@@ -241,18 +265,17 @@ const {
           </div>
 
           <Button variant="outline" :disabled="isLoading" @click="refreshBeneficiaries">
-            <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />
+            <RefreshCw class="size-4 shrink-0" :class="{ 'animate-spin': isLoading }" />
             <span class="hidden sm:inline">Refresh</span>
           </Button>
         </div>
 
         <!-- Error Banner -->
-        <div
-          v-if="errorMessage"
-          class="rounded border border-destructive/20 bg-destructive/10 p-4 text-center text-sm text-destructive"
-        >
-          {{ errorMessage }}
-        </div>
+        <Alert v-if="errorMessage" variant="destructive">
+          <AlertTriangle />
+          <AlertTitle>Could not load appointments</AlertTitle>
+          <AlertDescription>{{ errorMessage }}</AlertDescription>
+        </Alert>
 
         <!-- Empty State -->
         <Empty v-if="!isLoading && !errorMessage && yearAppointments.length === 0" class="border">
@@ -318,6 +341,9 @@ const {
           <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
               {{ table.getFilteredRowModel().rows.length }} appointment(s)
+              <template v-if="table.getPageCount() > 1">
+                · Page {{ table.getState().pagination.pageIndex + 1 }} of {{ table.getPageCount() }}
+              </template>
             </p>
             <div class="flex justify-center gap-2 sm:justify-end">
               <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
@@ -342,13 +368,14 @@ const {
           {{
             isEditMode
               ? 'Update the establishment and period of this appointment.'
-              : 'Appoint an approved applicant, or a former beneficiary returning for another year.'
+              : `Appoint an approved applicant, or a former beneficiary returning for SPES ${selectedYear}.`
           }}
         </DialogDescription>
       </DialogHeader>
 
       <Form
         v-if="isAppointmentFormOpen"
+        ref="appointmentForm"
         :key="appointmentFormKey"
         v-slot="{ values, setFieldValue }"
         :validation-schema="appointmentSchema"
@@ -367,6 +394,7 @@ const {
             <Select
               v-bind="componentField"
               :disabled="isSubmitting || (applicantOptions.length === 0 && beneficiaryOptions.length === 0)"
+              @update:model-value="onAppointeeChange"
             >
               <FormControl>
                 <SelectTrigger class="w-full">
@@ -401,48 +429,157 @@ const {
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="spesYear">
-          <FormItem>
-            <FormLabel>SPES Year</FormLabel>
-            <FormControl>
-              <Input v-bind="componentField" type="number" min="2000" max="2100" :disabled="isSubmitting || !isEditMode" />
-            </FormControl>
-            <FormDescription v-if="!isEditMode">Change the year with the SPES year filter on the dashboard.</FormDescription>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ componentField }" name="assignedOffice">
-          <FormItem>
-            <FormLabel>Establishment / Office</FormLabel>
-            <FormControl>
-              <Input v-bind="componentField" placeholder="e.g. Provincial Treasurer's Office" :disabled="isSubmitting" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          <FormField v-slot="{ componentField }" name="supervisor">
+        <!-- Year is fixed by the dashboard filter when appointing; editable only when editing -->
+        <div v-show="isEditMode">
+          <FormField v-slot="{ componentField }" name="spesYear">
             <FormItem>
-              <FormLabel>Supervisor</FormLabel>
+              <FormLabel>SPES Year</FormLabel>
               <FormControl>
-                <Input v-bind="componentField" placeholder="Optional" :disabled="isSubmitting" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <FormField v-slot="{ componentField }" name="dailyWage">
-            <FormItem>
-              <FormLabel>Daily Wage (₱)</FormLabel>
-              <FormControl>
-                <Input v-bind="componentField" type="number" min="0" step="0.01" placeholder="Optional" :disabled="isSubmitting" />
+                <Input v-bind="componentField" type="number" min="2000" max="2100" :disabled="isSubmitting || !isEditMode" />
               </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>
         </div>
+
+        <Separator />
+        <h3 class="text-sm font-semibold">Assignment</h3>
+
+        <p
+          v-if="!isEditMode && (isLoadingHomeLocation || homeLocationNote)"
+          class="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <Loader2 v-if="isLoadingHomeLocation" class="size-3.5 shrink-0 animate-spin" />
+          {{ isLoadingHomeLocation ? "Looking up the applicant's home address..." : homeLocationNote }}
+        </p>
+
+        <Alert v-if="locationError" variant="destructive">
+          <AlertTriangle class="size-4" />
+          <AlertTitle>PSGC unavailable</AlertTitle>
+          <AlertDescription class="flex flex-wrap items-center gap-2">
+            {{ locationError }}
+            <Button type="button" variant="outline" size="sm" class="cursor-pointer" @click="retryLoadLocation">
+              <RefreshCw class="size-4" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+
+        <FormField v-slot="{ value }" name="assignedProvince">
+          <FormItem>
+            <FormLabel>Province</FormLabel>
+            <Select
+              :model-value="value"
+              :disabled="isSubmitting || isLoadingProvinces"
+              @update:model-value="(name) => onProvinceChange(String(name ?? ''), setFieldValue)"
+            >
+              <FormControl>
+                <SelectTrigger class="w-full">
+                  <SelectValue :placeholder="isLoadingProvinces ? 'Loading provinces...' : 'Select province'" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem v-for="province in provinces" :key="province.code" :value="province.name">
+                  {{ province.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <FormField v-slot="{ value }" name="assignedMunicipality">
+            <FormItem>
+              <FormLabel>Municipality / City</FormLabel>
+              <Select
+                :model-value="value"
+                :disabled="isSubmitting || !values.assignedProvince || isLoadingMunicipalities"
+                @update:model-value="(name) => onMunicipalityChange(String(name ?? ''), setFieldValue)"
+              >
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue
+                      :placeholder="
+                        !values.assignedProvince
+                          ? 'Select province first'
+                          : isLoadingMunicipalities
+                            ? 'Loading...'
+                            : 'Select municipality'
+                      "
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="municipality in municipalities" :key="municipality.code" :value="municipality.name">
+                    {{ municipality.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ componentField }" name="assignedBarangay">
+            <FormItem>
+              <FormLabel>Barangay</FormLabel>
+              <Select
+                v-bind="componentField"
+                :disabled="isSubmitting || !values.assignedMunicipality || isLoadingBarangays"
+              >
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue
+                      :placeholder="
+                        !values.assignedMunicipality
+                          ? 'Select municipality first'
+                          : isLoadingBarangays
+                            ? 'Loading...'
+                            : 'Select barangay'
+                      "
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="barangay in barangays" :key="barangay.code" :value="barangay.name">
+                    {{ barangay.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
+
+        <Separator />
+        <h3 class="text-sm font-semibold">Period</h3>
+
+        <FormField v-slot="{ value, handleChange }" name="daysDuration">
+          <FormItem>
+            <FormLabel>Appointment Duration</FormLabel>
+            <FormControl>
+              <div role="radiogroup" class="grid grid-cols-2 gap-3">
+                <button
+                  v-for="opt in durationChoices"
+                  :key="opt.value"
+                  type="button"
+                  role="radio"
+                  :aria-checked="Number(value) === opt.value"
+                  :disabled="isSubmitting"
+                  :class="[
+                    'flex cursor-pointer flex-col items-start rounded-lg border p-3 text-left transition-colors',
+                    Number(value) === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
+                  ]"
+                  @click="handleChange(opt.value); fillEndDate(values.startDate, opt.value, setFieldValue)"
+                >
+                  <span class="text-sm font-semibold">{{ opt.label }}</span>
+                  <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
+                </button>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField v-slot="{ componentField }" name="startDate">
@@ -470,39 +607,14 @@ const {
             </FormItem>
           </FormField>
         </div>
+        <p class="-mt-2 text-xs text-muted-foreground">
+          The end date is set to the last working day of the duration.
+          <template v-if="countSpesCalendarDays(values.startDate, values.endDate)">
+            The period covers {{ countSpesCalendarDays(values.startDate, values.endDate) }} calendar day(s).
+          </template>
+        </p>
 
-        <FormField v-slot="{ value, handleChange }" name="daysDuration">
-          <FormItem>
-            <FormLabel>Appointment Duration</FormLabel>
-            <FormControl>
-              <div role="radiogroup" class="grid grid-cols-2 gap-3">
-                <button
-                  v-for="opt in durationChoices"
-                  :key="opt.value"
-                  type="button"
-                  role="radio"
-                  :aria-checked="Number(value) === opt.value"
-                  :disabled="isSubmitting"
-                  :class="[
-                    'flex cursor-pointer flex-col items-start rounded-lg border p-3 text-left transition-colors',
-                    Number(value) === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
-                  ]"
-                  @click="handleChange(opt.value); fillEndDate(values.startDate, opt.value, setFieldValue)"
-                >
-                  <span class="text-sm font-semibold">{{ opt.label }}</span>
-                  <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
-                </button>
-              </div>
-            </FormControl>
-            <FormDescription>
-              The end date is set to the last working day of the duration.
-              <template v-if="countSpesCalendarDays(values.startDate, values.endDate)">
-                The period covers {{ countSpesCalendarDays(values.startDate, values.endDate) }} calendar day(s).
-              </template>
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+        <Separator />
 
         <FormField v-slot="{ componentField }" name="notes">
           <FormItem>
@@ -622,7 +734,7 @@ const {
         <DialogTitle>{{ formatSpesFormName(reportsAppointment?.beneficiary.spes_form) }}</DialogTitle>
         <DialogDescription>
           DTR and accomplishment report for SPES {{ reportsAppointment?.spes_year }} ·
-          {{ reportsAppointment?.assigned_office }}. Both PDFs are required before the appointment can be marked
+          {{ reportsAppointment ? formatSpesAssignment(reportsAppointment) : '' }}. Both PDFs are required before the appointment can be marked
           Completed.
         </DialogDescription>
       </DialogHeader>
@@ -662,13 +774,9 @@ const {
             </Badge>
           </div>
           <dl class="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt class="text-xs text-muted-foreground">Establishment / Office</dt>
-              <dd>{{ appointment.assigned_office }}</dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted-foreground">Supervisor</dt>
-              <dd>{{ appointment.supervisor || '—' }}</dd>
+            <div class="sm:col-span-2">
+              <dt class="text-xs text-muted-foreground">Assignment</dt>
+              <dd>{{ formatSpesAssignment(appointment) }}</dd>
             </div>
             <div>
               <dt class="text-xs text-muted-foreground">Period</dt>
@@ -676,10 +784,6 @@ const {
                 {{ formatSpesDate(appointment.start_date) }} – {{ formatSpesDate(appointment.end_date) }}
                 <span class="text-muted-foreground">({{ appointment.days_duration }} days)</span>
               </dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted-foreground">Daily Wage</dt>
-              <dd>{{ formatSpesWage(appointment.daily_wage) }}</dd>
             </div>
             <div v-if="appointment.decision_notes" class="sm:col-span-2">
               <dt class="text-xs text-muted-foreground">Notes</dt>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import { computed } from 'vue'
-import { Loader2, Plus, RefreshCw, Users } from '@lucide/vue'
+import { RouterLink } from 'vue-router'
+import { ChevronLeft, Loader2, Plus, RefreshCw, Users } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -98,6 +99,12 @@ const previousAvailments = computed(() => {
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
+        <Button variant="ghost" size="sm" class="-ml-2 mb-1 text-muted-foreground" as-child>
+          <RouterLink :to="{ name: 'provincial-peso-spes' }">
+            <ChevronLeft class="size-4 shrink-0" />
+            SPES Dashboard
+          </RouterLink>
+        </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">SPES Applicants</h1>
         <p class="text-sm text-muted-foreground">
           Review students who submitted a SPES application form, then draw beneficiaries per municipality from those

@@ -111,14 +111,14 @@ export function useSpesBeneficiaries() {
         ]),
     },
     {
-      id: 'office',
-      accessorFn: (row) => row.assigned_office,
-      header: sortableHeader('Establishment'),
+      id: 'assignment',
+      accessorFn: (row) => row.assigned_municipality,
+      header: sortableHeader('Assignment'),
       cell: ({ row }) =>
         h('div', { class: 'max-w-[240px] space-y-0.5' }, [
-          h('div', { class: 'truncate text-sm' }, row.original.assigned_office),
-          row.original.supervisor
-            ? h('div', { class: 'truncate text-xs text-muted-foreground' }, row.original.supervisor)
+          h('div', { class: 'truncate text-sm' }, row.original.assigned_municipality),
+          row.original.assigned_barangay
+            ? h('div', { class: 'truncate text-xs text-muted-foreground' }, `Brgy. ${row.original.assigned_barangay}`)
             : null,
         ]),
     },

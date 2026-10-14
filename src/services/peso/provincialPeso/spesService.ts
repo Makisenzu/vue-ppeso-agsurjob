@@ -57,12 +57,7 @@ async function attachAppointments(rows: SpesWithApplicant[]): Promise<SpesBenefi
 
   const bySpes = new Map<string, SpesAppointmentRow[]>()
   for (const appointment of (data ?? []) as SpesAppointmentRow[]) {
-    // NUMERIC comes back as a string from PostgREST
-    const normalized = {
-      ...appointment,
-      daily_wage: appointment.daily_wage == null ? null : Number(appointment.daily_wage),
-    }
-    bySpes.set(appointment.spes_id, [...(bySpes.get(appointment.spes_id) ?? []), normalized])
+    bySpes.set(appointment.spes_id, [...(bySpes.get(appointment.spes_id) ?? []), appointment])
   }
   return rows.map((row) => ({ ...row, appointments: bySpes.get(row.id) ?? [] }))
 }
@@ -174,6 +169,25 @@ export const spesService = {
 
     if (error) throw new Error(error.message || 'Failed to load jobseeker accounts.')
     return (data ?? []) as SpesLinkableJobseeker[]
+  },
+
+  /**
+   * Address (`applicants.applicants.address` JSON) of the jobseeker a SPES form belongs to —
+   * matched by the linked applicant record, or by the account for self-registered applicants.
+   */
+  async fetchApplicantAddress(form: Pick<SpesFormRow, 'applicant_id' | 'profile_id'>): Promise<unknown> {
+    if (!form.applicant_id && !form.profile_id) return null
+
+    const query = supabase.schema('applicants').from('applicants').select('address')
+    const { data, error } = await (form.applicant_id
+      ? query.eq('id', form.applicant_id)
+      : query.eq('profile_id', form.profile_id as string)
+    )
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message || "Failed to load the applicant's address.")
+    return data?.address ?? null
   },
 
   // ─── SPES Beneficiaries (esmdd.spes) ───

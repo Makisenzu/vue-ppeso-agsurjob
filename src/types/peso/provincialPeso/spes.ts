@@ -31,9 +31,10 @@ export interface SpesAppointmentRow {
   spes_id: string
   spes_year: number
   appointment_code: string
-  assigned_office: string
-  supervisor: string | null
-  daily_wage: number | null
+  /** Assignment location (PSGC names, migration 018); province / barangay are null on older rows. */
+  assigned_province: string | null
+  assigned_municipality: string
+  assigned_barangay: string | null
   days_duration: number
   start_date: string // YYYY-MM-DD
   end_date: string // YYYY-MM-DD
@@ -47,17 +48,36 @@ export interface SpesAppointmentRow {
 
 export type SpesAppointmentInsert = Pick<
   SpesAppointmentRow,
-  'spes_id' | 'spes_year' | 'appointment_code' | 'assigned_office' | 'days_duration' | 'start_date' | 'end_date'
+  'spes_id' | 'spes_year' | 'appointment_code' | 'assigned_municipality' | 'days_duration' | 'start_date' | 'end_date'
 > &
-  Partial<Pick<SpesAppointmentRow, 'supervisor' | 'daily_wage' | 'status' | 'decision_notes' | 'decided_by' | 'decided_at'>>
+  Partial<
+    Pick<
+      SpesAppointmentRow,
+      'assigned_province' | 'assigned_barangay' | 'status' | 'decision_notes' | 'decided_by' | 'decided_at'
+    >
+  >
 
 export type SpesAppointmentUpdate = Partial<Omit<SpesAppointmentRow, 'id' | 'spes_id' | 'created_at' | 'updated_at'>>
 
 /** Appointment details PESO encodes when appointing (or re-appointing) a beneficiary for a SPES year. */
 export type SpesAppointmentDetails = Pick<
   SpesAppointmentRow,
-  'spes_year' | 'assigned_office' | 'supervisor' | 'daily_wage' | 'days_duration' | 'start_date' | 'end_date' | 'decision_notes'
+  | 'spes_year'
+  | 'assigned_province'
+  | 'assigned_municipality'
+  | 'assigned_barangay'
+  | 'days_duration'
+  | 'start_date'
+  | 'end_date'
+  | 'decision_notes'
 >
+
+/** Home address of an appointee (PSGC names), used to prefill where they are assigned. */
+export interface SpesHomeLocation {
+  province: string
+  municipality: string
+  barangay: string
+}
 
 /** SPES beneficiary with every yearly appointment, newest SPES year first. */
 export type SpesBeneficiary = SpesWithApplicant & {
