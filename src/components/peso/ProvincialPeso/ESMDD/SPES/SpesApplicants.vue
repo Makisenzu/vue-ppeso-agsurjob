@@ -750,7 +750,6 @@ const previousAvailments = computed(() => {
             <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button size="lg" :disabled="!canDraw" @click="spin">
                 <Loader2 v-if="isSpinning" class="size-4 shrink-0 animate-spin" />
-                <Dices v-else class="size-4 shrink-0" />
                 {{ isSpinning ? 'Spinning...' : 'Spin the Wheel' }}
               </Button>
               <Button size="lg" variant="outline" :disabled="!canDraw" @click="drawRemaining">

@@ -27,6 +27,10 @@ export function matchSpesMunicipality(text?: string | null): string | null {
   return SPES_MUNICIPALITY_OPTIONS.find((option) => haystack.includes(normalizeMunicipality(option))) ?? null
 }
 
+/** SPES eligibility: applicants must be 15 to 30 years old (inclusive). */
+export const SPES_MIN_AGE = 15
+export const SPES_MAX_AGE = 30
+
 const optionalText = z.string().trim().max(255, 'Must be 255 characters or fewer.').optional()
 const contactNumber = z
   .string()
@@ -45,7 +49,14 @@ export const spesFormSchema = z.object({
   date_of_birth: z
     .string()
     .min(1, 'Date of birth is required.')
-    .refine((v) => isValid(parseISO(v)) && parseISO(v) < new Date(), 'Enter a valid date of birth.'),
+    .refine((v) => isValid(parseISO(v)) && parseISO(v) < new Date(), 'Enter a valid date of birth.')
+    .refine(
+      (v) => {
+        const age = calculateSpesAge(v)
+        return age === null || (age >= SPES_MIN_AGE && age <= SPES_MAX_AGE)
+      },
+      `Only applicants aged ${SPES_MIN_AGE} to ${SPES_MAX_AGE} are eligible for SPES.`
+    ),
   place_of_birth: optionalText,
   age: z.number().int().min(0).max(120).nullable().optional(),
   citizenship: optionalText,
