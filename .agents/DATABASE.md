@@ -512,6 +512,16 @@ Entry (New / Returning) → 5 documentary requirements → **randomizer draw per
 - `trg_spes_appointment_guard_completion` rejects `status = 'Completed'` unless both reports exist.
 - RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; the beneficiary reads their own and inserts / replaces / deletes their own while the appointment is `Active`. Storage policy `applicant_spes_completion_report_documents_select` lets them open reports PESO uploaded for them.
 
+#### TUPAD (migration `020_tupad.sql`)
+`applicants.applicants ──< tupad_applicants ──< tupad >── tupad_batch`, `tupad ──< tupad_attachments`.
+
+- `tupad_applicants`: `applicant_id` (FK → `applicants.applicants.id`, UNIQUE, cascade), `monthly_income` (numeric), `dependent_name`, `doc_submitted` (`text[]`), `status` (`Pending` / `Approved` / `Rejected`).
+- `tupad_batch`: `edl_number` (UNIQUE), `status` (`Pending` / `Ongoing` / `Completed` / `Cancelled`), `start_date`, `end_date`.
+- `tupad`: `batch_id` (FK, cascade), `tupad_applicant_id` (FK, cascade), `days_duration` (int), `status` (`Active` / `Completed` / `Terminated`), `remarks`. `(batch_id, tupad_applicant_id)` UNIQUE.
+- `tupad_attachments`: `tupad_id` (FK, cascade), `file_name`, `path` (documents bucket), `mime_type`, `size`.
+- All four share the `esmdd.set_tupad_updated_at()` trigger. Not in `database.types.ts` until `npm run types:gen` is re-run.
+- RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own rows via `applicants.applicants.profile_id` (and the batches they're engaged in).
+
 ---
 
 ## 9. Schema: `system` — Audit & Notifications

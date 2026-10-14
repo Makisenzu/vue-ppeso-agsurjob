@@ -1726,6 +1726,166 @@ export type Database = {
           },
         ]
       }
+      tupad: {
+        Row: {
+          batch_id: string
+          created_at: string
+          days_duration: number
+          id: string
+          remarks: string | null
+          status: string
+          tupad_applicant_id: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          days_duration: number
+          id?: string
+          remarks?: string | null
+          status?: string
+          tupad_applicant_id: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          days_duration?: number
+          id?: string
+          remarks?: string | null
+          status?: string
+          tupad_applicant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tupad_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "tupad_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tupad_tupad_applicant_id_fkey"
+            columns: ["tupad_applicant_id"]
+            isOneToOne: false
+            referencedRelation: "tupad_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tupad_applicants: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          dependent_name: string | null
+          doc_submitted: string[]
+          id: string
+          monthly_income: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          dependent_name?: string | null
+          doc_submitted?: string[]
+          id?: string
+          monthly_income?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          dependent_name?: string | null
+          doc_submitted?: string[]
+          id?: string
+          monthly_income?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tupad_applicants_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: true
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+        ]
+      }
+      tupad_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          tupad_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          tupad_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          tupad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tupad_attachments_tupad_id_fkey"
+            columns: ["tupad_id"]
+            isOneToOne: false
+            referencedRelation: "tupad"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tupad_batch: {
+        Row: {
+          created_at: string
+          edl_number: string
+          end_date: string | null
+          id: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          edl_number: string
+          end_date?: string | null
+          id?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          edl_number?: string
+          end_date?: string | null
+          id?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       gip_applicant_priority_scores: {
