@@ -548,17 +548,26 @@ export function mapToGipApplicantRecord(
 }
 
 // ─── Demographic Aggregation Helpers ───
+export const GIP_CHART_START_YEAR = 2026
+
+// Charts start at 2026 and always show at least 2026–2028
+function buildChartYears(records: Array<{ batchYear: number }>): number[] {
+  const yearsSet = new Set<number>([
+    GIP_CHART_START_YEAR,
+    GIP_CHART_START_YEAR + 1,
+    GIP_CHART_START_YEAR + 2,
+  ])
+  for (const r of records) {
+    if (r.batchYear && r.batchYear >= GIP_CHART_START_YEAR) yearsSet.add(r.batchYear)
+  }
+  return Array.from(yearsSet).sort((a, b) => a - b)
+}
+
 export function computeYearlyDemographics(records: GipInternRecord[]): {
   pgas: GenderDataPoint[]
   dole: GenderDataPoint[]
 } {
-  const currentYear = new Date().getFullYear()
-  const yearsSet = new Set<number>([currentYear - 2, currentYear - 1, currentYear])
-  for (const r of records) {
-    if (r.batchYear) yearsSet.add(r.batchYear)
-  }
-
-  const sortedYears = Array.from(yearsSet).sort((a, b) => a - b)
+  const sortedYears = buildChartYears(records)
 
   const pgasMap = new Map<number, { male: number; female: number }>()
   const doleMap = new Map<number, { male: number; female: number }>()
@@ -570,6 +579,7 @@ export function computeYearlyDemographics(records: GipInternRecord[]): {
 
   for (const r of records) {
     const targetMap = r.program === 'DOLE' ? doleMap : pgasMap
+    if (!targetMap.has(r.batchYear)) continue
     const entry = targetMap.get(r.batchYear) || { male: 0, female: 0 }
     if (r.gender === 'Female') {
       entry.female += 1
@@ -597,13 +607,7 @@ export function computeYearlyDemographics(records: GipInternRecord[]): {
 export function computeApplicantsDemographics(
   records: Array<{ batchYear: number; gender: string }>
 ): GenderDataPoint[] {
-  const currentYear = new Date().getFullYear()
-  const yearsSet = new Set<number>([currentYear - 2, currentYear - 1, currentYear])
-  for (const r of records) {
-    if (r.batchYear) yearsSet.add(r.batchYear)
-  }
-
-  const sortedYears = Array.from(yearsSet).sort((a, b) => a - b)
+  const sortedYears = buildChartYears(records)
   const applicantsMap = new Map<number, { male: number; female: number }>()
 
   for (const y of sortedYears) {
@@ -611,6 +615,7 @@ export function computeApplicantsDemographics(
   }
 
   for (const r of records) {
+    if (!applicantsMap.has(r.batchYear)) continue
     const entry = applicantsMap.get(r.batchYear) || { male: 0, female: 0 }
     if (r.gender === 'Female') {
       entry.female += 1
