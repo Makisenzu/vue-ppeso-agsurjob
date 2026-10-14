@@ -12,6 +12,8 @@ import type { SpesFormRow } from '@/types/peso/provincialPeso/spes'
 import type { SpesFormTableInsert, SpesFormTableUpdate } from '@/types/common/spesForm'
 import { invalidateGipCaches } from '@/helpers/peso/provincialPeso/gipHelper'
 import { buildSpesFormPrefill, pickBlankSpesFields } from '@/helpers/peso/provincialPeso/spesHelper'
+import { hasTupadReferral } from '@/helpers/peso/provincialPeso/tupadHelper'
+import { tupadService } from '@/services/peso/provincialPeso/tupadService'
 
 export const APPLICANT_ENTRY_CACHE_KEY = 'peso:applicant-entry:applicants'
 const APPLICANT_ENTRY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
@@ -272,6 +274,27 @@ export const applicantEntryService = {
         results.push({
           program: 'SPES',
           targetTable: 'applicants.spes_form',
+          success: false,
+          error: message,
+        })
+      }
+    }
+
+    // 3. TUPAD Referral check -> esmdd.tupad_applicants
+    if (hasTupadReferral(programs)) {
+      try {
+        const tupadRow = await tupadService.referToTupad(applicant.id)
+        results.push({
+          program: 'TUPAD',
+          targetTable: 'esmdd.tupad_applicants',
+          success: true,
+          recordId: tupadRow.id,
+        })
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        results.push({
+          program: 'TUPAD',
+          targetTable: 'esmdd.tupad_applicants',
           success: false,
           error: message,
         })
@@ -571,6 +594,7 @@ export const applicantEntryService = {
       )
       const hasGip = currentPrograms.some((p) => p.includes('GIP'))
       const hasSpes = currentPrograms.some((p) => p.includes('SPES'))
+      const hasTupad = hasTupadReferral(currentPrograms)
 
       if (hasGip) {
         try {
@@ -598,6 +622,20 @@ export const applicantEntryService = {
           await this.unreferFromSpes(applicantId)
         } catch (unreferErr: unknown) {
           console.error('[applicantEntryService] Failed to unrefer from SPES on update:', unreferErr)
+        }
+      }
+
+      if (hasTupad) {
+        try {
+          await tupadService.referToTupad(applicantId)
+        } catch (tupadErr: unknown) {
+          console.error('[applicantEntryService] Failed to auto-route to TUPAD on update:', tupadErr)
+        }
+      } else {
+        try {
+          await tupadService.unreferFromTupad(applicantId)
+        } catch (unreferErr: unknown) {
+          console.error('[applicantEntryService] Failed to unrefer from TUPAD on update:', unreferErr)
         }
       }
     }
@@ -673,6 +711,37 @@ export const applicantEntryService = {
   },
 
   /**
+   * Untick TUPAD in referred_programs after PESO deletes these applicants' TUPAD applications,
+   * so the registry and the TUPAD list stay in step (and the next edit does not re-add them).
+   */
+  async removeTupadReferrals(applicantIds: string[]): Promise<void> {
+    if (applicantIds.length === 0) return
+
+    const { data, error } = await supabase
+      .schema('applicants')
+      .from('applicants')
+      .select('id, referred_programs')
+      .in('id', applicantIds)
+
+    if (error) throw new Error(error.message || 'Failed to load the referred programs')
+
+    for (const row of data ?? []) {
+      const programs = (row.referred_programs ?? []) as string[]
+      if (!hasTupadReferral(programs)) continue
+
+      const { error: updateErr } = await supabase
+        .schema('applicants')
+        .from('applicants')
+        .update({ referred_programs: programs.filter((p) => !hasTupadReferral([p])), updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+
+      if (updateErr) throw new Error(updateErr.message || 'Failed to update the referred programs')
+    }
+
+    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+  },
+
+  /**
    * Permanently delete an applicant from applicants.applicants together with their GIP/SPES referrals.
    * Blocked when the applicant is linked to a user account or already has a GIP/SPES deployment.
    */
@@ -743,6 +812,11 @@ export const applicantEntryService = {
       if (data && data.length > 0) {
         throw new Error(`${label} is enrolled as a SPES beneficiary and cannot be deleted.`)
       }
+    }
+
+    // The TUPAD applicant row cascades with the master row; a batch engagement would cascade too, so block it
+    if (await tupadService.hasTupadEngagement(applicantId)) {
+      throw new Error(`${label} is part of a TUPAD batch and cannot be deleted.`)
     }
 
     const gipAppIds = (gipRes.data ?? []).map((r) => r.id)

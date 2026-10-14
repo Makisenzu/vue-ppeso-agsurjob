@@ -1774,6 +1774,53 @@ export type Database = {
           },
         ]
       }
+      tupad_applicant_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          tupad_applicant_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          tupad_applicant_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          tupad_applicant_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tupad_applicant_documents_tupad_applicant_id_fkey"
+            columns: ["tupad_applicant_id"]
+            isOneToOne: false
+            referencedRelation: "tupad_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tupad_applicants: {
         Row: {
           applicant_id: string
@@ -1954,7 +2001,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      can_edit_own_tupad_application: {
+        Args: { p_tupad_applicant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       disability_type_enum:

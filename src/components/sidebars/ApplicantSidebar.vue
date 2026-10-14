@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChartSpline, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog, GraduationCap} from '@lucide/vue'
+import { ChartSpline, Mail, Home, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, Bookmark, Building, UserRound, Bell, MessageCircle, Star, Settings, UserRoundCog, GraduationCap, Hammer} from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -61,6 +61,7 @@ const jobHuntItems = [
   { title: 'Saved Jobs', to: {name: 'saved-job'}, icon: Bookmark },
   { title: 'Companies', to: {name: 'company'}, icon: Building },
   { title: 'SPES Application', to: {name: 'spes-application'}, icon: GraduationCap },
+  { title: 'TUPAD Application', to: {name: 'tupad-application'}, icon: Hammer },
 ]
 </script>
 

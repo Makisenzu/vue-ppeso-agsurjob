@@ -1,0 +1,412 @@
+<script setup lang="ts">
+import { FlexRender } from '@tanstack/vue-table'
+import { RouterLink } from 'vue-router'
+import { ChevronLeft, ExternalLink, FileText, Loader2, RefreshCw, Trash2, Users, X } from '@lucide/vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { useTupadApplicants } from '@/composables/peso/provincialPeso/useTupadApplicants'
+import {
+  formatTupadApplicantName,
+  formatTupadDate,
+  getTupadMunicipality,
+  getTupadStatusBadgeClass,
+} from '@/helpers/peso/provincialPeso/tupadHelper'
+
+const {
+  table,
+  columns,
+  tupadApplicants,
+  isLoading,
+  errorMessage,
+  statusOptions,
+  documentOptions,
+  lockedDocument,
+  municipalityOptions,
+  refresh,
+  reviewingApplicant,
+  reviewDocuments,
+  isLoadingReviewDocuments,
+  isReviewDialogOpen,
+  isSubmitting,
+  onReviewDialogOpenChange,
+  toggleDocument,
+  submitReview,
+  selectedApplicants,
+  bulkStatus,
+  clearSelection,
+  applyBulkStatus,
+  requestBulkDelete,
+  applicantsToDelete,
+  isDeleting,
+  isDeleteDialogOpen,
+  confirmDelete,
+} = useTupadApplicants()
+</script>
+
+<template>
+  <div class="w-full min-w-0 space-y-4">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <Button variant="ghost" size="sm" class="-ml-2 mb-1 text-muted-foreground" as-child>
+          <RouterLink :to="{ name: 'provincial-peso-tupad' }">
+            <ChevronLeft class="size-4 shrink-0" />
+            TUPAD Dashboard
+          </RouterLink>
+        </Button>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">TUPAD Applicants</h1>
+        <p class="text-sm text-muted-foreground">
+          Applicants referred to TUPAD in Entry of Applicants. Review their details here, then add them to a batch.
+        </p>
+      </div>
+      <Button variant="outline" as-child>
+        <RouterLink :to="{ name: 'provincial-peso-entry' }">Entry of Applicants</RouterLink>
+      </Button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <Input
+          class="w-full sm:max-w-xs"
+          placeholder="Search applicants..."
+          :model-value="(table.getColumn('name')?.getFilterValue() as string) ?? ''"
+          @update:model-value="table.getColumn('name')?.setFilterValue($event)"
+        />
+        <Select
+          :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
+        >
+          <SelectTrigger class="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+              {{ status }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          :model-value="(table.getColumn('municipality')?.getFilterValue() as string) ?? 'all'"
+          @update:model-value="(val) => table.getColumn('municipality')?.setFilterValue(val === 'all' ? undefined : val)"
+        >
+          <SelectTrigger class="w-full sm:w-48">
+            <SelectValue placeholder="Municipality" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Municipalities</SelectItem>
+            <SelectItem v-for="municipality in municipalityOptions" :key="municipality" :value="municipality">
+              {{ municipality }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button variant="outline" :disabled="isLoading" @click="refresh">
+        <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />
+        <span class="hidden sm:inline">Refresh</span>
+      </Button>
+    </div>
+
+    <div
+      v-if="errorMessage"
+      class="rounded border border-destructive/20 bg-destructive/10 p-4 text-center text-sm text-destructive"
+    >
+      {{ errorMessage }}
+    </div>
+
+    <!-- Bulk actions for the selected applicants -->
+    <div
+      v-if="selectedApplicants.length > 0"
+      class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div class="flex items-center gap-2 text-sm">
+        <span class="font-medium">{{ selectedApplicants.length }} selected</span>
+        <Button variant="ghost" size="sm" :disabled="isSubmitting || isDeleting" @click="clearSelection">
+          <X class="size-4" />
+          Clear
+        </Button>
+      </div>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Select v-model="bulkStatus" :disabled="isSubmitting || isDeleting">
+          <SelectTrigger class="w-full sm:w-44" aria-label="New status">
+            <SelectValue placeholder="Set status to..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+              {{ status }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" :disabled="!bulkStatus || isSubmitting || isDeleting" @click="applyBulkStatus">
+          <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+          Update Status
+        </Button>
+        <Button variant="destructive" :disabled="isSubmitting || isDeleting" @click="requestBulkDelete">
+          <Trash2 class="size-4" />
+          Delete
+        </Button>
+      </div>
+    </div>
+
+    <Empty v-if="!isLoading && !errorMessage && tupadApplicants.length === 0" class="border">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Users />
+        </EmptyMedia>
+        <EmptyTitle>No TUPAD applicants yet</EmptyTitle>
+        <EmptyDescription>
+          Tick TUPAD under Referred Programs of an applicant in Entry of Applicants to add them here.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" as-child>
+          <RouterLink :to="{ name: 'provincial-peso-entry' }">Go to Entry of Applicants</RouterLink>
+        </Button>
+      </EmptyContent>
+    </Empty>
+
+    <template v-else>
+      <div class="overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+              <TableHead v-for="header in headerGroup.headers" :key="header.id">
+                <FlexRender
+                  v-if="!header.isPlaceholder"
+                  :render="header.column.columnDef.header"
+                  :props="header.getContext()"
+                />
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <template v-if="isLoading && tupadApplicants.length === 0">
+              <TableRow v-for="i in 5" :key="i">
+                <TableCell v-for="col in columns.length" :key="col">
+                  <Skeleton class="h-4 w-full" />
+                </TableCell>
+              </TableRow>
+            </template>
+
+            <template v-else-if="table.getRowModel().rows.length">
+              <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                </TableCell>
+              </TableRow>
+            </template>
+
+            <TableRow v-else>
+              <TableCell :colspan="columns.length" class="h-24 text-center text-muted-foreground">
+                No applicants match the current filters.
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
+          {{ table.getFilteredRowModel().rows.length }} applicant(s)
+        </p>
+        <div class="flex justify-center gap-2 sm:justify-end">
+          <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
+            Previous
+          </Button>
+          <Button variant="outline" size="sm" :disabled="!table.getCanNextPage()" @click="table.nextPage()">
+            Next
+          </Button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Review TUPAD applicant -->
+  <Dialog :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
+    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <form class="space-y-6" @submit="submitReview">
+        <DialogHeader>
+          <DialogTitle>{{ formatTupadApplicantName(reviewingApplicant) }}</DialogTitle>
+          <DialogDescription>
+            Referred to TUPAD {{ formatTupadDate(reviewingApplicant?.created_at) }}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div v-if="reviewingApplicant" class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div>
+            <span class="text-xs text-muted-foreground">Current Status</span>
+            <div class="mt-0.5">
+              <Badge variant="outline" :class="getTupadStatusBadgeClass(reviewingApplicant.status)">
+                {{ reviewingApplicant.status }}
+              </Badge>
+            </div>
+          </div>
+          <div>
+            <span class="text-xs text-muted-foreground">Municipality</span>
+            <p class="text-sm font-medium">{{ getTupadMunicipality(reviewingApplicant.applicant) }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-muted-foreground">Sex</span>
+            <p class="text-sm font-medium">{{ reviewingApplicant.applicant?.sex || '—' }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-muted-foreground">Date of Birth</span>
+            <p class="text-sm font-medium">{{ formatTupadDate(reviewingApplicant.applicant?.date_of_birth) }}</p>
+          </div>
+        </div>
+
+        <Separator />
+
+        <section class="space-y-4">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField v-slot="{ componentField }" name="monthly_income">
+              <FormItem>
+                <FormLabel>Monthly Income (₱)</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" type="number" min="0" step="0.01" placeholder="0.00" :disabled="isSubmitting" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="status">
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select v-bind="componentField" :disabled="isSubmitting">
+                  <FormControl>
+                    <SelectTrigger class="w-full">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+                      {{ status }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
+
+          <FormField v-slot="{ componentField }" name="dependent_name">
+            <FormItem>
+              <FormLabel>Dependent Name <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
+              <FormControl>
+                <Textarea v-bind="componentField" rows="2" placeholder="Name of dependent(s)" :disabled="isSubmitting" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ value, handleChange }" name="doc_submitted">
+            <FormItem>
+              <FormLabel>Required Documents</FormLabel>
+              <div class="space-y-2">
+                <div v-for="doc in documentOptions" :key="doc" class="space-y-1.5 rounded-md border p-2">
+                  <label
+                    class="flex items-center gap-2 text-sm"
+                    :class="doc === lockedDocument ? 'cursor-not-allowed' : 'cursor-pointer'"
+                  >
+                    <Checkbox
+                      :model-value="doc === lockedDocument || (value ?? []).includes(doc)"
+                      :disabled="isSubmitting || doc === lockedDocument"
+                      @update:model-value="(checked) => handleChange(toggleDocument(value, doc, checked))"
+                    />
+                    <span class="font-medium">{{ doc }}</span>
+                  </label>
+                  <!-- File the applicant attached to this document -->
+                  <Skeleton v-if="isLoadingReviewDocuments" class="ml-6 h-5 w-48" />
+                  <a
+                    v-else-if="reviewDocuments[doc]?.url"
+                    :href="reviewDocuments[doc]!.url!"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="ml-6 flex min-w-0 items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    <FileText class="size-3.5 shrink-0" />
+                    <span class="truncate">{{ reviewDocuments[doc]!.file_name }}</span>
+                    <ExternalLink class="size-3 shrink-0" />
+                  </a>
+                  <p v-else-if="reviewDocuments[doc]" class="ml-6 truncate text-xs text-muted-foreground">
+                    {{ reviewDocuments[doc]!.file_name }} (file unavailable)
+                  </p>
+                  <p v-else class="ml-6 text-xs text-muted-foreground">No file uploaded by the applicant</p>
+                </div>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                The monthly income and all {{ documentOptions.length }} documents are needed before this applicant can
+                be added to a batch.
+              </p>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </section>
+
+        <DialogFooter class="gap-2">
+          <Button type="button" variant="outline" :disabled="isSubmitting" @click="onReviewDialogOpenChange(false)">
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="isSubmitting">
+            <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+            {{ isSubmitting ? 'Saving...' : 'Save Review' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
+
+  <AlertDialog v-model:open="isDeleteDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>
+          Delete {{ applicantsToDelete.length === 1 ? 'TUPAD applicant' : `${applicantsToDelete.length} TUPAD applicants` }}?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          <template v-if="applicantsToDelete.length === 1">
+            <strong class="font-medium text-foreground">{{ formatTupadApplicantName(applicantsToDelete[0]) }}</strong>'s
+          </template>
+          <template v-else>Their</template>
+          TUPAD application and uploaded documents will be deleted, and TUPAD will be unticked in their referred
+          programs. Their Entry of Applicants record is kept. Applicants already in a TUPAD batch are skipped. This
+          action cannot be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
+        <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="confirmDelete">
+          <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
+          {{ isDeleting ? 'Deleting...' : 'Delete' }}
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+</template>

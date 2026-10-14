@@ -63,6 +63,12 @@ export const applicantRoutes : RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application' }
       },
       {
+        path: 'tupad-application',
+        name: 'tupad-application',
+        component: () => import('@/components/applicant/Tupad/ApplicantTupadApplication.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application' }
+      },
+      {
         path: 'profile/:username',
         name: 'profile',
         component: () => import('@/components/applicant/Profile/ApplicantProfile.vue'),

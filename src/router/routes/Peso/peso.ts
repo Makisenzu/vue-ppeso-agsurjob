@@ -162,11 +162,30 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      // ─── TUPAD (breadcrumb hierarchy: TUPAD > Applicants | Batch) ───
       {
         path: 'tupad',
-        name: 'provincial-peso-tupad',
-        component: TupadDashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'TUPAD' }
+        meta: { breadcrumb: 'TUPAD', breadcrumbTo: { name: 'provincial-peso-tupad' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-tupad',
+            component: TupadDashboard,
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: 'applicants',
+            name: 'provincial-peso-tupad-applicants',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/TUPAD/TupadApplicants.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Applicants' },
+          },
+          {
+            path: 'batches/:id',
+            name: 'provincial-peso-tupad-batch-details',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/TUPAD/TupadBatchDetails.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Batch' },
+          },
+        ],
       },
       {
         path: 'fnplp',
