@@ -69,7 +69,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
         a.business_name.localeCompare(b.business_name)
       )
       isFormDialogOpen.value = false
-      toastAlert.success('Participant added', `${created.business_name} has been added to the job fair.`)
+      toastAlert.success('Employer added', `${created.business_name} has been added to the job fair.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -87,7 +87,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
       if (participant.value?.id === updated.id) participant.value = updated
       isFormDialogOpen.value = false
       editingParticipant.value = null
-      toastAlert.success('Participant updated', `${updated.business_name} has been updated.`)
+      toastAlert.success('Employer updated', `${updated.business_name} has been updated.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -106,7 +106,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
       await jobFairService.deleteParticipant(target.id)
       participants.value = participants.value.filter((p) => p.id !== target.id)
       participantToDelete.value = null
-      toastAlert.success('Participant deleted', `${target.business_name} has been removed from the job fair.`)
+      toastAlert.success('Employer deleted', `${target.business_name} has been removed from the job fair.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)

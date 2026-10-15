@@ -144,7 +144,7 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
           {
             path: ':jobFairId',
-            meta: { breadcrumb: 'Participants', breadcrumbTo: { name: 'provincial-peso-job-fair-participants' } },
+            meta: { breadcrumb: 'Employers', breadcrumbTo: { name: 'provincial-peso-job-fair-participants' } },
             children: [
               {
                 path: '',

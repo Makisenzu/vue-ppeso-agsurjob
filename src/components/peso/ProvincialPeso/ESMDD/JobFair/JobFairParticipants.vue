@@ -34,6 +34,8 @@ import { useJobFairParticipants } from '@/composables/peso/provincialPeso/useJob
 import { useJobFairParticipantForm } from '@/composables/peso/provincialPeso/useJobFairParticipantForm'
 import JobFairMapPreview from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairMapPreview.vue'
 import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
+import JobFairAttendees from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttendees.vue'
+import JobFairHots from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairHots.vue'
 
 const {
   table,
@@ -140,7 +142,7 @@ const textFields = {
             <div class="flex items-start gap-2">
               <Building2 class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <div>
-                <dt class="text-xs text-muted-foreground">Participants / Vacancies</dt>
+                <dt class="text-xs text-muted-foreground">Employers / Vacancies</dt>
                 <dd class="font-medium tabular-nums">{{ participants.length }} employers · {{ totalVacancies }} vacancies</dd>
               </div>
             </div>
@@ -188,12 +190,12 @@ const textFields = {
       <!-- Section Header -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 class="text-lg font-semibold tracking-tight">Participants</h2>
+          <h2 class="text-lg font-semibold tracking-tight">Employers</h2>
           <p class="text-sm text-muted-foreground">Employers taking part in this job fair.</p>
         </div>
         <Button @click="openCreateDialog">
           <Plus class="size-4" />
-          Add Participant
+          Add Employer
         </Button>
       </div>
 
@@ -203,13 +205,13 @@ const textFields = {
           <EmptyMedia variant="icon">
             <Building2 />
           </EmptyMedia>
-          <EmptyTitle>No participants yet</EmptyTitle>
+          <EmptyTitle>No employers yet</EmptyTitle>
           <EmptyDescription>Add the employers joining this job fair to track their vacancies.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button @click="openCreateDialog">
             <Plus class="size-4" />
-            Add Participant
+            Add Employer
           </Button>
         </EmptyContent>
       </Empty>
@@ -220,7 +222,7 @@ const textFields = {
           <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Input
               class="w-full sm:max-w-xs"
-              placeholder="Search participants..."
+              placeholder="Search employers..."
               :model-value="(table.getColumn('business_name')?.getFilterValue() as string) ?? ''"
               @update:model-value="table.getColumn('business_name')?.setFilterValue($event)"
             />
@@ -278,7 +280,7 @@ const textFields = {
 
               <TableRow v-else>
                 <TableCell :colspan="columns.length" class="h-24 text-center text-muted-foreground">
-                  No participants match the current filters.
+                  No employers match the current filters.
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -288,7 +290,7 @@ const textFields = {
         <!-- Pagination -->
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
-            {{ table.getFilteredRowModel().rows.length }} participant(s)
+            {{ table.getFilteredRowModel().rows.length }} employer(s)
           </p>
           <div class="flex justify-center gap-2 sm:justify-end">
             <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
@@ -300,6 +302,16 @@ const textFields = {
           </div>
         </div>
       </template>
+
+      <Separator class="my-2" />
+
+      <!-- Attendees -->
+      <JobFairAttendees />
+
+      <Separator class="my-2" />
+
+      <!-- Hired on the Spot -->
+      <JobFairHots />
     </template>
 
     <!-- Add / Edit Participant -->
@@ -307,7 +319,7 @@ const textFields = {
       <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form class="grid gap-5" @submit="submitParticipant">
           <DialogHeader>
-            <DialogTitle>{{ isEditMode ? 'Edit Participant' : 'Add Participant' }}</DialogTitle>
+            <DialogTitle>{{ isEditMode ? 'Edit Employer' : 'Add Employer' }}</DialogTitle>
             <DialogDescription>
               {{ isEditMode ? 'Update the employer details for this job fair.' : 'Register an employer participating in this job fair.' }}
             </DialogDescription>
@@ -486,7 +498,7 @@ const textFields = {
             </Button>
             <Button type="submit" :disabled="isSubmitting">
               <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
-              {{ isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Participant' }}
+              {{ isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Employer' }}
             </Button>
           </DialogFooter>
         </form>
@@ -497,7 +509,7 @@ const textFields = {
     <AlertDialog v-model:open="isDeleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete participant?</AlertDialogTitle>
+          <AlertDialogTitle>Delete employer?</AlertDialogTitle>
           <AlertDialogDescription>
             <strong class="font-medium text-foreground">{{ participantToDelete?.business_name }}</strong> will be
             permanently removed from this job fair.
@@ -511,7 +523,7 @@ const textFields = {
           <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
           <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="confirmDelete">
             <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
-            {{ isDeleting ? 'Deleting...' : 'Delete Participant' }}
+            {{ isDeleting ? 'Deleting...' : 'Delete Employer' }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

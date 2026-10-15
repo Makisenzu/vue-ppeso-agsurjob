@@ -401,8 +401,8 @@ function onAttachmentDrop(event: DragEvent) {
       <AlertDialogHeader>
         <AlertDialogTitle>Delete job fair?</AlertDialogTitle>
         <AlertDialogDescription>
-          <strong class="font-medium text-foreground">{{ jobFairToDelete?.title }}</strong> and the participants and
-          vacancies recorded under it will be permanently deleted. This action cannot be undone.
+          <strong class="font-medium text-foreground">{{ jobFairToDelete?.title }}</strong> and the employers, vacancies and
+          attendees recorded under it will be permanently deleted. This action cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

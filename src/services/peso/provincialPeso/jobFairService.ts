@@ -9,13 +9,19 @@ import {
   type JobFairParticipantWithCount,
   type JobFairRow,
   type JobFairUpdate,
+  type JobFairRegistryApplicant,
   type JobFairWithCounts,
   type JobVacancyInsert,
   type JobVacancyRow,
   type JobVacancyUpdate,
 } from '@/types/peso/provincialPeso/jobFair'
 
-const JOB_FAIR_WITH_COUNTS_SELECT = '*, job_fair_participants(count), job_vacancies(vacancy_count)'
+const JOB_FAIR_WITH_COUNTS_SELECT =
+  '*, job_fair_participants(count), job_vacancies(vacancy_count), job_fair_applicants(count), hots(count)'
+const REGISTRY_COLUMNS = 'id, profile_id, first_name, middle_name, surname, suffix, sex, email, contact_numbers'
+const REGISTRY_SEARCH_LIMIT = 20
+// Keeps `.in('id', …)` URLs short when looking up many registry records
+const IN_FILTER_CHUNK_SIZE = 150
 
 /** Keeps storage keys to safe characters; the random prefix makes each path unique. */
 function buildAttachmentPath(jobFairId: string, file: File) {
@@ -253,6 +259,10 @@ export const jobFairService = {
       .delete()
       .eq('id', participantId)
 
+    // 23503 = foreign_key_violation: hired-on-the-spot records reference this employer (migration 024)
+    if (error?.code === '23503') {
+      throw new Error('This participant has hired-on-the-spot records and cannot be deleted. Remove those hires first.')
+    }
     if (error) throw new Error(error.message || 'Failed to delete participant.')
   },
 
@@ -303,6 +313,43 @@ export const jobFairService = {
       .delete()
       .eq('id', vacancyId)
 
+    // 23503 = foreign_key_violation: hired-on-the-spot records fill this vacancy (migration 024)
+    if (error?.code === '23503') {
+      throw new Error('This vacancy has hired-on-the-spot records and cannot be deleted. Remove those hires first.')
+    }
     if (error) throw new Error(error.message || 'Failed to delete vacancy.')
+  },
+
+  // ─── Applicant Registry (shared by Attendees and Hired on the Spot) ───
+
+  /** Every word must match the first name or surname, e.g. "juan dela" finds Juan Dela Cruz. */
+  async searchRegistryApplicants(term: string): Promise<JobFairRegistryApplicant[]> {
+    // Characters with meaning in PostgREST filters are dropped from the search words
+    const words = term.replace(/[,()*%\\]/g, ' ').trim().split(/\s+/).filter(Boolean)
+    if (words.length === 0) return []
+
+    let query = supabase.schema('applicants').from('applicants').select(REGISTRY_COLUMNS)
+    for (const word of words) {
+      query = query.or(`first_name.ilike.%${word}%,surname.ilike.%${word}%`)
+    }
+
+    const { data, error } = await query.order('surname', { ascending: true }).limit(REGISTRY_SEARCH_LIMIT)
+    if (error) throw new Error(error.message || 'Failed to search the applicant registry.')
+    return data ?? []
+  },
+
+  /** Registry records by id. PostgREST cannot embed across schemas, so they are fetched separately. */
+  async fetchRegistryApplicants(ids: string[]): Promise<Map<string, JobFairRegistryApplicant>> {
+    const unique = [...new Set(ids)]
+    const result = new Map<string, JobFairRegistryApplicant>()
+
+    for (let i = 0; i < unique.length; i += IN_FILTER_CHUNK_SIZE) {
+      const chunk = unique.slice(i, i + IN_FILTER_CHUNK_SIZE)
+      const { data, error } = await supabase.schema('applicants').from('applicants').select(REGISTRY_COLUMNS).in('id', chunk)
+      if (error) throw new Error(error.message || 'Failed to load applicant registry records.')
+      for (const row of data ?? []) result.set(row.id, row)
+    }
+
+    return result
   },
 }

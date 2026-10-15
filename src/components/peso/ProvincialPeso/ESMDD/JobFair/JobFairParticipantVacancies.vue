@@ -85,7 +85,7 @@ const qualificationFields = [
     <Button variant="ghost" size="sm" class="-ml-2" as-child>
       <RouterLink :to="{ name: 'provincial-peso-job-fair-participants', params: { jobFairId } }">
         <ArrowLeft class="size-4" />
-        Back to {{ jobFair?.title ?? 'Participants' }}
+        Back to {{ jobFair?.title ?? 'Employers' }}
       </RouterLink>
     </Button>
 
@@ -108,7 +108,7 @@ const qualificationFields = [
             </Badge>
           </div>
           <p class="text-sm text-muted-foreground">
-            {{ [participant.trade_name, participant.industry_line].filter(Boolean).join(' · ') || 'Job fair participant' }}
+            {{ [participant.trade_name, participant.industry_line].filter(Boolean).join(' · ') || 'Job fair employer' }}
             <template v-if="jobFair"> — {{ jobFair.title }}</template>
           </p>
         </div>

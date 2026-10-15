@@ -524,6 +524,27 @@ Entry (New / Returning) → 5 documentary requirements → **randomizer draw per
 - Process: create a batch (EDL number) → applicants with TUPAD in `referred_programs` become `tupad_applicants` → add them to the batch (`esmdd.tupad` rows, `Active`). `applicantEntryService` keeps the referral in step (`tupadService.referToTupad` / `unreferFromTupad`, same policy as GIP: only a `Pending` applicant never added to a batch is removed); migration `021_tupad_referral_backfill.sql` registers existing referrals. The batch picker hides `Rejected` applicants, those already in the batch, and those `Active` in another batch; only `Pending` / `Ongoing` batches accept applicants. Migration `022_tupad_batch_requirements.sql`: `doc_submitted` always includes `NSRP Form` (default + backfill), and `trg_tupad_guard_batch_requirements` rejects adding a beneficiary whose TUPAD applicant lacks `monthly_income` or any of `NSRP Form` / `Valid ID` / `TUPAD Form` (`TUPAD_DOCUMENT_OPTIONS`).
 - `tupad_applicant_documents` (migration `023_tupad_applicant_documents.sql`): one current file per required document (`tupad_applicant_id`, `document_name` UNIQUE; `file_name`, `path` in the documents bucket under `<uploader uid>/`, `mime_type`, `size`, `uploaded_by`). Like SPES, applicants (page `tupad-application`) must attach a file to every ticked document; PESO may tick without a file and sees the files in the review dialog. Read / synced through `tupadDocumentService` (untyped accessor until `npm run types:gen`). `tupad_applicants_nsrp_form_check` keeps `NSRP Form` in `doc_submitted`. RLS: applicants update their own `tupad_applicants` row and write their own documents only while it is `Pending` and not in a batch (`esmdd.can_edit_own_tupad_application`); the update's WITH CHECK keeps `status = 'Pending'`. An applicant in any batch cannot be deleted from the registry.
 
+#### `job_fair_applicants` (migration `025_job_fair_applicants.sql`)
+`job_fairs ──< job_fair_applicants >── applicants.applicants` — who took part in each job fair, for participation / attendance counts.
+
+- Columns: `job_fair_id` (FK, cascade), `applicant_id` (FK → `applicants.applicants.id`, NOT NULL, cascade), `status` (`Registered` / `Attended`, default `Registered`), `attended_at` (set / cleared by `trg_job_fair_applicants_timestamps` from `status`), `remarks`, `recorded_by` (default `auth.uid()`), `created_at`, `updated_at`. `(job_fair_id, applicant_id)` UNIQUE — each applicant counts once per fair.
+- Counts: participated = `job_fairs?select=*,job_fair_applicants(count)`; attended = filter `status = 'Attended'`.
+- A HOTS hire with `applicant_id` upserts the applicant as `Attended` (`trg_hots_mark_job_fair_attendance`); existing hires were backfilled. Walk-in hires (no registry record) are not counted here.
+- RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own via `applicants.applicants.profile_id`.
+- UI: the "Attendees" section of the job fair details page (`JobFairAttendees.vue` → `useJobFairAttendees` / `useJobFairAttendeeForm` → `jobFairAttendeeStore` → `jobFairApplicantService`). Registry search and lookups are shared with HOTS via `jobFairService.searchRegistryApplicants` / `fetchRegistryApplicants`.
+
+#### HOTS — Hired on the Spot (migration `024_hots_job_fair_alignment.sql`)
+`job_fairs ──< job_fair_participants ──< job_vacancies ──< hots`.
+
+- `hots`: `job_fair_id`, `participant_id` (FK → `job_fair_participants.id`), `job_vacancy_id` (FK → `job_vacancies.id`) — all NOT NULL, all `ON DELETE RESTRICT` (a job fair / participant / vacancy with hires can't be deleted until the hires are handled, see migration 007). Applicant fields: `applicant_first_name`, `applicant_middle_name`, `applicant_last_name`, `applicant_contact_phone`, `applicant_email`, `applicant_profile_id`; plus `hired_date`, `remarks`.
+- `applicant_id` (nullable, FK → `applicants.applicants.id`, `ON DELETE SET NULL`) links the hire to the applicant registry when the applicant is in it; walk-ins leave it NULL and rely on the `applicant_*` columns. Backfilled from `applicant_profile_id` → `applicants.applicants.profile_id`.
+- When `applicant_id` is set, `trg_hots_fill_applicant_from_registry` always overwrites `applicant_first_name` / `applicant_middle_name` / `applicant_last_name` (← `surname`) / `applicant_email` / `applicant_profile_id` / `applicant_contact_phone` (← `contact_numbers[1]`; the sent phone is kept only if the registry has none) from the registry, so the client may omit them. `trg_hots_sync_from_registry` (on `applicants.applicants`, SECURITY DEFINER) pushes later registry edits into linked hires.
+- Company and position come from the participant / vacancy (`business_name`, `position_title`); the legacy `company_id` / `company_name` / `position_hired` columns were dropped.
+- `trg_hots_sync_job_fair_links` copies `job_fair_id` / `participant_id` from the vacancy, so the client only sends `job_vacancy_id`, and rejects a hire once the vacancy's `vacancy_count` is filled (no limit when NULL).
+- RLS (migration 005): `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own via `applicant_profile_id`.
+- `trg_hots_mark_job_fair_attendance` (migration 025) marks a registry applicant's hire as attendance in `job_fair_applicants`.
+- UI: the "Hired on the Spot" section of the job fair details page (`JobFairHots.vue` → `useJobFairHots` / `useHotsForm` → `hotsStore` → `hotsService`).
+
 ---
 
 ## 9. Schema: `system` — Audit & Notifications

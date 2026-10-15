@@ -9,7 +9,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ArrowUpDown, ExternalLink, MapPin } from '@lucide/vue'
+import { ArrowUpDown, MapPin } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button'
 import { useJobFairStore } from '@/stores/peso/provincialPeso/jobFairStore'
 import {
   formatJobFairSchedule,
+  getJobFairApplicantCount,
+  getJobFairHotsCount,
   getJobFairParticipantCount,
   getJobFairStatusBadgeClass,
   getJobFairVacancyTotal,
@@ -85,9 +87,9 @@ export function useJobFairs() {
         ),
     },
     {
-      id: 'participants',
+      id: 'employers',
       accessorFn: getJobFairParticipantCount,
-      header: sortableHeader('Participants'),
+      header: sortableHeader('Employers'),
       cell: ({ getValue }) => h('div', { class: 'text-center text-sm font-medium tabular-nums' }, String(getValue())),
     },
     {
@@ -97,23 +99,16 @@ export function useJobFairs() {
       cell: ({ getValue }) => h('div', { class: 'text-center text-sm font-medium tabular-nums' }, String(getValue())),
     },
     {
-      accessorKey: 'registration_link',
-      header: 'Registration',
-      enableSorting: false,
-      cell: ({ row }) => {
-        const link = row.original.registration_link
-        if (!link) return h('span', { class: 'text-sm text-muted-foreground' }, '—')
-        return h(
-          'a',
-          {
-            href: link,
-            target: '_blank',
-            rel: 'noopener noreferrer',
-            class: 'inline-flex items-center gap-1 text-sm text-primary hover:underline',
-          },
-          ['Open', h(ExternalLink, { class: 'size-3.5' })]
-        )
-      },
+      id: 'applicants',
+      accessorFn: getJobFairApplicantCount,
+      header: sortableHeader('Applicants'),
+      cell: ({ getValue }) => h('div', { class: 'text-center text-sm font-medium tabular-nums' }, String(getValue())),
+    },
+    {
+      id: 'hots',
+      accessorFn: getJobFairHotsCount,
+      header: sortableHeader('HOTS'),
+      cell: ({ getValue }) => h('div', { class: 'text-center text-sm font-medium tabular-nums' }, String(getValue())),
     },
     {
       id: 'actions',
@@ -122,7 +117,7 @@ export function useJobFairs() {
       cell: ({ row }) =>
         renderRowActions({
           onView: () => viewJobFair(row.original),
-          viewLabel: 'View participants',
+          viewLabel: 'View details',
           onEdit: () => openEditDialog(row.original),
           onDelete: () => requestDelete(row.original),
         }),

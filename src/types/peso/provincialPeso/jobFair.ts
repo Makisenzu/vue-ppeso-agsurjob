@@ -7,10 +7,12 @@ export type JobFairRow = EsmddTables['job_fairs']['Row']
 export type JobFairInsert = EsmddTables['job_fairs']['Insert']
 export type JobFairUpdate = EsmddTables['job_fairs']['Update']
 
-/** Job fair row joined with its participant count and the openings of each vacancy. */
+/** Job fair row joined with its employer / applicant / hire counts and the openings of each vacancy. */
 export type JobFairWithCounts = JobFairRow & {
   job_fair_participants: { count: number }[]
   job_vacancies: { vacancy_count: number | null }[]
+  job_fair_applicants: { count: number }[]
+  hots: { count: number }[]
 }
 
 // ─── Attachments ───
@@ -58,3 +60,51 @@ export type DisabilityType = EsmddEnums['disability_type_enum']
 export const NATURE_OF_WORK_OPTIONS = Constants.esmdd.Enums.nature_of_work_enum
 export const DISABILITY_TYPE_OPTIONS = Constants.esmdd.Enums.disability_type_enum
 export const VACANCY_STATUSES = Constants.esmdd.Enums.job_vacancy_status
+
+// ─── Hired on the Spot (HOTS) ───
+export type HotsRow = EsmddTables['hots']['Row']
+/** job_fair_id / participant_id are copied from the vacancy by `trg_hots_sync_job_fair_links`. */
+export type HotsInsert = EsmddTables['hots']['Insert']
+export type HotsUpdate = EsmddTables['hots']['Update']
+
+/** HOTS row joined with the hiring employer and the vacancy filled. */
+export type HotsWithDetails = HotsRow & {
+  job_fair_participants: { business_name: string } | null
+  job_vacancies: { position_title: string } | null
+}
+
+/** A vacancy that can take hires, with its employer and the number of hires so far. */
+export type HotsVacancyOption = {
+  id: string
+  participant_id: string
+  position_title: string
+  vacancy_count: number | null
+  job_fair_participants: { business_name: string } | null
+  hots: { count: number }[]
+}
+
+/** Registry record (`applicants.applicants`) picked as an attendee or hired applicant. */
+export type JobFairRegistryApplicant = {
+  id: string
+  profile_id: string | null
+  first_name: string
+  middle_name: string | null
+  surname: string
+  suffix: string | null
+  sex: string | null
+  email: string | null
+  contact_numbers: string[] | null
+}
+
+// ─── Attendees (job_fair_applicants) ───
+export type JobFairApplicantRow = EsmddTables['job_fair_applicants']['Row']
+export type JobFairApplicantInsert = EsmddTables['job_fair_applicants']['Insert']
+export type JobFairApplicantUpdate = EsmddTables['job_fair_applicants']['Update']
+
+export const JOB_FAIR_APPLICANT_STATUSES = ['Registered', 'Attended'] as const
+export type JobFairApplicantStatus = (typeof JOB_FAIR_APPLICANT_STATUSES)[number]
+
+/** Attendee row with its registry record (fetched separately — no cross-schema embeds). */
+export type JobFairAttendee = JobFairApplicantRow & {
+  applicant: JobFairRegistryApplicant | null
+}

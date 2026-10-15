@@ -1208,17 +1208,16 @@ export type Database = {
           applicant_contact_phone: string
           applicant_email: string | null
           applicant_first_name: string
+          applicant_id: string | null
           applicant_last_name: string
           applicant_middle_name: string | null
           applicant_profile_id: string | null
-          company_id: string | null
-          company_name: string
           created_at: string
           hired_date: string
           id: string
           job_fair_id: string
-          job_vacancy_id: string | null
-          position_hired: string
+          job_vacancy_id: string
+          participant_id: string
           remarks: string | null
           updated_at: string
         }
@@ -1226,17 +1225,16 @@ export type Database = {
           applicant_contact_phone: string
           applicant_email?: string | null
           applicant_first_name: string
+          applicant_id?: string | null
           applicant_last_name: string
           applicant_middle_name?: string | null
           applicant_profile_id?: string | null
-          company_id?: string | null
-          company_name: string
           created_at?: string
           hired_date?: string
           id?: string
           job_fair_id: string
-          job_vacancy_id?: string | null
-          position_hired: string
+          job_vacancy_id: string
+          participant_id: string
           remarks?: string | null
           updated_at?: string
         }
@@ -1244,23 +1242,94 @@ export type Database = {
           applicant_contact_phone?: string
           applicant_email?: string | null
           applicant_first_name?: string
+          applicant_id?: string | null
           applicant_last_name?: string
           applicant_middle_name?: string | null
           applicant_profile_id?: string | null
-          company_id?: string | null
-          company_name?: string
           created_at?: string
           hired_date?: string
           id?: string
           job_fair_id?: string
-          job_vacancy_id?: string | null
-          position_hired?: string
+          job_vacancy_id?: string
+          participant_id?: string
           remarks?: string | null
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "hots_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
             foreignKeyName: "hots_job_fair_id_fkey"
+            columns: ["job_fair_id"]
+            isOneToOne: false
+            referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hots_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hots_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "job_fair_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_fair_applicants: {
+        Row: {
+          applicant_id: string
+          attended_at: string | null
+          created_at: string
+          id: string
+          job_fair_id: string
+          recorded_by: string | null
+          remarks: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          attended_at?: string | null
+          created_at?: string
+          id?: string
+          job_fair_id: string
+          recorded_by?: string | null
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          attended_at?: string | null
+          created_at?: string
+          id?: string
+          job_fair_id?: string
+          recorded_by?: string | null
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_fair_applicants_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
+            foreignKeyName: "job_fair_applicants_job_fair_id_fkey"
             columns: ["job_fair_id"]
             isOneToOne: false
             referencedRelation: "job_fairs"

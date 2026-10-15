@@ -62,7 +62,7 @@ export function useJobFairParticipants() {
   const columns: ColumnDef<JobFairParticipantWithCount>[] = [
     {
       accessorKey: 'business_name',
-      header: sortableHeader('Participant'),
+      header: sortableHeader('Employer'),
       cell: ({ row }) =>
         h('div', { class: 'min-w-[200px] space-y-0.5' }, [
           h(
