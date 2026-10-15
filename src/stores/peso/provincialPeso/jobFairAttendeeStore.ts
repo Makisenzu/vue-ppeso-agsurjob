@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { jobFairApplicantService } from '@/services/peso/provincialPeso/jobFairApplicantService'
 import { jobFairService } from '@/services/peso/provincialPeso/jobFairService'
@@ -30,7 +30,8 @@ export const useJobFairAttendeeStore = defineStore('pesoJobFairAttendee', () => 
   // ─── UI Flags ───
   const isFormDialogOpen = ref(false)
   const editingAttendee = ref<JobFairAttendee | null>(null)
-  const attendeeToDelete = ref<JobFairAttendee | null>(null)
+  /** Rows awaiting delete confirmation: one from a row action, or the bulk selection. */
+  const attendeesToDelete = shallowRef<JobFairAttendee[]>([])
 
   // ─── Actions ───
   async function loadAttendees(fairId: string): Promise<void> {
@@ -101,20 +102,28 @@ export const useJobFairAttendeeStore = defineStore('pesoJobFairAttendee', () => 
     }
   }
 
-  async function deleteAttendee(): Promise<boolean> {
-    const target = attendeeToDelete.value
-    if (!target) return false
+  /** Removes the pending attendees and returns the ids actually deleted. */
+  async function deleteAttendees(): Promise<string[]> {
+    const targets = attendeesToDelete.value
+    if (targets.length === 0) return []
 
     isDeleting.value = true
     try {
-      await jobFairApplicantService.deleteAttendee(target.id)
-      attendees.value = attendees.value.filter((row) => row.id !== target.id)
-      attendeeToDelete.value = null
-      toastAlert.success('Attendee removed', `${attendeeName(target)} has been removed from this job fair.`)
-      return true
+      const deletedIds = new Set(await jobFairApplicantService.deleteAttendees(targets.map((row) => row.id)))
+      attendees.value = attendees.value.filter((row) => !deletedIds.has(row.id))
+      attendeesToDelete.value = []
+
+      if (targets.length === 1 && deletedIds.size === 1) {
+        toastAlert.success('Attendee removed', `${attendeeName(targets[0]!)} has been removed from this job fair.`)
+      } else if (deletedIds.size > 0) {
+        toastAlert.success('Attendees removed', `${deletedIds.size} attendee(s) removed from this job fair.`)
+      }
+      const skipped = targets.length - deletedIds.size
+      if (skipped > 0) toastAlert.error(`${skipped} attendee(s) not removed`, 'Refresh the list and try again.')
+      return [...deletedIds]
     } catch (error: any) {
       toastAlert.error('Error', error.message)
-      return false
+      return []
     } finally {
       isDeleting.value = false
     }
@@ -146,13 +155,13 @@ export const useJobFairAttendeeStore = defineStore('pesoJobFairAttendee', () => 
     editingAttendee.value = null
   }
 
-  function requestDelete(row: JobFairAttendee) {
-    attendeeToDelete.value = row
+  function requestDelete(rows: JobFairAttendee[]) {
+    attendeesToDelete.value = rows
   }
 
   function cancelDelete() {
     if (isDeleting.value) return
-    attendeeToDelete.value = null
+    attendeesToDelete.value = []
   }
 
   return {
@@ -165,13 +174,13 @@ export const useJobFairAttendeeStore = defineStore('pesoJobFairAttendee', () => 
     updatingStatusId,
     isFormDialogOpen,
     editingAttendee,
-    attendeeToDelete,
+    attendeesToDelete,
     loadAttendees,
     reloadAttendees,
     createAttendee,
     updateAttendee,
     setAttendeeStatus,
-    deleteAttendee,
+    deleteAttendees,
     searchRegistryApplicants,
     openCreateDialog,
     openEditDialog,

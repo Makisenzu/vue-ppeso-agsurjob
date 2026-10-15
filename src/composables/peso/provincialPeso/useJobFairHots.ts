@@ -1,7 +1,7 @@
 import { computed, h, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
-import type { ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/vue-table'
+import type { ColumnDef, ColumnFiltersState, RowSelectionState, SortingState } from '@tanstack/vue-table'
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -14,16 +14,19 @@ import { ArrowUpDown } from '@lucide/vue'
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useHotsStore } from '@/stores/peso/provincialPeso/hotsStore'
 import { formatHireName, formatOptionalDate } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
 import type { HotsWithDetails } from '@/types/peso/provincialPeso/jobFair'
 
+const PAGE_SIZE = 10
+
 export function useJobFairHots() {
   const route = useRoute()
   const store = useHotsStore()
-  const { hires, vacancyOptions, isLoading, errorMessage, isDeleting, hireToDelete } = storeToRefs(store)
-  const { loadHots, openCreateDialog, openEditDialog, requestDelete, cancelDelete, deleteHire } = store
+  const { hires, vacancyOptions, isLoading, errorMessage, isDeleting, hiresToDelete } = storeToRefs(store)
+  const { loadHots, openCreateDialog, openEditDialog, requestDelete, cancelDelete, deleteHires } = store
 
   const jobFairId = computed(() => String(route.params.jobFairId ?? ''))
 
@@ -36,6 +39,7 @@ export function useJobFairHots() {
 
   const sorting = ref<SortingState>([{ id: 'hired_date', desc: true }])
   const columnFilters = ref<ColumnFiltersState>([])
+  const rowSelection = ref<RowSelectionState>({})
 
   const sortableHeader = (label: string) =>
     ({ column }: { column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | 'asc' | 'desc' } }) =>
@@ -46,6 +50,22 @@ export function useJobFairHots() {
       )
 
   const columns: ColumnDef<HotsWithDetails>[] = [
+    {
+      id: 'select',
+      enableSorting: false,
+      header: ({ table }) =>
+        h(Checkbox, {
+          modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(value === true),
+          'aria-label': 'Select all on this page',
+        }),
+      cell: ({ row }) =>
+        h(Checkbox, {
+          modelValue: row.getIsSelected(),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(value === true),
+          'aria-label': `Select ${formatHireName(row.original)}`,
+        }),
+    },
     {
       id: 'applicant',
       accessorFn: (row) => formatHireName(row),
@@ -97,7 +117,7 @@ export function useJobFairHots() {
       cell: ({ row }) =>
         renderRowActions({
           onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete(row.original),
+          onDelete: () => requestDelete([row.original]),
         }),
     },
   ]
@@ -107,18 +127,27 @@ export function useJobFairHots() {
       return hires.value
     },
     columns,
+    // Keeps the selection on the right rows across refreshes and sorting
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: { pageSize: PAGE_SIZE },
+    },
     onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, sorting),
     onColumnFiltersChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnFilters),
+    onRowSelectionChange: (updaterOrValue) => valueUpdater(updaterOrValue, rowSelection),
     state: {
       get sorting() {
         return sorting.value
       },
       get columnFilters() {
         return columnFilters.value
+      },
+      get rowSelection() {
+        return rowSelection.value
       },
     },
   })
@@ -127,13 +156,39 @@ export function useJobFairHots() {
     if (jobFairId.value) void loadHots(jobFairId.value)
   }
 
+  // ─── Bulk actions ───
+
+  /** Selected rows that still exist (a refresh or delete can remove rows). */
+  const selectedHires = computed(() => {
+    const ids = new Set(Object.keys(rowSelection.value).filter((id) => rowSelection.value[id]))
+    return hires.value.filter((row) => ids.has(row.id))
+  })
+
+  const clearSelection = () => {
+    rowSelection.value = {}
+  }
+
+  const requestBulkDelete = () => {
+    if (selectedHires.value.length) requestDelete(selectedHires.value)
+  }
+
   const isDeleteDialogOpen = computed({
-    get: () => hireToDelete.value !== null,
+    get: () => hiresToDelete.value.length > 0,
     set: (open: boolean) => {
       if (!open) cancelDelete()
     },
   })
 
+  const confirmDelete = async () => {
+    const deletedIds = await deleteHires()
+    if (deletedIds.length === 0) return
+    const next = { ...rowSelection.value }
+    for (const id of deletedIds) delete next[id]
+    rowSelection.value = next
+  }
+
+  // A different job fair's rows can't stay selected
+  watch(jobFairId, clearSelection)
   watch(jobFairId, refreshHots, { immediate: true })
 
   return {
@@ -143,13 +198,16 @@ export function useJobFairHots() {
     isLoading,
     errorMessage,
     isDeleting,
-    hireToDelete,
+    hiresToDelete,
     isDeleteDialogOpen,
+    selectedHires,
+    clearSelection,
+    requestBulkDelete,
     employerOptions,
     totalSlots,
     hasVacancies,
     refreshHots,
     openCreateDialog,
-    confirmDelete: deleteHire,
+    confirmDelete,
   }
 }

@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { hotsService } from '@/services/peso/provincialPeso/hotsService'
 import { jobFairService } from '@/services/peso/provincialPeso/jobFairService'
@@ -28,7 +28,8 @@ export const useHotsStore = defineStore('pesoHots', () => {
   // ─── UI Flags ───
   const isFormDialogOpen = ref(false)
   const editingHire = ref<HotsWithDetails | null>(null)
-  const hireToDelete = ref<HotsWithDetails | null>(null)
+  /** Rows awaiting delete confirmation: one from a row action, or the bulk selection. */
+  const hiresToDelete = shallowRef<HotsWithDetails[]>([])
 
   // ─── Actions ───
   async function loadHots(fairId: string): Promise<void> {
@@ -106,21 +107,30 @@ export const useHotsStore = defineStore('pesoHots', () => {
     }
   }
 
-  async function deleteHire(): Promise<boolean> {
-    const target = hireToDelete.value
-    if (!target) return false
+  /** Deletes the pending hires and returns the ids actually deleted. */
+  async function deleteHires(): Promise<string[]> {
+    const targets = hiresToDelete.value
+    if (targets.length === 0) return []
 
     isDeleting.value = true
     try {
-      await hotsService.deleteHots(target.id)
-      hires.value = hires.value.filter((row) => row.id !== target.id)
-      hireToDelete.value = null
-      toastAlert.success('Hire deleted', `${target.applicant_first_name} ${target.applicant_last_name}'s record has been removed.`)
-      void refreshVacancyOptions()
-      return true
+      const deletedIds = new Set(await hotsService.deleteHots(targets.map((row) => row.id)))
+      hires.value = hires.value.filter((row) => !deletedIds.has(row.id))
+      hiresToDelete.value = []
+
+      if (targets.length === 1 && deletedIds.size === 1) {
+        const target = targets[0]!
+        toastAlert.success('Hire deleted', `${target.applicant_first_name} ${target.applicant_last_name}'s record has been removed.`)
+      } else if (deletedIds.size > 0) {
+        toastAlert.success('Hires deleted', `${deletedIds.size} hire record(s) removed.`)
+      }
+      const skipped = targets.length - deletedIds.size
+      if (skipped > 0) toastAlert.error(`${skipped} hire(s) not deleted`, 'Refresh the list and try again.')
+      if (deletedIds.size > 0) void refreshVacancyOptions()
+      return [...deletedIds]
     } catch (error: any) {
       toastAlert.error('Error', error.message)
-      return false
+      return []
     } finally {
       isDeleting.value = false
     }
@@ -152,13 +162,13 @@ export const useHotsStore = defineStore('pesoHots', () => {
     editingHire.value = null
   }
 
-  function requestDelete(row: HotsWithDetails) {
-    hireToDelete.value = row
+  function requestDelete(rows: HotsWithDetails[]) {
+    hiresToDelete.value = rows
   }
 
   function cancelDelete() {
     if (isDeleting.value) return
-    hireToDelete.value = null
+    hiresToDelete.value = []
   }
 
   return {
@@ -171,11 +181,11 @@ export const useHotsStore = defineStore('pesoHots', () => {
     isDeleting,
     isFormDialogOpen,
     editingHire,
-    hireToDelete,
+    hiresToDelete,
     loadHots,
     createHire,
     updateHire,
-    deleteHire,
+    deleteHires,
     searchRegistryApplicants,
     openCreateDialog,
     openEditDialog,

@@ -7,6 +7,9 @@ import type {
   JobFairAttendee,
 } from '@/types/peso/provincialPeso/jobFair'
 
+/** Keeps .in() filters well under PostgREST's URL length limit. */
+const IN_FILTER_CHUNK_SIZE = 150
+
 async function withRegistry(rows: JobFairApplicantRow[]): Promise<JobFairAttendee[]> {
   const registry = await jobFairService.fetchRegistryApplicants(rows.map((row) => row.applicant_id))
   return rows.map((row) => ({ ...row, applicant: registry.get(row.applicant_id) ?? null }))
@@ -54,13 +57,20 @@ export const jobFairApplicantService = {
     return attendee!
   },
 
-  async deleteAttendee(attendeeId: string): Promise<void> {
-    const { error } = await supabase
-      .schema('esmdd')
-      .from('job_fair_applicants')
-      .delete()
-      .eq('id', attendeeId)
+  /** Removes the attendees and returns the ids actually deleted. */
+  async deleteAttendees(attendeeIds: string[]): Promise<string[]> {
+    const deleted: string[] = []
+    for (let i = 0; i < attendeeIds.length; i += IN_FILTER_CHUNK_SIZE) {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('job_fair_applicants')
+        .delete()
+        .in('id', attendeeIds.slice(i, i + IN_FILTER_CHUNK_SIZE))
+        .select('id')
 
-    if (error) throw new Error(error.message || 'Failed to remove the attendee.')
+      if (error) throw new Error(error.message || 'Failed to remove the attendees.')
+      deleted.push(...(data ?? []).map((row) => row.id))
+    }
+    return deleted
   },
 }

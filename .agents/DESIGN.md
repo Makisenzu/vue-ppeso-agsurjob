@@ -456,7 +456,7 @@ These use sidebar-specific semantic tokens, not hardcoded colors.
 > 1. All layouts must be mobile-first (default classes = mobile).
 > 2. Sidebar collapses on mobile via `SidebarProvider` built-in behavior.
 > 3. Content must use `overflow-x-hidden` and `min-w-0` to prevent horizontal overflow.
-> 4. Tables should have horizontal scroll containers on mobile.
+> 4. Tables should have horizontal scroll containers on mobile. The bulk action bar (Section 13.1) must stay visible outside the scroll container.
 
 ---
 
@@ -492,6 +492,72 @@ Tables use **@tanstack/vue-table** with shadcn-vue `<Table>` components:
 - Column definitions live in the **composable** (e.g., `useUserAccounts.ts`), NOT the component
 - Use `<Table>`, `<TableHeader>`, `<TableRow>`, `<TableHead>`, `<TableBody>`, `<TableCell>` from shadcn-vue
 - Row actions use `<DropdownMenu>` or `<Button>` variants
+- Empty/loading rows span the full table with `:colspan="columns.length"`, never a hard-coded number
+
+### 13.1 Bulk Selection & Bulk Delete — MANDATORY
+
+Every data table **must** support selecting multiple rows and deleting them in one action. No exceptions for new tables; existing tables are brought into compliance whenever they are modified.
+
+#### Required pieces
+
+| Layer                   | Requirement                                                                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Columns** (composable) | First column is `id: 'select'` rendering shadcn-vue `<Checkbox>`. Header checkbox toggles all rows **on the current page** and shows `'indeterminate'` for a partial selection. `enableSorting: false`, `enableHiding: false`. |
+| **Table state** (composable) | `rowSelection` ref wired via `onRowSelectionChange` + `state.rowSelection`. Use `getRowId: (row) => row.id` so selection survives sorting, filtering, and refetches. |
+| **Derived values** (composable) | Expose `selectedRows` / `selectedIds` (`computed` from `table.getSelectedRowModel()`) and `clearSelection()`.                                                        |
+| **Store**               | `deleteManyXxx(ids: string[])` action with its own `isBulkDeleting` flag. Removes deleted rows from local state on success.                                                  |
+| **Service**             | One request: `.delete().in('id', ids)` — never loop single deletes from the client. Must respect RLS (see `SECURITY.md`).                                                    |
+| **Component**           | Bulk action bar shown **only** when `selectedIds.length > 0`. Bulk delete always goes through an `<AlertDialog>` confirmation.                                               |
+
+#### Select column pattern
+
+```ts
+import { Checkbox } from '@/components/ui/checkbox'
+
+{
+  id: 'select',
+  enableSorting: false,
+  enableHiding: false,
+  header: ({ table }) =>
+    h(Checkbox, {
+      modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+      'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
+      'aria-label': 'Select all rows',
+    }),
+  cell: ({ row }) =>
+    h(Checkbox, {
+      modelValue: row.getIsSelected(),
+      'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+      'aria-label': 'Select row',
+    }),
+},
+```
+
+#### Bulk action bar pattern
+
+```vue
+<div v-if="selectedIds.length > 0" class="flex items-center justify-between gap-4 rounded-md border bg-muted/50 px-4 py-2">
+  <span class="text-sm text-muted-foreground">{{ selectedIds.length }} selected</span>
+  <div class="flex items-center gap-2">
+    <Button variant="ghost" size="sm" @click="clearSelection">Clear</Button>
+    <Button variant="destructive" size="sm" :disabled="isBulkDeleting" @click="isBulkDeleteDialogOpen = true">
+      Delete selected
+    </Button>
+  </div>
+</div>
+```
+
+#### Rules
+
+> [!CAUTION]
+> 1. **Every data table has a `select` checkbox column** as its first column.
+> 2. **Bulk delete must be confirmed** with an `<AlertDialog>` that states the exact count (e.g., "Delete 4 job fairs?") and that the action cannot be undone.
+> 3. **Clear the selection** after a successful bulk delete, after a refetch, and when filters change.
+> 4. **Report the outcome** with `useToastAlert()` — success with the count, or error with the message. On failure, keep the selection so the user can retry.
+> 5. **Disable the bulk delete button and dialog actions** while `isBulkDeleting` is true.
+> 6. **Keep per-row delete** in row actions; bulk selection is in addition to it, not a replacement.
+> 7. **Clicking a checkbox must not trigger row navigation** — if rows are clickable, stop propagation in the select cell.
+> 8. Read-only tables whose records must never be deleted (e.g., audit logs) are the only exemption, and the exemption must be stated in a comment above the column definitions.
 
 ---
 
@@ -557,7 +623,7 @@ Not all information needs to be visible at once. Use installed shadcn-vue compon
 | ----------------------------------------- | ------------------------------------------------------------------- |
 | Long list of details (10+ fields)         | Group into `Card` sections with clear headings, or use `Accordion`  |
 | Optional/advanced settings                | Hide in a `Collapsible` or `Sheet` — show a "More options" trigger  |
-| Bulk actions on selected rows             | Show action bar only when `selectedIds.length > 0`                  |
+| Bulk actions on selected rows             | Show action bar only when `selectedIds.length > 0` (see Section 13.1) |
 | Supplementary context (history, metadata) | Place in a `Sheet` (side panel) triggered by a link or button       |
 | Viewing full record details               | Use `Dialog` or dedicated route — don't inline everything in a list |
 | Tooltips for field explanations            | Use `Tooltip` with concise text, not a paragraph                    |

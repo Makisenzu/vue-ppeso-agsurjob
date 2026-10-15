@@ -7,6 +7,8 @@ import type {
 } from '@/types/peso/provincialPeso/jobFair'
 
 const HOTS_SELECT = '*, job_fair_participants(business_name), job_vacancies(position_title)'
+/** Keeps .in() filters well under PostgREST's URL length limit. */
+const IN_FILTER_CHUNK_SIZE = 150
 const VACANCY_OPTION_SELECT = 'id, participant_id, position_title, vacancy_count, job_fair_participants(business_name), hots(count)'
 
 /** Turns trigger / constraint errors into messages PESO staff can act on. */
@@ -66,13 +68,20 @@ export const hotsService = {
     return data as HotsWithDetails
   },
 
-  async deleteHots(hotsId: string): Promise<void> {
-    const { error } = await supabase
-      .schema('esmdd')
-      .from('hots')
-      .delete()
-      .eq('id', hotsId)
+  /** Deletes the hire records and returns the ids actually deleted. */
+  async deleteHots(hotsIds: string[]): Promise<string[]> {
+    const deleted: string[] = []
+    for (let i = 0; i < hotsIds.length; i += IN_FILTER_CHUNK_SIZE) {
+      const { data, error } = await supabase
+        .schema('esmdd')
+        .from('hots')
+        .delete()
+        .in('id', hotsIds.slice(i, i + IN_FILTER_CHUNK_SIZE))
+        .select('id')
 
-    if (error) throw new Error(error.message || 'Failed to delete the hire.')
+      if (error) throw new Error(error.message || 'Failed to delete the hires.')
+      deleted.push(...(data ?? []).map((row) => row.id))
+    }
+    return deleted
   },
 }

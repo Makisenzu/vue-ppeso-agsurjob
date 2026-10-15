@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import {
   Attachment,
   AttachmentAction,
@@ -60,6 +60,7 @@ const {
   isEditMode,
   editingJobFairId,
   statusOptions,
+  formStatusOptions,
   formValues,
   onFormDialogOpenChange,
   setMapLocation,
@@ -291,11 +292,12 @@ function onAttachmentDrop(event: DragEvent) {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+                <SelectItem v-for="status in formStatusOptions" :key="status" :value="status">
                   {{ status }}
                 </SelectItem>
               </SelectContent>
             </Select>
+            <FormDescription>Set automatically from the dates. Choose Cancelled to call off the job fair.</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>

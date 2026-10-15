@@ -14,6 +14,7 @@ import {
   type JobFairStatus,
 } from '@/types/peso/provincialPeso/jobFair'
 import { formatFileSize, validateUploadFile } from '@/helpers/common/uploadHelpers'
+import { getJobFairStatusForDates } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import type { MapCoordinates } from '@/helpers/common/mapboxHelpers'
 
 const jobFairSchema = toTypedSchema(
@@ -138,10 +139,26 @@ export function useJobFairForm() {
 
   onBeforeUnmount(clearAttachments)
 
+  // ─── Status ───
+  // trg_job_fairs_status (migration 026) sets Upcoming / Ongoing / Completed from the
+  // dates, so the form only offers that status or Cancelled.
+  const dateStatus = computed(() => getJobFairStatusForDates(values.startDate ?? '', values.endDate ?? ''))
+  const formStatusOptions = computed(() => [dateStatus.value, 'Cancelled'] as const)
+
+  watch(dateStatus, (status) => {
+    if (values.status !== 'Cancelled') setFieldValue('status', status)
+  })
+
   // Load the selected row (or blank values) each time the dialog opens.
   watch(isFormDialogOpen, (open) => {
     if (!open) return
-    resetForm({ values: editingJobFair.value ? toFormValues(editingJobFair.value) : INITIAL_VALUES })
+    const initial = editingJobFair.value ? toFormValues(editingJobFair.value) : INITIAL_VALUES
+    resetForm({
+      values: {
+        ...initial,
+        status: initial.status === 'Cancelled' ? 'Cancelled' : getJobFairStatusForDates(initial.startDate, initial.endDate),
+      },
+    })
     clearAttachments()
   })
 
@@ -182,6 +199,7 @@ export function useJobFairForm() {
     isEditMode,
     editingJobFairId,
     statusOptions: JOB_FAIR_STATUSES,
+    formStatusOptions,
     formValues: values,
     onFormDialogOpenChange,
     setMapLocation,

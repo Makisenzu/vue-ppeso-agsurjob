@@ -1,7 +1,7 @@
 import { computed, h, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
-import type { ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/vue-table'
+import type { ColumnDef, ColumnFiltersState, RowSelectionState, SortingState } from '@tanstack/vue-table'
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -14,6 +14,7 @@ import { ArrowUpDown, Loader2, UserCheck, UserMinus } from '@lucide/vue'
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useJobFairAttendeeStore } from '@/stores/peso/provincialPeso/jobFairAttendeeStore'
 import {
   formatOptionalDate,
@@ -24,11 +25,13 @@ import {
 import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
 import { JOB_FAIR_APPLICANT_STATUSES, type JobFairAttendee } from '@/types/peso/provincialPeso/jobFair'
 
+const PAGE_SIZE = 10
+
 export function useJobFairAttendees() {
   const route = useRoute()
   const store = useJobFairAttendeeStore()
-  const { attendees, isLoading, errorMessage, isDeleting, attendeeToDelete, updatingStatusId } = storeToRefs(store)
-  const { loadAttendees, openCreateDialog, openEditDialog, requestDelete, cancelDelete, deleteAttendee, setAttendeeStatus } =
+  const { attendees, isLoading, errorMessage, isDeleting, attendeesToDelete, updatingStatusId } = storeToRefs(store)
+  const { loadAttendees, openCreateDialog, openEditDialog, requestDelete, cancelDelete, deleteAttendees, setAttendeeStatus } =
     store
 
   const jobFairId = computed(() => String(route.params.jobFairId ?? ''))
@@ -37,6 +40,7 @@ export function useJobFairAttendees() {
 
   const sorting = ref<SortingState>([{ id: 'applicant', desc: false }])
   const columnFilters = ref<ColumnFiltersState>([])
+  const rowSelection = ref<RowSelectionState>({})
 
   const sortableHeader = (label: string) =>
     ({ column }: { column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | 'asc' | 'desc' } }) =>
@@ -67,6 +71,22 @@ export function useJobFairAttendees() {
   }
 
   const columns: ColumnDef<JobFairAttendee>[] = [
+    {
+      id: 'select',
+      enableSorting: false,
+      header: ({ table }) =>
+        h(Checkbox, {
+          modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(value === true),
+          'aria-label': 'Select all on this page',
+        }),
+      cell: ({ row }) =>
+        h(Checkbox, {
+          modelValue: row.getIsSelected(),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(value === true),
+          'aria-label': `Select ${row.original.applicant ? formatRegistryName(row.original.applicant) : 'applicant'}`,
+        }),
+    },
     {
       id: 'applicant',
       accessorFn: (row) => (row.applicant ? formatRegistryName(row.applicant) : ''),
@@ -117,7 +137,7 @@ export function useJobFairAttendees() {
           renderStatusToggle(row.original),
           renderRowActions({
             onEdit: () => openEditDialog(row.original),
-            onDelete: () => requestDelete(row.original),
+            onDelete: () => requestDelete([row.original]),
           }),
         ]),
     },
@@ -128,18 +148,27 @@ export function useJobFairAttendees() {
       return attendees.value
     },
     columns,
+    // Keeps the selection on the right rows across refreshes and sorting
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: { pageSize: PAGE_SIZE },
+    },
     onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, sorting),
     onColumnFiltersChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnFilters),
+    onRowSelectionChange: (updaterOrValue) => valueUpdater(updaterOrValue, rowSelection),
     state: {
       get sorting() {
         return sorting.value
       },
       get columnFilters() {
         return columnFilters.value
+      },
+      get rowSelection() {
+        return rowSelection.value
       },
     },
   })
@@ -148,13 +177,39 @@ export function useJobFairAttendees() {
     if (jobFairId.value) void loadAttendees(jobFairId.value)
   }
 
+  // ─── Bulk actions ───
+
+  /** Selected rows that still exist (a refresh or delete can remove rows). */
+  const selectedAttendees = computed(() => {
+    const ids = new Set(Object.keys(rowSelection.value).filter((id) => rowSelection.value[id]))
+    return attendees.value.filter((row) => ids.has(row.id))
+  })
+
+  const clearSelection = () => {
+    rowSelection.value = {}
+  }
+
+  const requestBulkDelete = () => {
+    if (selectedAttendees.value.length) requestDelete(selectedAttendees.value)
+  }
+
   const isDeleteDialogOpen = computed({
-    get: () => attendeeToDelete.value !== null,
+    get: () => attendeesToDelete.value.length > 0,
     set: (open: boolean) => {
       if (!open) cancelDelete()
     },
   })
 
+  const confirmDelete = async () => {
+    const deletedIds = await deleteAttendees()
+    if (deletedIds.length === 0) return
+    const next = { ...rowSelection.value }
+    for (const id of deletedIds) delete next[id]
+    rowSelection.value = next
+  }
+
+  // A different job fair's rows can't stay selected
+  watch(jobFairId, clearSelection)
   watch(jobFairId, refreshAttendees, { immediate: true })
 
   return {
@@ -165,11 +220,14 @@ export function useJobFairAttendees() {
     isLoading,
     errorMessage,
     isDeleting,
-    attendeeToDelete,
+    attendeesToDelete,
     isDeleteDialogOpen,
+    selectedAttendees,
+    clearSelection,
+    requestBulkDelete,
     statusOptions: JOB_FAIR_APPLICANT_STATUSES,
     refreshAttendees,
     openCreateDialog,
-    confirmDelete: deleteAttendee,
+    confirmDelete,
   }
 }

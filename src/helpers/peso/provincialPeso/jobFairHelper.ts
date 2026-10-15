@@ -1,5 +1,22 @@
 import { format, isSameDay, parseISO } from 'date-fns'
-import type { JobFairRegistryApplicant, HotsVacancyOption, HotsWithDetails, JobFairWithCounts } from '@/types/peso/provincialPeso/jobFair'
+import type {
+  JobFairRegistryApplicant,
+  HotsVacancyOption,
+  HotsWithDetails,
+  JobFairStatus,
+  JobFairWithCounts,
+} from '@/types/peso/provincialPeso/jobFair'
+
+/**
+ * Status the database assigns from the dates (esmdd.job_fair_status_for, migration 026).
+ * Takes yyyy-mm-dd strings; blank dates count as Upcoming.
+ */
+export function getJobFairStatusForDates(startDate: string, endDate: string): Exclude<JobFairStatus, 'Cancelled'> {
+  const today = format(new Date(), 'yyyy-MM-dd')
+  if (!startDate || today < startDate.slice(0, 10)) return 'Upcoming'
+  if (endDate && today > endDate.slice(0, 10)) return 'Completed'
+  return 'Ongoing'
+}
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   upcoming: 'bg-info/10 text-info border-info/30',

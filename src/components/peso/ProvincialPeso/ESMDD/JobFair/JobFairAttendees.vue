@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { CheckIcon, ChevronsUpDownIcon, Loader2, Plus, RefreshCw, Users } from '@lucide/vue'
+import { CheckIcon, ChevronsUpDownIcon, Loader2, Plus, RefreshCw, Trash2, Users, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -51,8 +51,11 @@ const {
   isLoading,
   errorMessage,
   isDeleting,
-  attendeeToDelete,
+  attendeesToDelete,
   isDeleteDialogOpen,
+  selectedAttendees,
+  clearSelection,
+  requestBulkDelete,
   statusOptions,
   refreshAttendees,
   openCreateDialog,
@@ -150,6 +153,24 @@ const {
             Add Attendee
           </Button>
         </div>
+      </div>
+
+      <!-- Bulk actions for the selected rows -->
+      <div
+        v-if="selectedAttendees.length > 0"
+        class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-center gap-2 text-sm">
+          <span class="font-medium">{{ selectedAttendees.length }} selected</span>
+          <Button variant="ghost" size="sm" :disabled="isDeleting" @click="clearSelection">
+            <X class="size-4" />
+            Clear
+          </Button>
+        </div>
+        <Button variant="destructive" :disabled="isDeleting" @click="requestBulkDelete">
+          <Trash2 class="size-4" />
+          Remove
+        </Button>
       </div>
 
       <div class="overflow-x-auto rounded-md border">
@@ -337,19 +358,26 @@ const {
     <AlertDialog v-model:open="isDeleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove attendee?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Remove {{ attendeesToDelete.length === 1 ? 'attendee' : `${attendeesToDelete.length} attendees` }}?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            <strong class="font-medium text-foreground">
-              {{ attendeeToDelete?.applicant ? formatRegistryName(attendeeToDelete.applicant) : 'This applicant' }}
-            </strong>
-            will no longer be counted for this job fair. Their registry record is not affected.
+            <template v-if="attendeesToDelete.length === 1">
+              <strong class="font-medium text-foreground">
+                {{ attendeesToDelete[0]?.applicant ? formatRegistryName(attendeesToDelete[0].applicant) : 'This applicant' }}
+              </strong>
+              will no longer be counted for this job fair. Their registry record is not affected.
+            </template>
+            <template v-else>
+              These applicants will no longer be counted for this job fair. Their registry records are not affected.
+            </template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
           <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="confirmDelete">
             <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
-            {{ isDeleting ? 'Removing...' : 'Remove Attendee' }}
+            {{ isDeleting ? 'Removing...' : attendeesToDelete.length === 1 ? 'Remove Attendee' : 'Remove Attendees' }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

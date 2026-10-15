@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { CheckIcon, ChevronsUpDownIcon, Loader2, Plus, RefreshCw, UserCheck } from '@lucide/vue'
+import { CheckIcon, ChevronsUpDownIcon, Loader2, Plus, RefreshCw, Trash2, UserCheck, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -51,8 +51,11 @@ const {
   isLoading,
   errorMessage,
   isDeleting,
-  hireToDelete,
+  hiresToDelete,
   isDeleteDialogOpen,
+  selectedHires,
+  clearSelection,
+  requestBulkDelete,
   employerOptions,
   totalSlots,
   hasVacancies,
@@ -165,6 +168,24 @@ const walkInFields = [
             Record Hire
           </Button>
         </div>
+      </div>
+
+      <!-- Bulk actions for the selected rows -->
+      <div
+        v-if="selectedHires.length > 0"
+        class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-center gap-2 text-sm">
+          <span class="font-medium">{{ selectedHires.length }} selected</span>
+          <Button variant="ghost" size="sm" :disabled="isDeleting" @click="clearSelection">
+            <X class="size-4" />
+            Clear
+          </Button>
+        </div>
+        <Button variant="destructive" :disabled="isDeleting" @click="requestBulkDelete">
+          <Trash2 class="size-4" />
+          Delete
+        </Button>
       </div>
 
       <div class="overflow-x-auto rounded-md border">
@@ -460,19 +481,27 @@ const walkInFields = [
     <AlertDialog v-model:open="isDeleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete hire record?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Delete {{ hiresToDelete.length === 1 ? 'hire record' : `${hiresToDelete.length} hire records` }}?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            The record of
-            <strong class="font-medium text-foreground">{{ hireToDelete ? formatHireName(hireToDelete) : '' }}</strong>
-            being hired as {{ hireToDelete?.job_vacancies?.position_title ?? 'this vacancy' }} will be permanently
-            removed, freeing up the slot. This action cannot be undone.
+            <template v-if="hiresToDelete.length === 1 && hiresToDelete[0]">
+              The record of
+              <strong class="font-medium text-foreground">{{ formatHireName(hiresToDelete[0]) }}</strong>
+              being hired as {{ hiresToDelete[0].job_vacancies?.position_title ?? 'this vacancy' }} will be permanently
+              removed, freeing up the slot. This action cannot be undone.
+            </template>
+            <template v-else>
+              These hire records will be permanently removed, freeing up their vacancy slots. This action cannot be
+              undone.
+            </template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
           <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="confirmDelete">
             <Loader2 v-if="isDeleting" class="size-4 shrink-0 animate-spin" />
-            {{ isDeleting ? 'Deleting...' : 'Delete Hire' }}
+            {{ isDeleting ? 'Deleting...' : hiresToDelete.length === 1 ? 'Delete Hire' : 'Delete Hires' }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
