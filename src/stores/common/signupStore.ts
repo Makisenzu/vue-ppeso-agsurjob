@@ -2,68 +2,61 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { signupService } from '@/services/common/signupService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import type {
-  SignupProfileForm,
-  SignupApplicantForm,
-  SignupCompanyForm,
-  SignupRole,
-  UserRole,
-} from '@/types/common/signup'
+import { useAuthStore } from '@/stores/common/auth'
+import type { SignupFormValues, SignupRole } from '@/types/common/signup'
 import {
-  createEmptyProfileForm,
-  createEmptyApplicantForm,
-  createEmptyCompanyForm,
   buildProfileInsert,
   buildApplicantInsert,
   buildCompanyInsert,
 } from '@/helpers/common/signupHelper'
 
+const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
+
+/**
+ * Signup submission state. The form values (including the password) live only in the
+ * vee-validate form inside `useSignup` — never in Pinia (SECURITY.md §6).
+ */
 export const useSignupStore = defineStore('signup', () => {
   const toastAlert = useToastAlert()
+  const authStore = useAuthStore()
 
   // ─── State ───
-  const selectedRole = ref<SignupRole | null>(null)
-  const profileForm = ref<SignupProfileForm>(createEmptyProfileForm())
-  const applicantForm = ref<SignupApplicantForm>(createEmptyApplicantForm())
-  const companyForm = ref<SignupCompanyForm>(createEmptyCompanyForm())
-  const confirmPassword = ref('')
-  const currentStep = ref(0)
   const isSubmitting = ref(false)
+  const isCheckingEmail = ref(false)
   const submitError = ref('')
 
   // ─── Actions ───
 
-  async function submitSignup(): Promise<void> {
-    if (!selectedRole.value) {
-      throw new Error('No role selected')
+  /** True when an account already uses this email; errors are treated as "not taken" so signup can still try. */
+  async function isEmailTaken(email: string): Promise<boolean> {
+    isCheckingEmail.value = true
+    try {
+      return await signupService.checkEmailExists(email)
+    } catch {
+      return false
+    } finally {
+      isCheckingEmail.value = false
     }
+  }
 
+  async function submitSignup(role: SignupRole, values: SignupFormValues): Promise<void> {
     isSubmitting.value = true
     submitError.value = ''
 
     try {
-      const profileRole: UserRole = selectedRole.value
-
-      // 1. Sign up the user with Supabase Auth
+      // 1. Create the auth user
       const result = await signupService.signUp({
-        email: profileForm.value.email,
-        password: profileForm.value.password,
+        email: values.email.trim(),
+        password: values.password,
         options: {
           data: {
-            role: profileRole,
-            firstname: profileForm.value.firstname,
-            middlename: profileForm.value.middlename,
-            lastname: profileForm.value.lastname,
-            birthdate: profileForm.value.birthdate,
-            gender: profileForm.value.gender,
-            contact_number: profileForm.value.contact_number,
-            region: profileForm.value.region,
-            province: profileForm.value.province,
-            geographic: profileForm.value.geographic,
-            barangay: profileForm.value.barangay,
-            is_4ps: profileForm.value.is_4ps,
-            is_pwd: profileForm.value.is_pwd,
-            username: profileForm.value.username,
+            role,
+            firstname: values.first_name.trim(),
+            middlename: values.middle_name.trim(),
+            lastname: values.surname.trim(),
+            birthdate: values.date_of_birth,
+            contact_number: values.contact_number.trim(),
+            username: values.username.trim(),
           },
         },
       })
@@ -73,55 +66,49 @@ export const useSignupStore = defineStore('signup', () => {
         throw new Error('No user ID returned from signup.')
       }
 
-      // 2. Insert profile data into core.profiles
-      const profilePayload = buildProfileInsert(profileForm.value, userId, profileRole)
-      await signupService.insertProfile(profilePayload)
+      // 2. core.profiles
+      await signupService.insertProfile(buildProfileInsert(values, userId, role))
 
-      // 3. Insert role-specific data
-      if (profileRole === 'applicant') {
-        const applicantPayload = buildApplicantInsert(
-          applicantForm.value,
-          profileForm.value,
-          userId,
-        )
-        await signupService.insertApplicant(applicantPayload)
-      } else if (profileRole === 'company_owner') {
-        const companyPayload = buildCompanyInsert(companyForm.value, userId)
-        await signupService.insertCompany(companyPayload)
+      // 3. Role-specific record
+      if (role === 'applicant') {
+        await signupService.insertApplicant(buildApplicantInsert(values, userId))
+      } else if (role === 'company_owner') {
+        await signupService.insertCompany(buildCompanyInsert(values, userId))
       }
 
-      toastAlert.success('Account created successfully!')
-    } catch (error: any) {
-      submitError.value = error?.message || 'Signup failed. Please try again.'
+      // signUp() fires SIGNED_IN before the rows above exist, so the auth store hydrated an empty
+      // profile. Reload it now so the role (and the applicant complete-profile gate) applies.
+      // No-op when email confirmation is on: there is no session yet.
+      if (result.session) await authStore.init(true)
+
+      toastAlert.success(
+        'Account created',
+        role === 'applicant'
+          ? 'Next, complete your NSRP profile to start using AGSURJOBS.'
+          : 'Your employer account is ready.',
+      )
+    } catch (error: unknown) {
+      submitError.value = errorMessageOf(error, 'Signup failed. Please try again.')
       throw error
     } finally {
       isSubmitting.value = false
     }
   }
 
-  function clearSignupData(): void {
-    selectedRole.value = null
-    profileForm.value = createEmptyProfileForm()
-    applicantForm.value = createEmptyApplicantForm()
-    companyForm.value = createEmptyCompanyForm()
-    confirmPassword.value = ''
-    currentStep.value = 0
+  function clearSignupState(): void {
     isSubmitting.value = false
+    isCheckingEmail.value = false
     submitError.value = ''
   }
 
   return {
     // State
-    selectedRole,
-    profileForm,
-    applicantForm,
-    companyForm,
-    confirmPassword,
-    currentStep,
     isSubmitting,
+    isCheckingEmail,
     submitError,
     // Actions
+    isEmailTaken,
     submitSignup,
-    clearSignupData,
+    clearSignupState,
   }
 })

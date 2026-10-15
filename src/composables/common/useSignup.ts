@@ -1,37 +1,65 @@
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
 import { useSignupStore } from '@/stores/common/signupStore'
 import { usePsgc } from '@/composables/common/usePsgc'
-import type { SignupRole } from '@/types/common/signup'
+import { getPasswordStrength } from '@/helpers/common/password'
+import type { SignupFormValues, SignupRole, SignupStepKey } from '@/types/common/signup'
 import {
   SIGNUP_ROLES,
-  STEP_META,
-  TOTAL_STEPS,
-  PROGRESS_STEPS,
-  validateStep,
-  GENDER_OPTIONS,
-  EMPLOYMENT_STATUS_OPTIONS,
-  EMPLOYMENT_TYPE_OPTIONS,
-  EDUCATION_LEVEL_OPTIONS,
+  SEX_OPTIONS,
   CIVIL_STATUS_OPTIONS,
+  SUFFIX_OPTIONS,
   BUSINESS_TYPE_OPTIONS,
+  MIN_PASSWORD_LENGTH,
+  calculateAge,
+  createInitialSignupValues,
+  formatSignupAddress,
+  formatSignupFullName,
+  normalizeSignupValues,
+  getSignupStepSchema,
+  getSignupSteps,
+  todayIsoDate,
 } from '@/helpers/common/signupHelper'
+
+interface PsgcOption {
+  code: string
+  name: string
+}
 
 export function useSignup() {
   const router = useRouter()
   const signupStore = useSignupStore()
+  const { isSubmitting, isCheckingEmail, submitError } = storeToRefs(signupStore)
 
-  const {
-    selectedRole,
-    profileForm,
-    applicantForm,
-    companyForm,
-    confirmPassword,
-    currentStep,
-    isSubmitting,
-    submitError,
-  } = storeToRefs(signupStore)
+  // ─── Role & steps ───
+  const selectedRole = ref<SignupRole | null>(null)
+  const currentStep = ref(0)
+
+  const steps = computed(() => getSignupSteps(selectedRole.value))
+  const currentStepMeta = computed(() => steps.value[currentStep.value] ?? steps.value[0])
+  const currentStepKey = computed<SignupStepKey>(() => currentStepMeta.value.key)
+  /** Steps shown in the progress indicator (everything after role selection). */
+  const progressSteps = computed(() => steps.value.slice(1).map((meta, index) => ({ ...meta, step: index + 1 })))
+  const isLastStep = computed(() => currentStep.value === steps.value.length - 1)
+
+  // ─── Form (values stay here — never in Pinia) ───
+  const validationSchema = computed(() => toTypedSchema(getSignupStepSchema(currentStepKey.value)))
+
+  const { values: rawValues, validate, setFieldValue, setFieldError } = useForm<SignupFormValues>({
+    validationSchema,
+    initialValues: createInitialSignupValues(),
+    keepValuesOnUnmount: true,
+  })
+
+  /** Form values with every field guaranteed to be a string (see normalizeSignupValues). */
+  const values = computed(() => normalizeSignupValues(rawValues))
+  const age = computed(() => calculateAge(values.value.date_of_birth))
+  const fullName = computed(() => formatSignupFullName(values.value))
+  const fullAddress = computed(() => formatSignupAddress(values.value))
+  const passwordStrength = computed(() => getPasswordStrength(values.value.password))
 
   // ─── PSGC cascading address ───
   const {
@@ -50,71 +78,72 @@ export function useSignup() {
     initPsgc()
   })
 
-  // Sync PSGC selections to profileForm names
-  watch(selectedRegion, (val) => {
-    profileForm.value.region = val?.name ?? ''
-  })
-  watch(selectedProvince, (val) => {
-    profileForm.value.province = val?.name ?? ''
-  })
-  watch(selectedCity, (val) => {
-    profileForm.value.geographic = val?.name ?? ''
-  })
-  watch(selectedBarangay, (val) => {
-    profileForm.value.barangay = val?.name ?? ''
-  })
+  // Keep the form fields in step with the PSGC selections (usePsgc clears children on parent change)
+  watch(selectedRegion, (val) => setFieldValue('region', val?.name ?? ''))
+  watch(selectedProvince, (val) => setFieldValue('province', val?.name ?? ''))
+  watch(selectedCity, (val) => setFieldValue('municipality', val?.name ?? ''))
+  watch(selectedBarangay, (val) => setFieldValue('barangay', val?.name ?? ''))
 
-  // ─── PSGC change handlers ───
-  function onRegionChange(code: any) {
-    const region = psgcRegions.value.find((r: any) => r.code === String(code))
+  const findByCode = (list: PsgcOption[], code: unknown) => list.find((item) => item.code === String(code))
+
+  function onRegionChange(code: unknown) {
+    const region = findByCode(psgcRegions.value, code)
     if (region) selectedRegion.value = region
   }
 
-  function onProvinceChange(code: any) {
-    const province = psgcProvinces.value.find((p: any) => p.code === String(code))
+  function onProvinceChange(code: unknown) {
+    const province = findByCode(psgcProvinces.value, code)
     if (province) selectedProvince.value = province
   }
 
-  function onCityChange(code: any) {
-    const city = psgcCities.value.find((c: any) => c.code === String(code))
+  function onCityChange(code: unknown) {
+    const city = findByCode(psgcCities.value, code)
     if (city) selectedCity.value = city
   }
 
-  function onBarangayChange(code: any) {
-    const barangay = psgcBarangays.value.find((b: any) => b.code === String(code))
+  function onBarangayChange(code: unknown) {
+    const barangay = findByCode(psgcBarangays.value, code)
     if (barangay) selectedBarangay.value = barangay
   }
 
-  // ─── Step metadata ───
-  const stepTitle = computed(() => STEP_META[currentStep.value]?.title ?? '')
-  const stepDescription = computed(() => STEP_META[currentStep.value]?.description ?? '')
-
-  // ─── Selection helpers ───
+  // ─── Navigation ───
   const isSelected = (id: SignupRole) => selectedRole.value === id
 
-  // ─── Validation ───
-  const canProceed = computed(() =>
-    validateStep(
-      currentStep.value,
-      profileForm.value,
-      applicantForm.value,
-      companyForm.value,
-      confirmPassword.value,
-      selectedRole.value,
-    ),
-  )
-
-  // ─── Navigation ───
-  function nextStep() {
-    if (currentStep.value < TOTAL_STEPS - 1) {
-      currentStep.value++
-    }
+  function selectRole(role: SignupRole) {
+    selectedRole.value = role
   }
 
-  function prevStep() {
-    if (currentStep.value > 0) {
-      currentStep.value--
+  async function nextStep() {
+    if (currentStepKey.value === 'role') {
+      if (selectedRole.value) currentStep.value++
+      return
     }
+
+    const { valid } = await validate()
+    if (!valid) return
+
+    if (currentStepKey.value === 'address' && (await signupStore.isEmailTaken(values.value.email))) {
+      setFieldError('email', 'An account with this email already exists. Sign in instead.')
+      return
+    }
+
+    if (!isLastStep.value) currentStep.value++
+  }
+
+  // Long steps on phones leave the user at the bottom — bring the next step's header into view
+  watch(currentStep, () => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
+  })
+
+  function prevStep() {
+    if (currentStep.value > 0) currentStep.value--
+  }
+
+  /** Jumps back to an earlier step (used by the review screen's Edit buttons). */
+  function goToStep(key: SignupStepKey) {
+    const index = steps.value.findIndex((meta) => meta.key === key)
+    if (index >= 0 && index < currentStep.value) currentStep.value = index
   }
 
   function handleBack() {
@@ -123,11 +152,13 @@ export function useSignup() {
 
   // ─── Submission ───
   async function handleSubmit() {
+    if (!selectedRole.value) return
     try {
-      await signupStore.submitSignup()
+      await signupStore.submitSignup(selectedRole.value, values.value)
+      // Navigating away unmounts the card, which discards the form (and the password) with it
       router.push('/login')
     } catch {
-      // Error is already set in the store's submitError
+      // submitError is set by the store
     }
   }
 
@@ -136,25 +167,30 @@ export function useSignup() {
     roles: SIGNUP_ROLES,
     selectedRole,
     isSelected,
+    selectRole,
     // Steps
     currentStep,
-    stepTitle,
-    stepDescription,
-    progressSteps: PROGRESS_STEPS,
-    canProceed,
+    currentStepKey,
+    currentStepMeta,
+    progressSteps,
+    isLastStep,
     nextStep,
     prevStep,
-    // Form data (reactive refs from store)
-    profileForm,
-    applicantForm,
-    companyForm,
-    confirmPassword,
+    goToStep,
+    handleBack,
+    // Form
+    values,
+    age,
+    fullName,
+    fullAddress,
+    passwordStrength,
+    maxBirthDate: todayIsoDate(),
+    minPasswordLength: MIN_PASSWORD_LENGTH,
     // Submit
     isSubmitting,
+    isCheckingEmail,
     submitError,
     handleSubmit,
-    // Navigation
-    handleBack,
     // PSGC
     psgcRegions,
     psgcProvinces,
@@ -169,11 +205,9 @@ export function useSignup() {
     onCityChange,
     onBarangayChange,
     // Select options
-    GENDER_OPTIONS,
-    EMPLOYMENT_STATUS_OPTIONS,
-    EMPLOYMENT_TYPE_OPTIONS,
-    EDUCATION_LEVEL_OPTIONS,
+    SEX_OPTIONS,
     CIVIL_STATUS_OPTIONS,
+    SUFFIX_OPTIONS,
     BUSINESS_TYPE_OPTIONS,
   }
 }

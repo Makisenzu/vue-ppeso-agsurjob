@@ -74,6 +74,22 @@ export const authService = {
     }
   },
 
+  /**
+   * Like fetchProfile, but returns null when the row doesn't exist yet. Right after signUp(),
+   * Supabase fires SIGNED_IN before the signup flow has inserted core.profiles.
+   */
+  async fetchProfileIfExists(userId: string): Promise<ProfileSummary | null> {
+    const { data, error } = await supabase
+      .schema('core')
+      .from('profiles')
+      .select('id, firstname, middlename, lastname, birthdate, contact_number, gender, status, is_pwd, is_4ps, role, username, region, province, geographic, barangay')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message || 'Failed to fetch profile')
+    return data
+  },
+
   async fetchApplicantByProfileId(profileId: string): Promise<ApplicantRow | null> {
     const { data, error } = await supabase
       .schema('applicants')
@@ -105,7 +121,19 @@ export const authService = {
   },
 
   async fetchUserBundle(userId: string): Promise<UserBundleData> {
-    const profile = await this.fetchProfile(userId)
+    const profile = await this.fetchProfileIfExists(userId)
+    if (!profile) {
+      return {
+        profile: null,
+        applicant: null,
+        employer: null,
+        experiences: [],
+        skills: [],
+        requirements: [],
+        requirementMedia: [],
+        profileMedia: [],
+      }
+    }
 
     const [applicantResult, employerResult, experiencesResult, skillsResult, requirementsResult, requirementMediaResult, profileMediaResult] =
       await Promise.all([

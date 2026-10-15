@@ -27,7 +27,8 @@ function toggleTheme() {
 </script>
 
 <template>
-  <div class="relative min-h-screen overflow-hidden">
+  <!-- overflow-clip (not hidden): clips the background without becoming a scroll container, so sticky children stick to the viewport -->
+  <div class="relative min-h-dvh overflow-clip">
     <!-- Aurora Background -->
     <!-- <Aurora
       class="absolute inset-0"
@@ -59,7 +60,7 @@ function toggleTheme() {
       >
         <component :is="mode === 'dark' ? Sun : Moon" class="size-4 shrink-0 text-white" />
       </button>
-    <div class="relative z-10 flex min-h-screen items-center justify-center p-6">
+    <div class="relative z-10 flex min-h-dvh items-center justify-center px-3 pt-14 pb-6 sm:p-6">
       <RouterView v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />

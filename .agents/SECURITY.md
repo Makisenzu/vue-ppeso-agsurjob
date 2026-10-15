@@ -94,7 +94,7 @@ supabase.auth.onAuthStateChange(async (event, newSession) => {
 
 ### 3.1 Navigation Guard ([`src/router/index.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/router/index.ts))
 
-The global `beforeEach` guard enforces three rules:
+The global `beforeEach` guard enforces four rules:
 
 ```
 1. Authentication Check:
@@ -105,7 +105,19 @@ The global `beforeEach` guard enforces three rules:
 
 3. Role Enforcement:
    route.meta.role !== userRole  →  redirect to correct role dashboard
+
+4. Applicant Profile Completion:
+   userRole === 'applicant'  &&  !authStore.isApplicantProfileComplete  &&  route ≠ 'complete-profile'
+     →  redirect to /app/complete-profile
 ```
+
+Rule 4 uses `isApplicantRecordComplete()` (`helpers/applicant/applicantCompletionHelper.ts`): every
+applicant-fillable NSRP column of `applicants.applicants` must be answered — personal (`sex`, `civil_status`,
+`religion`, `height_ft`), `employment_status`, at least one `educational_background` and
+`language_proficiencies` entry, skills, `preferred_occupations`, and `work_experiences` (`null` = unanswered,
+`[]` = answered "none"). `vocational_trainings` and `eligibilities` are optional, as on the PESO entry form. Signup only stores
+the NSRP personal-information section; applicants write the rest themselves under the
+`applicant_own_applicants_insert` / `applicant_own_applicants_update` policies (migration 027).
 
 ### 3.2 Role-to-Dashboard Mapping
 

@@ -27,47 +27,49 @@ export interface RoleOption {
   icon: Component
 }
 
-// ─── Signup Form State Interfaces ───
-// These mirror the DB columns relevant at signup time.
-// Fields use the exact DB column names from database.types.ts.
+/** `applicants.applicants.sex` check constraint (`applicants_sex_check`). */
+export type ApplicantSex = 'Male' | 'Female'
 
-/** Maps to `core.profiles` Insert (subset collected at signup). */
-export interface SignupProfileForm {
-  firstname: string
-  middlename: string
-  lastname: string
-  birthdate: string
-  gender: GenderType | ''
-  contact_number: string
+// ─── Signup Steps ───
+
+export type SignupStepKey = 'role' | 'personal' | 'address' | 'account' | 'company' | 'review'
+
+export interface SignupStepMeta {
+  key: SignupStepKey
+  title: string
+  description: string
+}
+
+// ─── Signup Form Values ───
+// Personal + address/contact fields follow the NSRP "Personal Information" section of
+// `applicants.applicants` (surname → email / contact number), in the same order.
+
+export interface SignupFormValues {
+  // Personal information
+  surname: string
+  first_name: string
+  middle_name: string
+  suffix: string
+  date_of_birth: string
+  sex: ApplicantSex | ''
+  civil_status: string
+  religion: string
+  height_ft: number | string
+  tin: string
+  // Address & contact
   region: string
   province: string
-  geographic: string
+  municipality: string
   barangay: string
-  is_4ps: boolean
-  is_pwd: boolean
-  username: string
+  street: string
+  village: string
+  contact_number: string
   email: string
+  // Account
+  username: string
   password: string
-}
-
-/** Structured education entry stored as Json in `applicants.educational_background`. */
-export interface EducationEntry {
-  level: string
-  course: string
-}
-
-/** Maps to `applicants.applicants` Insert (subset collected at signup). */
-export interface SignupApplicantForm {
-  employment_status: string
-  employment_type: string
-  civil_status: string
-  educational_background: EducationEntry
-  preferred_occupations: string
-  preferred_local_locations: string
-}
-
-/** Maps to `employers.companies` Insert (subset collected at signup). */
-export interface SignupCompanyForm {
+  confirm_password: string
+  // Company owner only
   company_name: string
   company_email: string
   company_contact: string
@@ -77,4 +79,14 @@ export interface SignupCompanyForm {
   company_description: string
   website: string
   registration_number: string
+}
+
+/** Shape stored in `applicants.applicants.address` (same keys as the PESO applicant entry form). */
+export interface ApplicantAddressJson {
+  street?: string
+  village?: string
+  barangay: string
+  municipality: string
+  province: string
+  region: string
 }

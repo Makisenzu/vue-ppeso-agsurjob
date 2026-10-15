@@ -7,6 +7,12 @@ export const applicantRoutes : RouteRecordRaw[] = [
     meta: { breadcrumb: false, requiresAuth: true, role: 'applicant' },
     children: [
       {
+        path: 'complete-profile',
+        name: 'complete-profile',
+        component: () => import('@/components/applicant/Profile/ApplicantCompleteProfile.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Complete Profile' }
+      },
+      {
         path: 'dashboard',
         name: 'dashboard',
         component: () => import('@/components/applicant/ApplicantDashboard.vue')

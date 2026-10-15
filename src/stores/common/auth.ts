@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { authService, type UserBundleData } from '@/services/common/authService'
 import type { User, Session } from '@supabase/supabase-js'
+import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
 
 import type {
   ProfileSummary,
@@ -56,6 +57,14 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const isVerified = computed(() => profile.value?.status === 'approved')
+
+  /** Applicants must finish their NSRP record before using the portal (enforced by the router guard). */
+  const isApplicantProfileComplete = computed(() => isApplicantRecordComplete(applicantProfile.value))
+
+  function setApplicantProfile(row: ApplicantRow | null) {
+    applicantProfile.value = row
+    if (userBundle.value) userBundle.value = { ...userBundle.value, applicant: row }
+  }
 
   async function fetchProfile(userId: string) {
     try {
@@ -179,8 +188,10 @@ export const useAuthStore = defineStore('auth', () => {
     displayName,
     userInitials,
     isVerified,
+    isApplicantProfileComplete,
     // Actions
     init,
+    setApplicantProfile,
     fetchProfile,
     hydrateUserData,
     clearSessionData,

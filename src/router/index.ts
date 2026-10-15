@@ -65,6 +65,13 @@ router.beforeEach(async (to, _from, next) => {
       
       if (routeRole && routeRole !== userRole && to.name !== fallbackRoute) {
         next(getDashboardRouteForRole(userRole))
+      } else if (
+        userRole === 'applicant' &&
+        to.name !== 'complete-profile' &&
+        !authStore.isApplicantProfileComplete
+      ) {
+        // Applicants must finish their NSRP record (applicants.applicants) before using the portal
+        next({ name: 'complete-profile' })
       } else {
         next()
       }
