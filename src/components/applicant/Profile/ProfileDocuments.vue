@@ -24,7 +24,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   Stepper,
   StepperItem,
-  StepperSeparator,
   StepperTitle,
   StepperDescription,
 } from '@/components/ui/stepper'
@@ -134,28 +133,35 @@ async function downloadFile(requirement: string) {
       </div>
     </div>
 
-    <Stepper class="flex w-full items-start gap-2 overflow-x-auto pb-2">
+    <Stepper :linear="false" class="flex w-full items-start gap-0 overflow-x-auto pb-2">
       <StepperItem
         v-for="(file, index) in files"
         :key="file.name"
         :step="index + 1"
-        class="relative flex min-w-32 flex-1 flex-col items-center group"
+        class="flex min-w-32 flex-1 flex-col items-center gap-0 group"
       >
-        <StepperSeparator
-          v-if="index !== files.length - 1"
-          class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 hidden sm:block h-0.5 shrink-0 rounded-full transition-colors duration-300"
-          :class="getDocumentState(file).separatorClass"
-        />
-
-        <div class="flex flex-col items-center text-center">
+        <!-- Each step draws both halves of its connectors, so adjacent steps always meet edge to edge -->
+        <div class="flex w-full items-center">
           <div
-            class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
+            class="h-0.5 flex-1 transition-colors duration-300 max-sm:invisible"
+            :class="index === 0 ? 'invisible' : getDocumentState(files[index - 1]).separatorClass"
+            aria-hidden="true"
+          />
+          <div
+            class="size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
             :class="[getDocumentState(file).circleClass]"
           >
             <Check v-if="getStepState(file) === 'done'" class="size-4 stroke-3" />
             <X v-else class="size-4 stroke-3" />
           </div>
+          <div
+            class="h-0.5 flex-1 transition-colors duration-300 max-sm:invisible"
+            :class="index === files.length - 1 ? 'invisible' : getDocumentState(file).separatorClass"
+            aria-hidden="true"
+          />
+        </div>
 
+        <div class="flex flex-col items-center px-1 text-center">
           <div class="mt-2">
             <StepperTitle class="text-xs font-semibold text-foreground truncate max-w-28">
               {{ file.name }}

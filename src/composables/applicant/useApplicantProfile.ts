@@ -12,6 +12,9 @@ import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompleti
 /** Stepper name of the NSRP record step — completed by the NSRP form, not by an uploaded file. */
 export const NSRP_FORM = 'NSRP Form'
 
+/** Uploaded requirements, in the order the applicant must submit them. */
+export const REQUIRED_UPLOAD_ORDER = ['Application Form', 'Resume', 'Birth Certificate'] as const
+
 export function useApplicantProfile() {
   const authStore = useAuthStore()
   const route = useRoute()
@@ -19,9 +22,9 @@ export function useApplicantProfile() {
 
   const requiredFiles: DocumentFile[] = [
     { name: NSRP_FORM, type: 'form', uploaded: false },
-    { name: 'Application Form', type: 'application', uploaded: false },
-    { name: 'Resume', type: 'resume', uploaded: false },
-    { name: 'Birth Certificate', type: 'certificate', uploaded: false },
+    { name: REQUIRED_UPLOAD_ORDER[0], type: 'application', uploaded: false },
+    { name: REQUIRED_UPLOAD_ORDER[1], type: 'resume', uploaded: false },
+    { name: REQUIRED_UPLOAD_ORDER[2], type: 'certificate', uploaded: false },
   ]
 
   const isLoading = ref(true)

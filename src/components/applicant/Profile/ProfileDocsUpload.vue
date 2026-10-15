@@ -6,7 +6,12 @@ import { useFileUpload } from '@/composables/common/useFileUpload'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantRequirementUploadService } from '@/services/applicant/applicantRequirementUploadService'
-import { getRequirementAttachmentState, getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
+import {
+  getRequirementAttachmentState,
+  getRequirementMediaMeta,
+  normalizeRequirementLabel,
+} from '@/helpers/applicant/applicantRequirementDocuments'
+import { REQUIRED_UPLOAD_ORDER } from '@/composables/applicant/useApplicantProfile'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,8 +33,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
-import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Progress } from '@/components/ui/progress'
 import {
   Attachment,
@@ -86,6 +89,13 @@ function getExistingRequirementMedia(documentLabel: string) {
     authStore.applicantRequirementMedia ?? [],
     authStore.applicantRequirements ?? []
   )
+}
+
+/** Position of a requirement in the mandatory upload order; templates outside it sort last and are never blocked. */
+function getUploadOrder(documentLabel: string) {
+  const label = normalizeRequirementLabel(documentLabel)
+  const index = REQUIRED_UPLOAD_ORDER.findIndex((name) => normalizeRequirementLabel(name) === label)
+  return index === -1 ? REQUIRED_UPLOAD_ORDER.length : index
 }
 
 function getExistingRequirementAttachmentState(documentLabel: string) {
@@ -164,12 +174,15 @@ async function loadVerificationTemplates() {
     if (error) throw error
 
     // The NSRP form comes from the applicant's record (download/print it from NSRP details), not an upload
-    documents.value = (data ?? []).filter((t: any) => !isNsrpRequirementName(t.name)).map((t: any) => ({
-      id: `template-${t.id}`,
-      label: t.name ?? `Requirement ${t.id}`,
-      requirementTemplateId: t.id,
-      accept: DEFAULT_ACCEPT,
-    }))
+    documents.value = (data ?? [])
+      .filter((t: any) => !isNsrpRequirementName(t.name))
+      .map((t: any) => ({
+        id: `template-${t.id}`,
+        label: t.name ?? `Requirement ${t.id}`,
+        requirementTemplateId: t.id,
+        accept: DEFAULT_ACCEPT,
+      }))
+      .sort((a, b) => getUploadOrder(a.label) - getUploadOrder(b.label))
   } catch (err) {
     documents.value = []
     toastAlert.error('Failed to load requirement templates. Please try again later.')
@@ -200,6 +213,21 @@ const hasQueuedFiles = computed(() =>
   stagedDocuments.value.some((doc) => uploadedFiles.value[doc.id]?.state !== 'done')
 )
 
+/** A requirement counts toward the order once it is on the profile or queued in this dialog. */
+function isDocumentFilled(doc: UploadDocumentDefinition) {
+  return Boolean(getExistingRequirementMedia(doc.label) || uploadedFiles.value[doc.id])
+}
+
+/** The earliest requirement in the upload order still missing a file before `doc`, if any. */
+function getBlockingDocument(doc: UploadDocumentDefinition) {
+  const order = getUploadOrder(doc.label)
+  if (order >= REQUIRED_UPLOAD_ORDER.length) return null
+  return documents.value.find((other) => getUploadOrder(other.label) < order && !isDocumentFilled(other)) ?? null
+}
+
+/** Queued files whose earlier requirement was removed from the queue — they can't be submitted out of order. */
+const hasOutOfOrderFiles = computed(() => stagedDocuments.value.some((doc) => getBlockingDocument(doc)))
+
 const selectedDocId = ref('')
 const selectedDocument = computed(() => pendingDocuments.value.find((doc) => doc.id === selectedDocId.value) ?? null)
 const selectedAccept = computed(() => selectedDocument.value?.accept ?? DEFAULT_ACCEPT)
@@ -210,15 +238,23 @@ const acceptLabel = computed(() =>
     .join(', ')
 )
 
-/** Point the dropzone at the next requirement that has neither an upload nor a queued file. */
+/** Point the dropzone at the next unblocked requirement that has neither an upload nor a queued file. */
 function selectNextDocument() {
-  const next = pendingDocuments.value.find((doc) => !uploadedFiles.value[doc.id]) ?? pendingDocuments.value[0]
+  const next = pendingDocuments.value.find((doc) => !uploadedFiles.value[doc.id] && !getBlockingDocument(doc))
   selectedDocId.value = next?.id ?? ''
 }
 
-watch(pendingDocuments, (docs) => {
-  if (!docs.some((doc) => doc.id === selectedDocId.value)) selectNextDocument()
-}, { immediate: true })
+/** Re-target when the selection gets a file, or becomes blocked because an earlier queued file was removed. */
+watch(
+  () =>
+    pendingDocuments.value.some(
+      (doc) => doc.id === selectedDocId.value && !uploadedFiles.value[doc.id] && !getBlockingDocument(doc)
+    ),
+  (isSelectable) => {
+    if (!isSelectable) selectNextDocument()
+  },
+  { immediate: true }
+)
 
 function isAcceptedFile(file: File, accept: string) {
   const name = file.name.toLowerCase()
@@ -227,6 +263,11 @@ function isAcceptedFile(file: File, accept: string) {
 
 function addFile(file: File | null | undefined) {
   if (!file || !selectedDocument.value) return
+  const blocking = getBlockingDocument(selectedDocument.value)
+  if (blocking) {
+    toastAlert.error('Upload in order', `Add your ${blocking.label} before the ${selectedDocument.value.label}.`)
+    return
+  }
   if (!isAcceptedFile(file, selectedAccept.value)) {
     toastAlert.error('File type not supported', `Use a ${acceptLabel.value} file for ${selectedDocument.value.label}.`)
     return
@@ -280,6 +321,10 @@ const submitDocuments = async () => {
     submitError.value = 'Profile not found. Please refresh and try again.'
     return
   }
+  if (hasOutOfOrderFiles.value) {
+    submitError.value = `Upload your documents in order: ${REQUIRED_UPLOAD_ORDER.join(', then ')}.`
+    return
+  }
   isSubmitting.value = true
 
   try {
@@ -329,7 +374,7 @@ const submitDocuments = async () => {
           Upload Document
         </component>
         <component :is="Modal.Description">
-          Choose which requirement the file is for, then drop it in the box.
+          Drop your files one at a time. Each file is filed as the next document in order.
         </component>
       </component>
 
@@ -346,15 +391,20 @@ const submitDocuments = async () => {
           All required documents are on your profile. Delete one below to replace it.
         </p>
 
-        <!-- ─── Pick the requirement, then drop the file ─── -->
+        <p v-else-if="!selectedDocument" class="rounded-lg bg-muted/50 p-4 text-sm text-foreground">
+          Every remaining document has a file. Remove one below to replace it, or click Upload.
+        </p>
+
+        <!-- ─── The dropzone files each drop as the next document in order ─── -->
         <div v-else class="space-y-3">
-          <div class="grid gap-1.5">
-            <Label for="upload-document-type" class="text-sm font-medium">Document type</Label>
-            <NativeSelect id="upload-document-type" v-model="selectedDocId" class="w-full" :disabled="isSubmitting">
-              <NativeSelectOption v-for="doc in pendingDocuments" :key="doc.id" :value="doc.id">
-                {{ doc.label }}{{ uploadedFiles[doc.id] ? ' (file added)' : '' }}
-              </NativeSelectOption>
-            </NativeSelect>
+          <div class="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <p>
+              Drop your files here. Each file you drop is accepted in this order:
+              <span class="font-medium text-foreground">{{ REQUIRED_UPLOAD_ORDER.join(' → ') }}</span>.
+            </p>
+            <p class="mt-1">
+              Next up: <span class="font-medium text-primary">{{ selectedDocument.label }}</span>
+            </p>
           </div>
 
           <label
@@ -437,7 +487,8 @@ const submitDocuments = async () => {
               <AttachmentTitle>{{ doc.label }}</AttachmentTitle>
               <AttachmentDescription class="truncate">
                 {{ uploadedFiles[doc.id].file.name }} ·
-                <span v-if="uploadedFiles[doc.id].state === 'pending'">{{ formatFileSize(uploadedFiles[doc.id].file.size) }}</span>
+                <span v-if="getBlockingDocument(doc)" class="text-destructive">Add your {{ getBlockingDocument(doc)?.label }} first</span>
+                <span v-else-if="uploadedFiles[doc.id].state === 'pending'">{{ formatFileSize(uploadedFiles[doc.id].file.size) }}</span>
                 <span v-else-if="uploadedFiles[doc.id].state === 'uploading'">Uploading {{ uploadedFiles[doc.id].progress }}%</span>
                 <span v-else-if="uploadedFiles[doc.id].state === 'done'">Uploaded</span>
                 <span v-else class="text-destructive">Upload failed</span>
@@ -518,20 +569,20 @@ const submitDocuments = async () => {
       </div>
 
       <component :is="Modal.Footer" class="grid grid-cols-1 gap-2 sm:grid-cols-2 shrink-0 border-t">
-        <Button
-          type="button"
-          class="w-full bg-(--buttonTwo)"
-          :disabled="isSubmitting || !hasQueuedFiles"
-          @click="submitDocuments"
-        >
-          <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
-          {{ isSubmitting ? 'Uploading...' : 'Upload' }}
-        </Button>
         <component :is="Modal.Close" as-child>
           <Button type="button" variant="outline" class="w-full">
             Cancel
           </Button>
         </component>
+        <Button
+          type="button"
+          class="w-full bg-(--buttonTwo)"
+          :disabled="isSubmitting || !hasQueuedFiles || hasOutOfOrderFiles"
+          @click="submitDocuments"
+        >
+          <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
+          {{ isSubmitting ? 'Uploading...' : 'Upload' }}
+        </Button>
       </component>
     </component>
   </component>
