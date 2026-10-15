@@ -62,6 +62,48 @@ export function useApplicantNsrpEditor() {
     editingSection.value = null
   }
 
+  // ─── NSRP Form 1 (PDF) ───
+  const isDownloadingForm = ref(false)
+  const isPrintingForm = ref(false)
+
+  /** Same filled-in NSRP Form 1 the PESO staff generate; the PDF libraries load only when asked. */
+  async function loadFormTools() {
+    const [{ mapToApplicantEntryRecord }, pdf] = await Promise.all([
+      import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
+      import('@/helpers/peso/provincialPeso/nsrpTemplateHelper'),
+    ])
+    return { applicant: mapToApplicantEntryRecord(record.value!), pdf }
+  }
+
+  async function downloadForm() {
+    if (!record.value || isDownloadingForm.value) return
+    isDownloadingForm.value = true
+    try {
+      const { applicant, pdf } = await loadFormTools()
+      await pdf.downloadNsrpFormPdf(applicant)
+      toastAlert.success('PDF downloaded', 'Your NSRP Form 1 has been downloaded.')
+    } catch (error: unknown) {
+      console.error('Failed to generate NSRP PDF:', error)
+      toastAlert.error('PDF generation failed', (error instanceof Error && error.message) || 'Please try again.')
+    } finally {
+      isDownloadingForm.value = false
+    }
+  }
+
+  async function printForm() {
+    if (!record.value || isPrintingForm.value) return
+    isPrintingForm.value = true
+    try {
+      const { applicant, pdf } = await loadFormTools()
+      await pdf.printNsrpForm(applicant)
+    } catch (error: unknown) {
+      console.error('Failed to prepare NSRP print:', error)
+      toastAlert.error('Print preparation failed', (error instanceof Error && error.message) || 'Please try again.')
+    } finally {
+      isPrintingForm.value = false
+    }
+  }
+
   async function saveSection() {
     const profileId = user.value?.id
     if (!profileId || !editingSection.value) return
@@ -94,5 +136,9 @@ export function useApplicantNsrpEditor() {
     startEdit,
     cancelEdit,
     saveSection,
+    isDownloadingForm,
+    isPrintingForm,
+    downloadForm,
+    printForm,
   }
 }

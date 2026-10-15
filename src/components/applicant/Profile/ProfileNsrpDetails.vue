@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Loader2, Pencil } from '@lucide/vue'
+import { Download, Loader2, Pencil, Printer } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,6 +28,10 @@ const {
   startEdit,
   cancelEdit,
   saveSection,
+  isDownloadingForm,
+  isPrintingForm,
+  downloadForm,
+  printForm,
 } = useApplicantNsrpEditor()
 
 interface DetailItem {
@@ -101,15 +105,41 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
 
 <template>
   <section aria-labelledby="nsrp-details-heading" class="space-y-4">
-    <div class="space-y-1">
-      <h2 id="nsrp-details-heading" class="text-base font-semibold text-foreground">NSRP details</h2>
-      <p class="text-sm text-muted-foreground">
-        <template v-if="isComplete">
-          Your National Skills Registration Program record with PESO Agusan del Sur. Keep it current so programs and
-          employers match you correctly.
-        </template>
-        <template v-else>Some sections of your NSRP record still need answers.</template>
-      </p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="space-y-1">
+        <h2 id="nsrp-details-heading" class="text-base font-semibold text-foreground">NSRP details</h2>
+        <p class="text-sm text-muted-foreground">
+          <template v-if="isComplete">
+            Your National Skills Registration Program record with PESO Agusan del Sur. Keep it current so programs and
+            employers match you correctly.
+          </template>
+          <template v-else>Some sections of your NSRP record still need answers.</template>
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-11 flex-1 gap-1.5 text-xs sm:h-8 sm:flex-none"
+          :disabled="!record || isDownloadingForm"
+          @click="downloadForm"
+        >
+          <Loader2 v-if="isDownloadingForm" class="size-3.5 animate-spin" />
+          <Download v-else class="size-3.5" />
+          {{ isDownloadingForm ? 'Generating...' : 'Download NSRP form' }}
+        </Button>
+        <Button
+          size="sm"
+          class="h-11 flex-1 gap-1.5 text-xs sm:h-8 sm:flex-none"
+          :disabled="!record || isPrintingForm"
+          @click="printForm"
+        >
+          <Loader2 v-if="isPrintingForm" class="size-3.5 animate-spin" />
+          <Printer v-else class="size-3.5" />
+          {{ isPrintingForm ? 'Preparing...' : 'Print NSRP form' }}
+        </Button>
+      </div>
     </div>
 
     <div v-if="isLoading && !record" class="space-y-4">

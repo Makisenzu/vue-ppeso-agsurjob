@@ -13,6 +13,12 @@ export function isApplicantRequirementType(value: string | null | undefined) {
   return normalized === 'applicantrequirements' || normalized === 'applicantrequirement'
 }
 
+/** NSRP is filled in as the applicant's `applicants.applicants` record, so it is never an uploaded requirement. */
+export function isNsrpRequirementName(value: string | null | undefined) {
+  const normalized = normalizeRequirementTypeValue(value)
+  return normalized.includes('nsrp') || normalized.includes('nationalskillsregistration')
+}
+
 export function getApplicantRequirementTypeCandidates(value?: string | null) {
   const preferredType = value && isApplicantRequirementType(value) ? value : APPLICANT_REQUIREMENT_TYPE
 

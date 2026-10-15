@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
-import { CircleCheckIcon, Eye, Loader2Icon, Trash2, Upload, XIcon } from '@lucide/vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { CircleCheckIcon, Eye, FileText, Loader2, MousePointer2, Trash2, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/common/useFileUpload'
 import { useAuthStore } from '@/stores/common/auth'
@@ -28,8 +28,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Progress } from '@/components/ui/progress'
 import {
   Attachment,
   AttachmentAction,
@@ -65,14 +66,16 @@ const deleteTarget = ref<UploadDocumentDefinition | null>(null)
 const deleteTargetLabel = computed(() => deleteTarget.value?.label ?? '')
 
 import { supabase } from '@/lib/supabaseClient'
-import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
+import { LEGACY_APPLICANT_REQUIREMENT_TYPES, isNsrpRequirementName } from '@/helpers/applicant/applicantRequirementTypes'
+
+const DEFAULT_ACCEPT = '.pdf,.doc,.docx,.jpg,.png'
 
 const documents = ref<UploadDocumentDefinition[]>(
   [
     {
       id: 'supporting-document',
       label: 'Supporting Document',
-      accept: '.pdf,.doc,.docx,.jpg,.png',
+      accept: DEFAULT_ACCEPT,
     },
   ]
 )
@@ -160,11 +163,12 @@ async function loadVerificationTemplates() {
 
     if (error) throw error
 
-    documents.value = (data ?? []).map((t: any) => ({
+    // The NSRP form comes from the applicant's record (download/print it from NSRP details), not an upload
+    documents.value = (data ?? []).filter((t: any) => !isNsrpRequirementName(t.name)).map((t: any) => ({
       id: `template-${t.id}`,
       label: t.name ?? `Requirement ${t.id}`,
       requirementTemplateId: t.id,
-      accept: '.pdf,.doc,.docx,.jpg,.png',
+      accept: DEFAULT_ACCEPT,
     }))
   } catch (err) {
     documents.value = []
@@ -184,8 +188,84 @@ const mapAttachmentState = (state: UploadState): 'done' | 'idle' | 'uploading' |
   return state
 }
 
-const { uploadedFiles, inputResetKeys, handleFileChange, clearUpload, clearScope, submitUploads, formatFileSize } =
+const { uploadedFiles, stageFile, clearUpload, clearScope, submitUploads, formatFileSize } =
   useFileUpload('applicant-profile-documents')
+
+// ─── Dropzone ───
+/** Requirements still without a file on the profile — the ones the dropzone can fill. */
+const pendingDocuments = computed(() => documents.value.filter((doc) => !getExistingRequirementMedia(doc.label)))
+const uploadedDocuments = computed(() => documents.value.filter((doc) => getExistingRequirementMedia(doc.label)))
+const stagedDocuments = computed(() => documents.value.filter((doc) => uploadedFiles.value[doc.id]))
+const hasQueuedFiles = computed(() =>
+  stagedDocuments.value.some((doc) => uploadedFiles.value[doc.id]?.state !== 'done')
+)
+
+const selectedDocId = ref('')
+const selectedDocument = computed(() => pendingDocuments.value.find((doc) => doc.id === selectedDocId.value) ?? null)
+const selectedAccept = computed(() => selectedDocument.value?.accept ?? DEFAULT_ACCEPT)
+const acceptLabel = computed(() =>
+  selectedAccept.value
+    .split(',')
+    .map((ext) => ext.trim().replace('.', '').toUpperCase())
+    .join(', ')
+)
+
+/** Point the dropzone at the next requirement that has neither an upload nor a queued file. */
+function selectNextDocument() {
+  const next = pendingDocuments.value.find((doc) => !uploadedFiles.value[doc.id]) ?? pendingDocuments.value[0]
+  selectedDocId.value = next?.id ?? ''
+}
+
+watch(pendingDocuments, (docs) => {
+  if (!docs.some((doc) => doc.id === selectedDocId.value)) selectNextDocument()
+}, { immediate: true })
+
+function isAcceptedFile(file: File, accept: string) {
+  const name = file.name.toLowerCase()
+  return accept.split(',').some((ext) => name.endsWith(ext.trim().toLowerCase()))
+}
+
+function addFile(file: File | null | undefined) {
+  if (!file || !selectedDocument.value) return
+  if (!isAcceptedFile(file, selectedAccept.value)) {
+    toastAlert.error('File type not supported', `Use a ${acceptLabel.value} file for ${selectedDocument.value.label}.`)
+    return
+  }
+  submitError.value = ''
+  stageFile(selectedDocument.value.id, file)
+  selectNextDocument()
+}
+
+/** Counts enter/leave pairs so passing over child elements doesn't flicker the drag state. */
+const dragDepth = ref(0)
+const isDragging = computed(() => dragDepth.value > 0)
+
+const carriesFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files')
+
+function onDragEnter(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  dragDepth.value += 1
+}
+
+function onDragOver(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+
+function onDragLeave() {
+  dragDepth.value = Math.max(0, dragDepth.value - 1)
+}
+
+function onDrop(event: DragEvent) {
+  dragDepth.value = 0
+  addFile(event.dataTransfer?.files?.[0])
+}
+
+function onInputChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  addFile(input.files?.[0])
+  input.value = ''
+}
 
 const closeModal = () => {
   open.value = false
@@ -243,108 +323,177 @@ const submitDocuments = async () => {
       </Button>
     </component>
 
-    <component :is="Modal.Content" class="sm:max-w-md max-h-[90vh] flex flex-col">
+    <component :is="Modal.Content" class="sm:max-w-lg max-h-[90vh] flex flex-col">
       <component :is="Modal.Header" class="shrink-0">
         <component :is="Modal.Title">
           Upload Document
         </component>
         <component :is="Modal.Description">
-          Select a document to upload to your profile. Only PDF, DOC, and DOCX files are accepted.
+          Choose which requirement the file is for, then drop it in the box.
         </component>
       </component>
 
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-6 max-sm:px-4">
         <p v-if="submitError" class="text-sm text-destructive">
           {{ submitError }}
         </p>
 
-        <div v-if="documents.length === 0" class="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+        <div v-if="documents.length === 0" class="rounded-lg bg-muted/50 p-4 text-center text-sm text-muted-foreground">
           No applicant requirement templates are available yet.
         </div>
 
-        <div v-for="doc in documents" :key="doc.id" class="grid w-full gap-1.5">
-          <Label :for="doc.id" class="text-sm font-medium leading-none">
-            {{ doc.label }}
-          </Label>
+        <p v-else-if="pendingDocuments.length === 0" class="rounded-lg bg-muted/50 p-4 text-sm text-foreground">
+          All required documents are on your profile. Delete one below to replace it.
+        </p>
 
-          <div v-if="getExistingRequirementMedia(doc.label)" class="pt-1">
-            <Attachment :state="getExistingRequirementAttachmentState(doc.label)" class="w-full">
-              <AttachmentMedia>
-                <CircleCheckIcon class="size-4 text-emerald-600" />
-              </AttachmentMedia>
-
-              <AttachmentContent>
-                <AttachmentTitle>
-                  {{ getExistingRequirementMedia(doc.label)?.filename }}
-                </AttachmentTitle>
-                <AttachmentDescription>
-                  <span>
-                    Uploaded • {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}
-                  </span>
-                </AttachmentDescription>
-              </AttachmentContent>
-
-              <AttachmentActions>
-                <AttachmentAction @click="viewFile(getExistingRequirementMedia(doc.label)?.publicUrl)">
-                  <Eye class="size-4" />
-                </AttachmentAction>
-                <AttachmentAction :disabled="isDeleting" @click="promptDelete(doc)">
-                  <Trash2 class="size-4" />
-                </AttachmentAction>
-              </AttachmentActions>
-            </Attachment>
+        <!-- ─── Pick the requirement, then drop the file ─── -->
+        <div v-else class="space-y-3">
+          <div class="grid gap-1.5">
+            <Label for="upload-document-type" class="text-sm font-medium">Document type</Label>
+            <NativeSelect id="upload-document-type" v-model="selectedDocId" class="w-full" :disabled="isSubmitting">
+              <NativeSelectOption v-for="doc in pendingDocuments" :key="doc.id" :value="doc.id">
+                {{ doc.label }}{{ uploadedFiles[doc.id] ? ' (file added)' : '' }}
+              </NativeSelectOption>
+            </NativeSelect>
           </div>
 
-          <Input
-            v-else
-            :key="`${doc.id}-${inputResetKeys[doc.id] ?? 0}`"
-            :id="doc.id"
-            type="file"
-            :accept="doc.accept ?? '.pdf,.doc,.docx,.jpg,.png'"
+          <label
+            for="upload-document-file"
+            class="group/drop relative flex cursor-pointer flex-col items-center gap-4 overflow-hidden rounded-xl px-6 pb-6 pt-8 text-center transition-[background-color,box-shadow,transform] duration-200 ease-out
+              focus-within:ring-[3px] focus-within:ring-ring/50 active:scale-[0.99] motion-reduce:transition-none"
+            :class="[
+              isDragging
+                ? 'bg-primary/10 ring-2 ring-primary'
+                : 'bg-muted/60 hover:bg-muted',
+              isSubmitting && 'pointer-events-none opacity-60',
+            ]"
+            @dragenter.prevent="onDragEnter"
+            @dragover.prevent="onDragOver"
+            @dragleave.prevent="onDragLeave"
+            @drop.prevent="onDrop"
+          >
+            <!-- Stage: a file carried in by the cursor and released into the slot -->
+            <div class="relative grid size-28 place-items-center" aria-hidden="true">
+              <div
+                class="size-20 rounded-2xl transition-colors duration-200"
+                :class="isDragging ? 'bg-primary/20' : 'bg-background animate-slot-receive motion-reduce:animate-none'"
+              />
+              <div
+                class="absolute grid place-items-center transition-transform duration-300 ease-out"
+                :class="isDragging ? '-translate-y-1.5 scale-110' : 'animate-file-drag-in motion-reduce:animate-none'"
+              >
+                <div class="relative grid h-14 w-11 place-items-center rounded-md bg-card shadow-md">
+                  <FileText class="size-5 shrink-0 text-primary" />
+                  <MousePointer2
+                    class="absolute -bottom-3 -right-3 size-5 shrink-0 fill-foreground text-background"
+                    :class="isDragging ? '' : 'animate-cursor-release motion-reduce:hidden'"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <p class="text-sm font-semibold text-foreground">
+                <template v-if="isDragging">Release to add it as {{ selectedDocument?.label }}</template>
+                <template v-else-if="isDesktop">Drag your {{ selectedDocument?.label }} here</template>
+                <template v-else>Tap to choose your {{ selectedDocument?.label }}</template>
+              </p>
+              <p class="text-xs text-muted-foreground">
+                <span v-if="isDesktop">or <span class="font-medium text-primary underline-offset-4 group-hover/drop:underline">browse your files</span> · </span>{{ acceptLabel }}
+              </p>
+            </div>
+
+            <input
+              id="upload-document-file"
+              type="file"
+              class="sr-only"
+              :accept="selectedAccept"
+              :disabled="isSubmitting"
+              @change="onInputChange"
+            />
+          </label>
+        </div>
+
+        <!-- ─── Files queued in this dialog ─── -->
+        <div v-if="stagedDocuments.length > 0" class="space-y-2">
+          <h3 class="text-sm font-semibold text-foreground">Ready to upload</h3>
+          <Attachment
+            v-for="doc in stagedDocuments"
+            :key="doc.id"
+            :state="mapAttachmentState(uploadedFiles[doc.id].state)"
+            class="w-full animate-in fade-in slide-in-from-top-2 duration-300 motion-reduce:animate-none"
+          >
+            <AttachmentMedia>
+              <Loader2
+                v-if="uploadedFiles[doc.id].state === 'uploading'"
+                data-slot="spinner"
+                class="size-4 animate-spin"
+              />
+              <CircleCheckIcon v-else-if="uploadedFiles[doc.id].state === 'done'" class="size-4 text-success" />
+              <FileText v-else class="size-4 text-muted-foreground" />
+            </AttachmentMedia>
+
+            <AttachmentContent class="min-w-0">
+              <AttachmentTitle>{{ doc.label }}</AttachmentTitle>
+              <AttachmentDescription class="truncate">
+                {{ uploadedFiles[doc.id].file.name }} ·
+                <span v-if="uploadedFiles[doc.id].state === 'pending'">{{ formatFileSize(uploadedFiles[doc.id].file.size) }}</span>
+                <span v-else-if="uploadedFiles[doc.id].state === 'uploading'">Uploading {{ uploadedFiles[doc.id].progress }}%</span>
+                <span v-else-if="uploadedFiles[doc.id].state === 'done'">Uploaded</span>
+                <span v-else class="text-destructive">Upload failed</span>
+              </AttachmentDescription>
+              <Progress
+                v-if="uploadedFiles[doc.id].state === 'uploading'"
+                :model-value="uploadedFiles[doc.id].progress"
+                class="mt-2 h-1"
+              />
+            </AttachmentContent>
+
+            <AttachmentActions>
+              <AttachmentAction
+                :disabled="isSubmitting"
+                :aria-label="`Remove ${doc.label}`"
+                @click="clearUpload(doc.id)"
+              >
+                <XIcon class="size-4" />
+              </AttachmentAction>
+            </AttachmentActions>
+          </Attachment>
+        </div>
+
+        <!-- ─── Already on the profile ─── -->
+        <div v-if="uploadedDocuments.length > 0" class="space-y-2">
+          <h3 class="text-sm font-semibold text-foreground">On your profile</h3>
+          <Attachment
+            v-for="doc in uploadedDocuments"
+            :key="doc.id"
+            :state="getExistingRequirementAttachmentState(doc.label)"
             class="w-full"
-            @change="handleFileChange(doc, $event)"
-          />
+          >
+            <AttachmentMedia>
+              <CircleCheckIcon class="size-4 text-success" />
+            </AttachmentMedia>
 
-          <div v-if="uploadedFiles[doc.id]" class="pt-1">
-            <Attachment :state="mapAttachmentState(uploadedFiles[doc.id].state)" class="w-full">
-              <AttachmentMedia>
-                <Loader2Icon
-                  v-if="uploadedFiles[doc.id].state === 'uploading'"
-                  data-slot="spinner"
-                  class="size-4 animate-spin"
-                />
-                <CircleCheckIcon v-else-if="uploadedFiles[doc.id].state === 'done'" class="size-4 text-emerald-600" />
-                <XIcon v-else class="size-4 text-muted-foreground" />
-              </AttachmentMedia>
+            <AttachmentContent class="min-w-0">
+              <AttachmentTitle>{{ doc.label }}</AttachmentTitle>
+              <AttachmentDescription class="truncate">
+                {{ getExistingRequirementMedia(doc.label)?.filename }} ·
+                {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}
+              </AttachmentDescription>
+            </AttachmentContent>
 
-              <AttachmentContent>
-                <AttachmentTitle>
-                  {{ uploadedFiles[doc.id].file.name }}
-                </AttachmentTitle>
-                <AttachmentDescription>
-                  <span v-if="uploadedFiles[doc.id].state === 'pending'">
-                    Ready to upload
-                  </span>
-                  <span v-else-if="uploadedFiles[doc.id].state === 'uploading'">
-                    Uploading... {{ uploadedFiles[doc.id].progress }}%
-                  </span>
-                  <span v-else-if="uploadedFiles[doc.id].state === 'done'">
-                    Uploaded • {{ formatFileSize(uploadedFiles[doc.id].file.size) }}
-                  </span>
-                  <span v-else>
-                    Upload failed
-                  </span>
-                </AttachmentDescription>
-              </AttachmentContent>
-
-              <AttachmentActions>
-                <AttachmentAction @click="clearUpload(doc.id)">
-                  <Upload v-if="uploadedFiles[doc.id].state !== 'done'" class="size-4" />
-                  <XIcon v-else class="size-4" />
-                </AttachmentAction>
-              </AttachmentActions>
-            </Attachment>
-          </div>
+            <AttachmentActions>
+              <AttachmentAction
+                :aria-label="`View ${doc.label}`"
+                @click="viewFile(getExistingRequirementMedia(doc.label)?.publicUrl)"
+              >
+                <Eye class="size-4" />
+              </AttachmentAction>
+              <AttachmentAction :disabled="isDeleting" :aria-label="`Delete ${doc.label}`" @click="promptDelete(doc)">
+                <Trash2 class="size-4" />
+              </AttachmentAction>
+            </AttachmentActions>
+          </Attachment>
         </div>
 
         <!-- Delete confirmation dialog -->
@@ -369,8 +518,14 @@ const submitDocuments = async () => {
       </div>
 
       <component :is="Modal.Footer" class="grid grid-cols-1 gap-2 sm:grid-cols-2 shrink-0 border-t">
-        <Button type="button" class="w-full bg-(--buttonTwo)" :disabled="isSubmitting" @click="submitDocuments">
-          {{ isSubmitting ? 'Uploading...' : 'Submit' }}
+        <Button
+          type="button"
+          class="w-full bg-(--buttonTwo)"
+          :disabled="isSubmitting || !hasQueuedFiles"
+          @click="submitDocuments"
+        >
+          <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
+          {{ isSubmitting ? 'Uploading...' : 'Upload' }}
         </Button>
         <component :is="Modal.Close" as-child>
           <Button type="button" variant="outline" class="w-full">
