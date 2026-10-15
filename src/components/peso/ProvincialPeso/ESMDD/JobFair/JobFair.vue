@@ -93,17 +93,11 @@ function onAttachmentDrop(event: DragEvent) {
 <template>
   <div class="w-full min-w-0 space-y-4">
     <!-- Header -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Job Fairs</h1>
-        <p class="text-sm text-muted-foreground">
-          Manage and track all job fair events.
-        </p>
-      </div>
-      <Button @click="openAddDialog">
-        <Plus class="size-4" />
-        Add Job Fair
-      </Button>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Job Fairs</h1>
+      <p class="text-sm text-muted-foreground">
+        Manage and track all job fair events.
+      </p>
     </div>
 
     <!-- Toolbar -->
@@ -131,10 +125,16 @@ function onAttachmentDrop(event: DragEvent) {
         </Select>
       </div>
 
-      <Button variant="outline" :disabled="isLoading" @click="refreshJobFairs">
-        <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />
-        <span class="hidden sm:inline">Refresh</span>
-      </Button>
+      <div class="flex gap-2">
+        <Button variant="outline" :disabled="isLoading" @click="refreshJobFairs">
+          <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline">Refresh</span>
+        </Button>
+        <Button @click="openAddDialog">
+          <Plus class="size-4" />
+          Add Job Fair
+        </Button>
+      </div>
     </div>
 
     <!-- Error Banner -->
