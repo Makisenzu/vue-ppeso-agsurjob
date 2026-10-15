@@ -28,8 +28,9 @@ import {
   StepperTitle,
   StepperDescription,
 } from '@/components/ui/stepper'
-import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
+import type { DocumentFile } from '@/types/applicant/applicantProfile'
 import ProfileDocsUpload from './ProfileDocsUpload.vue'
+import { NSRP_FORM } from '@/composables/applicant/useApplicantProfile'
 
 const props = defineProps<{
   files: DocumentFile[]
@@ -52,13 +53,19 @@ function getRequirementAttachmentStateFor(requirement: string) {
   return getRequirementAttachmentState(meta?.status, meta ? 'done' : 'idle')
 }
 
+/** The NSRP Form step is met by a complete NSRP record (applicants.applicants), not by an upload. */
+function getStepState(file: DocumentFile) {
+  if (file.name === NSRP_FORM) return file.uploaded ? 'done' : 'idle'
+  return getRequirementAttachmentStateFor(file.name)
+}
+
 function getDocumentState(file: DocumentFile) {
-  const state = getRequirementAttachmentStateFor(file.name)
+  const state = getStepState(file)
 
   switch (state) {
     case 'done':
       return {
-        label: 'Approved',
+        label: file.name === NSRP_FORM ? 'Completed' : 'Approved',
         circleClass: 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/30',
         separatorClass: 'bg-emerald-500',
         textClass: 'text-emerald-600 dark:text-emerald-400',
@@ -79,7 +86,7 @@ function getDocumentState(file: DocumentFile) {
       }
     default:
       return {
-        label: 'Pending',
+        label: file.name === NSRP_FORM ? 'Incomplete' : 'Pending',
         circleClass: 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:border-red-500/30',
         separatorClass: 'bg-muted',
         textClass: 'text-red-600 dark:text-red-400',
@@ -145,7 +152,7 @@ async function downloadFile(requirement: string) {
             class="z-10 size-9 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300"
             :class="[getDocumentState(file).circleClass]"
           >
-            <Check v-if="getRequirementAttachmentStateFor(file.name) === 'done'" class="size-4 stroke-3" />
+            <Check v-if="getStepState(file) === 'done'" class="size-4 stroke-3" />
             <X v-else class="size-4 stroke-3" />
           </div>
 

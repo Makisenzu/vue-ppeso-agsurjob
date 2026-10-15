@@ -3,9 +3,11 @@ import { useApplicantProfile } from '@/composables/applicant/useApplicantProfile
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import ProfileDocuments from './ProfileDocuments.vue'
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
+import ProfileNsrpDetails from '@/components/applicant/Profile/ProfileNsrpDetails.vue'
 
 const {
   files,
+  isOwnProfile,
   displayName,
   userInitials,
 
@@ -58,8 +60,10 @@ const {
             :files="files"
             :requirements="displayRequirements"
             :has-requirements="hasRequirements"
-          />        
+          />
         </div>
+
+        <ProfileNsrpDetails v-if="isOwnProfile" />
       </div>
     </div>
   </div>

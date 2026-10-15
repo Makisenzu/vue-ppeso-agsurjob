@@ -98,8 +98,8 @@ export interface ApplicantCompletionValues {
   /** Optional — an empty list means none (same as the PESO applicant entry form). */
   eligibilities: EligibilityEntryForm[]
   // Work & skills
+  /** Optional — an empty list means no work experience (same as the PESO applicant entry form). */
   work_experiences: WorkEntryForm[]
-  no_work_experience: boolean
   language_proficiencies: LanguageEntryForm[]
   other_skills: string[]
   other_skills_specified: string

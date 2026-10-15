@@ -1,47 +1,19 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useFieldArray, useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { focusFirstNsrpError, provideNsrpForm, useNsrpForm } from '@/composables/applicant/useNsrpForm'
 import { useApplicantCompletionStore } from '@/stores/applicant/applicantCompletionStore'
-import { calculateAge, todayIsoDate } from '@/helpers/common/signupHelper'
 import {
-  APPOINTMENT_STATUS_OPTIONS,
-  COMPLETION_CIVIL_STATUS_OPTIONS,
-  COMPLETION_SEX_OPTIONS,
   COMPLETION_STEPS,
-  DISABILITY_OPTIONS,
-  EDUCATION_LEVEL_OPTIONS,
-  EMPLOYMENT_STATUS_OPTIONS,
-  EMPLOYMENT_TYPE_OPTIONS,
-  JOB_TYPE_OPTIONS,
-  LANGUAGE_ABILITIES,
-  SKILL_OPTIONS,
-  UNEMPLOYED_REASON_OPTIONS,
   createEducationEntry,
-  createEligibilityEntry,
-  createLanguageEntry,
-  createTrainingEntry,
-  createWorkEntry,
-  getCompletionStepSchema,
   getIncompleteSteps,
   getMissingPersonalFields,
   getResumeStepIndex,
   toCompletionValues,
-  toggleListValue,
 } from '@/helpers/applicant/applicantCompletionHelper'
-import type {
-  ApplicantCompletionValues,
-  CompletionPersonalField,
-  CompletionStepKey,
-  EducationEntryForm,
-  EligibilityEntryForm,
-  LanguageEntryForm,
-  TrainingEntryForm,
-  WorkEntryForm,
-} from '@/types/applicant/applicantCompletion'
+import type { CompletionPersonalField, CompletionStepKey } from '@/types/applicant/applicantCompletion'
 
 /**
  * "Complete your NSRP profile" wizard — every applicant-fillable column of `applicants.applicants`
@@ -68,44 +40,10 @@ export function useApplicantCompletion() {
   /** Personal fields the record is missing — decided once per load so fields don't vanish while typing. */
   const missingPersonal = ref<CompletionPersonalField[]>([])
 
-  // ─── Form ───
-  const validationSchema = computed(() =>
-    toTypedSchema(getCompletionStepSchema(currentStepKey.value, missingPersonal.value)),
-  )
-
-  const { values: rawValues, errors, validate, resetForm, setFieldValue } = useForm<ApplicantCompletionValues>({
-    validationSchema,
-    initialValues: toCompletionValues(null),
-    keepValuesOnUnmount: true,
-  })
-
-  /** Values with every key filled — vee-validate can report untouched / hidden fields as undefined. */
-  const values = computed<ApplicantCompletionValues>(() => {
-    const filled = toCompletionValues(null)
-    for (const [key, value] of Object.entries(rawValues)) {
-      if (value !== undefined && value !== null) Object.assign(filled, { [key]: value })
-    }
-    return filled
-  })
-
-  const { fields: educationFields, push: pushEducation, remove: removeEducation } =
-    useFieldArray<EducationEntryForm>('educational_background')
-  const { fields: trainingFields, push: pushTraining, remove: removeTraining } =
-    useFieldArray<TrainingEntryForm>('vocational_trainings')
-  const { fields: eligibilityFields, push: pushEligibility, remove: removeEligibility } =
-    useFieldArray<EligibilityEntryForm>('eligibilities')
-  const { fields: workFields, push: pushWork, remove: removeWork } = useFieldArray<WorkEntryForm>('work_experiences')
-  const { fields: languageFields, push: pushLanguage, remove: removeLanguage } =
-    useFieldArray<LanguageEntryForm>('language_proficiencies')
-
-  const isEmployed = computed(() => values.value.employment_status === 'Employed')
-  const isUnemployed = computed(() => values.value.employment_status === 'Unemployed')
-  const isSelfEmployed = computed(() => isEmployed.value && values.value.employment_type === 'Self-employed')
-  const age = computed(() => calculateAge(values.value.date_of_birth))
-  const needsPersonal = (field: CompletionPersonalField) => missingPersonal.value.includes(field)
-
-  /** List-level error (e.g. "Add at least one school"), shown above the entries. */
-  const listError = (name: keyof ApplicantCompletionValues) => (errors.value as Record<string, string | undefined>)[name]
+  // ─── Form (shared with the profile page editor; field sections inject it) ───
+  const form = useNsrpForm(currentStepKey, missingPersonal)
+  provideNsrpForm(form)
+  const { values, validate, resetForm } = form
 
   // ─── Load ───
   function loadIntoForm() {
@@ -141,14 +79,6 @@ export function useApplicantCompletion() {
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
   }
 
-  /** On phones the first error is often off-screen — bring it into view. */
-  async function focusFirstError() {
-    await nextTick()
-    const invalid = document.querySelector<HTMLElement>('[aria-invalid="true"], [data-list-error]')
-    invalid?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    if (invalid instanceof HTMLInputElement || invalid instanceof HTMLSelectElement) invalid.focus({ preventScroll: true })
-  }
-
   function prevStep() {
     if (currentStep.value > 0) {
       currentStep.value--
@@ -170,7 +100,8 @@ export function useApplicantCompletion() {
 
     const { valid } = await validate()
     if (!valid) {
-      await focusFirstError()
+      await nextTick()
+      focusFirstNsrpError()
       return
     }
 
@@ -195,15 +126,6 @@ export function useApplicantCompletion() {
     router.push({ name: 'dashboard' })
   }
 
-  // ─── Checkbox lists ───
-  const toggleIn = (name: 'disabilities' | 'job_type_preference' | 'other_skills') =>
-    (item: string, checked: boolean | 'indeterminate') =>
-      setFieldValue(name, toggleListValue(values.value[name], item, checked))
-
-  function addLanguage() {
-    pushLanguage(createLanguageEntry())
-  }
-
   return {
     // Steps
     steps,
@@ -220,46 +142,6 @@ export function useApplicantCompletion() {
     isLoading,
     isSubmitting,
     errorMessage,
-    values,
-    age,
-    isEmployed,
-    isUnemployed,
-    isSelfEmployed,
-    needsPersonal,
-    listError,
-    maxDate: todayIsoDate(),
     displayName: computed(() => authStore.displayName),
-    // Field arrays
-    educationFields,
-    addEducation: () => pushEducation(createEducationEntry()),
-    removeEducation,
-    trainingFields,
-    addTraining: () => pushTraining(createTrainingEntry()),
-    removeTraining,
-    eligibilityFields,
-    addEligibility: () => pushEligibility(createEligibilityEntry()),
-    removeEligibility,
-    workFields,
-    addWork: () => pushWork(createWorkEntry()),
-    removeWork,
-    languageFields,
-    addLanguage,
-    removeLanguage,
-    // Checkbox lists
-    toggleDisability: toggleIn('disabilities'),
-    toggleJobType: toggleIn('job_type_preference'),
-    toggleSkill: toggleIn('other_skills'),
-    // Options
-    sexOptions: COMPLETION_SEX_OPTIONS,
-    civilStatusOptions: COMPLETION_CIVIL_STATUS_OPTIONS,
-    employmentStatusOptions: EMPLOYMENT_STATUS_OPTIONS,
-    employmentTypeOptions: EMPLOYMENT_TYPE_OPTIONS,
-    unemployedReasonOptions: UNEMPLOYED_REASON_OPTIONS,
-    educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
-    appointmentStatusOptions: APPOINTMENT_STATUS_OPTIONS,
-    disabilityOptions: DISABILITY_OPTIONS,
-    jobTypeOptions: JOB_TYPE_OPTIONS,
-    skillOptions: SKILL_OPTIONS,
-    languageAbilities: LANGUAGE_ABILITIES,
   }
 }

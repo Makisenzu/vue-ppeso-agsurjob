@@ -146,8 +146,8 @@ export const createLanguageEntry = (language = ''): LanguageEntryForm => ({
 const DEFAULT_LANGUAGES = ['English', 'Tagalog / Filipino', 'Cebuano / Bisaya']
 
 // ─── Completeness ───
-// `work_experiences` uses `null` = not answered yet and `[]` = answered "none".
-// Vocational trainings and eligibilities are optional, as on the PESO entry form.
+// `work_experiences` uses `null` = not answered yet and `[]` = answered "none" (saved with no jobs added).
+// Work experience, vocational trainings and eligibilities are optional lists, as on the PESO entry form.
 
 /** Fields that decide completeness — loose types so reactive (unwrapped) rows are accepted too. */
 export interface ApplicantCompletenessInput {
@@ -364,7 +364,7 @@ const languageEntrySchema = z.object({
 
 const experienceSchema = z
   .object({
-    no_work_experience: z.boolean(),
+    // Optional, like trainings — an empty list means no work experience
     work_experiences: z.array(workEntrySchema),
     language_proficiencies: z.array(languageEntrySchema),
     other_skills: z.array(z.string()),
@@ -372,11 +372,6 @@ const experienceSchema = z
   })
   .superRefine((values, ctx) => {
     const require = issueAdder(ctx)
-    require(
-      ['work_experiences'],
-      values.no_work_experience || values.work_experiences.length > 0,
-      'Add a job or tick "I have no work experience yet".',
-    )
     require(
       ['language_proficiencies'],
       values.language_proficiencies.some((entry) => LANGUAGE_ABILITIES.some((ability) => entry[ability])),
@@ -506,7 +501,6 @@ export function toCompletionValues(
       monthly_salary: str(item.monthly_salary),
       status_of_appointment: str(item.status_of_appointment),
     })),
-    no_work_experience: Array.isArray(row?.work_experiences) && row.work_experiences.length === 0,
     language_proficiencies: languages.length > 0 ? languages : DEFAULT_LANGUAGES.map((name) => createLanguageEntry(name)),
     other_skills: row?.other_skills ?? [],
     other_skills_specified: row?.other_skills_specified ?? '',
@@ -540,9 +534,9 @@ const listOrNull = (items: string[]) => (items.length > 0 ? items : null)
  * A step the applicant has not validated yet must stay "unanswered" (null), so an answered-none
  * list (`[]`) is only written once its step was validated.
  */
-function answeredList(entries: object[], none: boolean, reached: boolean): Json | null {
+function answeredList(entries: object[], reached: boolean): Json | null {
   if (entries.length > 0) return entries as unknown as Json
-  return none && reached ? [] : null
+  return reached ? [] : null
 }
 
 /** Builds the full `applicants.applicants` update; `reachedStep` is the furthest validated step index. */
@@ -582,20 +576,18 @@ export function buildCompletionPatch(values: ApplicantCompletionValues, reachedS
           place_of_examination: entry.place_of_examination.trim(),
         }))
 
-  const work = values.no_work_experience
-    ? []
-    : values.work_experiences
-        .filter((entry) => entry.company_name.trim() || entry.position.trim())
-        .map((entry) => ({
-          company_name: entry.company_name.trim(),
-          address: entry.address.trim(),
-          position: entry.position.trim(),
-          job_title: entry.position.trim(),
-          inclusive_dates: entry.inclusive_dates.trim(),
-          number_of_months: toNumberOrNull(entry.number_of_months),
-          monthly_salary: toNumberOrNull(entry.monthly_salary),
-          status_of_appointment: entry.status_of_appointment || 'Permanent',
-        }))
+  const work = values.work_experiences
+    .filter((entry) => entry.company_name.trim() || entry.position.trim())
+    .map((entry) => ({
+      company_name: entry.company_name.trim(),
+      address: entry.address.trim(),
+      position: entry.position.trim(),
+      job_title: entry.position.trim(),
+      inclusive_dates: entry.inclusive_dates.trim(),
+      number_of_months: toNumberOrNull(entry.number_of_months),
+      monthly_salary: toNumberOrNull(entry.monthly_salary),
+      status_of_appointment: entry.status_of_appointment || 'Permanent',
+    }))
 
   const languages = values.language_proficiencies
     .filter((entry) => entry.language.trim() && LANGUAGE_ABILITIES.some((ability) => entry[ability]))
@@ -633,7 +625,7 @@ export function buildCompletionPatch(values: ApplicantCompletionValues, reachedS
     vocational_trainings: trainings.length > 0 ? (trainings as unknown as Json) : null,
     eligibilities: eligibilities.length > 0 ? (eligibilities as unknown as Json) : null,
     // Work & skills
-    work_experiences: answeredList(work, values.no_work_experience, reached('experience')),
+    work_experiences: answeredList(work, reached('experience')),
     // The prefilled default languages have no ability ticked, so they drop out until the applicant answers
     language_proficiencies: languages.length > 0 ? (languages as unknown as Json) : null,
     other_skills: listOrNull(values.other_skills),

@@ -1,12 +1,16 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
-import type { DocumentFile } from '@/components/applicant/Profile/ProfileFiles.vue'
+import type { DocumentFile } from '@/types/applicant/applicantProfile'
 import { fetchApplicantProfileByUsername } from '@/services/applicant/applicantProfileService'
 import {
   getRequirementDisplayLabel,
   isRequirementUploaded,
 } from '@/helpers/applicant/applicantRequirementDocuments'
+import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
+
+/** Stepper name of the NSRP record step — completed by the NSRP form, not by an uploaded file. */
+export const NSRP_FORM = 'NSRP Form'
 
 export function useApplicantProfile() {
   const authStore = useAuthStore()
@@ -14,7 +18,7 @@ export function useApplicantProfile() {
   const routeUsername = computed(() => String(route.params.username ?? '').trim())
 
   const requiredFiles: DocumentFile[] = [
-    { name: 'NSRP Form', type: 'form', uploaded: false },
+    { name: NSRP_FORM, type: 'form', uploaded: false },
     { name: 'Application Form', type: 'application', uploaded: false },
     { name: 'Resume', type: 'resume', uploaded: false },
     { name: 'Birth Certificate', type: 'certificate', uploaded: false },
@@ -38,7 +42,13 @@ export function useApplicantProfile() {
   const hasMedia = computed(() => media.value.length > 0)
   const hasRequirements = computed(() => requirementMedia.value.length > 0 || requirements.value.length > 0)
 
+  /** The NSRP details (and their editor) are private — shown only on the applicant's own profile. */
+  const isOwnProfile = computed(() => !routeUsername.value || routeUsername.value === authStore.username)
+  /** The NSRP Form step is met once every applicant-fillable section of `applicants.applicants` is answered. */
+  const isNsrpComplete = computed(() => isApplicantRecordComplete(applicantData.value))
+
   function isRequirementMet(fileName: string) {
+    if (fileName === NSRP_FORM) return isNsrpComplete.value
     return isRequirementUploaded(fileName, requirementMedia.value, requirements.value)
   }
 
@@ -137,6 +147,14 @@ export function useApplicantProfile() {
     { deep: true }
   )
 
+  // Edits saved from the NSRP details section replace the auth store's applicant record
+  watch(
+    () => authStore.applicantProfile,
+    (val) => {
+      if (isOwnProfile.value) applicantData.value = val
+    }
+  )
+
   onMounted(async () => {
     await authStore.init()
     await fetchApplicantProfile()
@@ -144,6 +162,8 @@ export function useApplicantProfile() {
 
   return {
     files,
+    isOwnProfile,
+    isNsrpComplete,
     isLoading,
     fullProfileData,
     applicantData,
