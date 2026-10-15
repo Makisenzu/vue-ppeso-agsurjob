@@ -27,8 +27,8 @@ function toggleTheme() {
 </script>
 
 <template>
-  <!-- overflow-clip (not hidden): clips the background without becoming a scroll container, so sticky children stick to the viewport -->
   <div class="relative min-h-dvh overflow-clip">
+    <!-- overflow-clip (not hidden): clips the background without becoming a scroll container, so sticky children stick to the viewport -->
     <!-- Aurora Background -->
     <!-- <Aurora
       class="absolute inset-0"

@@ -80,10 +80,6 @@ const {
 </script>
 
 <template>
-  <!--
-    Mobile: 44px touch targets (h-11), 16px select text (stops iOS zoom), tighter card padding,
-    and a sticky action bar. overflow-clip (not hidden) so the sticky footer can stick to the viewport.
-  -->
   <Card
     :class="[
       'w-full box-border overflow-clip gap-5 pt-5 pb-0 transition-[max-width] duration-300 ease-in-out sm:gap-6 sm:py-6',
@@ -92,6 +88,10 @@ const {
       currentStepKey === 'role' ? 'max-w-md' : 'max-w-2xl',
     ]"
   >
+    <!--
+      Mobile: 44px touch targets (h-11), 16px select text (stops iOS zoom), tighter card padding,
+      and a sticky action bar. overflow-clip (not hidden) so the sticky footer can stick to the viewport.
+    -->
     <CardHeader class="px-4 sm:px-6">
       <!-- Brand (first screen only, keeps later steps compact on small screens) -->
       <div v-if="currentStepKey === 'role'" class="mb-3 flex items-center gap-3">

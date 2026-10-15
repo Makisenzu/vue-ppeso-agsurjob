@@ -2,6 +2,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/common/authService'
 import { useAuthStore } from '@/stores/common/auth'
+import { getDashboardRouteForRole } from '@/router'
 import agsurlogo from '@/assets/images/agsur.png'
 import pesologo from '@/assets/images/pesologo.png'
 
@@ -37,16 +38,6 @@ const passwordError = ref('')
 watch(emailOrUsername, () => { emailError.value = '' })
 watch(password, () => { passwordError.value = '' })
 
-function getDashboardRoute(role: string | null) {
-  switch (role) {
-    case 'admin': return { name: 'admin-dashboard' }
-    case 'company_owner':
-    case 'employer': return { name: 'employer-dashboard' }
-    case 'peso_staff': return { name: 'peso-dashboard' }
-    default: return { name: 'dashboard' }
-  }
-}
-
 export function useLogin() {
   const router = useRouter()
   const handleCreate = () => {
@@ -72,7 +63,7 @@ export function useLogin() {
       password: password.value,
     })
     await authStore.init(true)
-    router.push(getDashboardRoute(authStore.userRole))
+    await router.push(getDashboardRouteForRole(authStore.userRole))
   } catch (error: any) {
     loginError.value = error?.message || 'Invalid email or password.'
   } finally {

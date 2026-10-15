@@ -23,7 +23,7 @@ const router = createRouter({
   },
 })
 
-function getDashboardRouteForRole(role: string | null) {
+export function getDashboardRouteForRole(role: string | null) {
   switch (role) {
     case 'admin':
       return { name: 'admin-dashboard' }
