@@ -341,7 +341,7 @@ Document verification submissions.
 | `status`         | `status_type` | `pending/approved/rejected`|
 | `remarks`        | `text`        | nullable                   |
 
-Auto-verification (migration `030_applicant_auto_verify.sql`): when staff (`admin` / `provincial_peso` / `municipal_peso`) approve a requirement and the applicant now has all three account-verification documents (`Application Form`, `Resume`, `Birth Certificate` — legacy applicant templates, no `spes_form_id`; checked by `applicants.has_all_verification_documents_approved`) `approved`, `trg_applicant_requirements_verify_profile` sets the applicant's `core.profiles.status = 'approved'` (read by `useAuth().isVerified`). SECURITY INVOKER; rejecting later does not un-verify.
+Auto-verification (migration `030_applicant_auto_verify.sql`): when staff (`admin` / `provincial_peso` / `municipal_peso`) approve a requirement and the applicant now has all three account-verification documents (`Application Form`, `Resume`, `Birth Certificate` — legacy applicant templates, no `spes_form_id`; checked by `applicants.has_all_verification_documents_approved`) `approved`, `trg_applicant_requirements_verify_profile` sets the applicant's `core.profiles.status = 'approved'` (read by `useAuth().isVerified`). SECURITY INVOKER. Migration `031_applicant_auto_unverify.sql`: if staff later set any of the three back to `pending` / `rejected` (or delete it), an `approved` profile reverts to `pending`.
 
 #### `applicant_requirement_media`
 Document upload media linked to requirements.
