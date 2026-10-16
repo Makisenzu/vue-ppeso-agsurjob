@@ -671,6 +671,9 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
             training_institution: v.training_institution?.trim() || '',
             skills_acquired: v.skills_acquired?.trim() || '',
             certificates_received: v.certificates_received?.trim() || '',
+            // The applicant's supporting document — staff edits must not drop it
+            document_path: v.document_path || '',
+            document_name: v.document_name || '',
           }))
         return {
           vocational_trainings: cleanVocational.length > 0 ? cleanVocational : null,
@@ -685,6 +688,8 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
             rating: el.rating || '',
             date_of_examination: el.date_of_examination || '',
             place_of_examination: el.place_of_examination?.trim() || '',
+            document_path: el.document_path || '',
+            document_name: el.document_name || '',
           }))
         return {
           eligibilities: cleanEligibilities.length > 0 ? cleanEligibilities : null,

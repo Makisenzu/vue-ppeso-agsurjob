@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fileHelpers } from '@/helpers/common/fileHelpers'
+import { DOCUMENT_UPLOAD_BUCKET, validateUploadFile } from '@/helpers/common/uploadHelpers'
+import { mediaService } from '@/services/common/mediaService'
 import type {
   ApplicantRecordInsert,
   ApplicantRecordRow,
@@ -54,5 +57,22 @@ export const applicantCompletionService = {
       .eq('id', profileId)
 
     if (error) throw new Error(error.message || 'Failed to update your profile')
+  },
+
+  /**
+   * Uploads the certificate / license backing a training or eligibility entry to the 'documents'
+   * bucket, in the applicant's own folder (documents/<profileId>/...). The path is saved on the entry itself.
+   */
+  async uploadSupportingDocument(profileId: string, file: File): Promise<{ path: string; name: string }> {
+    validateUploadFile(file)
+    const path = fileHelpers.generateUniquePath(profileId, file.name)
+    const { error } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).upload(path, file, { upsert: false })
+
+    if (error) throw new Error(error.message || 'Failed to upload your document')
+    return { path, name: file.name }
+  },
+
+  getSupportingDocumentUrl(path: string): string {
+    return mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET)
   },
 }

@@ -40,6 +40,8 @@ export interface VocationalTrainingItem {
   training_institution?: string
   skills_acquired?: string
   certificates_received?: string
+  document_path?: string
+  document_name?: string
 }
 
 export interface EligibilityItem {
@@ -47,6 +49,8 @@ export interface EligibilityItem {
   rating?: string | number
   date_of_examination?: string
   place_of_examination?: string
+  document_path?: string
+  document_name?: string
 }
 
 export interface LanguageProficiencyItem {

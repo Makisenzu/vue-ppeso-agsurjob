@@ -7,6 +7,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import NsrpFieldGroup from '@/components/applicant/Profile/Nsrp/NsrpFieldGroup.vue'
+import NsrpSupportingDocField from '@/components/applicant/Profile/Nsrp/NsrpSupportingDocField.vue'
 
 defineProps<{
   /** Groups render flat inside a parent card (profile editor) instead of as separate cards (wizard). */
@@ -135,7 +136,7 @@ const optional = '(optional)'
     <!-- Optional lists, laid out like the PESO applicant entry form: header + Add, empty state, entries -->
     <NsrpFieldGroup
       title="Technical / vocational training"
-      description="TESDA or other skills trainings and certifications. Skip if none."
+      description="TESDA or other skills trainings and certifications. Each training needs its certificate uploaded. Skip if none."
       content-class="space-y-3"
       :flat="flat"
     >
@@ -208,13 +209,16 @@ const optional = '(optional)'
               <FormMessage />
             </FormItem>
           </FormField>
+          <div class="sm:col-span-2">
+            <NsrpSupportingDocField list="vocational_trainings" :index="index" label="Training certificate" />
+          </div>
         </div>
       </div>
     </NsrpFieldGroup>
 
     <NsrpFieldGroup
       title="Eligibility / professional license"
-      description="Civil service eligibility or PRC board license. Skip if none."
+      description="Civil service eligibility or PRC board license. Each one needs its license or certificate uploaded. Skip if none."
       content-class="space-y-3"
       :flat="flat"
     >
@@ -278,6 +282,9 @@ const optional = '(optional)'
               <FormMessage />
             </FormItem>
           </FormField>
+          <div class="col-span-2">
+            <NsrpSupportingDocField list="eligibilities" :index="index" label="License / certificate of eligibility" />
+          </div>
         </div>
       </div>
     </NsrpFieldGroup>

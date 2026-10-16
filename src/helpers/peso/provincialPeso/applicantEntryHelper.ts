@@ -122,6 +122,8 @@ export function parseVocationalTrainings(vocJson: any): VocationalTrainingItem[]
       training_institution: item.training_institution || item.institution || item.school || 'N/A',
       skills_acquired: item.skills_acquired || item.skills || undefined,
       certificates_received: item.certificates_received || item.certificate || undefined,
+      document_path: item.document_path || undefined,
+      document_name: item.document_name || undefined,
     }))
   }
   return []
@@ -136,6 +138,8 @@ export function parseEligibilities(elJson: any): EligibilityItem[] {
       rating: item.rating || item.score || 'Passed',
       date_of_examination: item.date_of_examination || item.exam_date || undefined,
       place_of_examination: item.place_of_examination || item.exam_place || undefined,
+      document_path: item.document_path || undefined,
+      document_name: item.document_name || undefined,
     }))
   }
   return []

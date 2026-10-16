@@ -116,6 +116,8 @@ export const createTrainingEntry = (): TrainingEntryForm => ({
   training_institution: '',
   skills_acquired: '',
   certificates_received: '',
+  document_path: '',
+  document_name: '',
 })
 
 export const createEligibilityEntry = (): EligibilityEntryForm => ({
@@ -123,6 +125,8 @@ export const createEligibilityEntry = (): EligibilityEntryForm => ({
   rating: '',
   date_of_examination: '',
   place_of_examination: '',
+  document_path: '',
+  document_name: '',
 })
 
 export const createWorkEntry = (): WorkEntryForm => ({
@@ -147,7 +151,8 @@ const DEFAULT_LANGUAGES = ['English', 'Tagalog / Filipino', 'Cebuano / Bisaya']
 
 // ─── Completeness ───
 // `work_experiences` uses `null` = not answered yet and `[]` = answered "none" (saved with no jobs added).
-// Work experience, vocational trainings and eligibilities are optional lists, as on the PESO entry form.
+// Work experience, vocational trainings and eligibilities are optional lists, as on the PESO entry form,
+// but each training / eligibility listed needs a supporting document.
 
 /** Fields that decide completeness — loose types so reactive (unwrapped) rows are accepted too. */
 export interface ApplicantCompletenessInput {
@@ -158,6 +163,8 @@ export interface ApplicantCompletenessInput {
   height_ft: number | null
   employment_status: string | null
   educational_background: unknown
+  vocational_trainings: unknown
+  eligibilities: unknown
   work_experiences: unknown
   language_proficiencies: unknown
   other_skills: readonly string[] | null
@@ -167,6 +174,11 @@ export interface ApplicantCompletenessInput {
 
 const isAnswered = (value: unknown) => value !== null && value !== undefined
 const hasEntries = (value: unknown) => (Array.isArray(value) ? value.length > 0 : !!value && typeof value === 'object')
+/** Every training / eligibility the applicant lists must carry a supporting document. */
+const allHaveDocuments = (value: unknown) =>
+  (Array.isArray(value) ? value : value ? [value] : []).every(
+    (item) => !!item && typeof item === 'object' && !!(item as { document_path?: unknown }).document_path,
+  )
 
 /** Which wizard steps still have unanswered NSRP data. */
 export function getIncompleteSteps(row: ApplicantCompletenessInput | null | undefined): CompletionStepKey[] {
@@ -176,7 +188,11 @@ export function getIncompleteSteps(row: ApplicantCompletenessInput | null | unde
   if (!(row.date_of_birth && row.sex && row.civil_status && row.religion && row.height_ft !== null && row.employment_status)) {
     incomplete.push('personal')
   }
-  if (!hasEntries(row.educational_background)) {
+  if (
+    !hasEntries(row.educational_background) ||
+    !allHaveDocuments(row.vocational_trainings) ||
+    !allHaveDocuments(row.eligibilities)
+  ) {
     incomplete.push('education')
   }
   if (
@@ -327,6 +343,8 @@ const trainingEntrySchema = z.object({
   training_institution: requiredText('Enter the institution.'),
   skills_acquired: text(300),
   certificates_received: text(200),
+  document_path: z.string().min(1, 'Upload your training certificate.'),
+  document_name: z.string(),
 })
 
 const eligibilityEntrySchema = z.object({
@@ -334,6 +352,8 @@ const eligibilityEntrySchema = z.object({
   rating: text(20),
   date_of_examination: z.string(),
   place_of_examination: text(150),
+  document_path: z.string().min(1, 'Upload your license or certificate of eligibility.'),
+  document_name: z.string(),
 })
 
 const educationSchema = z.object({
@@ -482,12 +502,16 @@ export function toCompletionValues(
       training_institution: str(item.training_institution),
       skills_acquired: str(item.skills_acquired),
       certificates_received: str(item.certificates_received),
+      document_path: str(item.document_path),
+      document_name: str(item.document_name),
     })),
     eligibilities: jsonList(row?.eligibilities).map((item) => ({
       eligibility_title: str(item.eligibility_title),
       rating: str(item.rating),
       date_of_examination: str(item.date_of_examination),
       place_of_examination: str(item.place_of_examination),
+      document_path: str(item.document_path),
+      document_name: str(item.document_name),
     })),
     work_experiences: jsonList(row?.work_experiences).map((item) => ({
       company_name: str(item.company_name),
@@ -562,6 +586,8 @@ export function buildCompletionPatch(values: ApplicantCompletionValues, reachedS
           training_institution: entry.training_institution.trim(),
           skills_acquired: entry.skills_acquired.trim(),
           certificates_received: entry.certificates_received.trim(),
+          document_path: entry.document_path,
+          document_name: entry.document_name,
         }))
 
   const eligibilities = values.eligibilities
@@ -571,6 +597,8 @@ export function buildCompletionPatch(values: ApplicantCompletionValues, reachedS
           rating: entry.rating.trim(),
           date_of_examination: entry.date_of_examination,
           place_of_examination: entry.place_of_examination.trim(),
+          document_path: entry.document_path,
+          document_name: entry.document_name,
         }))
 
   const work = values.work_experiences

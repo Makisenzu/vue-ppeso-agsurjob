@@ -33,6 +33,9 @@ export interface TrainingEntryForm {
   training_institution: string
   skills_acquired: string
   certificates_received: string
+  /** Supporting document (certificate) in the 'documents' bucket — required for every entry. */
+  document_path: string
+  document_name: string
 }
 
 export interface EligibilityEntryForm {
@@ -40,6 +43,9 @@ export interface EligibilityEntryForm {
   rating: string
   date_of_examination: string
   place_of_examination: string
+  /** Supporting document (license / certificate of eligibility) — required for every entry. */
+  document_path: string
+  document_name: string
 }
 
 export interface WorkEntryForm {

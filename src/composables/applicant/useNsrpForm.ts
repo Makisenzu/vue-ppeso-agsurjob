@@ -81,10 +81,21 @@ export function useNsrpForm(stepKey: Ref<CompletionStepKey>, requiredPersonal: R
     (item: string, checked: boolean | 'indeterminate') =>
       setFieldValue(name, toggleListValue(values.value[name], item, checked))
 
+  /** Sets (or clears) the supporting document of a training / eligibility entry. */
+  const setEntryDocument = (
+    list: 'vocational_trainings' | 'eligibilities',
+    index: number,
+    document: { path: string; name: string } | null,
+  ) => {
+    setFieldValue(`${list}[${index}].document_path` as never, (document?.path ?? '') as never)
+    setFieldValue(`${list}[${index}].document_name` as never, (document?.name ?? '') as never)
+  }
+
   return {
     // Form controls
     validate,
     resetForm,
+    setEntryDocument,
     // State
     values,
     age,
