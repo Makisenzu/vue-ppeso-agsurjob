@@ -231,10 +231,13 @@ User social media links.
 
 | Column        | Type   | FK                  |
 | ------------- | ------ | ------------------- |
-| `id`          | `int4` | PK, serial          |
-| `profile_id`  | `uuid` | FK → `profiles.id`  |
+| `id`          | `int8` | PK, identity        |
+| `profile_id`  | `uuid` | FK → `profiles.id` (cascade) |
 | `social_name` | `text` | nullable            |
-| `social_link` | `text` | nullable            |
+| `social_link` | `text` | nullable, UNIQUE across all profiles |
+| `created_at`, `updated_at` | `timestamptz` | `updated_at` set by `trigger_profile_socials_updated_at` |
+
+Migration `028_profile_socials.sql`: index `idx_profile_socials_profile_id`; RLS — any signed-in user reads (links show on profile pages), the owner (`profile_id = auth.uid()`) inserts / updates / deletes. UI: `ProfileSocials.vue` in the profile sidebar → `useProfileSocials` → `profileSocialStore` → `profileSocialService`.
 
 #### `biometrics`
 Face embeddings for biometric verification.

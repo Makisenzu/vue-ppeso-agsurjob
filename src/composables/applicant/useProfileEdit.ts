@@ -1,12 +1,18 @@
 import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
-import { updateApplicantProfile } from '@/services/applicant/applicantProfileService'
+import { updateApplicantProfile, type UpdateProfileInput } from '@/services/applicant/applicantProfileService'
+import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
+import { buildApplicantPatchFromProfile } from '@/helpers/applicant/profileSyncHelper'
+import type { ApplicantRecordRow } from '@/types/applicant/applicantCompletion'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
 
 export function useProfileEdit() {
   const authStore = useAuthStore()
   const toastAlert = useToastAlert()
+  const route = useRoute()
+  const router = useRouter()
 
   const formData = ref({
     firstname: authStore.profile?.firstname || '',
@@ -113,6 +119,20 @@ export function useProfileEdit() {
     return labels[field] || field
   }
 
+  /** Mirrors the saved profile onto the applicant's NSRP record (`applicants.applicants`). */
+  const syncNsrpRecord = async (userId: string, updates: UpdateProfileInput) => {
+    if (authStore.userRole !== 'applicant') return
+    const cached = authStore.applicantProfile as ApplicantRecordRow | null
+    const record = cached ?? (await applicantCompletionService.fetchMyRecord(userId))
+    if (!record) return
+
+    const patch = buildApplicantPatchFromProfile(updates, record)
+    if (Object.keys(patch).length === 0) return
+
+    const saved = await applicantCompletionService.updateMyRecord(record.id, patch)
+    authStore.setApplicantProfile(saved)
+  }
+
   const handleSubmit = async (location?: { region?: string; province?: string; geographic?: string; barangay?: string }) => {
     errors.value = {}
 
@@ -125,7 +145,7 @@ export function useProfileEdit() {
       const userId = authStore.user?.id
       if (!userId) throw new Error('No authenticated user found')
 
-      await updateApplicantProfile(userId, {
+      const updates: UpdateProfileInput = {
         firstname: formData.value.firstname.trim(),
         middlename: formData.value.middlename.trim(),
         lastname: formData.value.lastname.trim(),
@@ -139,9 +159,22 @@ export function useProfileEdit() {
         province: location?.province ?? null,
         geographic: location?.geographic ?? null,
         barangay: location?.barangay ?? null,
-      })
+      }
+      await updateApplicantProfile(userId, updates)
+      await syncNsrpRecord(userId, updates)
 
+      const previousUsername = authStore.username
       await authStore.fetchProfile(userId)
+
+      // The profile page is addressed by username; move it to the new one so it keeps loading this profile
+      if (
+        route.name === 'profile' &&
+        authStore.username &&
+        authStore.username !== previousUsername &&
+        String(route.params.username ?? '') === previousUsername
+      ) {
+        await router.replace({ name: 'profile', params: { username: authStore.username } })
+      }
 
       toastAlert.success('Profile updated successfully')
       isOpen.value = false

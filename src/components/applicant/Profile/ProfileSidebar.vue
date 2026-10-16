@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import { HoverCard, HoverCardTrigger, } from '@/components/ui/hover-card'
 import ProfileEdit from './ProfileEdit.vue'
+import ProfileSocials from './ProfileSocials.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useMediaQuery } from '@vueuse/core'  
@@ -36,7 +36,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  AtSign,
   Share2,
   Upload,
 } from '@lucide/vue'
@@ -70,6 +69,8 @@ const props = defineProps<{
   is4ps: boolean
   isPwd: boolean
   media?: any[]
+  profileId?: string | null
+  isOwnProfile: boolean
 }>()
 
 const { isUploading, handleUpload, createAvatarSource } = useProfileMedia()
@@ -87,6 +88,8 @@ const onFileChange = async (event: Event) => {
     }
   }
 }
+
+const hasContactInfo = computed(() => !!(props.location || props.email || props.phone || props.joinedDate))
 
 const profileShareUrl = computed(() => {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -149,7 +152,7 @@ const profileShareUrl = computed(() => {
         falloff="linear"
       />
       <p class="text-muted-foreground font-mono text-sm truncate">
-        @{{ props.email.split('@')[0] }}
+        @{{ props.username }}
       </p>
     </div>
 
@@ -208,59 +211,33 @@ const profileShareUrl = computed(() => {
         PWD Candidate
       </Badge>
     </div>
-<div class="flex flex-wrap justify-center gap-x-6 lg:block lg:space-y-2">
-  <HoverCard>
-    <HoverCardTrigger as-child>
-      <a
-        href="#"
-        class="flex items-center gap-2 px-1 py-2.5 group cursor-pointer"
-      >
-        <div>
-          <AtSign class="w-4 h-4 text-red-500 dark:text-red-400" />
-        </div>
-        <span class="text-sm font-medium text-foreground/80 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-          Facebook
-        </span>
-      </a>
-    </HoverCardTrigger>
-  </HoverCard>
+    <ProfileSocials :profile-id="props.profileId" :is-own-profile="props.isOwnProfile" />
 
-  <HoverCard>
-    <HoverCardTrigger as-child>
-      <a
-        :href="`mailto:${props.email}`"
-        class="flex items-center gap-2 px-1 py-2.5 group cursor-pointer"
-      >
-        <div>
-          <AtSign class="w-4 h-4 text-red-500 dark:text-red-400" />
-        </div>
-        <span class="text-sm font-medium text-foreground/80 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
-          Gmail
-        </span>
-      </a>
-    </HoverCardTrigger>
-  </HoverCard>
-
-</div>
-
-    <Separator />
+    <Separator v-if="hasContactInfo" />
 
     <!-- Contact Metadata -->
-    <ul class="space-y-3 text-sm text-muted-foreground">
-      <li class="flex min-w-0 items-center gap-3">
-        <MapPin class="w-4 h-4 shrink-0" />
-        <span class="break-words">{{ props.location }}</span>
+    <ul v-if="hasContactInfo" class="space-y-3 text-sm text-muted-foreground">
+      <li v-if="props.location" class="flex min-w-0 items-start gap-3">
+        <MapPin class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span class="sr-only">Location:</span>
+        <span class="min-w-0 break-words">{{ props.location }}</span>
       </li>
-      <li class="flex min-w-0 items-center gap-3">
-        <Mail class="w-4 h-4 shrink-0" />
-        <span class="truncate">{{ props.email }}</span>
+      <li v-if="props.email" class="flex min-w-0 items-center gap-3">
+        <Mail class="size-4 shrink-0" aria-hidden="true" />
+        <span class="sr-only">Email:</span>
+        <a :href="`mailto:${props.email}`" class="min-w-0 truncate hover:text-foreground hover:underline" :title="props.email">
+          {{ props.email }}
+        </a>
       </li>
-      <li class="flex min-w-0 items-center gap-3">
-        <Phone class="w-4 h-4 shrink-0" />
-        <span>{{ props.phone }}</span>
+      <li v-if="props.phone" class="flex min-w-0 items-center gap-3">
+        <Phone class="size-4 shrink-0" aria-hidden="true" />
+        <span class="sr-only">Phone:</span>
+        <a :href="`tel:${props.phone.replace(/[^\d+]/g, '')}`" class="min-w-0 truncate hover:text-foreground hover:underline">
+          {{ props.phone }}
+        </a>
       </li>
-      <li class="flex min-w-0 items-center gap-3">
-        <Calendar class="w-4 h-4 shrink-0" />
+      <li v-if="props.joinedDate" class="flex min-w-0 items-center gap-3">
+        <Calendar class="size-4 shrink-0" aria-hidden="true" />
         <span>Joined {{ props.joinedDate }}</span>
       </li>
     </ul>

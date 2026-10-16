@@ -4,10 +4,14 @@ import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import ProfileDocuments from './ProfileDocuments.vue'
 import ProfileSidebar from '@/components/applicant/Profile/ProfileSidebar.vue'
 import ProfileNsrpDetails from '@/components/applicant/Profile/ProfileNsrpDetails.vue'
+import { Button } from '@/components/ui/button'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 
 const {
   files,
   isOwnProfile,
+  isNotFound,
+  ownUsername,
   displayName,
   userInitials,
 
@@ -24,6 +28,7 @@ const {
   isPwd,
   hasRequirements,
   media,
+  profileId,
 } = useApplicantProfile()
 </script>
 
@@ -33,7 +38,21 @@ const {
       <CustomBreadcrumbs />
     </div>
 
-    <div class="grid gap-6 grid-cols-1 lg:grid-cols-12">
+    <Empty v-if="isNotFound" class="border border-dashed">
+      <EmptyHeader>
+        <EmptyTitle>Profile not found</EmptyTitle>
+        <EmptyDescription>
+          No one uses this username. The link may be old — the username might have been changed.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent v-if="ownUsername">
+        <Button as-child>
+          <RouterLink :to="{ name: 'profile', params: { username: ownUsername } }">Go to my profile</RouterLink>
+        </Button>
+      </EmptyContent>
+    </Empty>
+
+    <div v-else class="grid gap-6 grid-cols-1 lg:grid-cols-12">
 
       <div class="min-w-0 lg:col-span-3">
         <div class="lg:sticky lg:top-6">
@@ -50,6 +69,8 @@ const {
             :is4ps="is4ps"
             :is-pwd="isPwd"
             :media="media"
+            :profile-id="profileId"
+            :is-own-profile="isOwnProfile"
           />
         </div>
       </div>

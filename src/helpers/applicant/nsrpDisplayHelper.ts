@@ -27,3 +27,18 @@ export function describeLanguageAbilities(entry: LanguageEntryForm): string {
 export function joinNsrpList(items: readonly string[], extra = ''): string {
   return [...items, extra.trim()].filter(Boolean).join(', ')
 }
+
+/**
+ * "Barangay, Municipality, Province" from the NSRP address JSON. Street and village stay off the
+ * public profile; falls back to the profile's province when the address is empty.
+ */
+export function formatProfileLocation(address: unknown, fallbackProvince?: string | null): string {
+  const parts =
+    address && typeof address === 'object' && !Array.isArray(address)
+      ? (['barangay', 'municipality', 'province'] as const)
+          .map((key) => (address as Record<string, unknown>)[key])
+          .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
+          .map((part) => part.trim())
+      : []
+  return parts.length ? parts.join(', ') : (fallbackProvince?.trim() ?? '')
+}

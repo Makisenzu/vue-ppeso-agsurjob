@@ -8,6 +8,7 @@ import {
   isRequirementUploaded,
 } from '@/helpers/applicant/applicantRequirementDocuments'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
+import { formatProfileLocation } from '@/helpers/applicant/nsrpDisplayHelper'
 
 /** Stepper name of the NSRP record step — completed by the NSRP form, not by an uploaded file. */
 export const NSRP_FORM = 'NSRP Form'
@@ -28,6 +29,9 @@ export function useApplicantProfile() {
   ]
 
   const isLoading = ref(true)
+  /** No profile has the username in the URL (e.g. an old link after a username change). */
+  const isNotFound = ref(false)
+  const ownUsername = computed(() => authStore.username)
   const fullProfileData = ref<any>(null)
   const applicantData = ref<any>(null)
   const experiences = ref<any[]>([])
@@ -73,20 +77,34 @@ export function useApplicantProfile() {
       .map((value) => String(value))
   )
 
-  const displayEmail = computed(() => authStore.userEmail || 'candidate@example.com')
+  /** NSRP contact email first; the sign-in email is only known for the viewer's own account. */
+  const displayEmail = computed(
+    () => applicantData.value?.email || (isOwnProfile.value ? authStore.userEmail : '') || ''
+  )
   const displayName = computed(() => authStore.displayName)
   const userInitials = computed(() => authStore.userInitials)
-  const displayUsername = computed(() => fullProfileData.value?.username || 'candidate')
-  const displayPhone = computed(() => fullProfileData.value?.contact_number || '0912 345 6789')
-  const displayLocation = computed(() => fullProfileData.value?.province || 'Agusan del Sur, Philippines')
+  const displayUsername = computed(() => fullProfileData.value?.username || routeUsername.value)
+  const displayPhone = computed(
+    () => applicantData.value?.contact_numbers?.[0] || fullProfileData.value?.contact_number || ''
+  )
+  const displayLocation = computed(() =>
+    formatProfileLocation(applicantData.value?.address, fullProfileData.value?.province)
+  )
   
   const displayBio = computed(() =>
     'Passionate and results-driven professional dedicated to delivering high-quality work. Experienced in collaborating with cross-functional teams to build efficient solutions.'
   )
-  const displayJoinedDate = computed(() =>
-    new Date(authStore.user?.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-  )
+  /** Own profile: the auth account's creation date; other profiles: their `core.profiles` row. */
+  const displayJoinedDate = computed(() => {
+    const createdAt = fullProfileData.value?.created_at || (isOwnProfile.value ? authStore.user?.created_at : null)
+    return createdAt
+      ? new Date(createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : ''
+  })
+
   const displayEmploymentStatus = computed(() => applicantData.value?.employment_status || 'Available for Work')
+
+  const profileId = computed<string | null>(() => fullProfileData.value?.id ?? null)
 
   const is4ps = computed(() => fullProfileData.value?.is_4ps ?? false)
   const isPwd = computed(() => fullProfileData.value?.is_pwd ?? false)
@@ -106,13 +124,15 @@ export function useApplicantProfile() {
   async function fetchApplicantProfile() {
     try {
       isLoading.value = true
+      isNotFound.value = false
 
-      if (routeUsername.value && routeUsername.value === authStore.username && authStore.profile) {
+      if (isOwnProfile.value && authStore.profile) {
         hydrateFromAuthStore()
         return
       }
 
       const result = await fetchApplicantProfileByUsername(routeUsername.value)
+      isNotFound.value = !result.profile
 
       fullProfileData.value = result.profile
       applicantData.value = result.applicant
@@ -158,9 +178,22 @@ export function useApplicantProfile() {
     }
   )
 
+  // Profile edits (name, username, location…) replace the auth store's profile
+  watch(
+    () => authStore.profile,
+    (val) => {
+      if (isOwnProfile.value && val) fullProfileData.value = val
+    }
+  )
+
   onMounted(async () => {
     await authStore.init()
     await fetchApplicantProfile()
+  })
+
+  // The route component is reused between /profile/:username pages, so reload when the username changes
+  watch(routeUsername, (next, prev) => {
+    if (next !== prev) fetchApplicantProfile()
   })
 
   return {
@@ -168,8 +201,11 @@ export function useApplicantProfile() {
     isOwnProfile,
     isNsrpComplete,
     isLoading,
+    isNotFound,
+    ownUsername,
     fullProfileData,
     applicantData,
+    profileId,
 
     displayEmail,
     displayName,
