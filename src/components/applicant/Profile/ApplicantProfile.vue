@@ -28,14 +28,14 @@ const {
 </script>
 
 <template>
-  <div class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="mb-6">
+  <div class="flex-1 w-full min-w-0 max-w-7xl mx-auto px-0 sm:px-6 lg:px-8">
+    <div class="mb-4 sm:mb-6">
       <CustomBreadcrumbs />
     </div>
 
     <div class="grid gap-6 grid-cols-1 lg:grid-cols-12">
 
-      <div class="lg:col-span-3">
+      <div class="min-w-0 lg:col-span-3">
         <div class="lg:sticky lg:top-6">
             <ProfileSidebar
             :display-name="displayName"
@@ -54,7 +54,7 @@ const {
         </div>
       </div>
 
-      <div class="lg:col-span-9 space-y-6">
+      <div class="min-w-0 lg:col-span-9 space-y-6">
         <div class="space-y-4">
           <ProfileDocuments
             :files="files"

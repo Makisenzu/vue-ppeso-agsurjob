@@ -98,8 +98,8 @@ const languages = computed(() => details.value.language_proficiencies.filter((en
 const skills = computed(() => joinNsrpList(details.value.other_skills, details.value.other_skills_specified))
 const hasNoWorkExperience = computed(() => Array.isArray(record.value?.work_experiences) && record.value.work_experiences.length === 0)
 
-const tile = 'rounded-lg bg-muted/40 px-3 py-2.5'
-const entry = 'space-y-1 rounded-lg bg-muted/40 p-4'
+const tile = 'min-w-0 rounded-lg bg-muted/40 px-3 py-2.5'
+const entry = 'min-w-0 space-y-1 break-words rounded-lg bg-muted/40 p-3.5 sm:p-4'
 const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
 </script>
 
@@ -148,7 +148,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
 
     <template v-else>
       <Card v-for="section in sections" :key="section.key" class="gap-0 py-0 shadow-none">
-        <CardHeader class="gap-0.5 bg-muted/40 px-5 py-3.5">
+        <CardHeader class="gap-0.5 bg-muted/40 px-4 py-3.5 sm:px-5">
           <CardTitle class="text-sm font-semibold">{{ section.title }}</CardTitle>
           <CardDescription class="text-xs">
             <span v-if="isIncomplete(section.key)" class="font-medium text-destructive">Needs answers. </span>
@@ -210,7 +210,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
             <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div v-for="item in personalItems" :key="item.label" :class="tile">
                 <dt class="text-xs text-muted-foreground">{{ item.label }}</dt>
-                <dd class="mt-0.5 text-sm font-medium text-foreground">
+                <dd class="mt-0.5 text-sm font-medium text-foreground break-words">
                   {{ item.value }}<span v-if="!item.value" class="font-normal text-muted-foreground">Not specified</span>
                 </dd>
               </div>
@@ -221,7 +221,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
               <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div v-for="item in employmentItems" :key="item.label" :class="tile">
                   <dt class="text-xs text-muted-foreground">{{ item.label }}</dt>
-                  <dd class="mt-0.5 text-sm font-medium text-foreground">
+                  <dd class="mt-0.5 text-sm font-medium text-foreground break-words">
                     {{ item.value }}<span v-if="!item.value" class="font-normal text-muted-foreground">Not specified</span>
                   </dd>
                 </div>
@@ -233,7 +233,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
               <dl v-if="categoryItems.length > 0" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div v-for="item in categoryItems" :key="item.label" :class="tile">
                   <dt class="text-sm font-medium text-foreground">{{ item.label }}</dt>
-                  <dd v-if="item.value" class="mt-0.5 text-sm text-muted-foreground">{{ item.value }}</dd>
+                  <dd v-if="item.value" class="mt-0.5 text-sm text-muted-foreground break-words">{{ item.value }}</dd>
                 </div>
               </dl>
               <p v-else :class="empty">No special categories declared (4Ps, PWD, OFW).</p>
@@ -352,7 +352,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
           <dl v-else class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div v-for="item in preferenceItems" :key="item.label" :class="tile">
               <dt class="text-xs text-muted-foreground">{{ item.label }}</dt>
-              <dd class="mt-0.5 text-sm font-medium text-foreground">
+              <dd class="mt-0.5 text-sm font-medium text-foreground break-words">
                 {{ item.value }}<span v-if="!item.value" class="font-normal text-muted-foreground">Not specified</span>
               </dd>
             </div>

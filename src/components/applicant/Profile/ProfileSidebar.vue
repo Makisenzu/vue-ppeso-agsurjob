@@ -148,7 +148,7 @@ const profileShareUrl = computed(() => {
         :radius="100"
         falloff="linear"
       />
-      <p class="text-muted-foreground font-mono text-sm">
+      <p class="text-muted-foreground font-mono text-sm truncate">
         @{{ props.email.split('@')[0] }}
       </p>
     </div>
@@ -200,7 +200,7 @@ const profileShareUrl = computed(() => {
     </div>
 
     <!-- Beneficiary Badges -->
-    <div v-if="props.is4ps || props.isPwd" class="flex flex-wrap gap-2">
+    <div v-if="props.is4ps || props.isPwd" class="flex flex-wrap justify-center gap-2 lg:justify-start">
       <Badge v-if="props.is4ps" variant="secondary" class="rounded-full font-medium px-3 py-1 border-0">
         4Ps Beneficiary
       </Badge>
@@ -208,7 +208,7 @@ const profileShareUrl = computed(() => {
         PWD Candidate
       </Badge>
     </div>
-<div class="space-y-2">
+<div class="flex flex-wrap justify-center gap-x-6 lg:block lg:space-y-2">
   <HoverCard>
     <HoverCardTrigger as-child>
       <a
@@ -247,19 +247,19 @@ const profileShareUrl = computed(() => {
 
     <!-- Contact Metadata -->
     <ul class="space-y-3 text-sm text-muted-foreground">
-      <li class="flex items-center gap-3">
+      <li class="flex min-w-0 items-center gap-3">
         <MapPin class="w-4 h-4 shrink-0" />
-        <span>{{ props.location }}</span>
+        <span class="break-words">{{ props.location }}</span>
       </li>
-      <li class="flex items-center gap-3">
+      <li class="flex min-w-0 items-center gap-3">
         <Mail class="w-4 h-4 shrink-0" />
         <span class="truncate">{{ props.email }}</span>
       </li>
-      <li class="flex items-center gap-3">
+      <li class="flex min-w-0 items-center gap-3">
         <Phone class="w-4 h-4 shrink-0" />
         <span>{{ props.phone }}</span>
       </li>
-      <li class="flex items-center gap-3">
+      <li class="flex min-w-0 items-center gap-3">
         <Calendar class="w-4 h-4 shrink-0" />
         <span>Joined {{ props.joinedDate }}</span>
       </li>

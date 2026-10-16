@@ -133,17 +133,27 @@ async function downloadFile(requirement: string) {
       </div>
     </div>
 
-    <Stepper :linear="false" class="flex w-full items-start gap-0 overflow-x-auto pb-2">
+    <!-- Mobile: vertical timeline. sm and up: the horizontal stepper -->
+    <Stepper :linear="false" class="flex w-full flex-col gap-0 sm:flex-row sm:items-start sm:overflow-x-auto sm:pb-2">
       <StepperItem
         v-for="(file, index) in files"
         :key="file.name"
         :step="index + 1"
-        class="flex min-w-32 flex-1 flex-col items-center gap-0 group"
+        class="relative flex w-full items-start gap-3 group sm:w-auto sm:min-w-32 sm:flex-1 sm:flex-col sm:items-center sm:gap-0"
+        :class="index < files.length - 1 && 'max-sm:pb-4'"
       >
+        <!-- Mobile only: vertical connector from this circle down to the next -->
+        <div
+          v-if="index < files.length - 1"
+          class="absolute left-4.25 top-9 bottom-0 w-0.5 transition-colors duration-300 sm:hidden"
+          :class="getDocumentState(file).separatorClass"
+          aria-hidden="true"
+        />
+
         <!-- Each step draws both halves of its connectors, so adjacent steps always meet edge to edge -->
-        <div class="flex w-full items-center">
+        <div class="flex shrink-0 items-center sm:w-full">
           <div
-            class="h-0.5 flex-1 transition-colors duration-300 max-sm:invisible"
+            class="h-0.5 flex-1 transition-colors duration-300 max-sm:hidden"
             :class="index === 0 ? 'invisible' : getDocumentState(files[index - 1]).separatorClass"
             aria-hidden="true"
           />
@@ -155,19 +165,19 @@ async function downloadFile(requirement: string) {
             <X v-else class="size-4 stroke-3" />
           </div>
           <div
-            class="h-0.5 flex-1 transition-colors duration-300 max-sm:invisible"
+            class="h-0.5 flex-1 transition-colors duration-300 max-sm:hidden"
             :class="index === files.length - 1 ? 'invisible' : getDocumentState(file).separatorClass"
             aria-hidden="true"
           />
         </div>
 
-        <div class="flex flex-col items-center px-1 text-center">
-          <div class="mt-2">
-            <StepperTitle class="text-xs font-semibold text-foreground truncate max-w-28">
+        <div class="flex min-h-9 min-w-0 flex-1 flex-col justify-center sm:min-h-0 sm:items-center sm:px-1 sm:text-center">
+          <div class="min-w-0 sm:mt-2">
+            <StepperTitle class="text-sm sm:text-xs font-semibold text-foreground truncate sm:max-w-28">
               {{ file.name }}
             </StepperTitle>
             <StepperDescription
-              class="text-[10px] mt-0.5 font-medium"
+              class="text-xs sm:text-[10px] mt-0.5 font-medium"
               :class="getDocumentState(file).textClass"
             >
               {{ getDocumentState(file).label }}
@@ -179,15 +189,17 @@ async function downloadFile(requirement: string) {
 
     <div v-if="hasRequirements" class="w-full space-y-6">
       <Card class="ring-0! shadow-sm">
-        <CardContent class="space-y-4 px-6 py-5">
-          <div class="flex items-center justify-between gap-3">
+        <CardContent class="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 class="text-sm font-semibold text-foreground">Uploaded Requirements</h3>
               <p class="text-xs text-muted-foreground mt-0.5">
                 These are the requirements currently uploaded to your profile.
               </p>
             </div>
-            <ProfileDocsUpload />
+            <div class="shrink-0 max-sm:[&_button]:w-full">
+              <ProfileDocsUpload />
+            </div>
           </div>
           <Attachment v-for="requirement in requirements" :key="requirement" class="w-full" :state="getRequirementAttachmentStateFor(requirement)">
             <AttachmentMedia>
