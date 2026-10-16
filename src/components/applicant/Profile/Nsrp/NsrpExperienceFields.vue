@@ -227,7 +227,7 @@ const checkRow =
 
     <NsrpFieldGroup
       title="Skills"
-      description="Skills you have even without formal training."
+      description="Select at least one skill you have, even without formal training."
       content-class="space-y-4"
       :flat="flat"
     >

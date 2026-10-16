@@ -183,7 +183,7 @@ export function getIncompleteSteps(row: ApplicantCompletenessInput | null | unde
     !(
       isAnswered(row.work_experiences) &&
       hasEntries(row.language_proficiencies) &&
-      ((row.other_skills?.length ?? 0) > 0 || !!row.other_skills_specified)
+      (row.other_skills?.length ?? 0) > 0
     )
   ) {
     incomplete.push('experience')
@@ -377,11 +377,8 @@ const experienceSchema = z
       values.language_proficiencies.some((entry) => LANGUAGE_ABILITIES.some((ability) => entry[ability])),
       'Tick at least one ability for a language you know.',
     )
-    require(
-      ['other_skills'],
-      values.other_skills.length > 0 || !!values.other_skills_specified.trim(),
-      'Select at least one skill or list your skills under "Other skills".',
-    )
+    // Strict: a ticked skill is required — "Other skills" text alone doesn't count
+    require(['other_skills'], values.other_skills.length > 0, 'Select at least one skill.')
   })
 
 const preferencesSchema = z.object({
