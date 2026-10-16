@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
+import { supportingDocumentService } from '@/services/common/supportingDocumentService'
 import { DEFAULT_UPLOAD_ACCEPT } from '@/helpers/common/uploadHelpers'
 
 const props = defineProps<{
@@ -40,9 +41,14 @@ async function onFileChange(event: Event) {
   }
 }
 
-function viewDocument() {
-  if (!entry.value?.document_path) return
-  window.open(applicantCompletionService.getSupportingDocumentUrl(entry.value.document_path), '_blank', 'noopener')
+async function viewDocument() {
+  const path = entry.value?.document_path
+  if (!path) return
+  try {
+    await supportingDocumentService.openInNewTab(path)
+  } catch (error) {
+    toastAlert.error('Could not open document', error instanceof Error ? error.message : 'Please try again.')
+  }
 }
 </script>
 

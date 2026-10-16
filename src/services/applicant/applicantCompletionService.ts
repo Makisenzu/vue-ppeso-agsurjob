@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET, validateUploadFile } from '@/helpers/common/uploadHelpers'
-import { mediaService } from '@/services/common/mediaService'
 import type {
   ApplicantRecordInsert,
   ApplicantRecordRow,
@@ -70,9 +69,5 @@ export const applicantCompletionService = {
 
     if (error) throw new Error(error.message || 'Failed to upload your document')
     return { path, name: file.name }
-  },
-
-  getSupportingDocumentUrl(path: string): string {
-    return mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET)
   },
 }

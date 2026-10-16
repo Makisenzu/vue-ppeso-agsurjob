@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import SupportingDocumentLink from '@/components/SupportingDocumentLink.vue'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNsrpDetails } from '@/composables/peso/provincialPeso/useApplicantNsrpDetails'
 
@@ -996,6 +997,12 @@ const {
                 <p v-if="voc.certificates_received" class="text-xs text-primary font-medium">
                   Certificate: {{ voc.certificates_received }}
                 </p>
+                <SupportingDocumentLink
+                  v-if="voc.document_path"
+                  :path="voc.document_path"
+                  :label="voc.document_name || 'View certificate'"
+                />
+                <p v-else class="text-xs text-muted-foreground italic">No supporting document attached.</p>
               </div>
             </div>
             <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">
@@ -1136,6 +1143,12 @@ const {
                     Exam Place: <span class="text-foreground font-medium">{{ el.place_of_examination }}</span>
                   </span>
                 </div>
+                <SupportingDocumentLink
+                  v-if="el.document_path"
+                  :path="el.document_path"
+                  :label="el.document_name || 'View license'"
+                />
+                <p v-else class="text-xs text-muted-foreground italic">No supporting document attached.</p>
               </div>
             </div>
             <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">

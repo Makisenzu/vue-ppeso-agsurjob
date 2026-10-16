@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Download, FileText, Loader2, Pencil, Printer } from '@lucide/vue'
+import { Download, Loader2, Pencil, Printer } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useApplicantNsrpEditor } from '@/composables/applicant/useApplicantNsrpEditor'
-import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
+import SupportingDocumentLink from '@/components/SupportingDocumentLink.vue'
 import {
   describeLanguageAbilities,
   formatNsrpDate,
@@ -275,16 +275,11 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
                   <p class="text-xs text-muted-foreground">
                     {{ [training.duration, training.certificates_received, training.skills_acquired].filter(Boolean).join(' · ') }}
                   </p>
-                  <a
+                  <SupportingDocumentLink
                     v-if="training.document_path"
-                    :href="applicantCompletionService.getSupportingDocumentUrl(training.document_path)"
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    <FileText class="size-3.5 shrink-0" />
-                    {{ training.document_name || 'View certificate' }}
-                  </a>
+                    :path="training.document_path"
+                    :label="training.document_name || 'View certificate'"
+                  />
                   <p v-else class="text-xs text-destructive">Certificate not uploaded yet.</p>
                 </li>
               </ul>
@@ -307,16 +302,11 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
                         .join(' · ')
                     }}
                   </p>
-                  <a
+                  <SupportingDocumentLink
                     v-if="eligibility.document_path"
-                    :href="applicantCompletionService.getSupportingDocumentUrl(eligibility.document_path)"
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    <FileText class="size-3.5 shrink-0" />
-                    {{ eligibility.document_name || 'View license' }}
-                  </a>
+                    :path="eligibility.document_path"
+                    :label="eligibility.document_name || 'View license'"
+                  />
                   <p v-else class="text-xs text-destructive">License not uploaded yet.</p>
                 </li>
               </ul>
