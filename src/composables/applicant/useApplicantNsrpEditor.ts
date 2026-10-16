@@ -4,13 +4,14 @@ import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { focusFirstNsrpError, provideNsrpForm, useNsrpForm } from '@/composables/applicant/useNsrpForm'
 import { useApplicantCompletionStore } from '@/stores/applicant/applicantCompletionStore'
+import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import {
   COMPLETION_STEPS,
   createEducationEntry,
   getIncompleteSteps,
   toCompletionValues,
 } from '@/helpers/applicant/applicantCompletionHelper'
-import type { CompletionPersonalField, CompletionStepKey } from '@/types/applicant/applicantCompletion'
+import type { ApplicantRecordRow, CompletionPersonalField, CompletionStepKey } from '@/types/applicant/applicantCompletion'
 
 /** On the profile page every personal field is shown and required, unlike the wizard's missing-only fields. */
 const ALL_PERSONAL_FIELDS: CompletionPersonalField[] = ['date_of_birth', 'sex', 'civil_status']
@@ -50,6 +51,14 @@ export function useApplicantNsrpEditor() {
     { immediate: true },
   )
 
+  // The profile editor reloads the record into the auth store after a save; show it here too
+  watch(
+    (): ApplicantRecordRow | null => authStore.applicantProfile as ApplicantRecordRow | null,
+    (latest) => {
+      if (latest && latest.id === record.value?.id && latest !== record.value) record.value = latest
+    },
+  )
+
   function startEdit(key: CompletionStepKey) {
     if (isSubmitting.value) return
     const initial = toCompletionValues(record.value)
@@ -66,13 +75,31 @@ export function useApplicantNsrpEditor() {
   const isDownloadingForm = ref(false)
   const isPrintingForm = ref(false)
 
+  /**
+   * The record loaded with the page goes stale when the profile editor (or the database sync
+   * between core.profiles and applicants.applicants, migration 029) changes it, so the form is
+   * always built from a fresh copy.
+   */
+  async function fetchLatestRecord() {
+    const profileId = user.value?.id
+    if (!profileId) return record.value
+    const latest = await applicantCompletionService.fetchMyRecord(profileId)
+    if (latest) {
+      record.value = latest
+      authStore.setApplicantProfile(latest)
+    }
+    return latest ?? record.value
+  }
+
   /** Same filled-in NSRP Form 1 the PESO staff generate; the PDF libraries load only when asked. */
   async function loadFormTools() {
-    const [{ mapToApplicantEntryRecord }, pdf] = await Promise.all([
+    const [latest, { mapToApplicantEntryRecord }, pdf] = await Promise.all([
+      fetchLatestRecord(),
       import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
       import('@/helpers/peso/provincialPeso/nsrpTemplateHelper'),
     ])
-    return { applicant: mapToApplicantEntryRecord(record.value!), pdf }
+    if (!latest) throw new Error('Your NSRP record could not be loaded.')
+    return { applicant: mapToApplicantEntryRecord(latest), pdf }
   }
 
   async function downloadForm() {

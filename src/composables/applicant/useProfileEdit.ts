@@ -3,7 +3,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { updateApplicantProfile, type UpdateProfileInput } from '@/services/applicant/applicantProfileService'
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
-import { buildApplicantPatchFromProfile } from '@/helpers/applicant/profileSyncHelper'
 import type { ApplicantRecordRow } from '@/types/applicant/applicantCompletion'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
@@ -119,18 +118,14 @@ export function useProfileEdit() {
     return labels[field] || field
   }
 
-  /** Mirrors the saved profile onto the applicant's NSRP record (`applicants.applicants`). */
-  const syncNsrpRecord = async (userId: string, updates: UpdateProfileInput) => {
+  /**
+   * The database mirrors profile edits onto the NSRP record in the same update
+   * (trg_profiles_sync_applicant, migration 029); reload it so the NSRP details show the change.
+   */
+  const refreshNsrpRecord = async (userId: string) => {
     if (authStore.userRole !== 'applicant') return
-    const cached = authStore.applicantProfile as ApplicantRecordRow | null
-    const record = cached ?? (await applicantCompletionService.fetchMyRecord(userId))
-    if (!record) return
-
-    const patch = buildApplicantPatchFromProfile(updates, record)
-    if (Object.keys(patch).length === 0) return
-
-    const saved = await applicantCompletionService.updateMyRecord(record.id, patch)
-    authStore.setApplicantProfile(saved)
+    const record: ApplicantRecordRow | null = await applicantCompletionService.fetchMyRecord(userId)
+    if (record) authStore.setApplicantProfile(record)
   }
 
   const handleSubmit = async (location?: { region?: string; province?: string; geographic?: string; barangay?: string }) => {
@@ -161,7 +156,7 @@ export function useProfileEdit() {
         barangay: location?.barangay ?? null,
       }
       await updateApplicantProfile(userId, updates)
-      await syncNsrpRecord(userId, updates)
+      await refreshNsrpRecord(userId)
 
       const previousUsername = authStore.username
       await authStore.fetchProfile(userId)
