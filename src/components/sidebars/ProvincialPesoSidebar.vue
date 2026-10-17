@@ -63,12 +63,12 @@ const employmentItems = [
 ]
 
 const companyItems = [
+  { title: 'Events', to: {name: 'company-profile'}, icon: CalendarDays },
   { title: 'Organizational Chart', to: {name: 'company-profile'}, icon: File },
   { title: 'Citizen Charter', to: {name: 'company-profile'}, icon: UsersRound },
   { title: 'Functional Charter', to: {name: 'company-profile'}, icon: Blocks },
   { title: 'Records Charter', to: {name: 'company-profile'}, icon: SquareLibrary },
   { title: 'Where Abouts', to: {name: 'company-profile'}, icon: Info },
-  { title: 'Schedule of Activities', to: {name: 'company-profile'}, icon: CalendarDays },
 ]
 </script>
 
