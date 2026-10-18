@@ -32,14 +32,6 @@ export function useAuth() {
   const isLoading = computed(() => !isInitialized.value)
   const profileUsername = computed(() => username.value || '')
 
-  const redirectToLogin = async () => {
-    try {
-      await router.replace({ name: 'login' })
-    } catch {
-      window.location.assign('/login')
-    }
-  }
-
   const handleSignOut = async () => {
     try {
       await authService.logout()
@@ -54,7 +46,9 @@ export function useAuth() {
         // non-fatal
       }
 
-      await redirectToLogin()
+      // Full page load (not a router push) so every Pinia store holding staff/applicant
+      // records is discarded — the next person on a shared PC starts from a clean slate.
+      window.location.replace(router.resolve({ name: 'login' }).href)
     } catch (error: any) {
       toast.error(error.message || 'Error signing out')
     }

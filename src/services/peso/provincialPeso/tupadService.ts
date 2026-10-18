@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks, fetchAllPages, IN_FILTER_CHUNK_SIZE } from '@/helpers/common/supabasePaging'
 import { TUPAD_LOCKED_DOCUMENT } from '@/types/peso/provincialPeso/tupad'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import type {
@@ -20,23 +21,16 @@ import type {
 const REGISTRY_COLUMNS =
   'id, profile_id, first_name, middle_name, surname, suffix, sex, date_of_birth, age, contact_numbers, address'
 
-// Keeps `.in('id', …)` URLs short when looking up many registry records
-const IN_FILTER_CHUNK_SIZE = 150
 const SIGNED_URL_TTL_SECONDS = 60 * 60
 
 /** Registry records (`applicants.applicants`) by id. PostgREST cannot embed across schemas, so they are fetched separately. */
 async function fetchRegistryApplicants(ids: string[]): Promise<Map<string, TupadRegistryApplicant>> {
-  const unique = [...new Set(ids)]
-  const result = new Map<string, TupadRegistryApplicant>()
+  const { data, error } = await fetchAllInChunks(ids, (chunk) =>
+    supabase.schema('applicants').from('applicants').select(REGISTRY_COLUMNS).in('id', chunk).order('id')
+  )
+  if (error) throw new Error(error.message || 'Failed to load applicant registry records')
 
-  for (let i = 0; i < unique.length; i += IN_FILTER_CHUNK_SIZE) {
-    const chunk = unique.slice(i, i + IN_FILTER_CHUNK_SIZE)
-    const { data, error } = await supabase.schema('applicants').from('applicants').select(REGISTRY_COLUMNS).in('id', chunk)
-    if (error) throw new Error(error.message || 'Failed to load applicant registry records')
-    for (const row of data ?? []) result.set(row.id, row)
-  }
-
-  return result
+  return new Map(data.map((row) => [row.id, row]))
 }
 
 async function withRegistry(rows: TupadApplicantRow[]): Promise<TupadApplicantWithRegistry[]> {
@@ -48,11 +42,14 @@ export const tupadService = {
   // ─── Batches ───
 
   async fetchBatches(): Promise<TupadBatchWithCount[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('tupad_batch')
-      .select('*, tupad(count)')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('tupad_batch')
+        .select('*, tupad(count)')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load TUPAD batches')
 
@@ -108,11 +105,14 @@ export const tupadService = {
   // ─── TUPAD applicants ───
 
   async fetchTupadApplicants(): Promise<TupadApplicantWithRegistry[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('tupad_applicants')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('tupad_applicants')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load TUPAD applicants')
     return withRegistry(data ?? [])
@@ -155,16 +155,11 @@ export const tupadService = {
   async deleteTupadApplicants(
     ids: string[]
   ): Promise<{ deleted: Pick<TupadApplicantRow, 'id' | 'applicant_id'>[]; skippedIds: string[] }> {
-    const engaged = new Set<string>()
-    for (let i = 0; i < ids.length; i += IN_FILTER_CHUNK_SIZE) {
-      const { data, error } = await supabase
-        .schema('esmdd')
-        .from('tupad')
-        .select('tupad_applicant_id')
-        .in('tupad_applicant_id', ids.slice(i, i + IN_FILTER_CHUNK_SIZE))
-      if (error) throw new Error(error.message || 'Failed to check TUPAD batches')
-      for (const row of data ?? []) engaged.add(row.tupad_applicant_id)
-    }
+    const { data: engagements, error: engagementErr } = await fetchAllInChunks(ids, (chunk) =>
+      supabase.schema('esmdd').from('tupad').select('tupad_applicant_id').in('tupad_applicant_id', chunk).order('id')
+    )
+    if (engagementErr) throw new Error(engagementErr.message || 'Failed to check TUPAD batches')
+    const engaged = new Set(engagements.map((row) => row.tupad_applicant_id))
 
     const deletable = ids.filter((id) => !engaged.has(id))
     const deleted: Pick<TupadApplicantRow, 'id' | 'applicant_id'>[] = []
@@ -275,12 +270,15 @@ export const tupadService = {
   // ─── Batch members (esmdd.tupad) ───
 
   async fetchBatchMembers(batchId: string): Promise<TupadMember[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('tupad')
-      .select('*, tupad_applicants(*)')
-      .eq('batch_id', batchId)
-      .order('created_at', { ascending: true })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('tupad')
+        .select('*, tupad_applicants(*)')
+        .eq('batch_id', batchId)
+        .order('created_at', { ascending: true })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load the batch beneficiaries')
 
@@ -299,7 +297,9 @@ export const tupadService = {
 
   /** TUPAD applicant ids with an Active engagement in any batch — they cannot join another batch yet. */
   async fetchActiveTupadApplicantIds(): Promise<string[]> {
-    const { data, error } = await supabase.schema('esmdd').from('tupad').select('tupad_applicant_id').eq('status', 'Active')
+    const { data, error } = await fetchAllPages(() =>
+      supabase.schema('esmdd').from('tupad').select('tupad_applicant_id').eq('status', 'Active').order('id')
+    )
     if (error) throw new Error(error.message || 'Failed to check active TUPAD engagements')
     return [...new Set((data ?? []).map((row) => row.tupad_applicant_id))]
   },
@@ -337,12 +337,15 @@ export const tupadService = {
 
   /** Daily attachments a beneficiary uploaded (`esmdd.tupad_attachments`), oldest first, with signed URLs for viewing. */
   async fetchMemberAttachments(tupadId: string): Promise<TupadAttachmentWithUrl[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('tupad_attachments')
-      .select('*')
-      .eq('tupad_id', tupadId)
-      .order('created_at', { ascending: true })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('tupad_attachments')
+        .select('*')
+        .eq('tupad_id', tupadId)
+        .order('created_at', { ascending: true })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load the beneficiary attachments')
 

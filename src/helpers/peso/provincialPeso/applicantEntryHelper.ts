@@ -1,7 +1,6 @@
 import type {
   ApplicantEntryRecord,
   ApplicantRow,
-  ApplicantStatsSummary,
   EducationalBackgroundItem,
   EligibilityItem,
   LanguageProficiencyItem,
@@ -240,40 +239,6 @@ export function mapToApplicantEntryRecord(row: ApplicantRow): ApplicantEntryReco
     assessmentDate: row.assessment_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }
-}
-
-// ─── Summary Metrics ───
-export function computeApplicantStats(applicants: ApplicantEntryRecord[]): ApplicantStatsSummary {
-  let gip = 0
-  let tupad = 0
-  let spes = 0
-
-  for (const a of applicants) {
-    const progs = a.referredPrograms.map((p) => (p || '').toUpperCase())
-    const progText = progs.join(' ')
-
-    // GIP
-    if (progText.includes('GIP')) {
-      gip++
-    }
-
-    // TUPAD
-    if (progText.includes('TUPAD')) {
-      tupad++
-    }
-
-    // SPES
-    if (progText.includes('SPES')) {
-      spes++
-    }
-  }
-
-  return {
-    total: applicants.length,
-    gip,
-    tupad,
-    spes,
   }
 }
 

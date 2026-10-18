@@ -1,9 +1,10 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { watchDebounced } from '@vueuse/core'
+import { useToastAlert } from '@/composables/common/useToastAlert'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import {
-  computeApplicantStats,
   exportApplicantsToCsv,
   formatDateDisplay,
   getInitials,
@@ -13,6 +14,7 @@ import type { ApplicantEntryRecord, ApplicantStatsSummary } from '@/types/peso/p
 export function useApplicantEntry() {
   const router = useRouter()
   const store = useApplicantEntryStore()
+  const toastAlert = useToastAlert()
 
   const {
     applicants,
@@ -53,132 +55,68 @@ export function useApplicantEntry() {
   }
 
 
-  // ─── Available Municipalities for Filter ───
-  const availableMunicipalities = computed<string[]>(() => {
-    const set = new Set<string>()
-    for (const record of applicants.value) {
-      if (record.address.municipality && record.address.municipality !== 'N/A') {
-        set.add(record.address.municipality)
-      }
-    }
-    return Array.from(set).sort()
-  })
+  // ─── Server-Side Filtering & Pagination ───
+  // Filters run in Postgres; `applicants` only ever holds the current page.
+  const filteredCount = computed<number>(() => store.filteredCount)
+  const availableMunicipalities = computed<string[]>(() => store.municipalities)
 
-  // ─── Filtered Applicants ───
-  const filteredApplicants = computed<ApplicantEntryRecord[]>(() => {
-    const q = searchQuery.value.trim().toLowerCase()
-    const gender = selectedGenderFilter.value
-    const empStatus = selectedEmploymentStatusFilter.value
-    const program = selectedProgramFilter.value
-    const muni = selectedMunicipalityFilter.value
-
-    return applicants.value.filter((a) => {
-      // Search query filter
-      if (q) {
-        const nameMatch = a.fullName.toLowerCase().includes(q)
-        const emailMatch = a.email ? a.email.toLowerCase().includes(q) : false
-        const contactMatch = a.contactNumber ? a.contactNumber.toLowerCase().includes(q) : false
-        const muniMatch = a.address.municipality.toLowerCase().includes(q)
-        const brgyMatch = a.address.barangay.toLowerCase().includes(q)
-        const courseMatch = a.highestEducationalAttainment.toLowerCase().includes(q)
-        const occMatch = a.preferredOccupations.some((occ) => occ.toLowerCase().includes(q))
-        const skillsMatch = a.otherSkills.some((s) => s.toLowerCase().includes(q))
-        const progMatch = a.referredPrograms.some((p) => p.toLowerCase().includes(q))
-
-        if (
-          !nameMatch &&
-          !emailMatch &&
-          !contactMatch &&
-          !muniMatch &&
-          !brgyMatch &&
-          !courseMatch &&
-          !occMatch &&
-          !skillsMatch &&
-          !progMatch
-        ) {
-          return false
-        }
-      }
-
-      // Gender filter
-      if (gender !== 'ALL') {
-        const rawSex = a.sex.toLowerCase()
-        if (gender === 'Male' && !rawSex.startsWith('m')) return false
-        if (gender === 'Female' && (!rawSex.startsWith('f') && rawSex !== 'woman')) return false
-      }
-
-      // Employment Status filter
-      if (empStatus !== 'ALL') {
-        const rawEmp = a.employmentStatus.toLowerCase()
-        const rawType = (a.employmentType || '').toLowerCase()
-        const isSelf = rawEmp.includes('self') || rawType.includes('self')
-
-        if (empStatus === 'Employed' && (isSelf || !rawEmp.includes('employed') || rawEmp.includes('unemployed'))) {
-          return false
-        }
-        if (empStatus === 'Unemployed' && !rawEmp.includes('unemployed')) {
-          return false
-        }
-        if (empStatus === 'Self-Employed' && !isSelf) {
-          return false
-        }
-      }
-
-      // Program Filter (SPES, GIP, TUPAD, JobStart, DILEEP, TESDA)
-      if (program !== 'ALL') {
-        const progs = a.referredPrograms.map((p) => (p || '').toUpperCase())
-        const progText = progs.join(' ')
-        if (program === 'SPES' && !progText.includes('SPES')) return false
-        if (program === 'GIP' && !progText.includes('GIP')) return false
-        if (program === 'TUPAD' && !progText.includes('TUPAD')) return false
-        if (program === 'JobStart' && !progText.includes('JOBSTART')) return false
-        if (program === 'DILEEP' && !progText.includes('DILEEP')) return false
-        if (program === 'TESDA' && !progText.includes('TESDA')) return false
-        if (program === 'NONE' && progs.length > 0) {
-          return false
-        }
-      }
-
-      // Municipality Filter
-      if (muni !== 'ALL') {
-        if (a.address.municipality.toLowerCase() !== muni.toLowerCase()) return false
-      }
-
-      return true
-    })
-  })
-
-  // ─── Pagination ───
   const totalPages = computed<number>(() => {
-    const count = Math.ceil(filteredApplicants.value.length / pageSize.value)
+    const count = Math.ceil(filteredCount.value / pageSize.value)
     return count > 0 ? count : 1
   })
 
-  const paginatedApplicants = computed<ApplicantEntryRecord[]>(() => {
-    const start = (currentPage.value - 1) * pageSize.value
-    return filteredApplicants.value.slice(start, start + pageSize.value)
+  const paginatedApplicants = computed<ApplicantEntryRecord[]>(() => applicants.value)
+
+  // Up to 5 page buttons centred on the current page
+  const visiblePages = computed<number[]>(() => {
+    const windowSize = Math.min(5, totalPages.value)
+    const start = Math.min(Math.max(1, currentPage.value - 2), totalPages.value - windowSize + 1)
+    return Array.from({ length: windowSize }, (_, i) => start + i)
   })
 
-  // Automatically adjust current page if total pages shrink
-  watch([filteredApplicants, totalPages], () => {
-    if (currentPage.value > totalPages.value) {
-      currentPage.value = 1
+  const refetchFromFirstPage = () => {
+    if (currentPage.value !== 1) {
+      currentPage.value = 1 // page watcher fetches
+    } else {
+      fetchApplicants()
+    }
+  }
+
+  watchDebounced(searchQuery, refetchFromFirstPage, { debounce: 350 })
+  watch(
+    [selectedGenderFilter, selectedEmploymentStatusFilter, selectedProgramFilter, selectedMunicipalityFilter],
+    refetchFromFirstPage
+  )
+  watch([currentPage, pageSize], () => fetchApplicants())
+
+  // Clamp the page if deletes shrank the result set
+  watch(totalPages, (pages) => {
+    if (currentPage.value > pages) {
+      currentPage.value = pages
     }
   })
 
   // ─── Stats Summary ───
-  const statsSummary = computed<ApplicantStatsSummary>(() => {
-    return computeApplicantStats(applicants.value)
-  })
+  const statsSummary = computed<ApplicantStatsSummary>(() => store.stats)
 
   // ─── Actions ───
   const refreshApplicants = () => {
     fetchApplicants(true)
   }
 
-  const exportCsv = () => {
+  const isExporting = ref(false)
+
+  const exportCsv = async () => {
     const filterDesc = selectedProgramFilter.value !== 'ALL' ? selectedProgramFilter.value : selectedEmploymentStatusFilter.value
-    exportApplicantsToCsv(filteredApplicants.value, filterDesc)
+    isExporting.value = true
+    try {
+      exportApplicantsToCsv(await store.fetchAllFilteredApplicants(), filterDesc)
+    } catch (error: any) {
+      console.error('[useApplicantEntry] CSV export failed:', error)
+      toastAlert.error('Export Failed', error.message || 'Unable to export applicant records.')
+    } finally {
+      isExporting.value = false
+    }
   }
 
   const toggleProgramFilter = (prog: string) => {
@@ -226,8 +164,10 @@ export function useApplicantEntry() {
     if (!applicantToDelete.value) return
     isDeleting.value = true
     try {
-      const deleted = await deleteApplicant(applicantToDelete.value.id)
+      const deletedId = applicantToDelete.value.id
+      const deleted = await deleteApplicant(deletedId)
       if (deleted) {
+        selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => id !== deletedId)
         isDeleteDialogOpen.value = false
         applicantToDelete.value = null
       }
@@ -294,20 +234,16 @@ export function useApplicantEntry() {
     }
   }
 
-  // Drop selections for rows that no longer exist (deleted or refreshed away)
-  watch(applicants, (list) => {
-    const validIds = new Set(list.map((a) => a.id))
-    selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => validIds.has(id))
-  })
-
   onMounted(() => {
-    fetchApplicants()
+    // Filters and current page live in the store, so returning to the page shows the same view
+    store.fetchApplicantsIfStale()
   })
 
   return {
     applicants,
-    filteredApplicants,
+    filteredCount,
     paginatedApplicants,
+    visiblePages,
     availableMunicipalities,
     totalPages,
     statsSummary,
@@ -330,6 +266,7 @@ export function useApplicantEntry() {
     resetFilters,
     refreshApplicants,
     exportCsv,
+    isExporting,
     toggleProgramFilter,
     clearSearch,
     setPage,

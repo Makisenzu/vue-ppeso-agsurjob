@@ -67,8 +67,9 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   })
 
   onMounted(async () => {
-    if (!applicant.value && store.applicants.length === 0) {
-      await store.fetchApplicants()
+    // The store only holds the current registry page, so load deep-linked records directly
+    if (!applicant.value && !options?.props?.applicant) {
+      await store.loadApplicantById(route.params.id as string)
     }
   })
 

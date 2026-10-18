@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { authService, type UserBundleData } from '@/services/common/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
+import { clearUserScopedCache } from '@/helpers/common/persistentCache'
 
 import type {
   ProfileSummary,
@@ -119,6 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
     applicantRequirementMedia.value = []
     profileMedia.value = []
     userBundle.value = null
+    clearUserScopedCache()
   }
 
   async function syncSessionData(currentSession: Session | null, forceHydrate = false) {

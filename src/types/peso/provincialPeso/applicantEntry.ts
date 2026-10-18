@@ -116,6 +116,14 @@ export interface ApplicantEntryRecord {
   updatedAt: string | null
 }
 
+export interface ApplicantRegistryFilters {
+  search: string
+  gender: string
+  employmentStatus: string
+  program: string
+  municipality: string
+}
+
 export interface ApplicantStatsSummary {
   total: number
   gip: number

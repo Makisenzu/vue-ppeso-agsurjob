@@ -40,9 +40,9 @@ import {
 import { useApplicantEntry } from '@/composables/peso/provincialPeso/useApplicantEntry'
 
 const {
-  applicants,
-  filteredApplicants,
+  filteredCount,
   paginatedApplicants,
+  visiblePages,
   availableMunicipalities,
   totalPages,
   statsSummary,
@@ -59,6 +59,7 @@ const {
   resetFilters,
   refreshApplicants,
   exportCsv,
+  isExporting,
   formatDateDisplay,
   toggleProgramFilter,
   clearSearch,
@@ -111,10 +112,11 @@ const {
           variant="outline"
           size="sm"
           class="gap-1.5 text-xs cursor-pointer shadow-xs"
+          :disabled="isExporting"
           @click="exportCsv"
         >
           <Download class="h-3.5 w-3.5" />
-          <span>Export CSV</span>
+          <span>{{ isExporting ? 'Exporting...' : 'Export CSV' }}</span>
         </Button>
         <Button
           variant="outline"
@@ -217,7 +219,7 @@ const {
               Registered Jobseekers
             </CardTitle>
             <CardDescription class="text-xs">
-              Showing {{ filteredApplicants.length }} of {{ applicants.length }} applicant records
+              Showing {{ filteredCount.toLocaleString() }} of {{ statsSummary.total.toLocaleString() }} applicant records
             </CardDescription>
           </div>
         </div>
@@ -587,16 +589,16 @@ const {
                   <div class="flex flex-col items-center justify-center gap-2 py-6">
                     <Filter class="h-8 w-8 text-muted-foreground/50" />
                     <p class="text-sm font-semibold text-foreground">
-                      {{ applicants.length === 0 ? 'No applicants registered yet' : 'No matching applicant records' }}
+                      {{ statsSummary.total === 0 ? 'No applicants registered yet' : 'No matching applicant records' }}
                     </p>
                     <p class="text-xs text-muted-foreground max-w-sm">
-                      {{ applicants.length === 0
+                      {{ statsSummary.total === 0
                         ? 'Applicant records will appear here as they sign up and complete their DOLE NSRP profiles.'
                         : 'Try adjusting your search query or filter selections.'
                       }}
                     </p>
                     <Button
-                      v-if="applicants.length > 0"
+                      v-if="statsSummary.total > 0"
                       size="sm"
                       variant="outline"
                       class="mt-2 text-xs cursor-pointer"
@@ -614,9 +616,9 @@ const {
         <!-- ─── Table Pagination ─── -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t text-xs text-muted-foreground">
           <div>
-            Showing <span class="font-medium text-foreground">{{ filteredApplicants.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
-            to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredApplicants.length) }}</span>
-            of <span class="font-medium text-foreground">{{ filteredApplicants.length }}</span> applicants
+            Showing <span class="font-medium text-foreground">{{ filteredCount === 0 ? 0 : (currentPage - 1) * pageSize + 1 }}</span>
+            to <span class="font-medium text-foreground">{{ Math.min(currentPage * pageSize, filteredCount) }}</span>
+            of <span class="font-medium text-foreground">{{ filteredCount.toLocaleString() }}</span> applicants
           </div>
 
           <div class="flex items-center gap-2">
@@ -631,7 +633,7 @@ const {
             </Button>
             <div class="flex items-center gap-1">
               <Button
-                v-for="p in Math.min(totalPages, 5)"
+                v-for="p in visiblePages"
                 :key="p"
                 size="sm"
                 :variant="currentPage === p ? 'default' : 'outline'"
@@ -640,7 +642,7 @@ const {
               >
                 {{ p }}
               </Button>
-              <span v-if="totalPages > 5" class="text-xs px-1">...</span>
+              <span v-if="visiblePages[visiblePages.length - 1] < totalPages" class="text-xs px-1">... {{ totalPages.toLocaleString() }}</span>
             </div>
             <Button
               variant="outline"

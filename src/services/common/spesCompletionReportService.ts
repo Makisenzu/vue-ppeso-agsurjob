@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks } from '@/helpers/common/supabasePaging'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import {
@@ -28,9 +29,11 @@ async function fetchRows(appointmentIds: string[]): Promise<SpesCompletionReport
   const ids = [...new Set(appointmentIds)]
   if (!ids.length) return []
 
-  const { data, error } = await completionReportsTable().select('*').in('appointment_id', ids)
+  const { data, error } = await fetchAllInChunks<SpesCompletionReportRow, string>(ids, (chunk) =>
+    completionReportsTable().select('*').in('appointment_id', chunk).order('id')
+  )
   if (error) throw new Error(error.message || 'Failed to load the SPES completion reports.')
-  return (data ?? []) as SpesCompletionReportRow[]
+  return data
 }
 
 function reportLabel(type: SpesCompletionReportType) {

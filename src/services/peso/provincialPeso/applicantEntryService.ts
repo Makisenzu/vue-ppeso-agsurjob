@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabaseClient'
-import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type {
   ApplicantInsert,
+  ApplicantRegistryFilters,
   ApplicantRow,
+  ApplicantStatsSummary,
   ApplicantUpdate,
   ExistingApplicantMatch,
   ProgramReferralSummary,
@@ -15,11 +16,14 @@ import { buildSpesFormPrefill, pickBlankSpesFields } from '@/helpers/peso/provin
 import { hasTupadReferral } from '@/helpers/peso/provincialPeso/tupadHelper'
 import { tupadService } from '@/services/peso/provincialPeso/tupadService'
 
-export const APPLICANT_ENTRY_CACHE_KEY = 'peso:applicant-entry:applicants'
-const APPLICANT_ENTRY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
-
-export function invalidateApplicantEntryCache(): void {
-  removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+function toRegistryRpcArgs(filters: ApplicantRegistryFilters) {
+  return {
+    p_search: filters.search.trim() || null,
+    p_gender: filters.gender,
+    p_employment_status: filters.employmentStatus,
+    p_program: filters.program,
+    p_municipality: filters.municipality,
+  }
 }
 
 /**
@@ -50,26 +54,73 @@ function normalizeApplicantEmploymentPayload<T extends Record<string, any>>(payl
 
 export const applicantEntryService = {
   /**
-   * Fetch all applicant records from applicants.applicants schema with persistent cache
+   * Fetch one page of the applicant registry. Filtering runs in Postgres
+   * (applicants.search_applicant_registry) so the result is never capped at 1,000 rows.
    */
-  async fetchAllApplicants(forceRefresh = false): Promise<ApplicantRow[]> {
-    if (forceRefresh) {
-      removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
+  async fetchApplicantPage(
+    filters: ApplicantRegistryFilters,
+    page: number,
+    pageSize: number
+  ): Promise<{ rows: ApplicantRow[]; total: number }> {
+    const from = (page - 1) * pageSize
+    const { data, error, count } = await (supabase.schema('applicants') as any)
+      .rpc('search_applicant_registry', toRegistryRpcArgs(filters), { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1)
+
+    if (error) {
+      throw new Error(error.message || 'Failed to fetch applicants registry data')
     }
 
-    return getOrSetPersistentCache(APPLICANT_ENTRY_CACHE_KEY, APPLICANT_ENTRY_CACHE_TTL_MS, async () => {
-      const { data, error } = await supabase
-        .schema('applicants')
-        .from('applicants')
-        .select('*')
-        .order('created_at', { ascending: false })
+    return { rows: (data ?? []) as ApplicantRow[], total: count ?? 0 }
+  },
 
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch applicants registry data')
-      }
+  /**
+   * Fetch every applicant matching the filters, in batches (used for CSV export).
+   */
+  async fetchAllFilteredApplicants(filters: ApplicantRegistryFilters): Promise<ApplicantRow[]> {
+    const batchSize = 1000
+    const rows: ApplicantRow[] = []
 
-      return (data ?? []) as ApplicantRow[]
-    })
+    for (let page = 1; ; page++) {
+      const { rows: batch, total } = await this.fetchApplicantPage(filters, page, batchSize)
+      rows.push(...batch)
+      if (batch.length < batchSize || rows.length >= total) break
+    }
+
+    return rows
+  },
+
+  /**
+   * Registry-wide totals for the stat cards (unaffected by table filters).
+   */
+  async fetchRegistryStats(): Promise<ApplicantStatsSummary> {
+    const { data, error } = await (supabase.schema('applicants') as any).rpc('applicant_registry_stats').single()
+
+    if (error) {
+      throw new Error(error.message || 'Failed to fetch applicant registry stats')
+    }
+
+    return {
+      total: Number(data?.total ?? 0),
+      gip: Number(data?.gip ?? 0),
+      tupad: Number(data?.tupad ?? 0),
+      spes: Number(data?.spes ?? 0),
+    }
+  },
+
+  /**
+   * Distinct municipalities present in the registry, for the filter dropdown.
+   */
+  async fetchRegistryMunicipalities(): Promise<string[]> {
+    const { data, error } = await (supabase.schema('applicants') as any).rpc('applicant_registry_municipalities')
+
+    if (error) {
+      throw new Error(error.message || 'Failed to fetch applicant municipalities')
+    }
+
+    return (data ?? []) as string[]
   },
 
   /**
@@ -324,8 +375,6 @@ export const applicantEntryService = {
 
     const createdApplicant = data as ApplicantRow
 
-    // Invalidate cached applicant list on mutation
-    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
 
     // Automatically check what the applicant has been referred to and insert into ESMDD tables
     try {
@@ -523,7 +572,6 @@ export const applicantEntryService = {
     }
 
     const updatedApplicant = data as ApplicantRow
-    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
     invalidateGipCaches({ applicants: true })
 
     // Automatically check what the applicant has been referred to and route to ESMDD tables
@@ -585,7 +633,6 @@ export const applicantEntryService = {
     }
 
     const updatedApplicant = data as ApplicantRow
-    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
 
     // Synchronize referred programs with ESMDD program tables if referred_programs was updated
     if ('referred_programs' in cleanPayload) {
@@ -737,8 +784,6 @@ export const applicantEntryService = {
 
       if (updateErr) throw new Error(updateErr.message || 'Failed to update the referred programs')
     }
-
-    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
   },
 
   /**
@@ -747,7 +792,6 @@ export const applicantEntryService = {
    */
   async deleteApplicant(applicantId: string): Promise<void> {
     await this.deleteApplicantRecord(applicantId)
-    removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
     invalidateGipCaches({ applicants: true })
   },
 
@@ -767,7 +811,6 @@ export const applicantEntryService = {
     }
 
     if (deletedIds.length > 0) {
-      removePersistentCacheValue(APPLICANT_ENTRY_CACHE_KEY)
       invalidateGipCaches({ applicants: true })
     }
 

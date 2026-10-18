@@ -1,14 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import { applicantEntryService, APPLICANT_ENTRY_CACHE_KEY } from '@/services/peso/provincialPeso/applicantEntryService'
-import { getPersistentCacheValue } from '@/helpers/common/persistentCache'
+import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
-import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRow, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
-
-// In-memory only: cleared on every page load (Ctrl+R / F5), so the registry revalidates against the database once per load
-let hasRevalidatedThisPageLoad = false
+import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRegistryFilters, ApplicantStatsSummary, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
 
 export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const toastAlert = useToastAlert()
@@ -33,36 +29,109 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const currentPage = ref<number>(1)
   const pageSize = ref<number>(10)
 
+  // ─── Server Totals ───
+  // `applicants` holds only the current page; these come from the database.
+  const filteredCount = ref<number>(0)
+  const stats = ref<ApplicantStatsSummary>({ total: 0, gip: 0, tupad: 0, spes: 0 })
+  const municipalities = ref<string[]>([])
+
+  // Incremented per fetch so a slow response for an old page/filter can't overwrite a newer one
+  let fetchSequence = 0
+
+  // Revisiting the page reuses the loaded page, and paging/filtering reuses the stat cards and
+  // municipality list, while they are younger than this. Mutations and manual refresh bypass it.
+  const REGISTRY_FRESH_MS = 1000 * 60 * 5
+  let pageFetchedAt = 0
+  let summaryFetchedAt = 0
+
+  const currentFilters = (): ApplicantRegistryFilters => ({
+    search: searchQuery.value,
+    gender: selectedGenderFilter.value,
+    employmentStatus: selectedEmploymentStatusFilter.value,
+    program: selectedProgramFilter.value,
+    municipality: selectedMunicipalityFilter.value,
+  })
+
   // ─── Actions ───
   const fetchApplicants = async (isManualRefresh: boolean = false, silent: boolean = false) => {
-    // 1. Instant Cache Hydration (stale-while-revalidate)
-    if (!silent && !isManualRefresh) {
-      const cached = getPersistentCacheValue<ApplicantRow[]>(APPLICANT_ENTRY_CACHE_KEY)
-      if (cached !== null) {
-        applicants.value = cached.map(mapToApplicantEntryRecord)
-      }
-      isLoading.value = cached === null
-    } else if (isManualRefresh) {
+    const sequence = ++fetchSequence
+    if (!silent) {
       isLoading.value = true
     }
 
-    const bypassCache = isManualRefresh || !hasRevalidatedThisPageLoad
+    const includeSummary = isManualRefresh || Date.now() - summaryFetchedAt > REGISTRY_FRESH_MS
 
     try {
-      const data = await applicantEntryService.fetchAllApplicants(bypassCache)
+      const [page, summary] = await Promise.all([
+        applicantEntryService.fetchApplicantPage(currentFilters(), currentPage.value, pageSize.value),
+        includeSummary
+          ? Promise.all([applicantEntryService.fetchRegistryStats(), applicantEntryService.fetchRegistryMunicipalities()])
+          : null,
+      ])
+      if (sequence !== fetchSequence) return
+
       // Fresh array reference ensures table and charts react immediately
-      applicants.value = [...data.map(mapToApplicantEntryRecord)]
-      hasRevalidatedThisPageLoad = true
+      applicants.value = page.rows.map(mapToApplicantEntryRecord)
+      filteredCount.value = page.total
+      pageFetchedAt = Date.now()
+      if (summary) {
+        stats.value = summary[0]
+        municipalities.value = summary[1]
+        summaryFetchedAt = pageFetchedAt
+      }
       if (isManualRefresh) {
-        toastAlert.success('Data Refreshed', `Refreshed ${data.length} applicant records.`)
+        toastAlert.success('Data Refreshed', `Refreshed ${stats.value.total.toLocaleString()} applicant records.`)
       }
     } catch (error: any) {
+      if (sequence !== fetchSequence) return
       console.error('[applicantEntryStore] Failed to fetch applicants:', error)
       toastAlert.error('Fetch Error', error.message || 'Unable to retrieve applicants registry.')
     } finally {
-      if (!silent) {
+      if (!silent && sequence === fetchSequence) {
         isLoading.value = false
       }
+    }
+  }
+
+  /** Fetches only when the loaded page is missing or older than REGISTRY_FRESH_MS (e.g. returning to the page). */
+  const fetchApplicantsIfStale = async () => {
+    if (Date.now() - pageFetchedAt > REGISTRY_FRESH_MS) {
+      await fetchApplicants()
+    }
+  }
+
+  /** Background resync after a create/update/delete — totals and municipalities may have changed. */
+  const syncAfterMutation = () => {
+    summaryFetchedAt = 0
+    fetchApplicants(false, true).catch((err) => {
+      console.error('[applicantEntryStore] Background sync failed:', err)
+    })
+  }
+
+  /**
+   * Every applicant matching the current filters, across all pages (for CSV export).
+   */
+  const fetchAllFilteredApplicants = async (): Promise<ApplicantEntryRecord[]> => {
+    const rows = await applicantEntryService.fetchAllFilteredApplicants(currentFilters())
+    return rows.map(mapToApplicantEntryRecord)
+  }
+
+  /**
+   * Load a single applicant (e.g. opening a details URL directly) without fetching the registry.
+   */
+  const loadApplicantById = async (id: string): Promise<ApplicantEntryRecord | null> => {
+    isLoading.value = true
+    try {
+      const row = await applicantEntryService.fetchApplicantById(id)
+      const record = row ? mapToApplicantEntryRecord(row) : null
+      selectedApplicant.value = record
+      return record
+    } catch (error: any) {
+      console.error('[applicantEntryStore] Failed to fetch applicant:', error)
+      toastAlert.error('Fetch Error', error.message || 'Unable to retrieve applicant record.')
+      return null
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -116,9 +185,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       }
 
       // Silent background fetch to guarantee complete sync with database defaults and triggers
-      fetchApplicants(false, true).catch((err) => {
-        console.error('[applicantEntryStore] Background sync failed:', err)
-      })
+      syncAfterMutation()
 
       return newRecord
     } catch (error: any) {
@@ -186,9 +253,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       }
 
       // Silent background sync
-      fetchApplicants(false, true).catch((err) => {
-        console.error('[applicantEntryStore] Background sync failed:', err)
-      })
+      syncAfterMutation()
 
       return updatedRecord
     } catch (error: any) {
@@ -226,9 +291,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       toastAlert.success('Applicant Updated', `${updatedRecord.fullName}'s record has been updated.`)
 
       // Silent background sync
-      fetchApplicants(false, true).catch((err) => {
-        console.error('[applicantEntryStore] Background sync failed:', err)
-      })
+      syncAfterMutation()
 
       return updatedRecord
     } catch (error: any) {
@@ -252,6 +315,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       }
 
       toastAlert.success('Applicant Deleted', `${name} has been removed from the registry.`)
+
+      // Refill the page and refresh totals from the database
+      syncAfterMutation()
       return true
     } catch (error: any) {
       console.error('[applicantEntryStore] Failed to delete applicant:', error)
@@ -282,6 +348,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
             (result.errors.length > 0 ? ` (${result.errors.length} skipped).` : '.')
         )
       }
+      if (result.deletedIds.length > 0) {
+        syncAfterMutation()
+      }
       if (result.errors.length > 0) {
         toastAlert.error(
           result.deletedIds.length > 0 ? 'Some Applicants Skipped' : 'Bulk Delete Failed',
@@ -309,6 +378,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
 
   return {
     applicants,
+    filteredCount,
+    stats,
+    municipalities,
     isLoading,
     isSubmitting,
     selectedApplicant,
@@ -321,6 +393,9 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
     currentPage,
     pageSize,
     fetchApplicants,
+    fetchApplicantsIfStale,
+    fetchAllFilteredApplicants,
+    loadApplicantById,
     refreshApplicants,
     openDetails,
     closeDetails,

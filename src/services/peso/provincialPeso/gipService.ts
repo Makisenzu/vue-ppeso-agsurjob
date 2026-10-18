@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks, fetchAllPages } from '@/helpers/common/supabasePaging'
 import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
-import { invalidateApplicantEntryCache, applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
+import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
 import type {
   GipInternRecord,
   GipApplicantRecord,
@@ -63,16 +64,33 @@ type BarangayRow = {
   lpii_tag: string
 }
 
+/** Every barangay's LPII tag (paged — the table can exceed one response). */
+function fetchBarangayRows() {
+  return fetchAllPages<BarangayRow>(() =>
+    supabase.schema('public').from('barangays').select('name, lpii_tag').order('id')
+  )
+}
+
+/** Registry records by id, chunked so large lists don't overflow the request URL. */
+function fetchApplicantsByIds(ids: string[]) {
+  return fetchAllInChunks(ids, (chunk) =>
+    supabase.schema('applicants').from('applicants').select('*').in('id', chunk).order('id')
+  )
+}
+
 /**
  * Resilient query helper for esmdd.gip_appointments.
  */
 async function fetchGipAppointmentsQuery(): Promise<GipAppointmentRecord[]> {
   try {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gip_appointments' as any)
-      .select('*')
-      .order('term_number', { ascending: false })
+    const { data, error } = await fetchAllPages<any>(() =>
+      supabase
+        .schema('esmdd')
+        .from('gip_appointments' as any)
+        .select('*')
+        .order('term_number', { ascending: false })
+        .order('id')
+    )
 
     if (error) {
       console.warn('[gipService] Could not query esmdd.gip_appointments (using fallback):', error.message)
@@ -113,11 +131,14 @@ async function fetchGipAppointmentsQuery(): Promise<GipAppointmentRecord[]> {
  */
 async function fetchGipApplicantsQuery(): Promise<GipApplicantRow[]> {
   try {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gip_applicants')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('gip_applicants')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) {
       // Schema not exposed or table not yet created in Supabase
@@ -134,11 +155,14 @@ async function fetchGipApplicantsQuery(): Promise<GipApplicantRow[]> {
  */
 async function fetchGipsQuery(): Promise<GipRow[]> {
   try {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('gips')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('gips')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) {
       return []
@@ -167,10 +191,7 @@ export const gipService = {
       const [gips, gipApps, barangaysRes, appointments] = await Promise.all([
         fetchGipsQuery(),
         fetchGipApplicantsQuery(),
-        supabase
-          .schema('public')
-          .from('barangays')
-          .select('name, lpii_tag'),
+        fetchBarangayRows(),
         fetchGipAppointmentsQuery(),
       ])
 
@@ -216,11 +237,7 @@ export const gipService = {
       // 2. Fetch corresponding applicant profile records
       let applicantsList: ApplicantRow[] = []
       if (applicantIds.size > 0) {
-        const { data: applicantsData, error: applicantsError } = await supabase
-          .schema('applicants')
-          .from('applicants')
-          .select('*')
-          .in('id', Array.from(applicantIds))
+        const { data: applicantsData, error: applicantsError } = await fetchApplicantsByIds(Array.from(applicantIds))
 
         if (!applicantsError && applicantsData) {
           applicantsList = applicantsData as ApplicantRow[]
@@ -259,10 +276,7 @@ export const gipService = {
     return getOrSetPersistentCache(GIP_APPLICANTS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
       const [gipApps, barangaysRes] = await Promise.all([
         fetchGipApplicantsQuery(),
-        supabase
-          .schema('public')
-          .from('barangays')
-          .select('name, lpii_tag'),
+        fetchBarangayRows(),
       ])
 
       const barangays = (barangaysRes.data ?? []) as BarangayRow[]
@@ -281,11 +295,7 @@ export const gipService = {
 
       let applicantsList: ApplicantRow[] = []
       if (applicantIds.size > 0) {
-        const { data: applicantsData, error: applicantsError } = await supabase
-          .schema('applicants')
-          .from('applicants')
-          .select('*')
-          .in('id', Array.from(applicantIds))
+        const { data: applicantsData, error: applicantsError } = await fetchApplicantsByIds(Array.from(applicantIds))
 
         if (!applicantsError && applicantsData) {
           applicantsList = applicantsData as ApplicantRow[]
@@ -303,11 +313,14 @@ export const gipService = {
       // Query priority scores to attach to applicants if available
       const scoreMap = new Map<string, { total: number; rank: number; status: number; academic: number; eligibility: number; cert: number; poverty: number; unemployment: number }>()
       try {
-        const { data: scoreData } = await supabase
-          .schema('esmdd')
-          .from('gip_applicant_priority_scores')
-          .select('applicant_id, total_priority_score, status_score, academic_score, eligibility_score, cert_score, poverty_score, unemployment_score')
-          .order('total_priority_score', { ascending: false })
+        const { data: scoreData } = await fetchAllPages(() =>
+          supabase
+            .schema('esmdd')
+            .from('gip_applicant_priority_scores')
+            .select('applicant_id, total_priority_score, status_score, academic_score, eligibility_score, cert_score, poverty_score, unemployment_score')
+            .order('total_priority_score', { ascending: false })
+            .order('gip_applicant_id')
+        )
 
         if (scoreData) {
           scoreData.forEach((row: any, idx) => {
@@ -356,22 +369,22 @@ export const gipService = {
     if (!latestCreatedAt) return []
 
     try {
-      const { data: newGipApps, error: gipErr } = await supabase
-        .schema('esmdd')
-        .from('gip_applicants')
-        .select('*')
-        .gt('created_at', latestCreatedAt)
-        .order('created_at', { ascending: false })
+      const { data: newGipApps, error: gipErr } = await fetchAllPages(() =>
+        supabase
+          .schema('esmdd')
+          .from('gip_applicants')
+          .select('*')
+          .gt('created_at', latestCreatedAt)
+          .order('created_at', { ascending: false })
+          .order('id')
+      )
 
       if (gipErr || !newGipApps || newGipApps.length === 0) {
         return []
       }
 
       // Fetch barangays for LPII tagging
-      const { data: barangaysData } = await supabase
-        .schema('public')
-        .from('barangays')
-        .select('name, lpii_tag')
+      const { data: barangaysData } = await fetchBarangayRows()
 
       const barangayTagMap = new Map<string, LpiiCategory>()
       for (const b of (barangaysData ?? []) as BarangayRow[]) {
@@ -386,11 +399,7 @@ export const gipService = {
       )
       let applicantsList: ApplicantRow[] = []
       if (applicantIds.length > 0) {
-        const { data: profs, error: profErr } = await supabase
-          .schema('applicants')
-          .from('applicants')
-          .select('*')
-          .in('id', applicantIds)
+        const { data: profs, error: profErr } = await fetchApplicantsByIds(applicantIds)
 
         if (!profErr && profs) {
           applicantsList = profs as ApplicantRow[]
@@ -422,10 +431,7 @@ export const gipService = {
   ): Promise<GipApplicantRecord> {
     let barangayTagMap: Map<string, LpiiCategory> | undefined
     try {
-      const { data } = await supabase
-        .schema('public')
-        .from('barangays')
-        .select('name, lpii_tag')
+      const { data } = await fetchBarangayRows()
 
       if (data) {
         barangayTagMap = new Map<string, LpiiCategory>()
@@ -454,15 +460,15 @@ export const gipService = {
 
     return getOrSetPersistentCache(GIP_PRIORITY_APPLICANTS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
       const [priorityScoresRes, barangaysRes] = await Promise.all([
-        supabase
-          .schema('esmdd')
-          .from('gip_applicant_priority_scores')
-          .select('*')
-          .order('total_priority_score', { ascending: false }),
-        supabase
-          .schema('public')
-          .from('barangays')
-          .select('name, lpii_tag'),
+        fetchAllPages(() =>
+          supabase
+            .schema('esmdd')
+            .from('gip_applicant_priority_scores')
+            .select('*')
+            .order('total_priority_score', { ascending: false })
+            .order('gip_applicant_id')
+        ),
+        fetchBarangayRows(),
       ])
 
       if (priorityScoresRes.error) {
@@ -719,7 +725,6 @@ export const gipService = {
           'GIP status saved, but the applicant documents were not updated. Please execute migration 004_applicants_peso_policy.sql to grant UPDATE permission on applicants.applicants.'
         )
       }
-      invalidateApplicantEntryCache()
       invalidateGipCaches({ applicants: true })
     }
   },
@@ -820,7 +825,6 @@ export const gipService = {
       remarks,
     })
 
-    invalidateApplicantEntryCache()
     invalidateGipCaches({ applicants: true })
 
     return {
@@ -908,7 +912,6 @@ export const gipService = {
     }
 
     if (successCount > 0) {
-      invalidateApplicantEntryCache()
       invalidateGipCaches({ applicants: true })
     }
 
@@ -999,11 +1002,9 @@ export const gipService = {
     let failedCount = 0
     const errors: string[] = []
 
-    const { data: existing, error: existingErr } = await supabase
-      .schema('esmdd')
-      .from('gips')
-      .select('application_id')
-      .in('application_id', applicationIds)
+    const { data: existing, error: existingErr } = await fetchAllInChunks(applicationIds, (chunk) =>
+      supabase.schema('esmdd').from('gips').select('application_id').in('application_id', chunk).order('id')
+    )
 
     if (existingErr) {
       throw new Error(existingErr.message || 'Could not verify existing GIP deployments.')
@@ -1193,8 +1194,6 @@ export const gipService = {
               updated_at: new Date().toISOString(),
             })
             .eq('id', gipApp.applicant_id)
-
-          invalidateApplicantEntryCache()
         }
       } catch (masterErr) {
         console.warn('[gipService] Non-blocking master applicant referral update error:', masterErr)

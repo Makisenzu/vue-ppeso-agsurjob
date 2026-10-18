@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import { getAllProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
 import type { Database } from '@/types/database.types'
@@ -26,9 +27,39 @@ import {
 export const SKILL_REPOSITORY_CACHE_KEY = 'peso:skill-repository:all-data'
 const SKILL_REPOSITORY_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
 
+// Only the columns the repository reads — the full registry row carries large JSON blobs
+// (work history, languages, preferences) that would multiply the download size.
+const REPOSITORY_APPLICANT_COLUMNS =
+  'id, profile_id, first_name, middle_name, surname, suffix, address, contact_numbers, email, employment_status, ' +
+  'educational_background, other_skills, other_skills_specified, vocational_trainings, eligibilities'
+
+type RepositoryApplicantRow = Pick<
+  Database['applicants']['Tables']['applicants']['Row'],
+  | 'id'
+  | 'profile_id'
+  | 'first_name'
+  | 'middle_name'
+  | 'surname'
+  | 'suffix'
+  | 'address'
+  | 'contact_numbers'
+  | 'email'
+  | 'employment_status'
+  | 'educational_background'
+  | 'other_skills'
+  | 'other_skills_specified'
+  | 'vocational_trainings'
+  | 'eligibilities'
+>
+
+type RepositorySkillRow = Pick<
+  Database['applicants']['Tables']['applicant_skills']['Row'],
+  'profile_id' | 'skill_name' | 'skill_category'
+>
+
 interface RawRepositoryBundle {
-  applicants: Array<Database['applicants']['Tables']['applicants']['Row']>
-  applicantSkills: Array<Database['applicants']['Tables']['applicant_skills']['Row']>
+  applicants: RepositoryApplicantRow[]
+  applicantSkills: RepositorySkillRow[]
   barangays: Array<{ id: string; name: string; lpii_tag: LpiiCategory | null; municipality_id: string }>
   municipalities: Array<{ id: string; name: string; code: string }>
   psgcBarangayCounts: Record<string, number>
@@ -49,37 +80,37 @@ export const skillRepositoryService = {
 
     return getOrSetPersistentCache(SKILL_REPOSITORY_CACHE_KEY, SKILL_REPOSITORY_CACHE_TTL_MS, async () => {
       // 1. Fetch applicants from applicants schema
-      const { data: applicantsData, error: applicantsError } = await supabase
-        .schema('applicants')
-        .from('applicants')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data: applicantsData, error: applicantsError } = await fetchAllPages<RepositoryApplicantRow>(() =>
+        supabase
+          .schema('applicants')
+          .from('applicants')
+          .select(REPOSITORY_APPLICANT_COLUMNS)
+          .order('created_at', { ascending: false })
+          .order('id') as any
+      )
 
       if (applicantsError) {
         throw new Error(applicantsError.message || 'Failed to fetch applicants for skill repository')
       }
 
       // 2. Fetch applicant_skills from applicants schema
-      const { data: skillsData, error: skillsError } = await supabase
-        .schema('applicants')
-        .from('applicant_skills')
-        .select('*')
+      const { data: skillsData, error: skillsError } = await fetchAllPages(() =>
+        supabase.schema('applicants').from('applicant_skills').select('profile_id, skill_name, skill_category').order('id')
+      )
 
       if (skillsError) {
         console.warn('[skillRepositoryService] Warning fetching applicant_skills:', skillsError.message)
       }
 
       // 3. Fetch public municipalities
-      const { data: muniData } = await supabase
-        .schema('public')
-        .from('municipalities')
-        .select('id, name, code')
+      const { data: muniData } = await fetchAllPages(() =>
+        supabase.schema('public').from('municipalities').select('id, name, code').order('id')
+      )
 
       // 4. Fetch public barangays with LPII tagging
-      const { data: brgyData } = await supabase
-        .schema('public')
-        .from('barangays')
-        .select('id, name, lpii_tag, municipality_id')
+      const { data: brgyData } = await fetchAllPages(() =>
+        supabase.schema('public').from('barangays').select('id, name, lpii_tag, municipality_id').order('id')
+      )
 
       // 5. Query PSGC for municipality barangay counts in Agusan del Sur
       const psgcCounts: Record<string, number> = {}
@@ -120,7 +151,7 @@ export const skillRepositoryService = {
     const bundle = await this.fetchRawBundle(forceRefresh)
 
     // Build skill index by profile_id
-    const skillsByProfileId = new Map<string, Array<Database['applicants']['Tables']['applicant_skills']['Row']>>()
+    const skillsByProfileId = new Map<string, RepositorySkillRow[]>()
     for (const skill of bundle.applicantSkills) {
       if (skill.profile_id) {
         const list = skillsByProfileId.get(skill.profile_id) ?? []
@@ -129,10 +160,12 @@ export const skillRepositoryService = {
       }
     }
 
-    // Build municipality name lookup
-    const muniIdToName = new Map<string, string>()
-    for (const m of bundle.municipalities) {
-      muniIdToName.set(m.id, m.name)
+    // Group barangays by municipality once, instead of rescanning the list for every applicant
+    const barangaysByMunicipalityId = new Map<string, RawRepositoryBundle['barangays']>()
+    for (const b of bundle.barangays) {
+      const list = barangaysByMunicipalityId.get(b.municipality_id) ?? []
+      list.push(b)
+      barangaysByMunicipalityId.set(b.municipality_id, list)
     }
 
     return bundle.applicants.map((row) => {
@@ -159,7 +192,7 @@ export const skillRepositoryService = {
       if (isAgusan) {
         const muniRecord = bundle.municipalities.find((m) => matchesGeographicLabel(m.name, matchedMuni))
         const relevantBarangays = muniRecord
-          ? bundle.barangays.filter((b) => b.municipality_id === muniRecord.id)
+          ? barangaysByMunicipalityId.get(muniRecord.id) ?? []
           : bundle.barangays
         lpiiTag = findBarangayTagByName(barangay, relevantBarangays)
       }

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks } from '@/helpers/common/supabasePaging'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import {
@@ -42,11 +43,11 @@ export const tupadDocumentService = {
     tupadApplicantIds: string[]
   ): Promise<Pick<TupadApplicantDocumentRow, 'tupad_applicant_id' | 'path'>[]> {
     if (!tupadApplicantIds.length) return []
-    const { data, error } = await documentsTable()
-      .select('tupad_applicant_id, path')
-      .in('tupad_applicant_id', tupadApplicantIds)
+    const { data, error } = await fetchAllInChunks(tupadApplicantIds, (chunk) =>
+      documentsTable().select('tupad_applicant_id, path').in('tupad_applicant_id', chunk).order('id')
+    )
     if (error) throw new Error(error.message || 'Failed to load the TUPAD documents.')
-    return (data ?? []) as Pick<TupadApplicantDocumentRow, 'tupad_applicant_id' | 'path'>[]
+    return data as Pick<TupadApplicantDocumentRow, 'tupad_applicant_id' | 'path'>[]
   },
 
   /** Removes files from the documents bucket (best effort — see removeStorageFiles). */

@@ -249,8 +249,11 @@ export function cleanSkillName(rawName?: string | null): string {
 // ─── Extract Skills from Applicant Row & Profile ───
 
 export function extractSkillsFromApplicant(
-  applicantRow: Database['applicants']['Tables']['applicants']['Row'],
-  linkedSkills: Array<Database['applicants']['Tables']['applicant_skills']['Row']> = []
+  applicantRow: Pick<
+    Database['applicants']['Tables']['applicants']['Row'],
+    'other_skills' | 'other_skills_specified' | 'vocational_trainings' | 'eligibilities'
+  >,
+  linkedSkills: Array<Pick<Database['applicants']['Tables']['applicant_skills']['Row'], 'skill_name' | 'skill_category'>> = []
 ): ExtractedSkill[] {
   const extracted: ExtractedSkill[] = []
   const seen = new Set<string>()

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks } from '@/helpers/common/supabasePaging'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import {
@@ -130,16 +131,19 @@ export const spesAttachmentService = {
     const templateIds = await fetchTemplateIds()
     const keyByTemplateId = new Map([...templateIds].map(([key, id]) => [id, key]))
 
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('applicant_requirements')
-      .select('spes_form_id, requirement_id, applicant_requirement_media(id)')
-      .in('spes_form_id', ids)
+    const { data, error } = await fetchAllInChunks(ids, (chunk) =>
+      supabase
+        .schema('applicants')
+        .from('applicant_requirements')
+        .select('spes_form_id, requirement_id, applicant_requirement_media(id)')
+        .in('spes_form_id', chunk)
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load the SPES requirement attachments.')
 
     const attached: Record<string, SpesDocumentKey[]> = {}
-    for (const row of data ?? []) {
+    for (const row of data) {
       const key = row.requirement_id ? keyByTemplateId.get(row.requirement_id) : undefined
       if (!row.spes_form_id || !key || !row.applicant_requirement_media?.length) continue
       attached[row.spes_form_id] = [...(attached[row.spes_form_id] ?? []), key]

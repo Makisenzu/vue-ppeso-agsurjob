@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllInChunks, fetchAllPages, IN_FILTER_CHUNK_SIZE } from '@/helpers/common/supabasePaging'
 import type {
   SpesFormInsert,
   SpesFormReview,
@@ -26,17 +27,14 @@ const spesAppointmentsTable = () => (supabase.schema('esmdd') as any).from('spes
 // PostgREST cannot embed across schemas, so the `applicants.spes_form` rows a
 // beneficiary was enrolled from are fetched separately and merged by `application_id`.
 async function fetchFormsByIds(formIds: string[]): Promise<Map<string, SpesFormRow>> {
-  const uniqueIds = [...new Set(formIds)]
-  if (!uniqueIds.length) return new Map()
+  if (!formIds.length) return new Map()
 
-  const { data, error } = await supabase
-    .schema('applicants')
-    .from('spes_form')
-    .select('*')
-    .in('id', uniqueIds)
+  const { data, error } = await fetchAllInChunks(formIds, (chunk) =>
+    supabase.schema('applicants').from('spes_form').select('*').in('id', chunk).order('id')
+  )
 
   if (error) throw new Error(error.message || 'Failed to load SPES forms.')
-  return new Map((data ?? []).map((form) => [form.id, form]))
+  return new Map(data.map((form) => [form.id, form]))
 }
 
 async function attachForms(rows: SpesRow[]): Promise<SpesWithApplicant[]> {
@@ -48,15 +46,17 @@ async function attachForms(rows: SpesRow[]): Promise<SpesWithApplicant[]> {
 async function attachAppointments(rows: SpesWithApplicant[]): Promise<SpesBeneficiary[]> {
   if (!rows.length) return []
 
-  const { data, error } = await spesAppointmentsTable()
-    .select('*')
-    .in('spes_id', rows.map((row) => row.id))
-    .order('spes_year', { ascending: false })
+  const { data, error } = await fetchAllInChunks<SpesAppointmentRow, string>(
+    rows.map((row) => row.id),
+    (chunk) => spesAppointmentsTable().select('*').in('spes_id', chunk).order('id')
+  )
 
   if (error) throw new Error(error.message || 'Failed to load SPES appointments.')
 
+  // Chunked results arrive per chunk, so restore newest-year-first per beneficiary here
+  data.sort((a, b) => b.spes_year - a.spes_year)
   const bySpes = new Map<string, SpesAppointmentRow[]>()
-  for (const appointment of (data ?? []) as SpesAppointmentRow[]) {
+  for (const appointment of data) {
     bySpes.set(appointment.spes_id, [...(bySpes.get(appointment.spes_id) ?? []), appointment])
   }
   return rows.map((row) => ({ ...row, appointments: bySpes.get(row.id) ?? [] }))
@@ -66,14 +66,17 @@ export const spesService = {
   // ─── SPES Forms (applicants.spes_form) ───
 
   async fetchSpesForms(): Promise<SpesFormRow[]> {
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('spes_form')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('applicants')
+        .from('spes_form')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load SPES forms.')
-    return data ?? []
+    return data
   },
 
   async fetchSpesFormById(formId: string): Promise<SpesFormRow> {
@@ -134,17 +137,20 @@ export const spesService = {
    * Pending are changed, so a form reviewed meanwhile by someone else is left as it is.
    */
   async approveDrawnForms(formIds: string[], remarks: string): Promise<SpesFormRow[]> {
-    if (!formIds.length) return []
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('spes_form')
-      .update({ status: 'Approved', remarks })
-      .in('id', formIds)
-      .eq('status', 'Pending')
-      .select()
+    const approved: SpesFormRow[] = []
+    for (let i = 0; i < formIds.length; i += IN_FILTER_CHUNK_SIZE) {
+      const { data, error } = await supabase
+        .schema('applicants')
+        .from('spes_form')
+        .update({ status: 'Approved', remarks })
+        .in('id', formIds.slice(i, i + IN_FILTER_CHUNK_SIZE))
+        .eq('status', 'Pending')
+        .select()
 
-    if (error) throw new Error(error.message || 'Failed to approve the drawn SPES applicants.')
-    return data ?? []
+      if (error) throw new Error(error.message || 'Failed to approve the drawn SPES applicants.')
+      approved.push(...(data ?? []))
+    }
+    return approved
   },
 
   /** Also removes its SPES beneficiary record (ON DELETE CASCADE). */
@@ -160,15 +166,18 @@ export const spesService = {
 
   /** Jobseekers from Entry of Applicants that have an account a SPES form can belong to. */
   async fetchLinkableJobseekers(): Promise<SpesLinkableJobseeker[]> {
-    const { data, error } = await supabase
-      .schema('applicants')
-      .from('applicants')
-      .select('id, profile_id, first_name, middle_name, surname, date_of_birth, sex, civil_status, contact_numbers, email')
-      .not('profile_id', 'is', null)
-      .order('surname', { ascending: true })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('applicants')
+        .from('applicants')
+        .select('id, profile_id, first_name, middle_name, surname, date_of_birth, sex, civil_status, contact_numbers, email')
+        .not('profile_id', 'is', null)
+        .order('surname', { ascending: true })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load jobseeker accounts.')
-    return (data ?? []) as SpesLinkableJobseeker[]
+    return data as SpesLinkableJobseeker[]
   },
 
   /**
@@ -194,14 +203,17 @@ export const spesService = {
 
   /** Every beneficiary with its SPES form and yearly appointments. */
   async fetchBeneficiaries(): Promise<SpesBeneficiary[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('spes')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('spes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
 
     if (error) throw new Error(error.message || 'Failed to load SPES beneficiaries.')
-    return attachAppointments(await attachForms(data ?? []))
+    return attachAppointments(await attachForms(data))
   },
 
   async fetchBeneficiaryById(spesId: string): Promise<SpesBeneficiary> {
