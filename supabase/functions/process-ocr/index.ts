@@ -2,16 +2,44 @@
 // Supabase Edge Function: process-ocr
 // Description: Extracts structured data from handwritten & printed forms using
 //              Google Gemini Vision API (Multimodal OCR).
+// Access:      Provincial PESO and admin only. The caller's JWT is verified and every
+//              storage / database call runs as the caller, so RLS (033 / 034) applies.
+//              No service-role key is used.
 // ==============================================================================
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 
-// Standard CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const GEMINI_MODEL = 'gemini-3.7-flash'
+const ALLOWED_ROLES = ['provincial_peso', 'admin']
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
+const MAX_IMAGES = 4
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024 // same limit as the 'applicant-forms' bucket
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Comma-separated list in the ALLOWED_ORIGINS secret (e.g. "https://agsurjobs.example,http://localhost:5173").
+// When unset, any origin may call it; the JWT + role check still applies.
+const allowedOrigins = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? ''
+  const allowOrigin = allowedOrigins.length === 0 ? '*' : allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  }
+}
+
+// Errors whose message is safe to show the caller, with their HTTP status
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
 }
 
 // Convert ArrayBuffer / Uint8Array to Base64 in Deno
@@ -25,7 +53,43 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
+// Accepts raw base64 or a data URL; validates type and decoded size
+function toImagePart(value: unknown, fallbackMimeType: unknown): { mime_type: string; data: string } {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new HttpError(400, 'Image data is empty.')
+  }
+
+  let data = value
+  let mimeType = typeof fallbackMimeType === 'string' ? fallbackMimeType : 'image/jpeg'
+  if (value.includes(';base64,')) {
+    const [header, payload] = value.split(';base64,')
+    const match = header.match(/^data:(.*?)$/)
+    if (match) mimeType = match[1]
+    data = payload
+  }
+
+  mimeType = mimeType.toLowerCase()
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    throw new HttpError(400, `Unsupported file type: ${mimeType}.`)
+  }
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(data)) {
+    throw new HttpError(400, 'Image data is not valid base64.')
+  }
+  if ((data.length * 3) / 4 > MAX_IMAGE_BYTES) {
+    throw new HttpError(413, 'Image is larger than 20 MB.')
+  }
+
+  return { mime_type: mimeType, data }
+}
+
 serve(async (req: Request) => {
+  const corsHeaders = corsHeadersFor(req)
+  const jsonResponse = (body: Record<string, unknown>, status: number) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+
   // 1. Handle CORS Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders, status: 200 })
@@ -33,106 +97,98 @@ serve(async (req: Request) => {
 
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      throw new HttpError(405, 'Method not allowed')
     }
 
-    // 2. Validate Gemini API Key
+    // 2. Authenticate the caller and require Provincial PESO / admin
+    const authHeader = req.headers.get('Authorization') ?? ''
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new HttpError(401, 'Sign in to use OCR.')
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('SUPABASE_URL / SUPABASE_ANON_KEY are not available to the function.')
+    }
+
+    // Client acting as the caller: storage and table access go through their RLS
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    if (userError || !userData?.user) {
+      throw new HttpError(401, 'Your session has expired. Sign in again.')
+    }
+
+    const { data: profile } = await supabase
+      .schema('core')
+      .from('profiles')
+      .select('role')
+      .eq('id', userData.user.id)
+      .maybeSingle()
+
+    if (!profile || !ALLOWED_ROLES.includes(String(profile.role))) {
+      throw new HttpError(403, 'Only Provincial PESO and admin accounts can use OCR.')
+    }
+
+    // 3. Validate Gemini API Key
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
     if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your Supabase project secrets or local .env file.',
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      throw new Error('GEMINI_API_KEY is not configured in the Supabase project secrets.')
     }
 
-    // 3. Parse Request Payload
+    // 4. Parse Request Payload
     const body = await req.json().catch(() => ({}))
-    const { image_path, image_url, image_base64, image_base64_list, mime_type = 'image/jpeg', applicant_id } = body
+    const { image_path, image_base64, image_base64_list, mime_type = 'image/jpeg', applicant_id } = body
 
     const hasMultiImage = Array.isArray(image_base64_list) && image_base64_list.length > 0
 
-    if (!image_path && !image_url && !image_base64 && !hasMultiImage) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing image input. Provide image_path, image_url, image_base64, or image_base64_list.',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+    if (!image_path && !image_base64 && !hasMultiImage) {
+      throw new HttpError(400, 'Missing image input. Provide image_path, image_base64, or image_base64_list.')
+    }
+    if (hasMultiImage && image_base64_list.length > MAX_IMAGES) {
+      throw new HttpError(400, `Send at most ${MAX_IMAGES} images per request.`)
     }
 
-    // Initialize Supabase client for storage and DB persistence
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || ''
-    const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
-
-    // 4. Retrieve Image(s) as Base64 Data
+    // 5. Retrieve Image(s) as Base64 Data
     const imageParts: Array<{ mime_type: string; data: string }> = []
 
     if (hasMultiImage) {
       for (const item of image_base64_list) {
-        let b64 = item.data || ''
-        let mt = item.mime_type || 'image/jpeg'
-        if (b64.includes(';base64,')) {
-          const parts = b64.split(';base64,')
-          const match = parts[0].match(/data:(.*?)$/)
-          if (match) mt = match[1]
-          b64 = parts[1]
-        }
-        if (b64) {
-          imageParts.push({ mime_type: mt, data: b64 })
-        }
+        imageParts.push(toImagePart(item?.data, item?.mime_type))
       }
     } else if (image_base64) {
-      let finalBase64 = image_base64
-      let detectedMimeType = mime_type
-      if (image_base64.includes(';base64,')) {
-        const parts = image_base64.split(';base64,')
-        const match = parts[0].match(/data:(.*?)$/)
-        if (match) detectedMimeType = match[1]
-        finalBase64 = parts[1]
-      }
-      imageParts.push({ mime_type: detectedMimeType, data: finalBase64 })
+      imageParts.push(toImagePart(image_base64, mime_type))
     } else if (image_path) {
-      if (!supabase) {
-        throw new Error('Supabase client credentials missing to fetch image from storage bucket.')
+      if (typeof image_path !== 'string' || image_path.startsWith('/') || image_path.split('/').includes('..')) {
+        throw new HttpError(400, 'Invalid image_path.')
       }
 
+      // Downloaded as the caller, so the 'applicant-forms' bucket policies decide access
       const { data: fileData, error: downloadError } = await supabase.storage
         .from('applicant-forms')
         .download(image_path)
 
       if (downloadError || !fileData) {
-        throw new Error(`Failed to download image from storage: ${downloadError?.message || 'File not found'}`)
+        throw new HttpError(404, 'The uploaded form could not be found.')
+      }
+      if (fileData.size > MAX_IMAGE_BYTES) {
+        throw new HttpError(413, 'Image is larger than 20 MB.')
       }
 
-      const detectedMimeType = fileData.type || mime_type || 'image/jpeg'
-      const arrayBuffer = await fileData.arrayBuffer()
-      imageParts.push({ mime_type: detectedMimeType, data: arrayBufferToBase64(arrayBuffer) })
-    } else if (image_url) {
-      const response = await fetch(image_url)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image URL: HTTP ${response.status} ${response.statusText}`)
+      const detectedMimeType = (fileData.type || mime_type || 'image/jpeg').toLowerCase()
+      if (!ALLOWED_MIME_TYPES.includes(detectedMimeType)) {
+        throw new HttpError(400, `Unsupported file type: ${detectedMimeType}.`)
       }
-      const contentType = response.headers.get('content-type')
-      const detectedMimeType = contentType ? contentType.split(';')[0] : mime_type
-      const arrayBuffer = await response.arrayBuffer()
+      const arrayBuffer = await fileData.arrayBuffer()
       imageParts.push({ mime_type: detectedMimeType, data: arrayBufferToBase64(arrayBuffer) })
     }
 
     if (imageParts.length === 0) {
-      throw new Error('Image data is empty or could not be loaded.')
+      throw new HttpError(400, 'Image data is empty or could not be loaded.')
     }
 
     // 5. Build Gemini Multimodal Prompt & System Instructions
@@ -232,8 +288,9 @@ CRITICAL EXTRACTION RULES:
 
 REMEMBER: Extract ONLY handwritten or filled-in values. NEVER output printed form labels (e.g. SURNAME, FIRST NAME, Date of Assessor) as values.`
 
-    // 6. Call Google Gemini Vision API (gemini-3.7-flash with structured JSON output)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiApiKey}`
+    // 6. Call Google Gemini Vision API (structured JSON output). The key goes in a header so it
+    //    never appears in URLs or logs.
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
     const contentParts: Array<Record<string, any>> = [
       { text: `${systemPrompt}\n\n${promptText}` },
@@ -263,86 +320,84 @@ REMEMBER: Extract ONLY handwritten or filled-in values. NEVER output printed for
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey },
       body: JSON.stringify(requestPayload),
     })
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
       console.error('Gemini API Error:', errText)
-      throw new Error(`Google Gemini Vision API request failed (${geminiRes.status}): ${errText}`)
+      throw new HttpError(502, `The OCR service could not read the form (Gemini ${geminiRes.status}). Try again.`)
     }
 
     const geminiData = await geminiRes.json()
     const rawContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
 
     if (!rawContent) {
-      throw new Error('Gemini API returned an empty text response.')
+      throw new HttpError(502, 'The OCR service returned no result. Try again.')
     }
 
     // 7. Parse Extracted JSON
     let extractedJson: any = {}
     try {
       extractedJson = JSON.parse(rawContent)
-    } catch (parseErr) {
-      const cleaned = rawContent.replace(/```json\n?|\n?```/g, '').trim()
-      extractedJson = JSON.parse(cleaned)
-    }
-
-    // 8. Persist to Supabase Database (if database is accessible)
-    let savedRecordId: string | null = null
-    if (supabase) {
+    } catch {
       try {
-        const { data: record, error: insertError } = await supabase
-          .from('applicant_forms')
-          .insert({
-            user_id: applicant_id || null,
-            file_path: image_path || image_url || 'direct_upload',
-            status: 'processed',
-            extracted_data: extractedJson,
-            raw_ocr_response: geminiData,
-          })
-          .select('id')
-          .single()
-
-        if (record) {
-          savedRecordId = record.id
-        } else if (insertError) {
-          console.warn('Could not persist to applicant_forms table (continuing):', insertError.message)
-        }
-      } catch (dbErr) {
-        console.warn('Database insert skipped:', dbErr)
+        const cleaned = rawContent.replace(/```json\n?|\n?```/g, '').trim()
+        extractedJson = JSON.parse(cleaned)
+      } catch {
+        throw new HttpError(502, 'The OCR result could not be read. Try again.')
       }
     }
 
+    // 8. Persist to applicant_forms as the caller (RLS: Provincial PESO / admin)
+    let savedRecordId: string | null = null
+    try {
+      const { data: record, error: insertError } = await supabase
+        .from('applicant_forms')
+        .insert({
+          user_id: typeof applicant_id === 'string' && UUID_PATTERN.test(applicant_id) ? applicant_id : null,
+          file_path: typeof image_path === 'string' ? image_path : 'direct_upload',
+          status: 'processed',
+          extracted_data: extractedJson,
+          raw_ocr_response: geminiData,
+        })
+        .select('id')
+        .single()
+
+      if (record) {
+        savedRecordId = record.id
+      } else if (insertError) {
+        console.warn('Could not persist to applicant_forms table (continuing):', insertError.message)
+      }
+    } catch (dbErr) {
+      console.warn('Database insert skipped:', dbErr)
+    }
+
     // 9. Return JSON Response to Client
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         success: true,
         data: extractedJson,
         form_id: savedRecordId,
         metadata: {
-          file_path: image_path || null,
-          model: 'gemini-2.0-flash',
+          file_path: typeof image_path === 'string' ? image_path : null,
+          model: GEMINI_MODEL,
           processed_at: new Date().toISOString(),
         },
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
+      200
     )
   } catch (error: any) {
+    if (error instanceof HttpError) {
+      return jsonResponse({ success: false, error: error.message }, error.status)
+    }
+
+    // Unexpected failures are logged in full but not echoed to the caller
     console.error('OCR Processing Error:', error)
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'An unexpected error occurred while processing the form.',
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+    return jsonResponse(
+      { success: false, error: 'An unexpected error occurred while processing the form.' },
+      500
     )
   }
 })

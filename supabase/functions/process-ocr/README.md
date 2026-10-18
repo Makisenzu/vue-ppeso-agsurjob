@@ -34,7 +34,23 @@ supabase functions deploy process-ocr
 
 ---
 
-## 3. Invocation Payload Schema
+Optional: restrict which sites may call it from a browser (comma-separated):
+```bash
+supabase secrets set ALLOWED_ORIGINS=https://your-app-domain,http://localhost:5173
+```
+
+---
+
+## 3. Access
+
+- The request must carry the caller's Supabase JWT (`supabase.functions.invoke` sends it).
+- Only `provincial_peso` and `admin` accounts are accepted (`401` without a valid session, `403` for other roles).
+- Storage downloads and the `applicant_forms` insert run as the caller, so the RLS policies of
+  migrations 033 / 034 apply. The function does not use the service-role key.
+
+---
+
+## 4. Invocation Payload Schema
 
 ### Request (POST)
 ```json
@@ -43,13 +59,14 @@ supabase functions deploy process-ocr
   "applicant_id": "optional-uuid"
 }
 ```
-*Or directly with `image_url` or `image_base64`:*
+*Or directly with `image_base64` / `image_base64_list` (at most 4 images, 20 MB each; JPEG, PNG, WebP or PDF):*
 ```json
 {
   "image_base64": "data:image/jpeg;base64,...",
   "applicant_id": "optional-uuid"
 }
 ```
+`image_path` is read from the `applicant-forms` bucket. Fetching arbitrary URLs (`image_url`) is not supported.
 
 ### Response (200 OK)
 ```json

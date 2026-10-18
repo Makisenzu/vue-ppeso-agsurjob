@@ -257,7 +257,6 @@ export const ocrVisionService = {
    */
   async processOcrWithGemini(params: {
     imagePath?: string
-    imageUrl?: string
     imageBase64?: string
     imageBase64List?: Array<{ data: string; mime_type: string }>
     mimeType?: string
@@ -285,7 +284,6 @@ export const ocrVisionService = {
     // Supabase Edge Function path
     const payload = {
       image_path: params.imagePath,
-      image_url: params.imageUrl,
       image_base64: params.imageBase64 || (imageParts[0]?.data),
       image_base64_list: params.imageBase64List || imageParts,
       mime_type: params.mimeType || 'image/jpeg',
@@ -297,7 +295,9 @@ export const ocrVisionService = {
     })
 
     if (error) {
-      throw new Error(error.message || 'Edge function process-ocr invocation failed.')
+      // Non-2xx responses carry the function's own message (e.g. 401 / 403) in the body
+      const body = await (error as any).context?.json?.().catch(() => null)
+      throw new Error(body?.error || error.message || 'Edge function process-ocr invocation failed.')
     }
 
     if (!data) {
