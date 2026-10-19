@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient'
 import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import { mediaService } from '@/services/common/mediaService'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { Database } from '@/types/database.types'
 import type {
   DirectoryProfileRow,
@@ -21,6 +22,22 @@ function normalizeRequirementStatus(status: string): Database['public']['Enums']
 
 const SYSTEM_DIRECTORY_CACHE_KEY = 'admin:system-directory:records'
 const SYSTEM_DIRECTORY_CACHE_TTL_MS = 1000 * 60 * 15
+
+// Related tables are optional enrichment: a failed read leaves those details blank
+// instead of failing the whole directory, but is logged so it isn't silent.
+async function readOptional(label: string, buildQuery: Parameters<typeof fetchAllPages>[0]): Promise<{ data: any[] }> {
+  try {
+    const { data, error } = await fetchAllPages(buildQuery)
+    if (error) {
+      console.warn(`System directory: failed to load ${label}`, error)
+      return { data: [] }
+    }
+    return { data }
+  } catch (error) {
+    console.warn(`System directory: failed to load ${label}`, error)
+    return { data: [] }
+  }
+}
 
 export const systemDirectoryService = {
   // Fast, instant URL generator for initial table rendering
@@ -72,25 +89,28 @@ export const systemDirectoryService = {
     }
     
     return getOrSetPersistentCache(SYSTEM_DIRECTORY_CACHE_KEY, SYSTEM_DIRECTORY_CACHE_TTL_MS, async () => {
-      // 1. Fetch core profile records
-      const { data: profiles, error: profileErr } = await supabase
-        .schema('core')
-        .from('profiles')
-        .select('*')
-        .in('role', ['applicant', 'company_owner', 'company_member'])
-        .order('created_at', { ascending: false })
+      // 1. Fetch core profile records (paged — PostgREST caps each response at 1,000 rows)
+      const { data: profiles, error: profileErr } = await fetchAllPages(() =>
+        supabase
+          .schema('core')
+          .from('profiles')
+          .select('*')
+          .in('role', ['applicant', 'company_owner', 'company_member'])
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+      )
 
       if (profileErr) {
         throw new Error(profileErr.message || 'Failed to fetch directory profiles')
       }
 
-      if (!profiles || profiles.length === 0) {
+      if (profiles.length === 0) {
         return []
       }
 
-      const profileIds = profiles.map((p) => p.id)
-
-      // 2. PARALLEL FETCH (Run all related table queries concurrently!)
+      // 2. PARALLEL FETCH of related tables. These are read whole (paged) rather than
+      // filtered with `.in('profile_id', profileIds)`: the directory covers nearly every
+      // account, and an `.in()` list that long overflows the request URL.
       const [
         emailRes,
         templatesRes,
@@ -103,16 +123,16 @@ export const systemDirectoryService = {
         empMediaRes,
         profileMediaRes,
       ] = await Promise.all([
-        Promise.resolve((supabase.schema('core') as any).rpc('get_user_emails')).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('public').from('requirement_templates').select('id, name')).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('employers').from('companies').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('employers').from('company_members').select('profile_id, company_id').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('applicants').from('applicants').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('applicants').from('applicant_requirements').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('applicants').from('applicant_requirement_media').select('*').in('profiles_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('employers').from('employer_requirements').select('*')).catch(() => ({ data: null, error: null })),
-        Promise.resolve((supabase.schema('employers') as any).from('employer_requirement_media').select('*').in('profile_id', profileIds)).catch(() => ({ data: null, error: null })),
-        Promise.resolve(supabase.schema('core').from('profile_media').select('*').in('profile_id', profileIds).order('created_at', { ascending: false })).catch(() => ({ data: null, error: null })),
+        readOptional('user emails', () => (supabase.schema('core') as any).rpc('get_user_emails').order('id')),
+        readOptional('requirement templates', () => supabase.schema('public').from('requirement_templates').select('id, name').order('id')),
+        readOptional('companies', () => supabase.schema('employers').from('companies').select('*').not('profile_id', 'is', null).order('id')),
+        readOptional('company members', () => supabase.schema('employers').from('company_members').select('profile_id, company_id').not('profile_id', 'is', null).order('id')),
+        readOptional('applicants', () => supabase.schema('applicants').from('applicants').select('*').not('profile_id', 'is', null).order('id')),
+        readOptional('applicant requirements', () => supabase.schema('applicants').from('applicant_requirements').select('*').not('profile_id', 'is', null).order('id')),
+        readOptional('applicant documents', () => supabase.schema('applicants').from('applicant_requirement_media').select('*').not('profiles_id', 'is', null).order('id')),
+        readOptional('employer requirements', () => supabase.schema('employers').from('employer_requirements').select('*').order('id')),
+        readOptional('employer documents', () => (supabase.schema('employers') as any).from('employer_requirement_media').select('*').not('profile_id', 'is', null).order('id')),
+        readOptional('profile media', () => supabase.schema('core').from('profile_media').select('*').order('created_at', { ascending: false }).order('id', { ascending: true })),
       ])
       const emailMap = new Map<string, string>()
       if (emailRes.data && Array.isArray(emailRes.data)) {

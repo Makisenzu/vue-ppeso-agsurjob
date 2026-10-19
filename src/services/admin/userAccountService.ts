@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/common/persistentCache'
 import type { Database } from '@/types/database.types'
 import { mediaService } from '@/services/common/mediaService'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
@@ -85,10 +86,13 @@ export const userAccountService = {
       // First, fetch barangay terrain information from public schema
       let barangayRecords: Array<{ name?: string | null; lpii_tag?: Database['public']['Enums']['lpii_type'] | null }> = []
       try {
-        const { data: barangayData, error: barangayError } = await supabase
-          .schema('public')
-          .from('barangays')
-          .select('name, lpii_tag')
+        const { data: barangayData, error: barangayError } = await fetchAllPages(() =>
+          supabase
+            .schema('public')
+            .from('barangays')
+            .select('name, lpii_tag')
+            .order('id')
+        )
 
         if (barangayError) {
           console.error('Error fetching barangays:', barangayError)
@@ -103,27 +107,37 @@ export const userAccountService = {
         console.error('Error fetching barangay terrain data:', error)
       }
 
-      const { data: profiles, error } = await supabase
-        .schema('core')
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Paged — PostgREST caps each response at 1,000 rows
+      const { data: profiles, error } = await fetchAllPages(() =>
+        supabase
+          .schema('core')
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+      )
 
       if (error) {
         throw new Error(error.message || 'Failed to fetch profiles')
       }
 
-      if (!profiles || profiles.length === 0) {
+      if (profiles.length === 0) {
         return []
       }
 
-      const profileIds = profiles.map((profile) => profile.id)
-      const { data: mediaRows } = await supabase
-        .schema('core')
-        .from('profile_media')
-        .select('*')
-        .in('profile_id', profileIds)
-        .order('created_at', { ascending: false })
+      // Every profile is listed, so read profile_media whole instead of an `.in()` over
+      // all profile ids (a list that long overflows the request URL).
+      const { data: mediaRows, error: mediaError } = await fetchAllPages(() =>
+        supabase
+          .schema('core')
+          .from('profile_media')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+      )
+      if (mediaError) {
+        console.warn('Failed to fetch profile media:', mediaError)
+      }
 
       const avatarMap = new Map<string, string>()
       if (mediaRows && Array.isArray(mediaRows)) {
@@ -141,7 +155,7 @@ export const userAccountService = {
       // that reads from auth.users (not accessible directly from the client).
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user_emails')
+        const { data: emailRows } = await fetchAllPages<{ id: string; email: string }>(() => (supabase.schema('core') as any).rpc('get_user_emails').order('id'))
         if (emailRows && Array.isArray(emailRows)) {
           const emailMap = new Map<string, string>(
             emailRows.map((row: { id: string; email: string }) => [row.id, row.email]),
