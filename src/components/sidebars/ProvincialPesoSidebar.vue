@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BetweenHorizontalEnd,Blocks, Database,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, SportShoe, Star, UserRoundCog, BookMarked, MapPinned, IdCardLanyard} from '@lucide/vue'
+import { BetweenHorizontalEnd,Blocks, Database,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Navigation, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, SportShoe, Star, UserRoundCog, BookMarked, MapPinned, IdCardLanyard} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -150,12 +150,6 @@ const companyItems = [
                   <RouterLink :to="{ name: 'dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
-              </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'">
-                  <RouterLink to="#">
-                    <Bell />
-                    <span>Notification</span>
                   </RouterLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Entry of Applicants'" :is-active="route.name === 'provincial-peso-entry'">

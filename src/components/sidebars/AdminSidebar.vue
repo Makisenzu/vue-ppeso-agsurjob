@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, Bell, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map} from '@lucide/vue'
+import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -131,12 +131,6 @@ const managementItems = [
                   <RouterLink :to="{ name: 'admin-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
-              </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'" :is-active="route.name === 'admin-notification'">
-                  <RouterLink to="#">
-                    <Bell />
-                    <span>Notification</span>
                   </RouterLink>
               </SidebarMenuButton>
           </SidebarMenuItem>

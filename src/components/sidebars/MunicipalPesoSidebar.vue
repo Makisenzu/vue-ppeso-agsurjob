@@ -141,12 +141,6 @@ const settingsSubItems = [
                     <span>Dashboard</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'">
-                  <RouterLink to="#">
-                    <Bell />
-                    <span>Notification</span>
-                  </RouterLink>
-              </SidebarMenuButton>
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />

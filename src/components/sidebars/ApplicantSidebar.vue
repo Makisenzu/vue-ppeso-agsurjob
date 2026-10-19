@@ -147,12 +147,6 @@ const jobHuntItems = [
                   </RouterLink>
               </SidebarMenuButton>
               
-              <SidebarMenuButton as-child :tooltip="'Notification'" :is-active="route.name === 'notification'">
-                  <RouterLink :to="{ name: 'notification' }">
-                    <Bell />
-                    <span>Notification</span>
-                  </RouterLink>
-              </SidebarMenuButton>
           </SidebarMenuItem>
           
           <div class="my-1 h-px bg-sidebar-border" />

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UsersRound, File, FolderSearch2, Newspaper, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, Bell, MessageCircle, Star, UserRoundCog} from '@lucide/vue'
+import { UsersRound, File, FolderSearch2, Newspaper, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, MessageCircle, Star, UserRoundCog} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -140,12 +140,6 @@ const companyItems = [
                   <RouterLink :to="{ name: 'dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
-              </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Notification'">
-                  <RouterLink to="#">
-                    <Bell />
-                    <span>Notification</span>
                   </RouterLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
