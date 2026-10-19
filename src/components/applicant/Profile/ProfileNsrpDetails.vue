@@ -111,8 +111,7 @@ const empty = 'rounded-lg bg-muted/40 px-4 py-5 text-sm text-muted-foreground'
         <h2 id="nsrp-details-heading" class="text-base font-semibold text-foreground">NSRP details</h2>
         <p class="text-sm text-muted-foreground">
           <template v-if="isComplete">
-            Your National Skills Registration Program record with PESO Agusan del Sur. Keep it current so programs and
-            employers match you correctly.
+            Keep your NSRP details up to date so programs and employers match you correctly.
           </template>
           <template v-else>Some sections of your NSRP record still need answers.</template>
         </p>

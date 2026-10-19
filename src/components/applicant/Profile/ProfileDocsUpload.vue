@@ -557,12 +557,12 @@ const submitDocuments = async () => {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="destructive" :disabled="isDeleting" @click="confirmDelete">
-                {{ isDeleting ? 'Deleting...' : 'Delete' }}
-              </Button>
               <DialogClose as-child>
                 <Button variant="outline" @click="cancelDelete">Cancel</Button>
               </DialogClose>
+              <Button variant="destructive" :disabled="isDeleting" @click="confirmDelete">
+                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
