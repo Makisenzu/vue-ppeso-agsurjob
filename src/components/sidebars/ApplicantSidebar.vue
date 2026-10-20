@@ -57,7 +57,7 @@ const settingsSubItems = [
   { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
 ]
 const jobHuntItems = [
-  { title: 'Find Jobs', to: {name: 'find-job'}, icon: Search },
+  { title: 'Vacancies', to: {name: 'vacancies'}, icon: Search },
   { title: 'Saved Jobs', to: {name: 'saved-job'}, icon: Bookmark },
   { title: 'Companies', to: {name: 'company'}, icon: Building },
   { title: 'SPES Application', to: {name: 'spes-application'}, icon: GraduationCap },

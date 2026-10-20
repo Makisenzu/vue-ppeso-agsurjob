@@ -28,9 +28,9 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/ApplicantNotification.vue')
       },
       {
-        path: 'find-job',
-        name: 'find-job',
-        component: () => import('@/components/applicant/ApplicantFindJob.vue')
+        path: 'vacancies',
+        name: 'vacancies',
+        component: () => import('@/components/applicant/ApplicantVacancies.vue')
       },
       {
         path: 'saved-job',
