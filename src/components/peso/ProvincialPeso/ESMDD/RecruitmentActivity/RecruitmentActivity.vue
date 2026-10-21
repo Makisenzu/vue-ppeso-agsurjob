@@ -442,10 +442,8 @@ const {
         <AlertDialogTitle>Delete recruitment activity?</AlertDialogTitle>
         <AlertDialogDescription>
           The {{ activityToDelete?.type }} of
-          <strong class="font-medium text-foreground">{{ activityToDelete?.agency_name }}</strong>, its requirement
-          checklist, uploaded documents and job orders will be permanently deleted, together with the job orders'
-          vacancies and the agency's NSRP Form 2 (unless a job fair, another activity or a company account still uses
-          them). This action cannot be undone.
+          <strong class="font-medium text-foreground">{{ activityToDelete?.agency_name }}</strong> and all its records
+          will be permanently deleted. This action cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
