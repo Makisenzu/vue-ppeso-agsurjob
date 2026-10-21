@@ -34,6 +34,31 @@ export const ESTABLISHMENT_FORM_FIELDS = [
 
 export type EstablishmentFormFields = Pick<EstablishmentRow, (typeof ESTABLISHMENT_FORM_FIELDS)[number]>
 
+/** NSRP Form 2 as form fields (camelCase), shared by the forms that fill it in. */
+export type EstablishmentFormValues = {
+  businessName: string
+  tradeName: string
+  acronym: string
+  employerCategory: EstablishmentRow['employer_category']
+  publicEmployerType: NonNullable<EstablishmentRow['public_employer_type']> | undefined
+  privateEmployerType: NonNullable<EstablishmentRow['private_employer_type']> | undefined
+  totalWorkforce: NonNullable<EstablishmentRow['total_workforce']> | undefined
+  industryLine: string
+  tin: string
+  ownerPresidentName: string
+  contactPersonName: string
+  contactPersonPosition: string
+  emailAddress: string
+  mobileNumber: string
+  telephoneNumber: string
+  faxNumber: string
+  street: string
+  barangay: string
+  cityMunicipality: string
+  province: string
+  isMainOffice: boolean
+}
+
 /** Search result row for the "find existing establishment" picker. */
 export type EstablishmentSearchResult = Pick<
   EstablishmentRow,

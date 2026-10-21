@@ -192,11 +192,24 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: FnplpDashboard,
         meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'FNPLP / OFW' }
       },
+      // ─── Recruitment Activity: LRA / SRA (breadcrumb hierarchy: Recruitment Activity > Details) ───
       {
         path: 'recruitment-activity',
-        name: 'provincial-peso-recruitment-activity',
-        component: RecruitmentActivity,
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Recruitment Activity' }
+        meta: { breadcrumb: 'Recruitment Activity', breadcrumbTo: { name: 'provincial-peso-recruitment-activity' } },
+        children: [
+          {
+            path: '',
+            name: 'provincial-peso-recruitment-activity',
+            component: RecruitmentActivity,
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          {
+            path: ':activityId',
+            name: 'provincial-peso-recruitment-activity-details',
+            component: () => import('@/components/peso/ProvincialPeso/ESMDD/RecruitmentActivity/RecruitmentActivityDetails.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Details' },
+          },
+        ],
       },
       // ─── Applicant Entry (nested group for breadcrumb hierarchy: Entry of Applicants > Details / New) ───
       {

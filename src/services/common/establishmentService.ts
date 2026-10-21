@@ -61,6 +61,19 @@ export const establishmentService = {
     return result
   },
 
+  /** Registers a new establishment (PESO-encoded ones start Verified, see guard_establishment_review). */
+  async createEstablishment(payload: EstablishmentFormFields): Promise<EstablishmentRow> {
+    const { data, error } = await supabase
+      .schema('employers')
+      .from('establishments')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to register establishment.')
+    return data
+  },
+
   /** Saves Form 2 edits; every activity linked to the establishment sees them. */
   async updateEstablishment(establishmentId: string, payload: EstablishmentFormFields): Promise<EstablishmentRow> {
     const { data, error } = await supabase
