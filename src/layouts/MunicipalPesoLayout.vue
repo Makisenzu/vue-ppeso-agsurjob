@@ -3,6 +3,7 @@ import MunicipalPesoSidebar from '@/components/sidebars/MunicipalPesoSidebar.vue
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useColorMode } from '@vueuse/core'
 import { Sun, Moon, Bell } from '@lucide/vue'
+import NotificationCountBadge from '@/components/NotificationCountBadge.vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 
 const mode = useColorMode()
@@ -27,10 +28,11 @@ function toggleTheme() {
           <CustomBreadcrumbs/>
           <RouterLink 
             to="#" 
-            class="ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="relative ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             title="Notifications"
           >
             <Bell class="size-4 shrink-0" />
+            <NotificationCountBadge />
           </RouterLink>
           <button 
             @click="toggleTheme" 

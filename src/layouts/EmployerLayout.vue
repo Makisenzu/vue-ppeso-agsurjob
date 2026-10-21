@@ -3,6 +3,7 @@ import EmployerSidebar from '@/components/sidebars/EmployerSidebar.vue'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useColorMode } from '@vueuse/core'
 import { Sun, Moon, Bell } from '@lucide/vue'
+import NotificationCountBadge from '@/components/NotificationCountBadge.vue'
 
 const mode = useColorMode()
 
@@ -26,10 +27,11 @@ function toggleTheme() {
 
           <RouterLink 
             to="#" 
-            class="ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="relative ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             title="Notifications"
           >
             <Bell class="size-4 shrink-0" />
+            <NotificationCountBadge />
           </RouterLink>
           <button 
             @click="toggleTheme" 

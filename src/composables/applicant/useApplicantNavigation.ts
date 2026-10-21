@@ -28,6 +28,8 @@ export interface ApplicantNavItem {
 
 const navItems: ApplicantNavItem[] = [
   { title: 'Home', to: { name: 'home' } },
+  { title: 'Trainings', to: { name: 'home' } },
+  { title: 'Announcements', to: { name: 'home' } },
   {
     title: 'Job Search',
     children: [

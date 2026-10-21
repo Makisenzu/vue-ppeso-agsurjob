@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import GoeyNav from '@/components/GoeyNav.vue'
+import NotificationCountBadge from '@/components/NotificationCountBadge.vue'
 import { useApplicantNavigation } from '@/composables/applicant/useApplicantNavigation'
 import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
@@ -76,9 +77,10 @@ const {
 
       <!-- Actions -->
       <div class="ml-auto flex items-center gap-1 md:ml-0">
-        <Button variant="ghost" size="icon-sm" as-child title="Notifications" aria-label="Notifications">
+        <Button variant="ghost" size="icon-sm" as-child title="Notifications" aria-label="Notifications" class="relative">
           <RouterLink :to="{ name: 'notification' }">
             <Bell class="size-4" />
+            <NotificationCountBadge />
           </RouterLink>
         </Button>
         <Button variant="ghost" size="icon-sm" title="Toggle color theme" aria-label="Toggle color theme" @click="toggleTheme">
