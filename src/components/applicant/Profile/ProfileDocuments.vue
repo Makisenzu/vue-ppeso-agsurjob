@@ -1,16 +1,9 @@
 <script setup lang="ts">
+import { h } from 'vue'
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
 import { useAuthStore } from '@/stores/common/auth'
 import { getRequirementAttachmentState, getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
-import {
-  Attachment,
-  AttachmentAction,
-  AttachmentActions,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-} from '@/components/ui/attachment'
+import SwipeRow, { type SwipeAction } from '@/components/SwipeRow.vue'
 
 import {
   Empty,
@@ -91,6 +84,23 @@ function getDocumentState(file: DocumentFile) {
         textClass: 'text-red-600 dark:text-red-400',
       }
   }
+}
+
+const requirementStatus: Record<string, { label: string; textClass: string }> = {
+  done: { label: 'Approved', textClass: 'text-success' },
+  processing: { label: 'Pending review', textClass: 'text-warning' },
+  error: { label: 'Rejected', textClass: 'text-destructive' },
+}
+
+const ViewIcon = () => h(Eye, { class: 'size-5' })
+const DownloadIcon = () => h(Download, { class: 'size-5' })
+
+/** View/Download are non-destructive, so neither collapses the row (`dismiss: false`) */
+function getSwipeActions(requirement: string): SwipeAction[] {
+  return [
+    { id: 'view', label: 'View', icon: ViewIcon, dismiss: false, onSelect: () => viewFile(requirement) },
+    { id: 'download', label: 'Download', icon: DownloadIcon, dismiss: false, onSelect: () => downloadFile(requirement) },
+  ]
 }
 
 function viewFile(requirement: string) {
@@ -194,38 +204,48 @@ async function downloadFile(requirement: string) {
             <div>
               <h3 class="text-sm font-semibold text-foreground">Uploaded Requirements</h3>
               <p class="text-xs text-muted-foreground mt-0.5">
-                These are the requirements currently uploaded to your profile.
+                These are the requirements currently uploaded to your profile. Swipe a file to the left to view or download it.
               </p>
             </div>
             <div class="shrink-0 max-sm:[&_button]:w-full">
               <ProfileDocsUpload />
             </div>
           </div>
-          <Attachment v-for="requirement in requirements" :key="requirement" class="w-full" :state="getRequirementAttachmentStateFor(requirement)">
-            <AttachmentMedia>
-              <FileText class="size-4 text-muted-foreground" />
-            </AttachmentMedia>
-
-            <AttachmentContent>
-              <AttachmentTitle>{{ requirement }}</AttachmentTitle>
-              <AttachmentDescription>
-                <span v-if="getFileMeta(requirement)">
-                  {{ getFileMeta(requirement)?.typeLabel }} · {{ getFileMeta(requirement)?.sizeLabel }}
-                </span>
-                <span v-else>
-                  Uploaded
-                </span>
-              </AttachmentDescription>
-            </AttachmentContent>
-            <AttachmentActions>
-              <AttachmentAction @click="viewFile(requirement)">
-                <Eye class="size-4 text-muted-foreground" />
-              </AttachmentAction>
-              <AttachmentAction @click="downloadFile(requirement)">
-                <Download class="size-4 text-muted-foreground" />
-              </AttachmentAction>
-            </AttachmentActions>
-          </Attachment>
+          <div class="flex flex-col gap-2">
+            <SwipeRow
+              v-for="requirement in requirements"
+              :key="requirement"
+              :label="requirement"
+              :actions="getSwipeActions(requirement)"
+              :full-swipe="false"
+              :radius="10"
+              row-color="var(--muted)"
+              text-color="var(--foreground)"
+              action-color="var(--primary)"
+              action-text-color="var(--primary-foreground)"
+              drawer-color="var(--secondary)"
+              drawer-text-color="var(--secondary-foreground)"
+            >
+              <div class="flex size-9 shrink-0 items-center justify-center rounded-md bg-background">
+                <FileText class="size-4 text-muted-foreground" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{{ requirement }}</p>
+                <p class="truncate text-xs text-muted-foreground">
+                  <span v-if="getFileMeta(requirement)">
+                    {{ getFileMeta(requirement)?.typeLabel }} · {{ getFileMeta(requirement)?.sizeLabel }}
+                  </span>
+                  <span v-else>Uploaded</span>
+                  <span
+                    v-if="requirementStatus[getRequirementAttachmentStateFor(requirement)]"
+                    :class="requirementStatus[getRequirementAttachmentStateFor(requirement)].textClass"
+                  >
+                    · {{ requirementStatus[getRequirementAttachmentStateFor(requirement)].label }}
+                  </span>
+                </p>
+              </div>
+            </SwipeRow>
+          </div>
         </CardContent>
       </Card>
     </div>

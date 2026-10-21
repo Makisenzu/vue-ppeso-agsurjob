@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, h, ref, onMounted, watch } from 'vue'
 import { CircleCheckIcon, Eye, FileText, Loader2, MousePointer2, Trash2, XIcon } from '@lucide/vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/common/useFileUpload'
@@ -43,6 +43,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
 } from '@/components/ui/attachment'
+import SwipeRow, { type SwipeAction } from '@/components/SwipeRow.vue'
 import type { UploadDocumentDefinition, UploadState } from '@/types/common/fileUpload'
 
 const isDesktop = useMediaQuery('(min-width: 640px)')
@@ -58,6 +59,12 @@ const Modal = computed(() => ({
 }))
 const toastAlert = useToastAlert()
 const open = ref(false)
+
+// The modal aria-hides the rest of the page before focus moves inside it, which would leave the
+// trigger button focused inside a hidden region. Release focus first (pre-flush, before the modal mounts).
+watch(open, (isOpen) => {
+  if (isOpen) (document.activeElement as HTMLElement | null)?.blur()
+})
 const authStore = useAuthStore()
 const profileId = computed(() => authStore.profile?.id ?? authStore.user?.id ?? null)
 const isSubmitting = ref(false)
@@ -106,6 +113,32 @@ function getExistingRequirementAttachmentState(documentLabel: string) {
 function viewFile(publicUrl?: string | null) {
   if (!publicUrl) return
   window.open(publicUrl, '_blank', 'noopener')
+}
+
+const requirementStatus: Record<string, { label: string; textClass: string }> = {
+  done: { label: 'Approved', textClass: 'text-success' },
+  processing: { label: 'Pending review', textClass: 'text-warning' },
+  error: { label: 'Rejected', textClass: 'text-destructive' },
+}
+
+const ViewIcon = () => h(Eye, { class: 'size-5' })
+const DeleteIcon = () => h(Trash2, { class: 'size-5' })
+
+/**
+ * Delete is the primary (edge) action but only opens the confirmation dialog, so it must not
+ * collapse the row (`dismiss: false`) — otherwise a cancelled delete would leave the row hidden.
+ */
+function getSwipeActions(doc: UploadDocumentDefinition): SwipeAction[] {
+  return [
+    { id: 'delete', label: 'Delete', icon: DeleteIcon, dismiss: false, onSelect: () => promptDelete(doc) },
+    {
+      id: 'view',
+      label: 'View',
+      icon: ViewIcon,
+      dismiss: false,
+      onSelect: () => viewFile(getExistingRequirementMedia(doc.label)?.publicUrl),
+    },
+  ]
 }
 
 function promptDelete(doc: UploadDocumentDefinition) {
@@ -514,37 +547,44 @@ const submitDocuments = async () => {
 
         <!-- ─── Already on the profile ─── -->
         <div v-if="uploadedDocuments.length > 0" class="space-y-2">
-          <h3 class="text-sm font-semibold text-foreground">On your profile</h3>
-          <Attachment
-            v-for="doc in uploadedDocuments"
-            :key="doc.id"
-            :state="getExistingRequirementAttachmentState(doc.label)"
-            class="w-full"
-          >
-            <AttachmentMedia>
-              <CircleCheckIcon class="size-4 text-success" />
-            </AttachmentMedia>
-
-            <AttachmentContent class="min-w-0">
-              <AttachmentTitle>{{ doc.label }}</AttachmentTitle>
-              <AttachmentDescription class="truncate">
-                {{ getExistingRequirementMedia(doc.label)?.filename }} ·
-                {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}
-              </AttachmentDescription>
-            </AttachmentContent>
-
-            <AttachmentActions>
-              <AttachmentAction
-                :aria-label="`View ${doc.label}`"
-                @click="viewFile(getExistingRequirementMedia(doc.label)?.publicUrl)"
-              >
-                <Eye class="size-4" />
-              </AttachmentAction>
-              <AttachmentAction :disabled="isDeleting" :aria-label="`Delete ${doc.label}`" @click="promptDelete(doc)">
-                <Trash2 class="size-4" />
-              </AttachmentAction>
-            </AttachmentActions>
-          </Attachment>
+          <div>
+            <h3 class="text-sm font-semibold text-foreground">On your profile</h3>
+            <p class="text-xs text-muted-foreground mt-0.5">Swipe a file to the left to view or delete it.</p>
+          </div>
+          <div class="flex flex-col gap-2">
+            <SwipeRow
+              v-for="doc in uploadedDocuments"
+              :key="doc.id"
+              :label="doc.label"
+              :actions="getSwipeActions(doc)"
+              :full-swipe="false"
+              :disabled="isDeleting"
+              :radius="10"
+              row-color="var(--muted)"
+              text-color="var(--foreground)"
+              action-color="var(--destructive)"
+              action-text-color="var(--background)"
+              drawer-color="var(--secondary)"
+              drawer-text-color="var(--secondary-foreground)"
+            >
+              <div class="flex size-9 shrink-0 items-center justify-center rounded-md bg-background">
+                <CircleCheckIcon class="size-4 text-success" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{{ doc.label }}</p>
+                <p class="truncate text-xs text-muted-foreground">
+                  {{ getExistingRequirementMedia(doc.label)?.filename }} ·
+                  {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}
+                  <span
+                    v-if="requirementStatus[getExistingRequirementAttachmentState(doc.label)]"
+                    :class="requirementStatus[getExistingRequirementAttachmentState(doc.label)].textClass"
+                  >
+                    · {{ requirementStatus[getExistingRequirementAttachmentState(doc.label)].label }}
+                  </span>
+                </p>
+              </div>
+            </SwipeRow>
+          </div>
         </div>
 
         <!-- Delete confirmation dialog -->
