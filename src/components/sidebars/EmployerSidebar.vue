@@ -38,22 +38,22 @@ const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
 const communicationItems = [
-  { title: 'Chats', to: {name: 'dashboard'}, icon: MessageCircle },
+  { title: 'Chats', to: {name: 'employer-dashboard'}, icon: MessageCircle },
 ]
 const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
+  { title: 'Help Center & FAQ', to: {name: 'employer-dashboard'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'employer-dashboard'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'employer-dashboard'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'employer-dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Company Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
+  { title: 'Company Settings', to: {name: 'employer-dashboard'}, icon:  UserRoundCog },
 ]
 
 const jobItems = [
   { title: 'Job Posts', to: {name: 'job-postings'}, icon: Newspaper },
   { title: 'Applicants', to: {name: 'job-applicants'}, icon: FolderSearch2 },
-  { title: 'Interviews', to: {name: 'dashboard'}, icon: Phone },
+  { title: 'Interviews', to: {name: 'employer-dashboard'}, icon: Phone },
 ]
 
 const companyItems = [
@@ -136,8 +136,8 @@ const companyItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
-                  <RouterLink :to="{ name: 'dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'employer-dashboard'">
+                  <RouterLink :to="{ name: 'employer-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>

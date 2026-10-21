@@ -46,15 +46,15 @@ const activitySubItems = [
   { title: 'Offers', to: {name: 'offer'}, icon: Mail },
 ]
 const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
+  { title: 'Help Center & FAQ', to: {name: 'home'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'home'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'home'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'home'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Profile Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
-  { title: 'Account Security', to: {name: 'dashboard'}, icon: Settings },
-  { title: 'Notification Preferences', to: {name: 'dashboard'}, icon: Bell },
+  { title: 'Profile Settings', to: {name: 'home'}, icon:  UserRoundCog },
+  { title: 'Account Security', to: {name: 'home'}, icon: Settings },
+  { title: 'Notification Preferences', to: {name: 'home'}, icon: Bell },
 ]
 const jobHuntItems = [
   { title: 'Vacancies', to: {name: 'vacancies'}, icon: Search },
@@ -140,8 +140,8 @@ const jobHuntItems = [
                   </RouterLink>
               </SidebarMenuButton>
 
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
-                  <RouterLink :to="{ name: 'dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'home'">
+                  <RouterLink :to="{ name: 'home' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
@@ -306,7 +306,7 @@ const jobHuntItems = [
 
                 <DropdownMenuItem as-child>
                   <RouterLink
-                    :to="profileUsername ? { name: 'profile', params: { username: profileUsername } } : { name: 'dashboard' }"
+                    :to="profileUsername ? { name: 'profile', params: { username: profileUsername } } : { name: 'home' }"
                     class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground"
                   >
                     <UserRound class="size-4" />

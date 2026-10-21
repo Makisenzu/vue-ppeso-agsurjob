@@ -29,7 +29,7 @@ const breadcrumbs = computed(() => {
 
       const to = r.meta?.breadcrumbTo
         ? r.meta.breadcrumbTo
-        : r.path === '/app' ? { name: 'dashboard' } : { name: r.name }
+        : r.path === '/app' ? { name: 'home' } : { name: r.name }
 
       return { title, to }
     })

@@ -1,26 +1,54 @@
 <template>
   <div class="gooey-nav">
     <div class="relative" ref="containerRef">
-      <nav class="flex relative" :style="{ transform: 'translate3d(0,0,0.01px)' }">
+      <nav class="flex relative" :aria-label="ariaLabel" :style="{ transform: 'translate3d(0,0,0.01px)' }">
         <ul
           ref="navRef"
-          class="flex gap-8 list-none p-0 px-4 m-0 relative z-[3] text-foreground"
+          :class="['flex list-none p-0 m-0 relative z-[3] text-foreground', listClass]"
         >
           <li
             v-for="(item, index) in items"
-            :key="index"
+            :key="item.label"
             :class="[
               'rounded-full relative cursor-pointer transition-[background-color_color_box-shadow] duration-300 ease shadow-[0_0_0.5px_1.5px_transparent]',
-              { active: activeIndex === index }
+              { active: current === index }
             ]"
           >
+            <!-- Dropdown items activate on open; closing without a selection restores the previous item -->
+            <DropdownMenu v-if="item.children" :modal="false" @update:open="open => handleDropdownOpen(open, index)">
+              <DropdownMenuTrigger :class="[linkClass, 'group inline-flex items-center gap-1']">
+                <span data-gooey-label>{{ item.label }}</span>
+                <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" class="w-56">
+                <template v-for="child in item.children" :key="child.label">
+                  <DropdownMenuItem v-if="child.to" as-child @select="markChildSelected">
+                    <RouterLink :to="child.to" exact-active-class="bg-accent text-accent-foreground">
+                      {{ child.label }}
+                    </RouterLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem v-else-if="child.href" as-child @select="markChildSelected">
+                    <a :href="child.href">{{ child.label }}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem v-else disabled>
+                    {{ child.label }}
+                    <span class="ml-auto text-xs text-muted-foreground">Coming soon</span>
+                  </DropdownMenuItem>
+                </template>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <RouterLink v-else-if="item.to" :to="item.to" :class="linkClass" @click="activate(index)">
+              <span data-gooey-label>{{ item.label }}</span>
+            </RouterLink>
             <a
+              v-else
               :href="item.href || undefined"
-              @click="e => handleClick(e, index)"
-              @keydown="e => handleKeyDown(e, index)"
-              class="outline-none py-[0.6em] px-[1em] inline-block"
+              :tabindex="item.href ? undefined : 0"
+              :class="linkClass"
+              @click="activate(index)"
+              @keydown="e => handleKeyDown(e, item, index)"
             >
-              {{ item.label }}
+              <span data-gooey-label>{{ item.label }}</span>
             </a>
           </li>
         </ul>
@@ -28,17 +56,37 @@
 
       <span class="effect filter" ref="filterRef" />
 
-      <span class="effect text" ref="textRef" />
+      <span class="effect text" ref="textRef" aria-hidden="true" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, useTemplateRef } from 'vue';
+import { RouterLink } from 'vue-router';
+import type { RouteLocationRaw } from 'vue-router';
+import { ChevronDown } from '@lucide/vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+
+interface GooeyNavChild {
+  label: string;
+  /** Neither `to` nor `href`: the child renders disabled as "Coming soon" */
+  to?: RouteLocationRaw;
+  href?: string | null;
+}
 
 interface GooeyNavItem {
   label: string;
-  href: string | null;
+  href?: string | null;
+  /** Router navigation instead of a plain link */
+  to?: RouteLocationRaw;
+  /** Renders the item as a dropdown trigger */
+  children?: GooeyNavChild[];
 }
 
 interface GooeyNavProps {
@@ -50,6 +98,10 @@ interface GooeyNavProps {
   timeVariance?: number;
   colors?: number[];
   initialActiveIndex?: number;
+  /** Controlled active item (e.g. derived from the current route); -1 hides the effect */
+  activeIndex?: number;
+  listClass?: string;
+  ariaLabel?: string;
 }
 
 const props = withDefaults(defineProps<GooeyNavProps>(), {
@@ -59,14 +111,20 @@ const props = withDefaults(defineProps<GooeyNavProps>(), {
   particleR: 100,
   timeVariance: 300,
   colors: () => [1, 2, 3, 1, 2, 3, 1, 4],
-  initialActiveIndex: 0
+  initialActiveIndex: 0,
+  activeIndex: undefined,
+  listClass: 'gap-8 px-4',
+  ariaLabel: undefined
 });
+
+const linkClass =
+  'outline-none py-[0.6em] px-[1em] inline-block rounded-full focus-visible:ring-2 focus-visible:ring-ring';
 
 const containerRef = useTemplateRef<HTMLDivElement>('containerRef');
 const navRef = useTemplateRef<HTMLUListElement>('navRef');
 const filterRef = useTemplateRef<HTMLSpanElement>('filterRef');
 const textRef = useTemplateRef<HTMLSpanElement>('textRef');
-const activeIndex = ref<number>(props.initialActiveIndex);
+const current = ref<number>(props.activeIndex ?? props.initialActiveIndex);
 
 let resizeObserver: ResizeObserver | null = null;
 
@@ -125,25 +183,46 @@ const makeParticles = (element: HTMLElement) => {
   }
 };
 
-const updateEffectPosition = (element: HTMLElement) => {
-  if (!containerRef.value || !filterRef.value || !textRef.value) return;
-  const containerRect = containerRef.value.getBoundingClientRect();
+const getItemElement = (index: number) =>
+  navRef.value?.querySelectorAll<HTMLElement>(':scope > li')[index];
+
+const toRelativeRect = (element: HTMLElement, containerRect: DOMRect) => {
   const pos = element.getBoundingClientRect();
-  const styles = {
+  return {
     left: `${pos.x - containerRect.x}px`,
     top: `${pos.y - containerRect.y}px`,
     width: `${pos.width}px`,
     height: `${pos.height}px`
   };
-  Object.assign(filterRef.value.style, styles);
-  Object.assign(textRef.value.style, styles);
-  textRef.value.innerText = element.innerText;
 };
 
-const handleClick = (e: Event, index: number) => {
-  const liEl = (e.currentTarget as HTMLElement).parentElement as HTMLElement;
-  if (activeIndex.value === index) return;
-  activeIndex.value = index;
+const updateEffectPosition = (element: HTMLElement) => {
+  if (!containerRef.value || !filterRef.value || !textRef.value) return;
+  const containerRect = containerRef.value.getBoundingClientRect();
+  // The text overlay sits on the label only, so it stays aligned when the item also has a chevron
+  const label = element.querySelector<HTMLElement>('[data-gooey-label]') ?? element;
+  Object.assign(filterRef.value.style, toRelativeRect(element, containerRect));
+  Object.assign(textRef.value.style, toRelativeRect(label, containerRect));
+  textRef.value.innerText = label.innerText;
+};
+
+const clearEffect = () => {
+  filterRef.value?.querySelectorAll('.particle').forEach(p => p.remove());
+  filterRef.value?.classList.remove('active');
+  if (textRef.value) {
+    textRef.value.classList.remove('active');
+    textRef.value.innerText = '';
+  }
+};
+
+const activate = (index: number) => {
+  if (current.value === index) return;
+  current.value = index;
+  const liEl = getItemElement(index);
+  if (!liEl) {
+    clearEffect();
+    return;
+  }
   updateEffectPosition(liEl);
   if (filterRef.value) {
     const particles = filterRef.value.querySelectorAll('.particle');
@@ -159,39 +238,63 @@ const handleClick = (e: Event, index: number) => {
   }
 };
 
-const handleKeyDown = (e: KeyboardEvent, index: number) => {
+// Dropdown state: the item to fall back to if a menu closes without a selection
+let restoreIndex: number | null = null;
+let openIndex: number | null = null;
+let childSelected = false;
+
+const markChildSelected = () => {
+  childSelected = true;
+};
+
+const handleDropdownOpen = (open: boolean, index: number) => {
+  if (open) {
+    openIndex = index;
+    restoreIndex ??= current.value;
+    activate(index);
+    return;
+  }
+  if (openIndex === index) openIndex = null;
+  if (childSelected) {
+    // The selected child's route takes over through activeIndex
+    childSelected = false;
+    restoreIndex = null;
+    return;
+  }
+  // Deferred so switching straight to another dropdown doesn't bounce the pill back first
+  setTimeout(() => {
+    if (openIndex !== null || restoreIndex === null) return;
+    const target = props.activeIndex ?? restoreIndex;
+    restoreIndex = null;
+    activate(target);
+  });
+};
+
+// Links with an href already activate on Enter through their click event
+const handleKeyDown = (e: KeyboardEvent, item: GooeyNavItem, index: number) => {
+  if (item.href) return;
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    const liEl = (e.currentTarget as HTMLElement).parentElement;
-    if (liEl) {
-      handleClick(
-        {
-          currentTarget: liEl
-        } as unknown as Event,
-        index
-      );
-    }
+    activate(index);
   }
 };
 
-watch(activeIndex, () => {
-  if (!navRef.value || !containerRef.value) return;
-  const activeLi = navRef.value.querySelectorAll('li')[activeIndex.value] as HTMLElement;
-  if (activeLi) {
-    updateEffectPosition(activeLi);
-    textRef.value?.classList.add('active');
+watch(
+  () => props.activeIndex,
+  index => {
+    if (index !== undefined) activate(index);
   }
-});
+);
 
 onMounted(() => {
   if (!navRef.value || !containerRef.value) return;
-  const activeLi = navRef.value.querySelectorAll('li')[activeIndex.value] as HTMLElement;
+  const activeLi = getItemElement(current.value);
   if (activeLi) {
     updateEffectPosition(activeLi);
     textRef.value?.classList.add('active');
   }
   resizeObserver = new ResizeObserver(() => {
-    const currentActiveLi = navRef.value?.querySelectorAll('li')[activeIndex.value] as HTMLElement;
+    const currentActiveLi = getItemElement(current.value);
     if (currentActiveLi) {
       updateEffectPosition(currentActiveLi);
     }

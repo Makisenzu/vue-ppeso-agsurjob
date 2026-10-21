@@ -13,11 +13,6 @@ export const applicantRoutes : RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Complete Profile' }
       },
       {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/components/applicant/ApplicantDashboard.vue')
-      },
-      {
         path: 'home',
         name: 'home',
         component: () => import('@/components/applicant/ApplicantHome.vue')
@@ -73,6 +68,18 @@ export const applicantRoutes : RouteRecordRaw[] = [
         name: 'tupad-application',
         component: () => import('@/components/applicant/Tupad/ApplicantTupadApplication.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application' }
+      },
+      {
+        path: 'gip-application',
+        name: 'gip-application',
+        component: () => import('@/components/applicant/Gip/ApplicantGipApplication.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'GIP Application' }
+      },
+      {
+        path: 'fnplp-application',
+        name: 'fnplp-application',
+        component: () => import('@/components/applicant/Fnplp/ApplicantFnplpApplication.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'FNPLP Application' }
       },
       {
         path: 'profile/:username',

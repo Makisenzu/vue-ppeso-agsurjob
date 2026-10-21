@@ -123,7 +123,7 @@ export function useApplicantCompletion() {
       scrollToTop()
       return
     }
-    router.push({ name: 'dashboard' })
+    router.push({ name: 'home' })
   }
 
   return {

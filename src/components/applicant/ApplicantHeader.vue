@@ -23,12 +23,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import GoeyNav from '@/components/GoeyNav.vue'
 import { useApplicantNavigation } from '@/composables/applicant/useApplicantNavigation'
 import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
 
 const {
   navItems,
+  gooeyNavItems,
+  activeNavIndex,
   supportItems,
   settingsItems,
   mobileOpen,
@@ -46,15 +49,13 @@ const {
   closeMobileMenu,
   handleSignOut,
 } = useApplicantNavigation()
-
-const navButtonClass =
-  'group flex items-center gap-1 rounded-full px-[1em] py-[0.6em] text-[13px] font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-muted'
 </script>
 
 <template>
   <!-- Solid background, no backdrop-blur: blurring the content scrolling underneath a sticky header
-       re-renders every scroll frame and was the main source of scroll jank -->
-  <header class="sticky top-0 z-50 w-full border-b border-border bg-background">
+       re-renders every scroll frame and was the main source of scroll jank.
+       overflow-hidden: GoeyNav's blend-mode canvas would otherwise show as a box outside the header -->
+  <header class="sticky top-0 z-50 w-full overflow-hidden border-b border-border bg-background">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
       <!-- Brand -->
       <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -63,39 +64,15 @@ const navButtonClass =
       </RouterLink>
 
       <!-- Desktop navigation -->
-      <nav aria-label="Main" class="ml-auto hidden items-center gap-1 md:flex">
-        <template v-for="item in navItems" :key="item.title">
-          <DropdownMenu v-if="item.children" :modal="false">
-            <DropdownMenuTrigger
-              :class="[navButtonClass, isActive(item) ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground']"
-            >
-              {{ item.title }}
-              <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" class="w-56">
-              <template v-for="child in item.children" :key="child.title">
-                <DropdownMenuItem v-if="child.to" as-child>
-                  <RouterLink :to="child.to" :class="isCurrentRoute(child) && 'bg-accent text-accent-foreground'">
-                    {{ child.title }}
-                  </RouterLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem v-else disabled>
-                  {{ child.title }}
-                  <span class="ml-auto text-xs text-muted-foreground">Coming soon</span>
-                </DropdownMenuItem>
-              </template>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <RouterLink
-            v-else-if="item.to"
-            :to="item.to"
-            :class="[navButtonClass, isActive(item) ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground']"
-            :aria-current="isActive(item) ? 'page' : undefined"
-          >
-            {{ item.title }}
-          </RouterLink>
-        </template>
-      </nav>
+      <div class="ml-auto hidden items-center md:flex">
+        <GoeyNav
+          :items="gooeyNavItems"
+          :active-index="activeNavIndex"
+          list-class="gap-1"
+          aria-label="Main"
+          class="text-[13px] font-medium"
+        />
+      </div>
 
       <!-- Actions -->
       <div class="ml-auto flex items-center gap-1 md:ml-0">

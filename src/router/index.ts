@@ -38,7 +38,7 @@ export function getDashboardRouteForRole(role: string | null) {
       return { name: 'provincial-peso-dashboard' }
     case 'applicant':
     default:
-      return { name: 'dashboard' }
+      return { name: 'home' }
   }
 }
 

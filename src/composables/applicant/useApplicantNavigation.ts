@@ -28,7 +28,6 @@ export interface ApplicantNavItem {
 
 const navItems: ApplicantNavItem[] = [
   { title: 'Home', to: { name: 'home' } },
-  { title: 'Dashboard', to: { name: 'dashboard' } },
   {
     title: 'Job Search',
     children: [
@@ -42,8 +41,8 @@ const navItems: ApplicantNavItem[] = [
     children: [
       { title: 'SPES', to: { name: 'spes-application' } },
       { title: 'TUPAD', to: { name: 'tupad-application' } },
-      // No applicant GIP page yet
-      { title: 'GIP' },
+      { title: 'GIP', to: { name: 'gip-application' } },
+      { title: 'FNPLP', to: { name: 'fnplp-application' } },
     ],
   },
   {
@@ -57,17 +56,24 @@ const navItems: ApplicantNavItem[] = [
   },
 ]
 
-// Support and settings pages don't exist yet; they point at the dashboard like the old sidebar did
+// Same items in the shape GoeyNav.vue renders (desktop nav)
+const gooeyNavItems = navItems.map(item => ({
+  label: item.title,
+  to: item.to,
+  children: item.children?.map(child => ({ label: child.title, to: child.to })),
+}))
+
+// Support and settings pages don't exist yet; they point at Home for now
 const supportItems: ApplicantMenuLink[] = [
-  { title: 'Help Center & FAQ', to: { name: 'dashboard' }, icon: Search },
-  { title: 'Submit a Ticket', to: { name: 'dashboard' }, icon: Mail },
-  { title: 'Live Chat', to: { name: 'dashboard' }, icon: Phone },
-  { title: 'Feedbacks', to: { name: 'dashboard' }, icon: Star },
+  { title: 'Help Center & FAQ', to: { name: 'home' }, icon: Search },
+  { title: 'Submit a Ticket', to: { name: 'home' }, icon: Mail },
+  { title: 'Live Chat', to: { name: 'home' }, icon: Phone },
+  { title: 'Feedbacks', to: { name: 'home' }, icon: Star },
 ]
 const settingsItems: ApplicantMenuLink[] = [
-  { title: 'Profile Settings', to: { name: 'dashboard' }, icon: UserRoundCog },
-  { title: 'Account Security', to: { name: 'dashboard' }, icon: Settings },
-  { title: 'Notification Preferences', to: { name: 'dashboard' }, icon: Bell },
+  { title: 'Profile Settings', to: { name: 'home' }, icon: UserRoundCog },
+  { title: 'Account Security', to: { name: 'home' }, icon: Settings },
+  { title: 'Notification Preferences', to: { name: 'home' }, icon: Bell },
 ]
 
 /** State and actions for the applicant top navigation (ApplicantHeader.vue). */
@@ -83,7 +89,7 @@ export function useApplicantNavigation() {
   const isDark = computed(() => mode.value === 'dark')
 
   const accountRoute = computed<RouteLocationRaw>(() =>
-    profileUsername.value ? { name: 'profile', params: { username: profileUsername.value } } : { name: 'dashboard' }
+    profileUsername.value ? { name: 'profile', params: { username: profileUsername.value } } : { name: 'home' }
   )
 
   // Computed once per route change instead of re-scanning every nav item on each render
@@ -95,6 +101,9 @@ export function useApplicantNavigation() {
         .map(item => item.title)
     )
   })
+
+  // -1 on pages outside the main nav (notifications, profile) so GoeyNav hides its pill
+  const activeNavIndex = computed(() => navItems.findIndex(item => activeTitles.value.has(item.title)))
 
   function isActive(item: ApplicantNavItem) {
     return activeTitles.value.has(item.title)
@@ -114,6 +123,8 @@ export function useApplicantNavigation() {
 
   return {
     navItems,
+    gooeyNavItems,
+    activeNavIndex,
     supportItems,
     settingsItems,
     mobileOpen,

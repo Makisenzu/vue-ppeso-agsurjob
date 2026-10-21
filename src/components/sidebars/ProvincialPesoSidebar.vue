@@ -38,18 +38,18 @@ const { state, isMobile } = useSidebar()
 const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
 const sddItems = [
-  { title: 'Job Start', to: {name: 'dashboard'}, icon: TrendingUp },
-  { title: 'Skills Training', to: {name: 'dashboard'}, icon: SportShoe },
-  { title: 'Free Wellness Services', to: {name: 'dashboard'}, icon: Leaf },
+  { title: 'Job Start', to: {name: 'provincial-peso-dashboard'}, icon: TrendingUp },
+  { title: 'Skills Training', to: {name: 'provincial-peso-dashboard'}, icon: SportShoe },
+  { title: 'Free Wellness Services', to: {name: 'provincial-peso-dashboard'}, icon: Leaf },
 ]
 const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'dashboard'}, icon: Star },
+  { title: 'Help Center & FAQ', to: {name: 'provincial-peso-dashboard'}, icon: Search },
+  { title: 'Submit a Ticket', to: {name: 'provincial-peso-dashboard'}, icon: Mail },
+  { title: 'Live Chat', to: {name: 'provincial-peso-dashboard'}, icon: Phone },
+  { title: 'Feedbacks', to: {name: 'provincial-peso-dashboard'}, icon: Star },
 ]
 const settingsSubItems = [
-  { title: 'Company Settings', to: {name: 'dashboard'}, icon:  UserRoundCog },
+  { title: 'Company Settings', to: {name: 'provincial-peso-dashboard'}, icon:  UserRoundCog },
 ]
 
 const employmentItems = [
@@ -146,8 +146,8 @@ const companyItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'dashboard'">
-                  <RouterLink :to="{ name: 'dashboard' }">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'provincial-peso-dashboard'">
+                  <RouterLink :to="{ name: 'provincial-peso-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
