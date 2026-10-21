@@ -399,6 +399,33 @@ Team members linked to a company.
 #### `employer_requirements` / `employer_requirement_media`
 Employer document verification (mirrors applicant pattern).
 
+#### `establishments` — NSRP Form 2 (migration `037_establishments_nsrp_form2.sql`)
+Establishment Registration, filed once per establishment and reused by every recruitment activity (job fair, LRA, SRA). NSRP Form 1 is `applicants.applicants`.
+
+| Column | Type | Notes |
+| ------ | ---- | ----- |
+| `id` | `uuid` | PK |
+| `company_id` | `uuid` | FK → `companies.id`, `ON DELETE SET NULL`; nullable (PESO-encoded establishments without an account); UNIQUE when set |
+| `business_name` | `text` | required, non-blank |
+| `trade_name`, `acronym`, `tin` | `text` | nullable; `tin` not unique (branches share it) |
+| `employer_category` | `esmdd.employer_category_enum` | `Public` / `Private`, required |
+| `public_employer_type` / `private_employer_type` | `esmdd.*_employer_type_enum` | only the one matching `employer_category` may be set |
+| `is_main_office` | `boolean` | default true |
+| `total_workforce` | `esmdd.total_workforce_enum` | nullable |
+| `industry_line` | `text` | |
+| `street`, `barangay`, `city_municipality`, `province` | `text` | same keys as `job_fair_participants` |
+| `owner_president_name`, `contact_person_name`, `contact_person_position` | `text` | |
+| `telephone_number`, `mobile_number`, `fax_number`, `email_address` | `text` | `email_address` format-checked |
+| `source` | `text` | `self_registered` (company account) / `peso_encoded` |
+| `status` | `text` | `Pending` / `Verified` / `Rejected`, default `Pending` |
+| `remarks`, `reviewed_by`, `reviewed_at` | | PESO review; stamped by trigger |
+| `created_by`, `created_at`, `updated_at` | | |
+
+- `trg_establishments_guard_review` (`employers.guard_establishment_review`): for non-staff it forces `source = 'self_registered'`, `status = 'Pending'`, keeps `company_id` / `remarks` and clears the review stamp, so **any company edit sends the form back for review**. For staff it stamps `reviewed_by` / `reviewed_at` when `status` leaves `Pending` and clears them when it returns.
+- RLS: `admin` / `provincial_peso` full CRUD; `municipal_peso` / `dole` read; company owner inserts / updates the row of a company they own; owner and members read it. No company delete.
+- Columns match `esmdd.job_fair_participants`, so a participant can be filled by copying an establishment. `job_fair_participants.establishment_id` (nullable FK, `ON DELETE SET NULL`, not backfilled) links them; `(job_fair_id, establishment_id)` is unique. Future LRA / SRA tables should carry the same `establishment_id`.
+- Not in `database.types.ts` until `npm run types:gen` is re-run.
+
 ---
 
 ## 7. Schema: `jobs` — Hiring Pipeline
