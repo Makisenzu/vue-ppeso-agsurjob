@@ -591,6 +591,13 @@ One model for Local (LRA) and Special / overseas (SRA) Recruitment Activities, t
 - Delete cleanup (migration `043_recruitment_activity_delete_cleanup.sql`): removing a job order deletes its `job_vacancies` row unless another activity or a `job_fair_vacancies` row still lists it; deleting an activity first removes its job orders (BEFORE DELETE), then deletes its establishment unless it has a `company_id` or is still used by another activity, a job fair participant or a `job_vacancies` row. The app's job order form requires every `job_vacancies` field (`JobVacancyFields.vue`, `jobVacancyHelper.ts`).
 - RLS: `admin` / `provincial_peso` full CRUD; `municipal_peso` / `dole` read (MPESO write access is planned); company owner / members read their own agency's activities, requirements and vacancies, but not the attachments.
 
+#### Reference lists — religions and courses (migration `044_core_religions_courses.sql`)
+- `core.religions`: `name` (unique, case-insensitive), `requires_specify` ("Others" → user types the value), `sort_order`, `is_active`. Seeded from the PSA 2020 census affiliation groups.
+- `core.courses`: `level` (`tertiary` / `graduate` / `shs_strand` / `techvoc`), `name` (unique per level), `abbreviation` (e.g. BSIT, STEM, SMAW NC II), `field` (PSCED broad field / SHS track / TESDA sector), `requires_specify`, `sort_order`, `is_active`. Seeded with CHED programs, graduate degrees, K to 12 strands and TESDA qualifications.
+- Data: `supabase/seeds/001_core_religions_courses.sql` (re-runnable upsert; run after 044).
+- These lists drive dropdowns only; the chosen name is still stored as text on `applicants.religion`, `*_degree_course` and `job_vacancies.course_shs_strand`.
+- RLS: `anon` + `authenticated` read active rows (signup uses religion); `admin` full CRUD.
+
 #### HOTS — Hired on the Spot (migration `024_hots_job_fair_alignment.sql`)
 `job_fairs ──< job_fair_participants ──< job_fair_vacancies ──< hots`, with `job_fair_vacancies >── job_vacancies >── establishments` (migration 039).
 
