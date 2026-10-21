@@ -76,12 +76,10 @@ const navButtonClass =
               <template v-for="child in item.children" :key="child.title">
                 <DropdownMenuItem v-if="child.to" as-child>
                   <RouterLink :to="child.to" :class="isCurrentRoute(child) && 'bg-accent text-accent-foreground'">
-                    <component :is="child.icon" class="size-4" />
                     {{ child.title }}
                   </RouterLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem v-else disabled>
-                  <component :is="child.icon" class="size-4" />
                   {{ child.title }}
                   <span class="ml-auto text-xs text-muted-foreground">Coming soon</span>
                 </DropdownMenuItem>
@@ -210,7 +208,6 @@ const navButtonClass =
                         :class="isCurrentRoute(child) ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'"
                         @click="closeMobileMenu"
                       >
-                        <component :is="child.icon" class="size-4" />
                         {{ child.title }}
                       </RouterLink>
                       <span
@@ -218,7 +215,6 @@ const navButtonClass =
                         class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground opacity-50"
                         aria-disabled="true"
                       >
-                        <component :is="child.icon" class="size-4" />
                         {{ child.title }}
                         <span class="ml-auto text-xs">Coming soon</span>
                       </span>

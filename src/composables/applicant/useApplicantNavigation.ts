@@ -3,22 +3,7 @@ import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
-import {
-  Bell,
-  Bookmark,
-  Briefcase,
-  Building,
-  GraduationCap,
-  Hammer,
-  Inbox,
-  Mail,
-  MessageCircle,
-  Phone,
-  Search,
-  Settings,
-  Star,
-  UserRoundCog,
-} from '@lucide/vue'
+import { Bell, Mail, Phone, Search, Settings, Star, UserRoundCog } from '@lucide/vue'
 import { useAuth } from '@/composables/common/useAuth'
 import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 
@@ -26,11 +11,14 @@ export interface ApplicantNavChild {
   title: string
   /** Omitted when the page doesn't exist yet; the item renders disabled as "Coming soon" */
   to?: RouteLocationRaw & { name: string }
-  icon: Component
 }
 
 /** Account-menu link; always points at a route */
-export type ApplicantMenuLink = ApplicantNavChild & Required<Pick<ApplicantNavChild, 'to'>>
+export interface ApplicantMenuLink {
+  title: string
+  to: RouteLocationRaw & { name: string }
+  icon: Component
+}
 
 export interface ApplicantNavItem {
   title: string
@@ -44,27 +32,27 @@ const navItems: ApplicantNavItem[] = [
   {
     title: 'Job Search',
     children: [
-      { title: 'Vacancies', to: { name: 'vacancies' }, icon: Search },
-      { title: 'Saved Jobs', to: { name: 'saved-job' }, icon: Bookmark },
-      { title: 'Companies', to: { name: 'company' }, icon: Building },
+      { title: 'Vacancies', to: { name: 'vacancies' } },
+      { title: 'Saved Jobs', to: { name: 'saved-job' } },
+      { title: 'Companies', to: { name: 'company' } },
     ],
   },
   {
     title: 'Gov. Programs',
     children: [
-      { title: 'SPES', to: { name: 'spes-application' }, icon: GraduationCap },
-      { title: 'TUPAD', to: { name: 'tupad-application' }, icon: Hammer },
+      { title: 'SPES', to: { name: 'spes-application' } },
+      { title: 'TUPAD', to: { name: 'tupad-application' } },
       // No applicant GIP page yet
-      { title: 'GIP', icon: Briefcase },
+      { title: 'GIP' },
     ],
   },
   {
     title: 'My Activities',
     children: [
-      { title: 'Job Applications', to: { name: 'application' }, icon: Inbox },
-      { title: 'Interviews', to: { name: 'interview' }, icon: Phone },
-      { title: 'Chats', to: { name: 'chat' }, icon: MessageCircle },
-      { title: 'Offers', to: { name: 'offer' }, icon: Mail },
+      { title: 'Job Applications', to: { name: 'application' } },
+      { title: 'Interviews', to: { name: 'interview' } },
+      { title: 'Chats', to: { name: 'chat' } },
+      { title: 'Offers', to: { name: 'offer' } },
     ],
   },
 ]
