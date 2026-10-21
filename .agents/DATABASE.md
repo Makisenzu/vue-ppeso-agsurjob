@@ -579,6 +579,17 @@ Signup (`signupHelper.buildApplicantInsert`) creates the `applicants.applicants`
 - RLS: `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own via `applicants.applicants.profile_id`.
 - UI: the "Attendees" section of the job fair details page (`JobFairAttendees.vue` → `useJobFairAttendees` / `useJobFairAttendeeForm` → `jobFairAttendeeStore` → `jobFairApplicantService`). Registry search and lookups are shared with HOTS via `jobFairService.searchRegistryApplicants` / `fetchRegistryApplicants`.
 
+#### Recruitment Activities — LRA / SRA (migration `041_recruitment_activities.sql`)
+One model for Local (LRA) and Special / overseas (SRA) Recruitment Activities, typed by `type`; the two checklists differ only in their requirement lists, which are data.
+`establishments ──< recruitment_activities ──< recruitment_activity_requirements ──< recruitment_activity_attachments`, `recruitment_activities ──< recruitment_activity_vacancies >── job_vacancies`.
+
+- `recruitment_activities`: `type` (`LRA` / `SRA`, fixed after insert), `establishment_id` (the agency, FK `ON DELETE RESTRICT`), `representatives` (text[]), `start_date` / `end_date` (range), `venue`, `city_municipality`, `status` (`Pending` → `Approved` → `Conducted` → `Completed`, or `Cancelled`), SRA-only `cono_number` (unique, issued by PPESO) / `cono_issued_at` / `cono_issued_by` / `recruitment_fee` (defaults to 1000.00, Ord. 6 s. 1994) / `fee_or_number` (a CHECK keeps them NULL for LRA), `assessed_by` / `assessed_at` (stamped on approval), `remarks`, `terminal_report_due_date` (generated: `end_date + 10`).
+- `trg_recruitment_activities_guard`: new activities start `Pending`; `Approved` requires every `before` requirement checked (and `cono_number` for SRA); `Completed` requires every `after` requirement checked **and** with a file; back to `Pending` clears the assessment. CONO issue time / issuer are stamped when `cono_number` is set.
+- Checklists: `public.requirement_templates` rows with `requirement_type` `lra` / `sra`, plus `stage` (`before` / `after`) and `sort_order` (added in 041; admin-managed). `trg_recruitment_activities_seed_requirements` copies them into `recruitment_activity_requirements` (`requirement_name` / `stage` / `sort_order` snapshot, `template_id` FK `SET NULL`, `is_submitted`, `checked_by` / `checked_at` stamped by trigger, `remarks`) when an activity is created.
+- `recruitment_activity_attachments`: files per requirement in the **private** bucket `recruitment-activity-documents` at `<activity_id>/<requirement_id>/<random>-<filename>` (open with signed URLs). The terminal report is the `Terminal Report` (`after`) requirement's attachment; the per-applicant terminal report (Q / NQ / FFI / MP / NDR / SNA) is not modelled yet.
+- `recruitment_activity_vacancies`: job orders, like `job_fair_vacancies` — `activity_id`, `job_vacancy_id` (must belong to the activity's establishment), `vacancy_count` (defaults from the vacancy), `status` (`job_vacancy_status`), SRA `destination_country` / `job_order_number` (DMW); `(activity_id, job_vacancy_id)` unique.
+- RLS: `admin` / `provincial_peso` full CRUD; `municipal_peso` / `dole` read (MPESO write access is planned); company owner / members read their own agency's activities, requirements and vacancies, but not the attachments.
+
 #### HOTS — Hired on the Spot (migration `024_hots_job_fair_alignment.sql`)
 `job_fairs ──< job_fair_participants ──< job_fair_vacancies ──< hots`, with `job_fair_vacancies >── job_vacancies >── establishments` (migration 039).
 

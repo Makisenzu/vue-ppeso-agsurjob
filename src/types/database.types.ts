@@ -1437,7 +1437,7 @@ export type Database = {
           hired_date: string
           id: string
           job_fair_id: string
-          job_vacancy_id: string
+          job_fair_vacancy_id: string
           participant_id: string
           remarks: string | null
           updated_at: string
@@ -1454,7 +1454,7 @@ export type Database = {
           hired_date?: string
           id?: string
           job_fair_id: string
-          job_vacancy_id: string
+          job_fair_vacancy_id: string
           participant_id: string
           remarks?: string | null
           updated_at?: string
@@ -1471,7 +1471,7 @@ export type Database = {
           hired_date?: string
           id?: string
           job_fair_id?: string
-          job_vacancy_id?: string
+          job_fair_vacancy_id?: string
           participant_id?: string
           remarks?: string | null
           updated_at?: string
@@ -1492,10 +1492,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "hots_job_vacancy_id_fkey"
-            columns: ["job_vacancy_id"]
+            foreignKeyName: "hots_job_fair_vacancy_id_fkey"
+            columns: ["job_fair_vacancy_id"]
             isOneToOne: false
-            referencedRelation: "job_vacancies"
+            referencedRelation: "job_fair_vacancies"
             referencedColumns: ["id"]
           },
           {
@@ -1640,6 +1640,64 @@ export type Database = {
           },
         ]
       }
+      job_fair_vacancies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          job_fair_id: string
+          job_vacancy_id: string
+          participant_id: string
+          status: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at: string
+          vacancy_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_fair_id: string
+          job_vacancy_id: string
+          participant_id: string
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at?: string
+          vacancy_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_fair_id?: string
+          job_vacancy_id?: string
+          participant_id?: string
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at?: string
+          vacancy_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_fair_vacancies_job_fair_id_fkey"
+            columns: ["job_fair_id"]
+            isOneToOne: false
+            referencedRelation: "job_fairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_fair_vacancies_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_fair_vacancies_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "job_fair_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_fairs: {
         Row: {
           created_at: string
@@ -1692,16 +1750,16 @@ export type Database = {
           certification: string | null
           course_shs_strand: string | null
           created_at: string | null
+          created_by: string | null
           educational_level: string | null
           eligibility: string | null
+          establishment_id: string
           id: string
           job_description: string | null
-          job_fair_id: string
           language_dialect_spoken: string[] | null
           license: string | null
           nature_of_work: Database["esmdd"]["Enums"]["nature_of_work_enum"]
           other_qualifications: string[] | null
-          participant_id: string
           place_of_work: string | null
           position_title: string
           posting_date: string | null
@@ -1722,16 +1780,16 @@ export type Database = {
           certification?: string | null
           course_shs_strand?: string | null
           created_at?: string | null
+          created_by?: string | null
           educational_level?: string | null
           eligibility?: string | null
+          establishment_id: string
           id?: string
           job_description?: string | null
-          job_fair_id: string
           language_dialect_spoken?: string[] | null
           license?: string | null
           nature_of_work?: Database["esmdd"]["Enums"]["nature_of_work_enum"]
           other_qualifications?: string[] | null
-          participant_id: string
           place_of_work?: string | null
           position_title: string
           posting_date?: string | null
@@ -1752,16 +1810,16 @@ export type Database = {
           certification?: string | null
           course_shs_strand?: string | null
           created_at?: string | null
+          created_by?: string | null
           educational_level?: string | null
           eligibility?: string | null
+          establishment_id?: string
           id?: string
           job_description?: string | null
-          job_fair_id?: string
           language_dialect_spoken?: string[] | null
           license?: string | null
           nature_of_work?: Database["esmdd"]["Enums"]["nature_of_work_enum"]
           other_qualifications?: string[] | null
-          participant_id?: string
           place_of_work?: string | null
           position_title?: string
           posting_date?: string | null
@@ -1776,19 +1834,237 @@ export type Database = {
           valid_until?: string | null
           work_experience_months?: number | null
         }
+        Relationships: []
+      }
+      recruitment_activities: {
+        Row: {
+          assessed_at: string | null
+          assessed_by: string | null
+          city_municipality: string | null
+          cono_issued_at: string | null
+          cono_issued_by: string | null
+          cono_number: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string
+          establishment_id: string
+          fee_or_number: string | null
+          id: string
+          recruitment_fee: number | null
+          remarks: string | null
+          representatives: string[]
+          start_date: string
+          status: string
+          terminal_report_due_date: string | null
+          type: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          city_municipality?: string | null
+          cono_issued_at?: string | null
+          cono_issued_by?: string | null
+          cono_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          establishment_id: string
+          fee_or_number?: string | null
+          id?: string
+          recruitment_fee?: number | null
+          remarks?: string | null
+          representatives?: string[]
+          start_date: string
+          status?: string
+          terminal_report_due_date?: string | null
+          type: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          city_municipality?: string | null
+          cono_issued_at?: string | null
+          cono_issued_by?: string | null
+          cono_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          establishment_id?: string
+          fee_or_number?: string | null
+          id?: string
+          recruitment_fee?: number | null
+          remarks?: string | null
+          representatives?: string[]
+          start_date?: string
+          status?: string
+          terminal_report_due_date?: string | null
+          type?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      recruitment_activity_attachments: {
+        Row: {
+          activity_id: string
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          path: string
+          requirement_id: string
+          size: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          requirement_id: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          requirement_id?: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "job_vacancies_job_fair_id_fkey"
-            columns: ["job_fair_id"]
+            foreignKeyName: "recruitment_activity_attachments_activity_id_fkey"
+            columns: ["activity_id"]
             isOneToOne: false
-            referencedRelation: "job_fairs"
+            referencedRelation: "recruitment_activities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "job_vacancies_participant_id_fkey"
-            columns: ["participant_id"]
+            foreignKeyName: "recruitment_activity_attachments_requirement_id_fkey"
+            columns: ["requirement_id"]
             isOneToOne: false
-            referencedRelation: "job_fair_participants"
+            referencedRelation: "recruitment_activity_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_activity_requirements: {
+        Row: {
+          activity_id: string
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          is_submitted: boolean
+          remarks: string | null
+          requirement_name: string
+          sort_order: number
+          stage: string
+          template_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          is_submitted?: boolean
+          remarks?: string | null
+          requirement_name: string
+          sort_order?: number
+          stage: string
+          template_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          is_submitted?: boolean
+          remarks?: string | null
+          requirement_name?: string
+          sort_order?: number
+          stage?: string
+          template_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_activity_requirements_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_activity_vacancies: {
+        Row: {
+          activity_id: string
+          created_at: string
+          created_by: string | null
+          destination_country: string | null
+          id: string
+          job_order_number: string | null
+          job_vacancy_id: string
+          status: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at: string
+          vacancy_count: number | null
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          created_by?: string | null
+          destination_country?: string | null
+          id?: string
+          job_order_number?: string | null
+          job_vacancy_id: string
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at?: string
+          vacancy_count?: number | null
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          created_by?: string | null
+          destination_country?: string | null
+          id?: string
+          job_order_number?: string | null
+          job_vacancy_id?: string
+          status?: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at?: string
+          vacancy_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_activity_vacancies_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_activity_vacancies_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
             referencedColumns: ["id"]
           },
         ]
@@ -2229,6 +2505,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "job_fair_participants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      add_job_fair_vacancy: {
+        Args: {
+          p_job_vacancy?: Json
+          p_job_vacancy_id?: string
+          p_participant_id: string
+          p_status?: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          p_vacancy_count?: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          job_fair_id: string
+          job_vacancy_id: string
+          participant_id: string
+          status: Database["esmdd"]["Enums"]["job_vacancy_status"]
+          updated_at: string
+          vacancy_count: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_fair_vacancies"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2867,6 +3169,8 @@ export type Database = {
           id: number
           name: string | null
           requirement_type: string | null
+          sort_order: number
+          stage: string | null
           updated_at: string | null
         }
         Insert: {
@@ -2875,6 +3179,8 @@ export type Database = {
           id?: number
           name?: string | null
           requirement_type?: string | null
+          sort_order?: number
+          stage?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -2883,6 +3189,8 @@ export type Database = {
           id?: number
           name?: string | null
           requirement_type?: string | null
+          sort_order?: number
+          stage?: string | null
           updated_at?: string | null
         }
         Relationships: []
