@@ -2859,6 +2859,127 @@ export type Database = {
   }
   system: {
     Tables: {
+      announcement_media: {
+        Row: {
+          alt_text: string | null
+          announcement_id: string
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          sort_order: number
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          announcement_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          sort_order?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          announcement_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          sort_order?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_media_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          read_at?: string
+          user_id?: string
+        }
+        Update: {
+          announcement_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          audience: Database["system"]["Enums"]["announcement_audience"][]
+          body: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_pinned: boolean
+          published_at: string | null
+          status: Database["system"]["Enums"]["announcement_status"]
+          title: string
+          type: Database["system"]["Enums"]["announcement_type"]
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["system"]["Enums"]["announcement_audience"][]
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_pinned?: boolean
+          published_at?: string | null
+          status?: Database["system"]["Enums"]["announcement_status"]
+          title: string
+          type?: Database["system"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["system"]["Enums"]["announcement_audience"][]
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_pinned?: boolean
+          published_at?: string | null
+          status?: Database["system"]["Enums"]["announcement_status"]
+          title?: string
+          type?: Database["system"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2930,10 +3051,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_audience: {
+        Args: never
+        Returns: Database["system"]["Enums"]["announcement_audience"]
+      }
+      unread_announcement_count: { Args: never; Returns: number }
     }
     Enums: {
-      [_ in never]: never
+      announcement_audience: "public" | "applicant" | "employer" | "peso"
+      announcement_status: "draft" | "published" | "archived"
+      announcement_type:
+        | "general"
+        | "gip"
+        | "spes"
+        | "tupad"
+        | "fnplp"
+        | "job_fair"
+        | "vacancy"
+        | "skills_training"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3207,6 +3342,19 @@ export const Constants = {
     },
   },
   system: {
-    Enums: {},
+    Enums: {
+      announcement_audience: ["public", "applicant", "employer", "peso"],
+      announcement_status: ["draft", "published", "archived"],
+      announcement_type: [
+        "general",
+        "gip",
+        "spes",
+        "tupad",
+        "fnplp",
+        "job_fair",
+        "vacancy",
+        "skills_training",
+      ],
+    },
   },
 } as const

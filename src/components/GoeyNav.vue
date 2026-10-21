@@ -17,7 +17,7 @@
             <!-- Dropdown items activate on open; closing without a selection restores the previous item -->
             <DropdownMenu v-if="item.children" :modal="false" @update:open="open => handleDropdownOpen(open, index)">
               <DropdownMenuTrigger :class="[linkClass, 'group inline-flex items-center gap-1']">
-                <span data-gooey-label>{{ item.label }}</span>
+                <span>{{ item.label }}</span>
                 <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" class="w-56">
@@ -38,7 +38,7 @@
               </DropdownMenuContent>
             </DropdownMenu>
             <RouterLink v-else-if="item.to" :to="item.to" :class="linkClass" @click="activate(index)">
-              <span data-gooey-label>{{ item.label }}</span>
+              <span>{{ item.label }}</span>
             </RouterLink>
             <a
               v-else
@@ -48,7 +48,7 @@
               @click="activate(index)"
               @keydown="e => handleKeyDown(e, item, index)"
             >
-              <span data-gooey-label>{{ item.label }}</span>
+              <span>{{ item.label }}</span>
             </a>
           </li>
         </ul>
@@ -199,11 +199,13 @@ const toRelativeRect = (element: HTMLElement, containerRect: DOMRect) => {
 const updateEffectPosition = (element: HTMLElement) => {
   if (!containerRef.value || !filterRef.value || !textRef.value) return;
   const containerRect = containerRef.value.getBoundingClientRect();
-  // The text overlay sits on the label only, so it stays aligned when the item also has a chevron
-  const label = element.querySelector<HTMLElement>('[data-gooey-label]') ?? element;
+  // The overlay mirrors the link/trigger content (label + chevron); the item's own content is hidden
+  // while active, so only one copy renders and there's no ghosting from sub-pixel misalignment
+  const content = (element.firstElementChild as HTMLElement | null) ?? element;
   Object.assign(filterRef.value.style, toRelativeRect(element, containerRect));
-  Object.assign(textRef.value.style, toRelativeRect(label, containerRect));
-  textRef.value.innerText = label.innerText;
+  Object.assign(textRef.value.style, toRelativeRect(content, containerRect));
+  textRef.value.style.columnGap = getComputedStyle(content).columnGap;
+  textRef.value.replaceChildren(...Array.from(content.childNodes, node => node.cloneNode(true)));
 };
 
 const clearEffect = () => {
@@ -211,7 +213,7 @@ const clearEffect = () => {
   filterRef.value?.classList.remove('active');
   if (textRef.value) {
     textRef.value.classList.remove('active');
-    textRef.value.innerText = '';
+    textRef.value.replaceChildren();
   }
 };
 
@@ -357,6 +359,9 @@ onUnmounted(() => {
 }
 
 .gooey-nav .effect.text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--foreground);
   transition: color 0.3s ease;
 }
@@ -492,6 +497,11 @@ onUnmounted(() => {
 .gooey-nav li.active {
   color: var(--background);
   text-shadow: none;
+}
+
+/* The .effect.text overlay draws the active item's content; hiding the original avoids a doubled label */
+.gooey-nav li.active > * {
+  color: transparent;
 }
 
 .gooey-nav li.active::after {

@@ -560,11 +560,13 @@ Signup (`signupHelper.buildApplicantInsert`) creates the `applicants.applicants`
 
 ---
 
-## 9. Schema: `system` — Audit & Notifications
+## 9. Schema: `system` — Audit, Notifications & Announcements
 
 ### Tables
 
 #### `notifications`
+
+Personal inbox events (one row per recipient). Broadcast posts go in `announcements`, not here.
 
 | Column         | Type   | Notes           |
 | -------------- | ------ | --------------- |
@@ -574,6 +576,48 @@ Signup (`signupHelper.buildApplicantInsert`) creates the `applicants.applicants`
 | `message`      | `text` | nullable        |
 | `type`         | `text` | notification_type enum |
 | `is_read`      | `boolean` | default false |
+
+#### `announcements` (migration 036)
+
+One row per PESO posting, shown to an audience.
+
+| Column         | Type   | Notes |
+| -------------- | ------ | ----- |
+| `id`           | `uuid` | PK |
+| `type`         | `announcement_type` | `general`, `gip`, `spes`, `tupad`, `fnplp`, `job_fair`, `vacancy`, `skills_training`; default `general` |
+| `title`        | `text` | required, non-blank |
+| `body`         | `text` | default `''` |
+| `audience`     | `announcement_audience[]` | `public`, `applicant`, `employer`, `peso`; default `{public}` |
+| `status`       | `announcement_status` | `draft` / `published` / `archived`; default `draft` |
+| `published_at` | `timestamptz` | future value schedules the post; trigger sets `now()` on publish when empty |
+| `expires_at`   | `timestamptz` | nullable; must be after `published_at` |
+| `is_pinned`    | `boolean` | default false |
+| `created_by`   | `uuid` | FK → `core.profiles`, default `auth.uid()` |
+
+#### `announcement_media` (migration 036)
+
+Pictures / videos / PDFs of a posting. Files live in the public bucket `announcement-media` at `<announcement_id>/<filename>`.
+
+| Column            | Type   | Notes |
+| ----------------- | ------ | ----- |
+| `id`              | `uuid` | PK |
+| `announcement_id` | `uuid` | FK → `announcements`, cascade delete |
+| `uploaded_by`     | `uuid` | FK → `core.profiles`, default `auth.uid()` |
+| `filename`, `path`, `mime_type`, `size` | | `path` unique |
+| `alt_text`        | `text` | nullable |
+| `sort_order`      | `int4` | lowest = cover; default 0 |
+
+#### `announcement_reads` (migration 036)
+
+Per-user read markers; PK (`announcement_id`, `user_id`). Insert a row when a user opens an announcement.
+
+#### Announcement access & functions
+
+- A posting is **live** when `status = 'published'`, `published_at <= now()` and `expires_at` is empty or in the future.
+- `provincial_peso` / `admin`: full CRUD on announcements, media and the bucket.
+- Other signed-in users read live postings whose `audience` contains `public` or their own audience; `anon` reads live `public` postings (landing page). Media follows its posting.
+- `system.current_audience()` maps the role: applicant → `applicant`; company_owner / company_member → `employer`; provincial_peso / municipal_peso / dole / admin → `peso`.
+- `system.unread_announcement_count()` → live postings for the caller's audience without a read marker (bell badge).
 
 #### `system_audit_logs`
 
