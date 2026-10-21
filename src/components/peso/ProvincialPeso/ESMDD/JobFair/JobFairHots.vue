@@ -275,7 +275,7 @@ const walkInFields = [
               </FormItem>
             </FormField>
 
-            <FormField v-slot="{ componentField }" name="jobVacancyId">
+            <FormField v-slot="{ componentField }" name="jobFairVacancyId">
               <FormItem>
                 <FormLabel>Vacancy</FormLabel>
                 <Select v-bind="componentField" :disabled="isSubmitting || vacancyChoices.length === 0">

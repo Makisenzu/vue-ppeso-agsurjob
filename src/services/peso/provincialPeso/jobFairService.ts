@@ -12,7 +12,10 @@ import {
   type JobFairUpdate,
   type JobFairRegistryApplicant,
   type JobFairWithCounts,
-  type JobVacancyInsert,
+  type JobFairVacancyDetails,
+  type JobFairVacancyFormPayload,
+  type JobFairVacancyRow,
+  type JobFairVacancyUpdate,
   type JobVacancyRow,
   type JobVacancyUpdate,
 } from '@/types/peso/provincialPeso/jobFair'
@@ -21,7 +24,8 @@ import { establishmentService } from '@/services/common/establishmentService'
 import { pickEstablishmentFormFields } from '@/helpers/common/establishmentHelper'
 
 const JOB_FAIR_WITH_COUNTS_SELECT =
-  '*, job_fair_participants(count), job_vacancies(vacancy_count), job_fair_applicants(count), hots(count)'
+  '*, job_fair_participants(count), job_fair_vacancies(vacancy_count), job_fair_applicants(count), hots(count)'
+const JOB_FAIR_VACANCY_SELECT = '*, job_vacancies(*)'
 const REGISTRY_COLUMNS = 'id, profile_id, first_name, middle_name, surname, suffix, sex, email, contact_numbers'
 const REGISTRY_SEARCH_LIMIT = 20
 // Keeps `.in('id', …)` URLs short when looking up many registry records
@@ -40,6 +44,28 @@ async function withEstablishments<T extends JobFairParticipantRow>(rows: T[]): P
 function toParticipantError(error: { code?: string; message?: string }, fallback: string): Error {
   // 23505 = unique_violation on (job_fair_id, establishment_id)
   if (error.code === '23505') return new Error('This employer is already a participant of this job fair.')
+  return new Error(error.message || fallback)
+}
+
+/** Flattens a job fair offer and its job into one row; the offer's id, openings and status win. */
+function toVacancyDetails(row: JobFairVacancyRow & { job_vacancies: JobVacancyRow }): JobFairVacancyDetails {
+  const { job_vacancies: job, ...offer } = row
+  const {
+    id: _jobId,
+    vacancy_count: _jobCount,
+    status: _jobStatus,
+    created_by: _createdBy,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    ...details
+  } = job
+  return { ...details, ...offer }
+}
+
+function toVacancyError(error: { code?: string; message?: string }, fallback: string): Error {
+  // 23505 = unique_violation on (job_fair_id, job_vacancy_id); P0001 = RAISE in the sync trigger
+  if (error.code === '23505') return new Error('This vacancy is already offered at this job fair.')
+  if (error.code === 'P0001' && error.message) return new Error(error.message)
   return new Error(error.message || fallback)
 }
 
@@ -227,7 +253,7 @@ export const jobFairService = {
     const { data, error } = await supabase
       .schema('esmdd')
       .from('job_fair_participants')
-      .select('*, job_vacancies(count)')
+      .select('*, job_fair_vacancies(count)')
       .eq('job_fair_id', jobFairId)
 
     if (error) throw new Error(error.message || 'Failed to load job fair participants.')
@@ -273,7 +299,7 @@ export const jobFairService = {
 
     if (error) throw toParticipantError(error, 'Failed to add participant.')
     const establishment = existing ?? (await establishmentService.fetchEstablishmentById(data.establishment_id))
-    return { ...data, ...pickEstablishmentFormFields(establishment), job_vacancies: [{ count: 0 }] }
+    return { ...data, ...pickEstablishmentFormFields(establishment), job_fair_vacancies: [{ count: 0 }] }
   },
 
   /** Saves Form 2 edits to the establishment (shared by every activity it joined) and the participant status. */
@@ -289,7 +315,7 @@ export const jobFairService = {
       .from('job_fair_participants')
       .update(update)
       .eq('id', participant.id)
-      .select('*, job_vacancies(count)')
+      .select('*, job_fair_vacancies(count)')
       .single()
 
     if (error) throw toParticipantError(error, 'Failed to update participant.')
@@ -311,53 +337,79 @@ export const jobFairService = {
   },
 
   // ─── Vacancies ───
+  // The job lives in job_vacancies (owned by the establishment); job_fair_vacancies offers it at
+  // a fair with that fair's openings and status (migration 039).
 
-  async fetchParticipantVacancies(jobFairId: string, participantId: string): Promise<JobVacancyRow[]> {
+  async fetchParticipantVacancies(participantId: string): Promise<JobFairVacancyDetails[]> {
     const { data, error } = await supabase
       .schema('esmdd')
-      .from('job_vacancies')
-      .select('*')
-      .eq('job_fair_id', jobFairId)
+      .from('job_fair_vacancies')
+      .select(JOB_FAIR_VACANCY_SELECT)
       .eq('participant_id', participantId)
-      .order('position_title', { ascending: true })
 
     if (error) throw new Error(error.message || 'Failed to load vacancies.')
-    return data ?? []
+    return (data ?? []).map(toVacancyDetails).sort((a, b) => a.position_title.localeCompare(b.position_title))
   },
 
-  async createVacancy(payload: JobVacancyInsert): Promise<JobVacancyRow> {
-    const { data, error } = await supabase
+  /** Creates the participant's job and offers it at the job fair in one transaction. */
+  async createVacancy(participantId: string, payload: JobFairVacancyFormPayload): Promise<JobFairVacancyDetails> {
+    const { data, error } = await supabase.schema('esmdd').rpc('add_job_fair_vacancy', {
+      p_participant_id: participantId,
+      // The fair's openings / status double as the new job's defaults
+      p_job_vacancy: { ...payload.vacancy, vacancy_count: payload.vacancy_count, status: payload.status },
+      p_vacancy_count: payload.vacancy_count,
+      p_status: payload.status,
+    })
+
+    if (error) throw toVacancyError(error, 'Failed to add vacancy.')
+    return this.fetchVacancyById(data.id)
+  },
+
+  /** Saves job details to the shared job_vacancies row, openings / status to this fair's offer. */
+  async updateVacancy(target: JobFairVacancyDetails, payload: JobFairVacancyFormPayload): Promise<JobFairVacancyDetails> {
+    const jobUpdate: JobVacancyUpdate = { ...payload.vacancy, updated_at: new Date().toISOString() }
+    const { error: jobError } = await supabase
       .schema('esmdd')
       .from('job_vacancies')
-      .insert(payload)
-      .select()
-      .single()
+      .update(jobUpdate)
+      .eq('id', target.job_vacancy_id)
 
-    if (error) throw new Error(error.message || 'Failed to add vacancy.')
-    return data
-  },
+    if (jobError) throw toVacancyError(jobError, 'Failed to update vacancy.')
 
-  async updateVacancy(vacancyId: string, payload: JobVacancyUpdate): Promise<JobVacancyRow> {
+    const offerUpdate: JobFairVacancyUpdate = { vacancy_count: payload.vacancy_count, status: payload.status }
     const { data, error } = await supabase
       .schema('esmdd')
-      .from('job_vacancies')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('id', vacancyId)
-      .select()
+      .from('job_fair_vacancies')
+      .update(offerUpdate)
+      .eq('id', target.id)
+      .select(JOB_FAIR_VACANCY_SELECT)
       .single()
 
-    if (error) throw new Error(error.message || 'Failed to update vacancy.')
-    return data
+    if (error) throw toVacancyError(error, 'Failed to update vacancy.')
+    return toVacancyDetails(data)
   },
 
-  async deleteVacancy(vacancyId: string): Promise<void> {
+  async fetchVacancyById(jobFairVacancyId: string): Promise<JobFairVacancyDetails> {
+    const { data, error } = await supabase
+      .schema('esmdd')
+      .from('job_fair_vacancies')
+      .select(JOB_FAIR_VACANCY_SELECT)
+      .eq('id', jobFairVacancyId)
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to load vacancy.')
+    return toVacancyDetails(data)
+  },
+
+  /** Removes the vacancy from this job fair; the job stays on the establishment's list. */
+  async deleteVacancy(jobFairVacancyId: string): Promise<void> {
     const { error } = await supabase
       .schema('esmdd')
-      .from('job_vacancies')
+      .from('job_fair_vacancies')
       .delete()
-      .eq('id', vacancyId)
+      .eq('id', jobFairVacancyId)
 
-    // 23503 = foreign_key_violation: hired-on-the-spot records fill this vacancy (migration 024)
+    // 23503 = foreign_key_violation: hired-on-the-spot records fill this vacancy (migration 039)
     if (error?.code === '23503') {
       throw new Error('This vacancy has hired-on-the-spot records and cannot be deleted. Remove those hires first.')
     }

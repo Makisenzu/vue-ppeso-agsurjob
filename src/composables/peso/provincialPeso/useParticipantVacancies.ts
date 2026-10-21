@@ -23,7 +23,7 @@ import {
   getVacancyStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
-import { NATURE_OF_WORK_OPTIONS, type JobVacancyRow } from '@/types/peso/provincialPeso/jobFair'
+import { NATURE_OF_WORK_OPTIONS, type JobFairVacancyDetails } from '@/types/peso/provincialPeso/jobFair'
 
 export function useParticipantVacancies() {
   const route = useRoute()
@@ -57,7 +57,7 @@ export function useParticipantVacancies() {
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
 
-  const columns: ColumnDef<JobVacancyRow>[] = [
+  const columns: ColumnDef<JobFairVacancyDetails>[] = [
     {
       accessorKey: 'position_title',
       header: sortableHeader('Position'),

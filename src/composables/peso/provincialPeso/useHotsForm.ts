@@ -18,7 +18,7 @@ const hotsSchema = toTypedSchema(
   z
     .object({
       participantId: z.string({ required_error: 'Select the hiring employer.' }).min(1, 'Select the hiring employer.'),
-      jobVacancyId: z.string({ required_error: 'Select the vacancy filled.' }).min(1, 'Select the vacancy filled.'),
+      jobFairVacancyId: z.string({ required_error: 'Select the vacancy filled.' }).min(1, 'Select the vacancy filled.'),
       applicantSource: z.enum(HOTS_APPLICANT_SOURCES),
       applicantId: z.string().optional(),
       firstName: z.string().trim().optional(),
@@ -47,7 +47,7 @@ const hotsSchema = toTypedSchema(
 
 type HotsFormValues = {
   participantId: string
-  jobVacancyId: string
+  jobFairVacancyId: string
   applicantSource: HotsApplicantSource
   applicantId: string | undefined
   firstName: string
@@ -63,7 +63,7 @@ const today = () => format(new Date(), 'yyyy-MM-dd')
 
 const initialValues = (): HotsFormValues => ({
   participantId: '',
-  jobVacancyId: '',
+  jobFairVacancyId: '',
   applicantSource: 'registry',
   applicantId: undefined,
   firstName: '',
@@ -78,7 +78,7 @@ const initialValues = (): HotsFormValues => ({
 function toFormValues(row: HotsWithDetails): HotsFormValues {
   return {
     participantId: row.participant_id,
-    jobVacancyId: row.job_vacancy_id,
+    jobFairVacancyId: row.job_fair_vacancy_id,
     applicantSource: row.applicant_id ? 'registry' : 'walk-in',
     applicantId: row.applicant_id ?? undefined,
     firstName: row.applicant_first_name,
@@ -137,7 +137,7 @@ export function useHotsForm() {
       .map((option) => {
         const slotsLeft = getVacancySlotsLeft(option)
         // The vacancy the hire already fills keeps its own slot when editing
-        const isCurrent = editingHire.value?.job_vacancy_id === option.id
+        const isCurrent = editingHire.value?.job_fair_vacancy_id === option.id
         return {
           id: option.id,
           title: option.position_title,
@@ -151,8 +151,8 @@ export function useHotsForm() {
   watch(
     () => values.participantId,
     () => {
-      if (values.jobVacancyId && !vacancyChoices.value.some((choice) => choice.id === values.jobVacancyId)) {
-        setFieldValue('jobVacancyId', '')
+      if (values.jobFairVacancyId && !vacancyChoices.value.some((choice) => choice.id === values.jobFairVacancyId)) {
+        setFieldValue('jobFairVacancyId', '')
       }
     }
   )
@@ -212,7 +212,7 @@ export function useHotsForm() {
   const submitHire = handleSubmit(async (formValues) => {
     if (!jobFairId.value) return
 
-    const vacancy = vacancyOptions.value.find((option) => option.id === formValues.jobVacancyId)
+    const vacancy = vacancyOptions.value.find((option) => option.id === formValues.jobFairVacancyId)
     if (!vacancy) return
 
     const applicant = formValues.applicantSource === 'registry' ? selectedApplicant.value : null
@@ -228,7 +228,7 @@ export function useHotsForm() {
     const payload: HotsInsert = {
       job_fair_id: jobFairId.value,
       participant_id: vacancy.participant_id,
-      job_vacancy_id: vacancy.id,
+      job_fair_vacancy_id: vacancy.id,
       applicant_id: applicant?.id ?? null,
       applicant_first_name: applicant ? applicant.first_name : (formValues.firstName ?? '').trim(),
       applicant_middle_name: applicant ? applicant.middle_name : orNull(formValues.middleName),

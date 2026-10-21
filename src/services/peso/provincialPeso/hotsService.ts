@@ -7,12 +7,13 @@ import type {
 } from '@/types/peso/provincialPeso/jobFair'
 import { establishmentService } from '@/services/common/establishmentService'
 
-// The employer name lives on the participant's establishment (another schema), see withEmployerNames
-const HOTS_SELECT = '*, job_fair_participants(establishment_id), job_vacancies(position_title)'
+// The employer name lives on the participant's establishment (another schema), see withEmployerNames;
+// the position title on the job behind the job fair vacancy (migration 039), see withPositionTitles
+const HOTS_SELECT = '*, job_fair_participants(establishment_id), job_fair_vacancies(job_vacancies(position_title))'
 /** Keeps .in() filters well under PostgREST's URL length limit. */
 const IN_FILTER_CHUNK_SIZE = 150
 const VACANCY_OPTION_SELECT =
-  'id, participant_id, position_title, vacancy_count, job_fair_participants(establishment_id), hots(count)'
+  'id, participant_id, vacancy_count, job_vacancies(position_title), job_fair_participants(establishment_id), hots(count)'
 
 /** Turns trigger / constraint errors into messages PESO staff can act on. */
 function toHotsError(error: { code?: string; message?: string }, fallback: string): Error {
@@ -37,6 +38,15 @@ async function withEmployerNames<T extends WithParticipantLink>(
   })
 }
 
+type WithJobFairVacancy = { job_fair_vacancies: { job_vacancies: { position_title: string } | null } | null }
+
+/** Lifts `job_fair_vacancies.job_vacancies.position_title` to `job_vacancies.position_title`. */
+function withPositionTitles<T extends WithJobFairVacancy>(
+  rows: T[]
+): (Omit<T, 'job_fair_vacancies'> & { job_vacancies: { position_title: string } | null })[] {
+  return rows.map(({ job_fair_vacancies, ...row }) => ({ ...row, job_vacancies: job_fair_vacancies?.job_vacancies ?? null }))
+}
+
 export const hotsService = {
   async fetchHots(jobFairId: string): Promise<HotsWithDetails[]> {
     const { data, error } = await supabase
@@ -47,19 +57,22 @@ export const hotsService = {
       .order('hired_date', { ascending: false })
 
     if (error) throw new Error(error.message || 'Failed to load hired-on-the-spot records.')
-    return (await withEmployerNames(data ?? [])) as HotsWithDetails[]
+    return (await withEmployerNames(withPositionTitles(data ?? []))) as HotsWithDetails[]
   },
 
   async fetchVacancyOptions(jobFairId: string): Promise<HotsVacancyOption[]> {
     const { data, error } = await supabase
       .schema('esmdd')
-      .from('job_vacancies')
+      .from('job_fair_vacancies')
       .select(VACANCY_OPTION_SELECT)
       .eq('job_fair_id', jobFairId)
-      .order('position_title', { ascending: true })
 
     if (error) throw new Error(error.message || 'Failed to load vacancies.')
-    return (await withEmployerNames(data ?? [])) as HotsVacancyOption[]
+    const options = (await withEmployerNames(data ?? [])).map(({ job_vacancies, ...option }) => ({
+      ...option,
+      position_title: job_vacancies?.position_title ?? 'Untitled position',
+    }))
+    return (options as HotsVacancyOption[]).sort((a, b) => a.position_title.localeCompare(b.position_title))
   },
 
   async createHots(payload: HotsInsert): Promise<HotsWithDetails> {
@@ -71,7 +84,7 @@ export const hotsService = {
       .single()
 
     if (error) throw toHotsError(error, 'Failed to record the hire.')
-    const [row] = await withEmployerNames([data])
+    const [row] = await withEmployerNames(withPositionTitles([data]))
     return row as HotsWithDetails
   },
 
@@ -85,7 +98,7 @@ export const hotsService = {
       .single()
 
     if (error) throw toHotsError(error, 'Failed to update the hire.')
-    const [row] = await withEmployerNames([data])
+    const [row] = await withEmployerNames(withPositionTitles([data]))
     return row as HotsWithDetails
   },
 

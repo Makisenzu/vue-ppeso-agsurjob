@@ -589,8 +589,8 @@ const textFields = {
           <AlertDialogDescription>
             <strong class="font-medium text-foreground">{{ participantToDelete?.business_name }}</strong> will be
             permanently removed from this job fair.
-            <template v-if="(participantToDelete?.job_vacancies?.[0]?.count ?? 0) > 0">
-              Its {{ participantToDelete?.job_vacancies?.[0]?.count }} vacancy record(s) for this job fair will also be deleted.
+            <template v-if="(participantToDelete?.job_fair_vacancies?.[0]?.count ?? 0) > 0">
+              Its {{ participantToDelete?.job_fair_vacancies?.[0]?.count }} vacancy offer(s) at this job fair will also be removed.
             </template>
             This action cannot be undone.
           </AlertDialogDescription>

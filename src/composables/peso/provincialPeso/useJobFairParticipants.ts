@@ -39,7 +39,7 @@ export function useJobFairParticipants() {
   const jobFairStatusClass = computed(() => getJobFairStatusBadgeClass(jobFair.value?.status))
   const hasMapLocation = computed(() => hasValidCoordinates(jobFair.value?.latitude, jobFair.value?.longitude))
   const totalVacancies = computed(() =>
-    participants.value.reduce((sum, p) => sum + (p.job_vacancies?.[0]?.count ?? 0), 0)
+    participants.value.reduce((sum, p) => sum + (p.job_fair_vacancies?.[0]?.count ?? 0), 0)
   )
 
   const viewVacancies = (row: JobFairParticipantWithCount) =>
@@ -121,7 +121,7 @@ export function useJobFairParticipants() {
     },
     {
       id: 'vacancies',
-      accessorFn: (row) => row.job_vacancies?.[0]?.count ?? 0,
+      accessorFn: (row) => row.job_fair_vacancies?.[0]?.count ?? 0,
       header: sortableHeader('Vacancies'),
       cell: ({ getValue }) => h('div', { class: 'text-center text-sm font-medium tabular-nums' }, String(getValue())),
     },

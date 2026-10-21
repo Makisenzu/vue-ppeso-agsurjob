@@ -7,9 +7,8 @@ import type {
   JobFairParticipantFormPayload,
   JobFairParticipantWithCount,
   JobFairRow,
-  JobVacancyInsert,
-  JobVacancyRow,
-  JobVacancyUpdate,
+  JobFairVacancyDetails,
+  JobFairVacancyFormPayload,
 } from '@/types/peso/provincialPeso/jobFair'
 
 export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', () => {
@@ -25,7 +24,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
 
   // ─── State: Participant Vacancies ───
   const participant = ref<JobFairParticipantDetails | null>(null)
-  const vacancies = ref<JobVacancyRow[]>([])
+  const vacancies = ref<JobFairVacancyDetails[]>([])
   const isVacanciesLoading = ref(false)
   const vacanciesErrorMessage = ref<string | null>(null)
 
@@ -34,8 +33,8 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
   const editingParticipant = ref<JobFairParticipantWithCount | null>(null)
   const participantToDelete = ref<JobFairParticipantWithCount | null>(null)
   const isVacancyFormOpen = ref(false)
-  const editingVacancy = ref<JobVacancyRow | null>(null)
-  const vacancyToDelete = ref<JobVacancyRow | null>(null)
+  const editingVacancy = ref<JobFairVacancyDetails | null>(null)
+  const vacancyToDelete = ref<JobFairVacancyDetails | null>(null)
 
   // ─── Actions: Job Fair + Participants ───
   async function loadJobFair(jobFairId: string): Promise<void> {
@@ -135,7 +134,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
       const [fair, owner, rows] = await Promise.all([
         jobFair.value?.id === jobFairId ? Promise.resolve(jobFair.value) : jobFairService.fetchJobFairById(jobFairId),
         jobFairService.fetchParticipantById(jobFairId, participantId),
-        jobFairService.fetchParticipantVacancies(jobFairId, participantId),
+        jobFairService.fetchParticipantVacancies(participantId),
       ])
       jobFair.value = fair
       participant.value = owner
@@ -152,14 +151,14 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
   function syncParticipantVacancyCount(participantId: string) {
     const count = vacancies.value.length
     participants.value = participants.value.map((p) =>
-      p.id === participantId ? { ...p, job_vacancies: [{ count }] } : p
+      p.id === participantId ? { ...p, job_fair_vacancies: [{ count }] } : p
     )
   }
 
-  async function createVacancy(payload: JobVacancyInsert): Promise<boolean> {
+  async function createVacancy(participantId: string, payload: JobFairVacancyFormPayload): Promise<boolean> {
     isSubmitting.value = true
     try {
-      const created = await jobFairService.createVacancy(payload)
+      const created = await jobFairService.createVacancy(participantId, payload)
       vacancies.value = [...vacancies.value, created].sort((a, b) => a.position_title.localeCompare(b.position_title))
       syncParticipantVacancyCount(created.participant_id)
       isVacancyFormOpen.value = false
@@ -173,10 +172,10 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     }
   }
 
-  async function updateVacancy(vacancyId: string, payload: JobVacancyUpdate): Promise<boolean> {
+  async function updateVacancy(target: JobFairVacancyDetails, payload: JobFairVacancyFormPayload): Promise<boolean> {
     isSubmitting.value = true
     try {
-      const updated = await jobFairService.updateVacancy(vacancyId, payload)
+      const updated = await jobFairService.updateVacancy(target, payload)
       vacancies.value = vacancies.value.map((v) => (v.id === updated.id ? updated : v))
       isVacancyFormOpen.value = false
       editingVacancy.value = null
@@ -200,7 +199,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
       vacancies.value = vacancies.value.filter((v) => v.id !== target.id)
       syncParticipantVacancyCount(target.participant_id)
       vacancyToDelete.value = null
-      toastAlert.success('Vacancy deleted', `${target.position_title} has been deleted.`)
+      toastAlert.success('Vacancy removed', `${target.position_title} has been removed from this job fair.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -240,7 +239,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     isVacancyFormOpen.value = true
   }
 
-  function openEditVacancyDialog(row: JobVacancyRow) {
+  function openEditVacancyDialog(row: JobFairVacancyDetails) {
     editingVacancy.value = row
     isVacancyFormOpen.value = true
   }
@@ -250,7 +249,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     editingVacancy.value = null
   }
 
-  function requestVacancyDelete(row: JobVacancyRow) {
+  function requestVacancyDelete(row: JobFairVacancyDetails) {
     vacancyToDelete.value = row
   }
 

@@ -118,7 +118,7 @@ export function getAttendeeStatusBadgeClass(status?: string | null): string {
 
 /** Total openings across every vacancy posted for the job fair. */
 export function getJobFairVacancyTotal(row: JobFairWithCounts): number {
-  return (row.job_vacancies ?? []).reduce((sum, vacancy) => sum + (vacancy.vacancy_count ?? 0), 0)
+  return (row.job_fair_vacancies ?? []).reduce((sum, vacancy) => sum + (vacancy.vacancy_count ?? 0), 0)
 }
 
 // ─── Hired on the Spot ───

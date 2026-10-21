@@ -1604,114 +1604,30 @@ export type Database = {
       }
       job_fair_participants: {
         Row: {
-          acronym: string | null
-          barangay: string | null
-          business_name: string
-          city_municipality: string | null
-          company_id: string | null
-          contact_person_name: string | null
-          contact_person_position: string | null
           created_at: string | null
-          email_address: string | null
-          employer_category: Database["esmdd"]["Enums"]["employer_category_enum"]
-          establishment_id: string | null
-          fax_number: string | null
+          establishment_id: string
           id: string
-          industry_line: string | null
-          is_main_office: boolean | null
           job_fair_id: string
-          mobile_number: string | null
-          owner_president_name: string | null
-          private_employer_type:
-            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
-            | null
-          province: string | null
-          public_employer_type:
-            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
-            | null
           registered_at: string | null
           status: string | null
-          street: string | null
-          telephone_number: string | null
-          tin: string | null
-          total_workforce:
-            | Database["esmdd"]["Enums"]["total_workforce_enum"]
-            | null
-          trade_name: string | null
           updated_at: string | null
         }
         Insert: {
-          acronym?: string | null
-          barangay?: string | null
-          business_name: string
-          city_municipality?: string | null
-          company_id?: string | null
-          contact_person_name?: string | null
-          contact_person_position?: string | null
           created_at?: string | null
-          email_address?: string | null
-          employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
-          establishment_id?: string | null
-          fax_number?: string | null
+          establishment_id: string
           id?: string
-          industry_line?: string | null
-          is_main_office?: boolean | null
           job_fair_id: string
-          mobile_number?: string | null
-          owner_president_name?: string | null
-          private_employer_type?:
-            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
-            | null
-          province?: string | null
-          public_employer_type?:
-            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
-            | null
           registered_at?: string | null
           status?: string | null
-          street?: string | null
-          telephone_number?: string | null
-          tin?: string | null
-          total_workforce?:
-            | Database["esmdd"]["Enums"]["total_workforce_enum"]
-            | null
-          trade_name?: string | null
           updated_at?: string | null
         }
         Update: {
-          acronym?: string | null
-          barangay?: string | null
-          business_name?: string
-          city_municipality?: string | null
-          company_id?: string | null
-          contact_person_name?: string | null
-          contact_person_position?: string | null
           created_at?: string | null
-          email_address?: string | null
-          employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
-          establishment_id?: string | null
-          fax_number?: string | null
+          establishment_id?: string
           id?: string
-          industry_line?: string | null
-          is_main_office?: boolean | null
           job_fair_id?: string
-          mobile_number?: string | null
-          owner_president_name?: string | null
-          private_employer_type?:
-            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
-            | null
-          province?: string | null
-          public_employer_type?:
-            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
-            | null
           registered_at?: string | null
           status?: string | null
-          street?: string | null
-          telephone_number?: string | null
-          tin?: string | null
-          total_workforce?:
-            | Database["esmdd"]["Enums"]["total_workforce_enum"]
-            | null
-          trade_name?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2294,6 +2210,29 @@ export type Database = {
       }
     }
     Functions: {
+      add_job_fair_participant: {
+        Args: {
+          p_establishment?: Json
+          p_establishment_id?: string
+          p_job_fair_id: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string | null
+          establishment_id: string
+          id: string
+          job_fair_id: string
+          registered_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_fair_participants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       can_edit_own_tupad_application: {
         Args: { p_tupad_applicant_id: string }
         Returns: boolean

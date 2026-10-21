@@ -9,8 +9,9 @@ import {
   NATURE_OF_WORK_OPTIONS,
   VACANCY_STATUSES,
   type DisabilityType,
-  type JobVacancyInsert,
-  type JobVacancyRow,
+  type JobFairVacancyDetails,
+  type JobFairVacancyFormPayload,
+  type JobVacancyDetailsFields,
 } from '@/types/peso/provincialPeso/jobFair'
 
 const optionalText = z.string().trim().optional()
@@ -102,8 +103,8 @@ const splitList = (value?: string) => {
 }
 const orNull = (value?: string | null) => (value && value.trim() ? value.trim() : null)
 
-function toFormValues(row: JobVacancyRow): VacancyFormValues {
-  const status = VACANCY_STATUSES.find((s) => s === (row.status ?? '').toLowerCase()) ?? 'open'
+function toFormValues(row: JobFairVacancyDetails): VacancyFormValues {
+  const status = row.status
   return {
     positionTitle: row.position_title,
     jobDescription: row.job_description ?? '',
@@ -131,7 +132,7 @@ function toFormValues(row: JobVacancyRow): VacancyFormValues {
 
 export function useJobVacancyForm() {
   const store = useJobFairParticipantStore()
-  const { jobFair, participant, isVacancyFormOpen, editingVacancy, isSubmitting } = storeToRefs(store)
+  const { participant, isVacancyFormOpen, editingVacancy, isSubmitting } = storeToRefs(store)
   const { createVacancy, updateVacancy, closeVacancyFormDialog } = store
 
   const { handleSubmit, resetForm, values, setFieldValue } = useForm({
@@ -163,13 +164,12 @@ export function useJobVacancyForm() {
   }
 
   const submitVacancy = handleSubmit(async (formValues) => {
-    if (!jobFair.value || !participant.value) return
+    if (!participant.value) return
 
-    const payload: Omit<JobVacancyInsert, 'job_fair_id' | 'participant_id'> = {
+    const vacancy: JobVacancyDetailsFields = {
       position_title: formValues.positionTitle,
       job_description: orNull(formValues.jobDescription),
       nature_of_work: formValues.natureOfWork,
-      vacancy_count: formValues.vacancyCount,
       salary: orNull(formValues.salary),
       place_of_work: orNull(formValues.placeOfWork),
       educational_level: orNull(formValues.educationalLevel),
@@ -188,13 +188,14 @@ export function useJobVacancyForm() {
       accepts_returning_ofw: formValues.acceptsReturningOfw,
       posting_date: orNull(formValues.postingDate),
       valid_until: orNull(formValues.validUntil),
-      status: formValues.status,
     }
+    // Openings and status belong to this job fair's offer of the vacancy
+    const payload: JobFairVacancyFormPayload = { vacancy, vacancy_count: formValues.vacancyCount, status: formValues.status }
 
     if (editingVacancy.value) {
-      await updateVacancy(editingVacancy.value.id, payload)
+      await updateVacancy(editingVacancy.value, payload)
     } else {
-      await createVacancy({ ...payload, job_fair_id: jobFair.value.id, participant_id: participant.value.id })
+      await createVacancy(participant.value.id, payload)
     }
   })
 
