@@ -5,17 +5,36 @@ import type {
   HotsVacancyOption,
   HotsWithDetails,
 } from '@/types/peso/provincialPeso/jobFair'
+import { establishmentService } from '@/services/common/establishmentService'
 
-const HOTS_SELECT = '*, job_fair_participants(business_name), job_vacancies(position_title)'
+// The employer name lives on the participant's establishment (another schema), see withEmployerNames
+const HOTS_SELECT = '*, job_fair_participants(establishment_id), job_vacancies(position_title)'
 /** Keeps .in() filters well under PostgREST's URL length limit. */
 const IN_FILTER_CHUNK_SIZE = 150
-const VACANCY_OPTION_SELECT = 'id, participant_id, position_title, vacancy_count, job_fair_participants(business_name), hots(count)'
+const VACANCY_OPTION_SELECT =
+  'id, participant_id, position_title, vacancy_count, job_fair_participants(establishment_id), hots(count)'
 
 /** Turns trigger / constraint errors into messages PESO staff can act on. */
 function toHotsError(error: { code?: string; message?: string }, fallback: string): Error {
   // P0001 = RAISE EXCEPTION in the HOTS triggers (vacancy full, registry applicant without a phone)
   if (error.code === 'P0001' && error.message) return new Error(error.message)
   return new Error(error.message || fallback)
+}
+
+type WithParticipantLink = { job_fair_participants: { establishment_id: string } | null }
+
+/** Swaps each row's `job_fair_participants.establishment_id` for the establishment's business name. */
+async function withEmployerNames<T extends WithParticipantLink>(
+  rows: T[]
+): Promise<(Omit<T, 'job_fair_participants'> & { job_fair_participants: { business_name: string } | null })[]> {
+  const ids = rows.flatMap((row) => (row.job_fair_participants ? [row.job_fair_participants.establishment_id] : []))
+  const establishments = await establishmentService.fetchEstablishmentsByIds(ids)
+  return rows.map((row) => {
+    const establishment = row.job_fair_participants
+      ? establishments.get(row.job_fair_participants.establishment_id)
+      : undefined
+    return { ...row, job_fair_participants: establishment ? { business_name: establishment.business_name } : null }
+  })
 }
 
 export const hotsService = {
@@ -28,7 +47,7 @@ export const hotsService = {
       .order('hired_date', { ascending: false })
 
     if (error) throw new Error(error.message || 'Failed to load hired-on-the-spot records.')
-    return (data ?? []) as HotsWithDetails[]
+    return (await withEmployerNames(data ?? [])) as HotsWithDetails[]
   },
 
   async fetchVacancyOptions(jobFairId: string): Promise<HotsVacancyOption[]> {
@@ -40,7 +59,7 @@ export const hotsService = {
       .order('position_title', { ascending: true })
 
     if (error) throw new Error(error.message || 'Failed to load vacancies.')
-    return (data ?? []) as HotsVacancyOption[]
+    return (await withEmployerNames(data ?? [])) as HotsVacancyOption[]
   },
 
   async createHots(payload: HotsInsert): Promise<HotsWithDetails> {
@@ -52,7 +71,8 @@ export const hotsService = {
       .single()
 
     if (error) throw toHotsError(error, 'Failed to record the hire.')
-    return data as HotsWithDetails
+    const [row] = await withEmployerNames([data])
+    return row as HotsWithDetails
   },
 
   async updateHots(hotsId: string, payload: HotsUpdate): Promise<HotsWithDetails> {
@@ -65,7 +85,8 @@ export const hotsService = {
       .single()
 
     if (error) throw toHotsError(error, 'Failed to update the hire.')
-    return data as HotsWithDetails
+    const [row] = await withEmployerNames([data])
+    return row as HotsWithDetails
   },
 
   /** Deletes the hire records and returns the ids actually deleted. */

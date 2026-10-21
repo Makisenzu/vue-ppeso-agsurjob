@@ -1134,6 +1134,134 @@ export type Database = {
           },
         ]
       }
+      establishments: {
+        Row: {
+          acronym: string | null
+          barangay: string | null
+          business_name: string
+          city_municipality: string | null
+          company_id: string | null
+          contact_person_name: string | null
+          contact_person_position: string | null
+          created_at: string
+          created_by: string | null
+          email_address: string | null
+          employer_category: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number: string | null
+          id: string
+          industry_line: string | null
+          is_main_office: boolean
+          mobile_number: string | null
+          owner_president_name: string | null
+          private_employer_type:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province: string | null
+          public_employer_type:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          remarks: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          status: string
+          street: string | null
+          telephone_number: string | null
+          tin: string | null
+          total_workforce:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          acronym?: string | null
+          barangay?: string | null
+          business_name: string
+          city_municipality?: string | null
+          company_id?: string | null
+          contact_person_name?: string | null
+          contact_person_position?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_address?: string | null
+          employer_category: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number?: string | null
+          id?: string
+          industry_line?: string | null
+          is_main_office?: boolean
+          mobile_number?: string | null
+          owner_president_name?: string | null
+          private_employer_type?:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province?: string | null
+          public_employer_type?:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+          street?: string | null
+          telephone_number?: string | null
+          tin?: string | null
+          total_workforce?:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acronym?: string | null
+          barangay?: string | null
+          business_name?: string
+          city_municipality?: string | null
+          company_id?: string | null
+          contact_person_name?: string | null
+          contact_person_position?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_address?: string | null
+          employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
+          fax_number?: string | null
+          id?: string
+          industry_line?: string | null
+          is_main_office?: boolean
+          mobile_number?: string | null
+          owner_president_name?: string | null
+          private_employer_type?:
+            | Database["esmdd"]["Enums"]["private_employer_type_enum"]
+            | null
+          province?: string | null
+          public_employer_type?:
+            | Database["esmdd"]["Enums"]["public_employer_type_enum"]
+            | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+          street?: string | null
+          telephone_number?: string | null
+          tin?: string | null
+          total_workforce?:
+            | Database["esmdd"]["Enums"]["total_workforce_enum"]
+            | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1486,6 +1614,7 @@ export type Database = {
           created_at: string | null
           email_address: string | null
           employer_category: Database["esmdd"]["Enums"]["employer_category_enum"]
+          establishment_id: string | null
           fax_number: string | null
           id: string
           industry_line: string | null
@@ -1522,6 +1651,7 @@ export type Database = {
           created_at?: string | null
           email_address?: string | null
           employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
+          establishment_id?: string | null
           fax_number?: string | null
           id?: string
           industry_line?: string | null
@@ -1558,6 +1688,7 @@ export type Database = {
           created_at?: string | null
           email_address?: string | null
           employer_category?: Database["esmdd"]["Enums"]["employer_category_enum"]
+          establishment_id?: string | null
           fax_number?: string | null
           id?: string
           industry_line?: string | null

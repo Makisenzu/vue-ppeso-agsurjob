@@ -3,9 +3,8 @@ import { defineStore } from 'pinia'
 import { jobFairService } from '@/services/peso/provincialPeso/jobFairService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type {
-  JobFairParticipantInsert,
-  JobFairParticipantRow,
-  JobFairParticipantUpdate,
+  JobFairParticipantDetails,
+  JobFairParticipantFormPayload,
   JobFairParticipantWithCount,
   JobFairRow,
   JobVacancyInsert,
@@ -25,7 +24,7 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
   const isDeleting = ref(false)
 
   // ─── State: Participant Vacancies ───
-  const participant = ref<JobFairParticipantRow | null>(null)
+  const participant = ref<JobFairParticipantDetails | null>(null)
   const vacancies = ref<JobVacancyRow[]>([])
   const isVacanciesLoading = ref(false)
   const vacanciesErrorMessage = ref<string | null>(null)
@@ -61,10 +60,15 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     }
   }
 
-  async function createParticipant(payload: JobFairParticipantInsert): Promise<boolean> {
+  /** `establishmentId` = an existing Form 2 picked in the form; null creates a new establishment. */
+  async function createParticipant(
+    jobFairId: string,
+    payload: JobFairParticipantFormPayload,
+    establishmentId: string | null
+  ): Promise<boolean> {
     isSubmitting.value = true
     try {
-      const created = await jobFairService.createParticipant(payload)
+      const created = await jobFairService.createParticipant(jobFairId, payload, establishmentId)
       participants.value = [...participants.value, created].sort((a, b) =>
         a.business_name.localeCompare(b.business_name)
       )
@@ -79,10 +83,13 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     }
   }
 
-  async function updateParticipant(participantId: string, payload: JobFairParticipantUpdate): Promise<boolean> {
+  async function updateParticipant(
+    target: JobFairParticipantDetails,
+    payload: JobFairParticipantFormPayload
+  ): Promise<boolean> {
     isSubmitting.value = true
     try {
-      const updated = await jobFairService.updateParticipant(participantId, payload)
+      const updated = await jobFairService.updateParticipant(target, payload)
       participants.value = participants.value.map((p) => (p.id === updated.id ? updated : p))
       if (participant.value?.id === updated.id) participant.value = updated
       isFormDialogOpen.value = false

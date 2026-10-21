@@ -1,17 +1,20 @@
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useDebounceFn } from '@vueuse/core'
 import * as z from 'zod'
 import { useJobFairParticipantStore } from '@/stores/peso/provincialPeso/jobFairParticipantStore'
+import { establishmentService } from '@/services/common/establishmentService'
+import { useToastAlert } from '@/composables/common/useToastAlert'
+import type { EstablishmentFormFields, EstablishmentSearchResult } from '@/types/common/establishment'
 import {
   EMPLOYER_CATEGORIES,
   PARTICIPANT_STATUSES,
   PRIVATE_EMPLOYER_TYPES,
   PUBLIC_EMPLOYER_TYPES,
   TOTAL_WORKFORCE_OPTIONS,
-  type JobFairParticipantInsert,
-  type JobFairParticipantWithCount,
+  type JobFairParticipantFormPayload,
 } from '@/types/peso/provincialPeso/jobFair'
 
 const optionalText = z.string().trim().optional()
@@ -93,7 +96,9 @@ const INITIAL_VALUES: ParticipantFormValues = {
   status: 'Registered',
 }
 
-function toFormValues(row: JobFairParticipantWithCount): ParticipantFormValues {
+const ESTABLISHMENT_SEARCH_MIN_LENGTH = 2
+
+function toFormValues(row: EstablishmentFormFields, status: string | null): ParticipantFormValues {
   return {
     businessName: row.business_name,
     tradeName: row.trade_name ?? '',
@@ -116,7 +121,7 @@ function toFormValues(row: JobFairParticipantWithCount): ParticipantFormValues {
     cityMunicipality: row.city_municipality ?? '',
     province: row.province ?? '',
     isMainOffice: row.is_main_office ?? true,
-    status: row.status ?? undefined,
+    status: status ?? undefined,
   }
 }
 
@@ -126,6 +131,7 @@ export function useJobFairParticipantForm() {
   const store = useJobFairParticipantStore()
   const { jobFair, isFormDialogOpen, editingParticipant, isSubmitting } = storeToRefs(store)
   const { createParticipant, updateParticipant, closeFormDialog } = store
+  const toastAlert = useToastAlert()
 
   const { handleSubmit, resetForm, values } = useForm({
     validationSchema: participantSchema,
@@ -135,10 +141,61 @@ export function useJobFairParticipantForm() {
   const isEditMode = computed(() => editingParticipant.value !== null)
   const isPublicEmployer = computed(() => values.employerCategory === 'Public')
 
+  // ─── Existing establishment (NSRP Form 2) picker, add mode only ───
+  const establishmentQuery = ref('')
+  const establishmentResults = ref<EstablishmentSearchResult[]>([])
+  const isSearchingEstablishments = ref(false)
+  const isLoadingEstablishment = ref(false)
+  const selectedEstablishment = ref<EstablishmentSearchResult | null>(null)
+
+  const runEstablishmentSearch = useDebounceFn(async (term: string) => {
+    if (term.trim().length < ESTABLISHMENT_SEARCH_MIN_LENGTH) {
+      establishmentResults.value = []
+      return
+    }
+    isSearchingEstablishments.value = true
+    try {
+      const results = await establishmentService.searchEstablishments(term)
+      // Ignore results of a query the user has already changed
+      if (term === establishmentQuery.value) establishmentResults.value = results
+    } catch (error: any) {
+      toastAlert.error('Error', error.message)
+    } finally {
+      isSearchingEstablishments.value = false
+    }
+  }, 300)
+
+  watch(establishmentQuery, (term) => void runEstablishmentSearch(term))
+
+  /** Fills the form with the picked establishment; saving updates that record instead of creating one. */
+  const selectEstablishment = async (result: EstablishmentSearchResult) => {
+    isLoadingEstablishment.value = true
+    try {
+      const establishment = await establishmentService.fetchEstablishmentById(result.id)
+      resetForm({ values: toFormValues(establishment, values.status ?? INITIAL_VALUES.status ?? null) })
+      selectedEstablishment.value = result
+      establishmentQuery.value = ''
+      establishmentResults.value = []
+    } catch (error: any) {
+      toastAlert.error('Error', error.message)
+    } finally {
+      isLoadingEstablishment.value = false
+    }
+  }
+
+  const clearSelectedEstablishment = () => {
+    selectedEstablishment.value = null
+    resetForm({ values: INITIAL_VALUES })
+  }
+
   // Load the selected row (or blank values) each time the dialog opens.
   watch(isFormDialogOpen, (open) => {
     if (!open) return
-    resetForm({ values: editingParticipant.value ? toFormValues(editingParticipant.value) : INITIAL_VALUES })
+    selectedEstablishment.value = null
+    establishmentQuery.value = ''
+    establishmentResults.value = []
+    const editing = editingParticipant.value
+    resetForm({ values: editing ? toFormValues(editing, editing.status) : INITIAL_VALUES })
   })
 
   const onFormDialogOpenChange = (open: boolean) => {
@@ -150,7 +207,7 @@ export function useJobFairParticipantForm() {
     if (!jobFair.value) return
 
     const isPublic = formValues.employerCategory === 'Public'
-    const payload: Omit<JobFairParticipantInsert, 'job_fair_id'> = {
+    const establishment: EstablishmentFormFields = {
       business_name: formValues.businessName,
       trade_name: orNull(formValues.tradeName),
       acronym: orNull(formValues.acronym),
@@ -173,13 +230,13 @@ export function useJobFairParticipantForm() {
       city_municipality: orNull(formValues.cityMunicipality),
       province: orNull(formValues.province),
       is_main_office: formValues.isMainOffice,
-      status: orNull(formValues.status),
     }
+    const payload: JobFairParticipantFormPayload = { establishment, status: orNull(formValues.status) }
 
     if (editingParticipant.value) {
-      await updateParticipant(editingParticipant.value.id, payload)
+      await updateParticipant(editingParticipant.value, payload)
     } else {
-      await createParticipant({ ...payload, job_fair_id: jobFair.value.id })
+      await createParticipant(jobFair.value.id, payload, selectedEstablishment.value?.id ?? null)
     }
   })
 
@@ -190,6 +247,14 @@ export function useJobFairParticipantForm() {
     isPublicEmployer,
     onFormDialogOpenChange,
     submitParticipant,
+    establishmentQuery,
+    establishmentResults,
+    isSearchingEstablishments,
+    isLoadingEstablishment,
+    selectedEstablishment,
+    selectEstablishment,
+    clearSelectedEstablishment,
+    establishmentSearchMinLength: ESTABLISHMENT_SEARCH_MIN_LENGTH,
     categoryOptions: EMPLOYER_CATEGORIES,
     publicTypeOptions: PUBLIC_EMPLOYER_TYPES,
     privateTypeOptions: PRIVATE_EMPLOYER_TYPES,

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import { RouterLink } from 'vue-router'
-import { ArrowLeft, Building2, CalendarDays, ExternalLink, Loader2, MapPin, Plus, RefreshCw } from '@lucide/vue'
+import { ArrowLeft, Building2, CalendarDays, ExternalLink, Loader2, MapPin, Plus, RefreshCw, Search } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -64,6 +65,14 @@ const {
   isPublicEmployer,
   onFormDialogOpenChange,
   submitParticipant,
+  establishmentQuery,
+  establishmentResults,
+  isSearchingEstablishments,
+  isLoadingEstablishment,
+  selectedEstablishment,
+  selectEstablishment,
+  clearSelectedEstablishment,
+  establishmentSearchMinLength,
   publicTypeOptions,
   privateTypeOptions,
   workforceOptions,
@@ -321,9 +330,76 @@ const textFields = {
           <DialogHeader>
             <DialogTitle>{{ isEditMode ? 'Edit Employer' : 'Add Employer' }}</DialogTitle>
             <DialogDescription>
-              {{ isEditMode ? 'Update the employer details for this job fair.' : 'Register an employer participating in this job fair.' }}
+              {{
+                isEditMode
+                  ? "Changes update this establishment's NSRP Form 2, shared by every activity it joins."
+                  : 'Pick an establishment already on file, or fill in the NSRP Form 2 to register a new one.'
+              }}
             </DialogDescription>
           </DialogHeader>
+
+          <!-- Existing establishment picker (add mode) -->
+          <section v-if="!isEditMode" class="grid gap-2">
+            <div
+              v-if="selectedEstablishment"
+              class="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2"
+            >
+              <div class="min-w-0 text-sm">
+                <div class="truncate font-medium">{{ selectedEstablishment.business_name }}</div>
+                <div class="truncate text-xs text-muted-foreground">
+                  Existing record — saving updates it and adds it to this job fair.
+                </div>
+              </div>
+              <Button type="button" variant="ghost" size="sm" :disabled="isSubmitting" @click="clearSelectedEstablishment">
+                Change
+              </Button>
+            </div>
+
+            <template v-else>
+              <Label for="establishment-search">Find an existing establishment</Label>
+              <div class="relative">
+                <Search class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="establishment-search"
+                  v-model="establishmentQuery"
+                  class="pl-8"
+                  placeholder="Business name, trade name, acronym or TIN"
+                  autocomplete="off"
+                  :disabled="isSubmitting || isLoadingEstablishment"
+                />
+                <Loader2
+                  v-if="isSearchingEstablishments || isLoadingEstablishment"
+                  class="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+                />
+              </div>
+
+              <ul
+                v-if="establishmentResults.length"
+                class="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border"
+              >
+                <li v-for="result in establishmentResults" :key="result.id">
+                  <button
+                    type="button"
+                    class="flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                    :disabled="isLoadingEstablishment"
+                    @click="selectEstablishment(result)"
+                  >
+                    <span class="font-medium">{{ result.business_name }}</span>
+                    <span class="text-xs text-muted-foreground">
+                      {{ [result.tin && `TIN ${result.tin}`, result.city_municipality, result.province].filter(Boolean).join(' · ') || '—' }}
+                    </span>
+                  </button>
+                </li>
+              </ul>
+              <p
+                v-else-if="establishmentQuery.trim().length >= establishmentSearchMinLength && !isSearchingEstablishments"
+                class="text-xs text-muted-foreground"
+              >
+                No establishment found. Fill in the form below to register a new one.
+              </p>
+              <p v-else class="text-xs text-muted-foreground">Leave this empty to register a new establishment.</p>
+            </template>
+          </section>
 
           <!-- Employer -->
           <section class="grid gap-4">

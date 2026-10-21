@@ -3,7 +3,8 @@ import {
   JOB_FAIR_ATTACHMENT_BUCKET,
   type JobFairAttachmentRow,
   type JobFairInsert,
-  type JobFairParticipantInsert,
+  type JobFairParticipantDetails,
+  type JobFairParticipantFormPayload,
   type JobFairParticipantRow,
   type JobFairParticipantUpdate,
   type JobFairParticipantWithCount,
@@ -15,6 +16,9 @@ import {
   type JobVacancyRow,
   type JobVacancyUpdate,
 } from '@/types/peso/provincialPeso/jobFair'
+import type { EstablishmentFormFields } from '@/types/common/establishment'
+import { establishmentService } from '@/services/common/establishmentService'
+import { pickEstablishmentFormFields } from '@/helpers/common/establishmentHelper'
 
 const JOB_FAIR_WITH_COUNTS_SELECT =
   '*, job_fair_participants(count), job_vacancies(vacancy_count), job_fair_applicants(count), hots(count)'
@@ -22,6 +26,22 @@ const REGISTRY_COLUMNS = 'id, profile_id, first_name, middle_name, surname, suff
 const REGISTRY_SEARCH_LIMIT = 20
 // Keeps `.in('id', …)` URLs short when looking up many registry records
 const IN_FILTER_CHUNK_SIZE = 150
+
+/** Merges each participant's establishment Form 2 fields onto it. */
+async function withEstablishments<T extends JobFairParticipantRow>(rows: T[]): Promise<(T & EstablishmentFormFields)[]> {
+  const establishments = await establishmentService.fetchEstablishmentsByIds(rows.map((row) => row.establishment_id))
+  return rows.map((row) => {
+    const establishment = establishments.get(row.establishment_id)
+    if (!establishment) throw new Error("A participant's establishment record could not be loaded.")
+    return { ...row, ...pickEstablishmentFormFields(establishment) }
+  })
+}
+
+function toParticipantError(error: { code?: string; message?: string }, fallback: string): Error {
+  // 23505 = unique_violation on (job_fair_id, establishment_id)
+  if (error.code === '23505') return new Error('This employer is already a participant of this job fair.')
+  return new Error(error.message || fallback)
+}
 
 /** Keeps storage keys to safe characters; the random prefix makes each path unique. */
 function buildAttachmentPath(jobFairId: string, file: File) {
@@ -200,6 +220,8 @@ export const jobFairService = {
   },
 
   // ─── Participants ───
+  // A participant row only links a job fair to an establishment (NSRP Form 2, migration 038).
+  // Form 2 fields are read from / saved to employers.establishments and merged onto the row.
 
   async fetchParticipants(jobFairId: string): Promise<JobFairParticipantWithCount[]> {
     const { data, error } = await supabase
@@ -207,13 +229,13 @@ export const jobFairService = {
       .from('job_fair_participants')
       .select('*, job_vacancies(count)')
       .eq('job_fair_id', jobFairId)
-      .order('business_name', { ascending: true })
 
     if (error) throw new Error(error.message || 'Failed to load job fair participants.')
-    return (data ?? []) as JobFairParticipantWithCount[]
+    const rows = await withEstablishments(data ?? [])
+    return rows.sort((a, b) => a.business_name.localeCompare(b.business_name))
   },
 
-  async fetchParticipantById(jobFairId: string, participantId: string): Promise<JobFairParticipantRow> {
+  async fetchParticipantById(jobFairId: string, participantId: string): Promise<JobFairParticipantDetails> {
     const { data, error } = await supabase
       .schema('esmdd')
       .from('job_fair_participants')
@@ -224,32 +246,54 @@ export const jobFairService = {
 
     if (error) throw new Error(error.message || 'Failed to load participant.')
     if (!data) throw new Error('Participant not found for this job fair.')
-    return data
+    const [row] = await withEstablishments([data])
+    return row!
   },
 
-  async createParticipant(payload: JobFairParticipantInsert): Promise<JobFairParticipantWithCount> {
+  /**
+   * Adds an establishment to a job fair. With `establishmentId` the picked Form 2 is updated with
+   * the form values first; without it a new establishment is created by the RPC, in the same
+   * transaction as the participant row.
+   */
+  async createParticipant(
+    jobFairId: string,
+    payload: JobFairParticipantFormPayload,
+    establishmentId: string | null
+  ): Promise<JobFairParticipantWithCount> {
+    const existing = establishmentId
+      ? await establishmentService.updateEstablishment(establishmentId, payload.establishment)
+      : null
+
+    const { data, error } = await supabase.schema('esmdd').rpc('add_job_fair_participant', {
+      p_job_fair_id: jobFairId,
+      p_establishment_id: existing?.id,
+      p_establishment: existing ? undefined : payload.establishment,
+      p_status: payload.status ?? undefined,
+    })
+
+    if (error) throw toParticipantError(error, 'Failed to add participant.')
+    const establishment = existing ?? (await establishmentService.fetchEstablishmentById(data.establishment_id))
+    return { ...data, ...pickEstablishmentFormFields(establishment), job_vacancies: [{ count: 0 }] }
+  },
+
+  /** Saves Form 2 edits to the establishment (shared by every activity it joined) and the participant status. */
+  async updateParticipant(
+    participant: JobFairParticipantDetails,
+    payload: JobFairParticipantFormPayload
+  ): Promise<JobFairParticipantWithCount> {
+    const establishment = await establishmentService.updateEstablishment(participant.establishment_id, payload.establishment)
+
+    const update: JobFairParticipantUpdate = { status: payload.status, updated_at: new Date().toISOString() }
     const { data, error } = await supabase
       .schema('esmdd')
       .from('job_fair_participants')
-      .insert(payload)
+      .update(update)
+      .eq('id', participant.id)
       .select('*, job_vacancies(count)')
       .single()
 
-    if (error) throw new Error(error.message || 'Failed to add participant.')
-    return data as JobFairParticipantWithCount
-  },
-
-  async updateParticipant(participantId: string, payload: JobFairParticipantUpdate): Promise<JobFairParticipantWithCount> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('job_fair_participants')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('id', participantId)
-      .select('*, job_vacancies(count)')
-      .single()
-
-    if (error) throw new Error(error.message || 'Failed to update participant.')
-    return data as JobFairParticipantWithCount
+    if (error) throw toParticipantError(error, 'Failed to update participant.')
+    return { ...data, ...pickEstablishmentFormFields(establishment) }
   },
 
   async deleteParticipant(participantId: string): Promise<void> {

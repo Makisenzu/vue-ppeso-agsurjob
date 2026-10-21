@@ -1,4 +1,5 @@
 import { Constants, type Database } from '@/types/database.types'
+import type { EstablishmentFormFields } from '@/types/common/establishment'
 
 type EsmddTables = Database['esmdd']['Tables']
 type EsmddEnums = Database['esmdd']['Enums']
@@ -29,13 +30,22 @@ export const JOB_FAIR_STATUSES =['Upcoming', 'Ongoing', 'Completed', 'Cancelled'
 export type JobFairStatus = (typeof JOB_FAIR_STATUSES)[number]
 
 // ─── Participants ───
+/** Link row only (job fair + establishment + participation status); Form 2 data is in the establishment. */
 export type JobFairParticipantRow = EsmddTables['job_fair_participants']['Row']
-export type JobFairParticipantInsert = EsmddTables['job_fair_participants']['Insert']
 export type JobFairParticipantUpdate = EsmddTables['job_fair_participants']['Update']
 
-/** Participant row joined with the aggregate count of its job fair vacancies. */
-export type JobFairParticipantWithCount = JobFairParticipantRow & {
+/** Participant with its establishment's NSRP Form 2 fields merged in (fetched separately — no cross-schema embeds). */
+export type JobFairParticipantDetails = JobFairParticipantRow & EstablishmentFormFields
+
+/** Participant details plus the aggregate count of its job fair vacancies. */
+export type JobFairParticipantWithCount = JobFairParticipantDetails & {
   job_vacancies: { count: number }[]
+}
+
+/** What the participant form saves: Form 2 fields go to the establishment, `status` to the participant. */
+export type JobFairParticipantFormPayload = {
+  establishment: EstablishmentFormFields
+  status: string | null
 }
 
 export type EmployerCategory = EsmddEnums['employer_category_enum']
@@ -67,7 +77,7 @@ export type HotsRow = EsmddTables['hots']['Row']
 export type HotsInsert = EsmddTables['hots']['Insert']
 export type HotsUpdate = EsmddTables['hots']['Update']
 
-/** HOTS row joined with the hiring employer and the vacancy filled. */
+/** HOTS row joined with the hiring employer and the vacancy filled. `business_name` comes from the establishment. */
 export type HotsWithDetails = HotsRow & {
   job_fair_participants: { business_name: string } | null
   job_vacancies: { position_title: string } | null
