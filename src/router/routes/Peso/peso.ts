@@ -6,8 +6,7 @@ import GipDashboard from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipDashboar
 import SPESDashboard from '@/components/peso/ProvincialPeso/ESMDD/SPES/SPESDashboard.vue'
 import TupadDashboard from '@/components/peso/ProvincialPeso/ESMDD/TUPAD/TupadDashboard.vue'
 import FnplpDashboard from '@/components/peso/ProvincialPeso/ESMDD/FNPLP/FnplpDashboard.vue'
-import LRADashboard from '@/components/peso/ProvincialPeso/ESMDD/LRA/LRADashboard.vue'
-import SRADashboard from '@/components/peso/ProvincialPeso/ESMDD/SRA/SRADashboard.vue'
+import RecruitmentActivity from '@/components/peso/ProvincialPeso/ESMDD/RecruitmentActivity/RecruitmentActivity.vue'
 
 export const pesoRoutes: RouteRecordRaw[] = [
   {
@@ -194,16 +193,10 @@ export const pesoRoutes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'FNPLP / OFW' }
       },
       {
-        path: 'lra',
-        name: 'provincial-peso-lra',
-        component: LRADashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'LRA' }
-      },
-      {
-        path: 'sra',
-        name: 'provincial-peso-sra',
-        component: SRADashboard,
-        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'SRA' }
+        path: 'recruitment-activity',
+        name: 'provincial-peso-recruitment-activity',
+        component: RecruitmentActivity,
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Recruitment Activity' }
       },
       // ─── Applicant Entry (nested group for breadcrumb hierarchy: Entry of Applicants > Details / New) ───
       {
