@@ -44,6 +44,7 @@ import {
   AttachmentTitle,
 } from '@/components/ui/attachment'
 import SwipeRow, { type SwipeAction } from '@/components/SwipeRow.vue'
+import HoldButton from '@/components/HoldButton.vue'
 import type { UploadDocumentDefinition, UploadState } from '@/types/common/fileUpload'
 
 const isDesktop = useMediaQuery('(min-width: 640px)')
@@ -594,15 +595,36 @@ const submitDocuments = async () => {
               <DialogTitle>Delete uploaded document</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete "{{ deleteTargetLabel }}"? This will remove the requirement record and its stored file.
+                Press and hold the delete button to confirm.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <DialogClose as-child>
-                <Button variant="outline" @click="cancelDelete">Cancel</Button>
+                <Button variant="outline" :disabled="isDeleting" @click="cancelDelete">Cancel</Button>
               </DialogClose>
-              <Button variant="destructive" :disabled="isDeleting" @click="confirmDelete">
-                {{ isDeleting ? 'Deleting...' : 'Delete' }}
-              </Button>
+              <!-- Holding is the confirmation; resetAfter lets the button recover if the delete fails -->
+              <HoldButton
+                size="sm"
+                :radius="8"
+                :hold-time="1500"
+                :reset-after="1500"
+                :disabled="isDeleting"
+                done-label="Deleting..."
+                background-color="var(--muted)"
+                text-color="var(--foreground)"
+                fill-color="var(--destructive)"
+                fill-text-color="var(--background)"
+                @hold="confirmDelete"
+                @tap="toastAlert.info('Keep holding', 'Press and hold the button to delete this document.')"
+              >
+                <template #icon>
+                  <Trash2 class="size-4 shrink-0" />
+                </template>
+                <template #doneIcon>
+                  <Loader2 class="size-4 shrink-0 animate-spin" />
+                </template>
+                Hold to delete
+              </HoldButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>
