@@ -26,7 +26,7 @@ const {
 
 <template>
   <!-- Full-bleed band; slide content stays aligned with the header's max-w-7xl container -->
-  <section aria-label="Highlights" class="w-full border-b border-border bg-muted">
+  <section aria-label="Highlights" class="w-full bg-muted">
     <!-- Slides can be photo-only, so the page heading can't depend on a slide title -->
     <h1 class="sr-only">AGSURJOBS, the job portal of PESO Agusan del Sur</h1>
     <!-- Same footprint as a slide, so the page doesn't shift when the content arrives -->
@@ -87,6 +87,9 @@ const {
               />
               <div v-if="slide.hasText" class="absolute inset-0 -z-10 bg-background/80 md:bg-transparent md:bg-linear-to-r md:from-background md:via-background/80 md:to-background/10" />
             </template>
+            <!-- Soft bottom edge: the slide fades into the page instead of ending on a hard line -->
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-6 bg-linear-to-b from-transparent to-background" />
+
             <!-- Bottom padding leaves room for the controls floating over the slide -->
             <div class="mx-auto flex min-h-[32rem] max-w-7xl items-center px-4 pt-12 pb-24 sm:px-6 sm:pt-16 lg:px-8">
             <div v-if="slide.hasText" class="flex max-w-2xl flex-col gap-4">
