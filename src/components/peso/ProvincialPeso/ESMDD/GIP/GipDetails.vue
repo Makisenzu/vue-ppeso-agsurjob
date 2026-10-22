@@ -92,6 +92,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { cn } from '@/lib/utils'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
@@ -148,6 +149,8 @@ const {
   openInternEdit,
   closeInternDetails,
   openRenewalDialog,
+  getInternSwipeActions,
+  getInternCard,
   exportCsv,
   refreshDetailsData,
   expiringAppointmentsCount,
@@ -513,8 +516,52 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           </Button>
         </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="p-3 md:hidden"
+          :items="paginatedInterns"
+          :item-key="(intern) => intern.id"
+          :card="getInternCard"
+          :actions="getInternSwipeActions"
+          :loading="isLoading"
+          :height="76"
+          :action-width="68"
+          hint="Swipe left on an intern for actions."
+          :is-selected="(intern) => selectedInternIds.includes(intern.id)"
+          :all-selected="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+          @toggle="(intern, value) => toggleSelectIntern(intern.id, value)"
+          @toggle-all="toggleSelectAll"
+        >
+          <template #default="{ item: intern }">
+            <Avatar class="size-9 shrink-0 border">
+              <AvatarFallback class="text-xs font-semibold">{{ getInitials(intern.fullName) }}</AvatarFallback>
+            </Avatar>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">{{ intern.fullName }}</p>
+              <p class="truncate text-xs text-muted-foreground">
+                {{ intern.program }} · {{ intern.municipality }} · {{ intern.status }}
+                <span v-if="intern.status === 'Active' && intern.currentAppointment?.isExpired" class="text-destructive">· Term expired</span>
+                <span v-else-if="intern.status === 'Active' && intern.currentAppointment?.isExpiringSoon" class="text-warning">· Ends in {{ intern.daysRemaining }}d</span>
+              </p>
+            </div>
+          </template>
+          <template #empty>
+            <Empty class="py-10">
+              <EmptyHeader>
+                <EmptyTitle>No matching interns</EmptyTitle>
+                <EmptyDescription>Try adjusting the search or filters.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button size="sm" variant="outline" class="cursor-pointer" @click="resetFilters">
+                  Clear Filters
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow class="bg-muted/40 hover:bg-muted/40">

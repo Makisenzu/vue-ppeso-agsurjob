@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, Briefcase, Building2, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, UserRound } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +56,8 @@ const {
   refreshVacancies,
   openCreateVacancyDialog,
   confirmDelete,
+  getRowSwipeActions,
+  getRowCard,
 } = useParticipantVacancies()
 
 const {
@@ -232,7 +235,22 @@ const qualificationFields = [
           </Select>
         </div>
 
-        <div class="overflow-x-auto rounded-md border">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="md:hidden"
+          :items="table.getRowModel().rows"
+          :item-key="(row) => row.id"
+          :card="(row) => getRowCard(row.original)"
+          :actions="(row) => getRowSwipeActions(row.original)"
+          :loading="isLoading && vacancies.length === 0"
+        >
+          <template #empty>
+            <p class="rounded-md border py-8 text-center text-sm text-muted-foreground">No vacancies match the current filters.</p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">

@@ -17,7 +17,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useHotsStore } from '@/stores/peso/provincialPeso/hotsStore'
 import { formatHireName, formatOptionalDate } from '@/helpers/peso/provincialPeso/jobFairHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import type { HotsWithDetails } from '@/types/peso/provincialPeso/jobFair'
 
 const PAGE_SIZE = 10
@@ -48,6 +49,19 @@ export function useJobFairHots() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: HotsWithDetails): RowActionHandlers => ({
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete([row]),
+  })
+  const getRowSwipeActions = (row: HotsWithDetails) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: HotsWithDetails): SwipeCard => ({
+    title: formatHireName(row),
+    subtitle: [row.job_vacancies?.position_title, row.job_fair_participants?.business_name, formatOptionalDate(row.hired_date)].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<HotsWithDetails>[] = [
     {
@@ -115,10 +129,7 @@ export function useJobFairHots() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete([row.original]),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -192,6 +203,8 @@ export function useJobFairHots() {
   watch(jobFairId, refreshHots, { immediate: true })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     hires,

@@ -22,7 +22,8 @@ import {
   getAttendeeStatusBadgeClass,
   getRegistryPhone,
 } from '@/helpers/peso/provincialPeso/jobFairHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { JOB_FAIR_APPLICANT_STATUSES, type JobFairAttendee } from '@/types/peso/provincialPeso/jobFair'
 
 const PAGE_SIZE = 10
@@ -69,6 +70,34 @@ export function useJobFairAttendees() {
       () => h(isBusy ? Loader2 : isAttended ? UserMinus : UserCheck, { class: ['size-4', isBusy && 'animate-spin'] })
     )
   }
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: JobFairAttendee): RowActionHandlers => ({
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete([row]),
+  })
+  // Mobile also gets the attended toggle, after Delete so Delete stays on the outer edge
+  const getRowSwipeActions = (row: JobFairAttendee) => {
+    const [remove, ...rest] = toSwipeActions(getRowActionHandlers(row))
+    const isAttended = row.status === 'Attended'
+    return [
+      remove,
+      {
+        id: 'status',
+        label: isAttended ? 'Unmark' : 'Attended',
+        icon: isAttended ? UserMinus : UserCheck,
+        dismiss: false,
+        onSelect: () => setAttendeeStatus(row, isAttended ? 'Registered' : 'Attended'),
+      },
+      ...rest,
+    ]
+  }
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: JobFairAttendee): SwipeCard => ({
+    title: row.applicant ? formatRegistryName(row.applicant) : 'Unknown applicant',
+    subtitle: [row.status, row.attended_at ? formatOptionalDate(row.attended_at) : null].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<JobFairAttendee>[] = [
     {
@@ -135,10 +164,7 @@ export function useJobFairAttendees() {
       cell: ({ row }) =>
         h('div', { class: 'flex items-center justify-end gap-1' }, [
           renderStatusToggle(row.original),
-          renderRowActions({
-            onEdit: () => openEditDialog(row.original),
-            onDelete: () => requestDelete([row.original]),
-          }),
+          renderRowActions(getRowActionHandlers(row.original)),
         ]),
     },
   ]
@@ -213,6 +239,8 @@ export function useJobFairAttendees() {
   watch(jobFairId, refreshAttendees, { immediate: true })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     attendees,

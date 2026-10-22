@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useTupadStore } from '@/stores/peso/provincialPeso/tupadStore'
 import { formatTupadDate, formatTupadPeriod, getTupadStatusBadgeClass } from '@/helpers/peso/provincialPeso/tupadHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { TUPAD_BATCH_STATUSES, type TupadBatchWithCount } from '@/types/peso/provincialPeso/tupad'
 
 /** TUPAD dashboard — the list of batches (step 1 of the process) and the applicant pool summary. */
@@ -41,6 +42,21 @@ export function useTupadBatches() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: TupadBatchWithCount): RowActionHandlers => ({
+    onView: () => openBatch(row),
+    viewLabel: 'Open batch',
+    onEdit: () => openEditBatch(row),
+    onDelete: () => requestDeleteBatch(row),
+  })
+  const getRowSwipeActions = (row: TupadBatchWithCount) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: TupadBatchWithCount): SwipeCard => ({
+    title: row.edl_number,
+    subtitle: [`${row.member_count} member${row.member_count === 1 ? '' : 's'}`, row.status, formatTupadDate(row.created_at)].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<TupadBatchWithCount>[] = [
     {
@@ -76,12 +92,7 @@ export function useTupadBatches() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onView: () => openBatch(row.original),
-          viewLabel: 'Open batch',
-          onEdit: () => openEditBatch(row.original),
-          onDelete: () => requestDeleteBatch(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -128,6 +139,8 @@ export function useTupadBatches() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     batches,

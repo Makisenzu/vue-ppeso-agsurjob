@@ -2,8 +2,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSkillRepositoryStore } from '@/stores/peso/provincialPeso/skillRepositoryStore'
-import type { LpiiCategory } from '@/types/peso/provincialPeso/skillRepository'
-import { normalizeText } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
+import { Eye } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
+import type { ApplicantSkillProfile, BarangaySkillRow, LpiiCategory } from '@/types/peso/provincialPeso/skillRepository'
+import { getLpiiBadgeProps, normalizeText } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
 
 export function useMunicipalitySkillData(initialMunicipality?: string) {
   const route = useRoute()
@@ -123,7 +126,37 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
     selectedLpii.value = 'ALL'
   }
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  // Barangays are read-only (no swipe actions); applicants swipe to their profile
+  function getBarangayCard(row: BarangaySkillRow): SwipeCard {
+    const topSkill = row.topSkills[0]?.name
+    return {
+      title: row.name,
+      subtitle: [
+        getLpiiBadgeProps(row.lpiiTag).label,
+        `${row.applicantsCount} applicant${row.applicantsCount === 1 ? '' : 's'}`,
+        topSkill ? `Top: ${topSkill}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    }
+  }
+
+  function getApplicantCard(applicant: ApplicantSkillProfile): SwipeCard {
+    return {
+      title: applicant.fullName,
+      subtitle: [applicant.barangay, applicant.skillNames.slice(0, 2).join(', ') || 'No skills listed'].filter(Boolean).join(' · '),
+    }
+  }
+
+  function getApplicantSwipeActions(applicant: ApplicantSkillProfile): SwipeAction[] {
+    return [{ id: 'profile', label: 'Profile', icon: Eye, dismiss: false, onSelect: () => viewApplicantEntry(applicant.id) }]
+  }
+
   return {
+    getBarangayCard,
+    getApplicantCard,
+    getApplicantSwipeActions,
     municipalityName,
     detail: currentDetail,
     isLoading: isDetailLoading,

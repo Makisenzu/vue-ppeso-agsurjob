@@ -1,6 +1,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { Eye, Pencil, Trash2 } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import {
   GIP_MONTH_OPTIONS,
@@ -304,6 +307,23 @@ export function useGipApplicants() {
     return applicants.value.filter((a) => ids.has(a.id))
   })
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  const getApplicantCard = (applicant: GipApplicantRecord): SwipeCard => ({
+    title: applicant.fullName,
+    subtitle: [applicant.municipality, LPII_CONFIG[applicant.lpiiTag].label, applicant.status].filter(Boolean).join(' · '),
+  })
+
+  // Cards replace the table below md once the registry has applicants. Before that, the table body holds
+  // the import flow (drop zone, OCR progress, parsed review), which stays a table on every screen.
+  const showApplicantCards = computed(() => isLoading.value || applicants.value.length > 0)
+
+  /** Delete first (primary edge). None collapses the card: delete is confirmed by the AlertDialog, the rest are not destructive. */
+  const getApplicantSwipeActions = (applicant: GipApplicantRecord): SwipeAction[] => [
+    { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => promptRemoveApplicant(applicant) },
+    { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openApplicantDetails(applicant) },
+    { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openEditApplicantDialog(applicant) },
+  ]
+
   watch(applicants, (newList) => {
     const validIds = new Set(newList.map((a) => a.id))
     selectedApplicantIds.value = selectedApplicantIds.value.filter((id) => validIds.has(id))
@@ -314,6 +334,7 @@ export function useGipApplicants() {
   })
 
   return {
+    getApplicantCard,
     // Data & Computed
     applicants,
     applicantStatusData,
@@ -378,6 +399,8 @@ export function useGipApplicants() {
     isRemoveDialogOpen,
     isRemoving,
     promptRemoveApplicant,
+    showApplicantCards,
+    getApplicantSwipeActions,
     cancelRemoveApplicant,
     confirmRemoveApplicant,
 

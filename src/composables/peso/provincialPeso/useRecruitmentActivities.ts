@@ -22,7 +22,8 @@ import {
   getRecruitmentActivityStatusBadgeClass,
   getTerminalReportDueLabel,
 } from '@/helpers/peso/provincialPeso/recruitmentActivityHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import {
   RECRUITMENT_ACTIVITY_STATUSES,
   RECRUITMENT_ACTIVITY_TYPES,
@@ -48,6 +49,21 @@ export function useRecruitmentActivities() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: RecruitmentActivityListItem): RowActionHandlers => ({
+    onView: () => viewActivity(row),
+    viewLabel: 'View details',
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete(row),
+  })
+  const getRowSwipeActions = (row: RecruitmentActivityListItem) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: RecruitmentActivityListItem): SwipeCard => ({
+    title: row.agency_name,
+    subtitle: [row.type, formatJobFairSchedule(row.start_date, row.end_date), row.status].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<RecruitmentActivityListItem>[] = [
     {
@@ -128,12 +144,7 @@ export function useRecruitmentActivities() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onView: () => viewActivity(row.original),
-          viewLabel: 'View details',
-          onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -170,6 +181,8 @@ export function useRecruitmentActivities() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     activities,

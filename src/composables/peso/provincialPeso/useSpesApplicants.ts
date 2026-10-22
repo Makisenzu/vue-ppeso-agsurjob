@@ -23,7 +23,8 @@ import {
   getSpesDocumentChecklist,
   getSpesEducationSummary,
 } from '@/helpers/peso/provincialPeso/spesHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { SPES_APPLICANT_STATUSES, type SpesFormRow } from '@/types/peso/provincialPeso/spes'
 
 /** SPES applicants are the submitted SPES forms (`applicants.spes_form`). */
@@ -54,6 +55,21 @@ export function useSpesApplicants() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: SpesFormRow): RowActionHandlers => ({
+    onView: () => openApplicantDetails(row),
+    viewLabel: 'View SPES form',
+    onEdit: () => openReviewDialog(row),
+    onDelete: () => requestDeleteSpesForm(row),
+  })
+  const getRowSwipeActions = (row: SpesFormRow) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: SpesFormRow): SwipeCard => ({
+    title: formatSpesFormName(row),
+    subtitle: [row.municipality, row.student_category, row.status || 'Pending'].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<SpesFormRow>[] = [
     {
@@ -122,12 +138,7 @@ export function useSpesApplicants() {
       enableSorting: false,
       // Edit opens the review card (status, remarks, documents); it links on to the full form editor
       cell: ({ row }) =>
-        renderRowActions({
-          onView: () => openApplicantDetails(row.original),
-          viewLabel: 'View SPES form',
-          onEdit: () => openReviewDialog(row.original),
-          onDelete: () => requestDeleteSpesForm(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -178,6 +189,8 @@ export function useSpesApplicants() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     spesForms,

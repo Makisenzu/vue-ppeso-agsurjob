@@ -56,6 +56,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
 import { useGipBatchUpload } from '@/composables/peso/provincialPeso/useGipBatchUpload'
@@ -153,6 +154,9 @@ const {
   isRemoving,
   promptRemoveApplicant,
   cancelRemoveApplicant,
+  showApplicantCards,
+  getApplicantSwipeActions,
+  getApplicantCard,
   confirmRemoveApplicant,
 
   // Bulk Delete Dialog
@@ -541,8 +545,48 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           </div>
         </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          v-if="showApplicantCards"
+          class="p-3 md:hidden"
+          :items="paginatedApplicants"
+          :item-key="(applicant) => applicant.id"
+          :card="getApplicantCard"
+          :actions="getApplicantSwipeActions"
+          :loading="isLoading"
+          :height="76"
+          hint="Swipe left on an applicant for actions."
+          :is-selected="(applicant) => selectedApplicantIds.includes(applicant.id)"
+          :all-selected="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+          @toggle="(applicant, value) => toggleSelectApplicant(applicant.id, value)"
+          @toggle-all="toggleSelectAll"
+        >
+          <template #default="{ item: applicant, card }">
+            <Avatar class="size-9 shrink-0 border">
+              <AvatarFallback class="text-xs font-semibold">{{ getInitials(applicant.fullName) }}</AvatarFallback>
+            </Avatar>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">{{ card.title }}</p>
+              <p class="truncate text-xs text-muted-foreground">{{ card.subtitle }}</p>
+            </div>
+          </template>
+          <template #empty>
+            <Empty class="py-10">
+              <EmptyHeader>
+                <EmptyTitle>No matching applicants</EmptyTitle>
+                <EmptyDescription>Try adjusting the search or filters.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button size="sm" variant="outline" class="cursor-pointer" @click="resetFilters">
+                  Clear Filters
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table (also on mobile while the registry is empty, for the import flow) -->
+        <div class="overflow-x-auto" :class="{ 'hidden md:block': showApplicantCards }">
           <Table>
             <TableHeader>
               <TableRow class="bg-muted/40 hover:bg-muted/40">

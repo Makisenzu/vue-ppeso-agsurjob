@@ -14,7 +14,8 @@ import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSiteContentManagerStore } from '@/stores/peso/provincialPeso/siteContentManagerStore'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import {
   formatSiteContentSchedule,
   getSiteContentState,
@@ -40,6 +41,19 @@ export function useSiteContents() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: SiteContentListItem): RowActionHandlers => ({
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete(row),
+  })
+  const getRowSwipeActions = (row: SiteContentListItem) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: SiteContentListItem): SwipeCard => ({
+    title: getSiteContentDisplayName(row),
+    subtitle: [`#${row.sort_order}`, getSiteContentState(row), formatSiteContentSchedule(row.published_at, row.expires_at)].join(' · '),
+  })
 
   const columns: ColumnDef<SiteContentListItem>[] = [
     {
@@ -134,10 +148,7 @@ export function useSiteContents() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -177,6 +188,8 @@ export function useSiteContents() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     contents,

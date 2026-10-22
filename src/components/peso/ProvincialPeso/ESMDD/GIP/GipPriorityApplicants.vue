@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { useGipPriorityApplicants } from '@/composables/peso/provincialPeso/useGipPriorityApplicants'
 
 const {
@@ -54,6 +55,8 @@ const {
   getScoreColorClass,
   getInitials,
   LPII_CONFIG,
+  getPriorityCard,
+  getPrioritySwipeActions,
 } = useGipPriorityApplicants()
 
 const hasActiveFilters = computed(
@@ -198,7 +201,26 @@ const scoreBreakdown = (record: (typeof paginatedPriorityList.value)[number]) =>
       </CardHeader>
 
       <CardContent class="p-0">
-        <div class="overflow-x-auto">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="p-3 md:hidden"
+          :items="paginatedPriorityList"
+          :item-key="(record) => record.applicantId"
+          :card="getPriorityCard"
+          :actions="getPrioritySwipeActions"
+          :loading="isPriorityLoading"
+          primary-tone="primary"
+          hint="Swipe left on an applicant to deploy or view the profile."
+        >
+          <template #empty>
+            <p class="py-8 text-center text-sm text-muted-foreground">
+              {{ hasActiveFilters ? 'No applicants match the current search or filters.' : 'No priority applicants yet.' }}
+            </p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow class="bg-muted/40 hover:bg-muted/40">

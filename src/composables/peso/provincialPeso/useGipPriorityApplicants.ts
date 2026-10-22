@@ -1,6 +1,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { Eye, UserPlus } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { LPII_CONFIG, getInitials } from '@/helpers/peso/provincialPeso/gipHelper'
 import type { GipPriorityApplicantRecord } from '@/types/peso/provincialPeso/gip'
@@ -144,7 +147,20 @@ export function useGipPriorityApplicants() {
     }
   })
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  const getPriorityCard = (record: GipPriorityApplicantRecord): SwipeCard => ({
+    title: `#${record.rank} ${record.fullName}`,
+    subtitle: [record.municipality, LPII_CONFIG[record.lpiiTag]?.label, `Score ${record.totalPriorityScore}/100`].filter(Boolean).join(' · '),
+  })
+  /** Deploy is the main action (outer edge); nothing here is destructive, so neither collapses the card */
+  const getPrioritySwipeActions = (record: GipPriorityApplicantRecord): SwipeAction[] => [
+    { id: 'deploy', label: 'Deploy', icon: UserPlus, dismiss: false, onSelect: () => navigateToDeploy(record) },
+    { id: 'profile', label: 'Profile', icon: Eye, dismiss: false, onSelect: () => navigateToProfile(record) },
+  ]
+
   return {
+    getPriorityCard,
+    getPrioritySwipeActions,
     // State & Data
     priorityApplicants,
     isPriorityLoading,

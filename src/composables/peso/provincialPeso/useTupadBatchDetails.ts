@@ -9,6 +9,8 @@ import { getCoreRowModel, getPaginationRowModel, getSortedRowModel, useVueTable 
 import { ArrowUpDown, Eye, Pencil, Trash2 } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useTupadStore } from '@/stores/peso/provincialPeso/tupadStore'
@@ -108,6 +110,17 @@ export function useTupadBatchDetails() {
       { variant: 'ghost', size: 'icon', class: `size-8 ${extraClass}`, title: label, 'aria-label': label, onClick },
       () => h(icon, { class: 'size-4' })
     )
+
+  // Mobile card + swipe actions (DESIGN.md 13.2): the same handlers as the desktop buttons, Remove first (outer edge)
+  const getRowCard = (row: TupadMember): SwipeCard => ({
+    title: formatTupadMemberName(row),
+    subtitle: [getTupadMunicipality(row.tupad_applicant?.applicant), `${row.days_duration} days`, row.status].filter(Boolean).join(' · '),
+  })
+  const getRowSwipeActions = (row: TupadMember): SwipeAction[] => [
+    { id: 'remove', label: 'Remove', icon: Trash2, dismiss: false, onSelect: () => requestRemoveMember(row) },
+    { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openMemberDetails(row) },
+    { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openEditMember(row) },
+  ]
 
   const columns: ColumnDef<TupadMember>[] = [
     {
@@ -318,6 +331,8 @@ export function useTupadBatchDetails() {
   }
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     currentBatch,

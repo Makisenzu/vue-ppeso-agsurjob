@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { ClipboardList, Loader2, Plus, RefreshCw, Search } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,6 +46,8 @@ const {
   refreshActivities,
   openAddDialog,
   confirmDelete,
+  getRowSwipeActions,
+  getRowCard,
 } = useRecruitmentActivities()
 
 const {
@@ -155,7 +158,22 @@ const {
 
     <!-- Data Table -->
     <template v-else>
-      <div class="overflow-x-auto rounded-md border">
+      <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+      <SwipeCardList
+        class="md:hidden"
+        :items="table.getRowModel().rows"
+        :item-key="(row) => row.id"
+        :card="(row) => getRowCard(row.original)"
+        :actions="(row) => getRowSwipeActions(row.original)"
+        :loading="isLoading && activities.length === 0"
+      >
+        <template #empty>
+          <p class="rounded-md border py-8 text-center text-sm text-muted-foreground">No recruitment activities match the current filters.</p>
+        </template>
+      </SwipeCardList>
+
+      <!-- Desktop: table -->
+      <div class="hidden overflow-x-auto rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">

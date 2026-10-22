@@ -22,7 +22,8 @@ import {
   getParticipantStatusBadgeClass,
   getVacancyStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/jobFairHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { NATURE_OF_WORK_OPTIONS, type JobFairVacancyDetails } from '@/types/peso/provincialPeso/jobFair'
 
 export function useParticipantVacancies() {
@@ -56,6 +57,19 @@ export function useParticipantVacancies() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: JobFairVacancyDetails): RowActionHandlers => ({
+    onEdit: () => openEditVacancyDialog(row),
+    onDelete: () => requestVacancyDelete(row),
+  })
+  const getRowSwipeActions = (row: JobFairVacancyDetails) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: JobFairVacancyDetails): SwipeCard => ({
+    title: row.position_title,
+    subtitle: [`${row.vacancy_count ?? 0} slot${row.vacancy_count === 1 ? '' : 's'}`, row.salary, row.status].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<JobFairVacancyDetails>[] = [
     {
@@ -145,10 +159,7 @@ export function useParticipantVacancies() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onEdit: () => openEditVacancyDialog(row.original),
-          onDelete: () => requestVacancyDelete(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -187,6 +198,8 @@ export function useParticipantVacancies() {
   watch([jobFairId, participantId], refreshVacancies, { immediate: true })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     jobFair,

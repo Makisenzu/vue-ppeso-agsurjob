@@ -23,7 +23,8 @@ import {
   getJobFairStatusBadgeClass,
   getJobFairVacancyTotal,
 } from '@/helpers/peso/provincialPeso/jobFairHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import type { JobFairWithCounts } from '@/types/peso/provincialPeso/jobFair'
 
 export function useJobFairs() {
@@ -45,6 +46,21 @@ export function useJobFairs() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: JobFairWithCounts): RowActionHandlers => ({
+    onView: () => viewJobFair(row),
+    viewLabel: 'View details',
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete(row),
+  })
+  const getRowSwipeActions = (row: JobFairWithCounts) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: JobFairWithCounts): SwipeCard => ({
+    title: row.title,
+    subtitle: [formatJobFairSchedule(row.start_date, row.end_date), row.location, row.status].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<JobFairWithCounts>[] = [
     {
@@ -115,12 +131,7 @@ export function useJobFairs() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onView: () => viewJobFair(row.original),
-          viewLabel: 'View details',
-          onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -157,6 +168,8 @@ export function useJobFairs() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     jobFairs,

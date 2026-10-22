@@ -10,6 +10,7 @@ import {
   Search,
   X,
 } from '@lucide/vue'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { useGipAddIntern } from '@/composables/peso/provincialPeso/useGipAddIntern'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
 import { Button } from '@/components/ui/button'
@@ -108,6 +109,8 @@ const {
   resetForm,
   goBack,
   handleDeployIntern,
+  getCandidateCard,
+  getCandidateSwipeActions,
 } = useGipAddIntern()
 
 const programOptions = [
@@ -248,7 +251,23 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
       </CardHeader>
 
       <CardContent class="p-0">
-        <div class="overflow-x-auto">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="p-3 md:hidden"
+          :items="paginatedApplicants"
+          :item-key="(applicant) => applicant.id"
+          :card="getCandidateCard"
+          :actions="getCandidateSwipeActions"
+          primary-tone="primary"
+          hint="Swipe left on a candidate to select them."
+        >
+          <template #empty>
+            <p class="py-8 text-center text-sm text-muted-foreground">No candidates match your criteria.</p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow class="bg-muted/40 hover:bg-muted/40">

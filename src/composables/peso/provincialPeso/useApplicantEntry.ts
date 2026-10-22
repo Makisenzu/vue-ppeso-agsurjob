@@ -2,6 +2,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { watchDebounced } from '@vueuse/core'
+import { Eye, Trash2 } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import {
@@ -239,7 +242,21 @@ export function useApplicantEntry() {
     store.fetchApplicantsIfStale()
   })
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  const getApplicantCard = (applicant: ApplicantEntryRecord): SwipeCard => ({
+    title: applicant.fullName,
+    subtitle: [applicant.address.municipality, applicant.sex, applicant.employmentStatus].filter(Boolean).join(' · '),
+  })
+
+  /** Delete first (outer edge). Neither collapses the card: delete is confirmed, details is not destructive. */
+  const getApplicantSwipeActions = (applicant: ApplicantEntryRecord): SwipeAction[] => [
+    { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => promptDeleteApplicant(applicant) },
+    { id: 'view', label: 'Details', icon: Eye, dismiss: false, onSelect: () => openDetails(applicant) },
+  ]
+
   return {
+    getApplicantCard,
+    getApplicantSwipeActions,
     applicants,
     filteredCount,
     paginatedApplicants,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, Building2, CalendarDays, ExternalLink, Loader2, MapPin, Plus, RefreshCw, Search } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
@@ -56,6 +57,8 @@ const {
   refreshParticipants,
   openCreateDialog,
   confirmDelete,
+  getRowSwipeActions,
+  getRowCard,
 } = useJobFairParticipants()
 
 const {
@@ -257,7 +260,22 @@ const textFields = {
           </Button>
         </div>
 
-        <div class="overflow-x-auto rounded-md border">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="md:hidden"
+          :items="table.getRowModel().rows"
+          :item-key="(row) => row.id"
+          :card="(row) => getRowCard(row.original)"
+          :actions="(row) => getRowSwipeActions(row.original)"
+          :loading="isLoading && participants.length === 0"
+        >
+          <template #empty>
+            <p class="rounded-md border py-8 text-center text-sm text-muted-foreground">No employers match the current filters.</p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">

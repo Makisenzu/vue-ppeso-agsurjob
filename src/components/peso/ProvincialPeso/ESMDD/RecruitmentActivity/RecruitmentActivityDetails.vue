@@ -46,6 +46,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import JobVacancyFields from '@/components/JobVacancyFields.vue'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { getVacancyStatusBadgeClass } from '@/helpers/peso/provincialPeso/jobFairHelper'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { useRecruitmentActivityDetails } from '@/composables/peso/provincialPeso/useRecruitmentActivityDetails'
 import { useRecruitmentActivityVacancyForm } from '@/composables/peso/provincialPeso/useRecruitmentActivityVacancyForm'
 import type { RecruitmentActivityStatus } from '@/types/peso/provincialPeso/recruitmentActivity'
@@ -98,6 +99,8 @@ const {
   openEditVacancyDialog,
   requestVacancyDelete,
   confirmVacancyDelete,
+  getVacancyCard,
+  getVacancySwipeActions,
 } = useRecruitmentActivityDetails()
 
 const {
@@ -404,7 +407,19 @@ const {
             </EmptyContent>
           </Empty>
 
-          <div v-else class="overflow-x-auto rounded-md border">
+          <template v-else>
+            <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+            <SwipeCardList
+              class="md:hidden"
+              :items="vacancies"
+              :item-key="(row) => row.id"
+              :card="getVacancyCard"
+              :actions="getVacancySwipeActions"
+              hint="Swipe left on a vacancy for actions."
+            />
+
+            <!-- Desktop: table -->
+            <div class="hidden overflow-x-auto rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -454,7 +469,8 @@ const {
                 </TableRow>
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </template>
         </CardContent>
       </Card>
     </template>

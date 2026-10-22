@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { useMunicipalitySkillData } from '@/composables/peso/provincialPeso/useMunicipalitySkillData'
 import { getLpiiBadgeProps } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
 
@@ -41,6 +42,9 @@ const {
   goBack,
   handleRefresh,
   viewApplicantEntry,
+  getBarangayCard,
+  getApplicantCard,
+  getApplicantSwipeActions,
 } = useMunicipalitySkillData()
 </script>
 
@@ -329,7 +333,21 @@ const {
             </span>
           </div>
         </CardHeader>
-        <div class="min-h-0 flex-1 overflow-auto max-h-115">
+        <!-- Mobile: cards (DESIGN.md 13.2); barangays have no row actions -->
+        <SwipeCardList
+          class="p-3 md:hidden"
+          :items="filteredBarangays"
+          :item-key="(row) => row.name"
+          :card="getBarangayCard"
+          :loading="isLoading"
+        >
+          <template #empty>
+            <p class="py-8 text-center text-sm text-muted-foreground">No barangays found matching criteria.</p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden min-h-0 flex-1 overflow-auto max-h-115 md:block">
           <Table>
             <TableHeader class="sticky top-0 z-10 bg-background">
               <TableRow>
@@ -401,7 +419,24 @@ const {
             <span class="text-xs text-muted-foreground">PESO Registry</span>
           </div>
         </CardHeader>
-        <div class="min-h-0 flex-1 overflow-auto max-h-115">
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="p-3 md:hidden"
+          :items="filteredApplicants"
+          :item-key="(applicant) => applicant.id"
+          :card="getApplicantCard"
+          :actions="getApplicantSwipeActions"
+          :loading="isLoading"
+          primary-tone="primary"
+          hint="Swipe left on an applicant to open the profile."
+        >
+          <template #empty>
+            <p class="py-8 text-center text-sm text-muted-foreground">No applicants found matching criteria.</p>
+          </template>
+        </SwipeCardList>
+
+        <!-- Desktop: table -->
+        <div class="hidden min-h-0 flex-1 overflow-auto max-h-115 md:block">
           <Table>
             <TableHeader class="sticky top-0 z-10 bg-background">
               <TableRow>

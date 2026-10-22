@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import SkillMapboxMap from './SkillMapboxMap.vue'
 import { useSkillRepository } from '@/composables/peso/provincialPeso/useSkillRepository'
 
@@ -35,6 +36,8 @@ const {
   selectSkillFilter,
   setActiveTab,
   clearFilters,
+  getMunicipalityCard,
+  getMunicipalitySwipeActions,
 } = useSkillRepository()
 </script>
 
@@ -235,6 +238,34 @@ const {
 
         <!-- Table Container -->
         <div class="min-h-0 flex-1 overflow-auto">
+          <!-- ─── Mobile: swipeable cards (DESIGN.md 13.2) ─── -->
+          <SwipeCardList
+            class="py-3 md:hidden"
+            :items="currentDisplayRows"
+            :item-key="(row) => row.name"
+            :card="getMunicipalityCard"
+            :actions="getMunicipalitySwipeActions"
+            :loading="isLoading"
+            primary-tone="primary"
+            hint="Swipe left on a municipality to view it or find it on the map."
+          >
+            <template #empty>
+              <div class="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
+                <p>No municipalities match your filter.</p>
+                <Button
+                  v-if="hasAlternativeMatches"
+                  variant="outline"
+                  size="sm"
+                  @click="setActiveTab(activeTab === 'agusan' ? 'outside' : 'agusan')"
+                >
+                  Show {{ activeTab === 'agusan' ? 'Outside Agusan' : 'Agusan del Sur' }} ({{ alternativeMatchesCount }})
+                </Button>
+              </div>
+            </template>
+          </SwipeCardList>
+
+          <!-- ─── Desktop: tables ─── -->
+          <div class="hidden md:block">
           <!-- ─── Table 1: Agusan del Sur Municipalities ─── -->
           <Table v-if="activeTab === 'agusan'">
             <TableHeader class="sticky top-0 z-10 bg-background">
@@ -475,6 +506,7 @@ const {
               </TableRow>
             </TableBody>
           </Table>
+          </div>
         </div>
       </div>
 

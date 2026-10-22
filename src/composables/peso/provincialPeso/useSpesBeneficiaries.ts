@@ -11,6 +11,8 @@ import {
 import { ArrowUpDown, CircleCheck, FileCheck, History, Pencil, Trash2 } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSpesStore } from '@/stores/peso/provincialPeso/spesStore'
@@ -86,6 +88,21 @@ export function useSpesBeneficiaries() {
       { variant: 'ghost', size: 'icon', class: `size-8 ${extraClass}`, title: label, 'aria-label': label, onClick },
       () => h(icon, { class: 'size-4' })
     )
+
+  // Mobile card + swipe actions (DESIGN.md 13.2): the same handlers as the desktop buttons, Remove first (outer edge)
+  const getRowCard = (row: SpesAppointmentEntry): SwipeCard => ({
+    title: formatSpesFormName(row.beneficiary.spes_form),
+    subtitle: [row.assigned_municipality, `Availment ${row.availmentNumber}`, row.displayStatus].filter(Boolean).join(' · '),
+  })
+  const getRowSwipeActions = (row: SpesAppointmentEntry): SwipeAction[] => [
+    { id: 'remove', label: 'Remove', icon: Trash2, dismiss: false, onSelect: () => requestDeleteAppointment(row) },
+    { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openEditAppointmentDialog(row) },
+    { id: 'reports', label: 'Reports', icon: FileCheck, dismiss: false, onSelect: () => openReportsDialog(row) },
+    { id: 'history', label: 'History', icon: History, dismiss: false, onSelect: () => openHistoryDialog(row.spes_id) },
+    ...(row.status === 'Active'
+      ? [{ id: 'conclude', label: 'Conclude', icon: CircleCheck, dismiss: false, onSelect: () => openConcludeDialog(row) }]
+      : []),
+  ]
 
   const columns: ColumnDef<SpesAppointmentEntry>[] = [
     {
@@ -300,6 +317,8 @@ export function useSpesBeneficiaries() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     yearAppointments,

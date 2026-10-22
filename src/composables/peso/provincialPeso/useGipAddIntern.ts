@@ -1,6 +1,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { UserCheck } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { directoryService } from '@/services/common/directoryService'
 import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
@@ -376,7 +379,27 @@ export function useGipAddIntern() {
     }
   }
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  function getCandidateCard(applicant: GipApplicantRecord): SwipeCard {
+    const state = selectedApplicant.value?.id === applicant.id
+      ? 'Selected'
+      : isApplicantDeployed(applicant) ? 'Deployed' : applicant.status || 'Pending'
+    return {
+      title: applicant.fullName,
+      subtitle: [applicant.municipality, LPII_CONFIG[applicant.lpiiTag]?.label, `${applicant.totalPriorityScore ?? 0} pts`, state]
+        .filter(Boolean)
+        .join(' · '),
+    }
+  }
+
+  /** Select is the only action; it fills the deployment form, so the card stays */
+  function getCandidateSwipeActions(applicant: GipApplicantRecord): SwipeAction[] {
+    return [{ id: 'select', label: 'Select', icon: UserCheck, dismiss: false, onSelect: () => selectApplicant(applicant) }]
+  }
+
   return {
+    getCandidateCard,
+    getCandidateSwipeActions,
     // State & Flags
     isOpen: computed({
       get: () => isAddInternModalOpen.value,

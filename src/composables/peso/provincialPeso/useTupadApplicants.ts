@@ -14,6 +14,8 @@ import {
 import { ArrowUpDown, Pencil, Trash2 } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -104,6 +106,16 @@ export function useTupadApplicants() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Mobile card + swipe actions (DESIGN.md 13.2): the same handlers as the desktop buttons, Delete first (outer edge)
+  const getRowCard = (row: TupadApplicantWithRegistry): SwipeCard => ({
+    title: formatTupadApplicantName(row),
+    subtitle: [getTupadMunicipality(row.applicant), row.status].filter(Boolean).join(' · '),
+  })
+  const getRowSwipeActions = (row: TupadApplicantWithRegistry): SwipeAction[] => [
+    { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => requestDeleteApplicants([row]) },
+    { id: 'review', label: 'Review', icon: Pencil, dismiss: false, onSelect: () => openReviewApplicant(row) },
+  ]
 
   const columns: ColumnDef<TupadApplicantWithRegistry>[] = [
     {
@@ -315,6 +327,8 @@ export function useTupadApplicants() {
   })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     tupadApplicants,

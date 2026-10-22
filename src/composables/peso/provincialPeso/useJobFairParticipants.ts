@@ -20,7 +20,8 @@ import {
   getJobFairStatusBadgeClass,
   getParticipantStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/jobFairHelper'
-import { renderRowActions } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import { renderRowActions, toSwipeActions, type RowActionHandlers } from '@/helpers/peso/provincialPeso/jobFairTableHelper'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { hasValidCoordinates } from '@/helpers/common/mapboxHelpers'
 import { EMPLOYER_CATEGORIES, type JobFairParticipantWithCount } from '@/types/peso/provincialPeso/jobFair'
 
@@ -58,6 +59,21 @@ export function useJobFairParticipants() {
         { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
         () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
       )
+
+  // Shared by the desktop action buttons and the mobile swipe actions (DESIGN.md 13.2)
+  const getRowActionHandlers = (row: JobFairParticipantWithCount): RowActionHandlers => ({
+    onView: () => viewVacancies(row),
+    viewLabel: 'View vacancies',
+    onEdit: () => openEditDialog(row),
+    onDelete: () => requestDelete(row),
+  })
+  const getRowSwipeActions = (row: JobFairParticipantWithCount) => toSwipeActions(getRowActionHandlers(row))
+
+  /** Mobile card: main name, then one line of key details */
+  const getRowCard = (row: JobFairParticipantWithCount): SwipeCard => ({
+    title: row.business_name,
+    subtitle: [row.employer_category, row.city_municipality, row.status].filter(Boolean).join(' · '),
+  })
 
   const columns: ColumnDef<JobFairParticipantWithCount>[] = [
     {
@@ -142,12 +158,7 @@ export function useJobFairParticipants() {
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       enableSorting: false,
       cell: ({ row }) =>
-        renderRowActions({
-          onView: () => viewVacancies(row.original),
-          viewLabel: 'View vacancies',
-          onEdit: () => openEditDialog(row.original),
-          onDelete: () => requestDelete(row.original),
-        }),
+        renderRowActions(getRowActionHandlers(row.original)),
     },
   ]
 
@@ -186,6 +197,8 @@ export function useJobFairParticipants() {
   watch(jobFairId, refreshParticipants, { immediate: true })
 
   return {
+    getRowSwipeActions,
+    getRowCard,
     table,
     columns,
     jobFair,

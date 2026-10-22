@@ -1,6 +1,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { Eye, Pencil, RefreshCw, Trash2 } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { directoryService } from '@/services/common/directoryService'
 import type { DirectoryRow } from '@/types/common/directory'
@@ -462,6 +465,28 @@ export function useGipDetails() {
     }
   }
 
+  // ─── Mobile Card Swipe Actions (DESIGN.md 13.2) ───
+  const getInternCard = (intern: GipInternRecord): SwipeCard => ({
+    title: intern.fullName,
+    subtitle: [intern.program, intern.municipality, intern.status].filter(Boolean).join(' · '),
+  })
+
+  /**
+   * Delete first (primary edge). None collapses the card: delete is confirmed by the AlertDialog,
+   * the rest are not destructive. Renew only applies to active interns, as on desktop.
+   */
+  function getInternSwipeActions(intern: GipInternRecord): SwipeAction[] {
+    const actions: SwipeAction[] = [
+      { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => promptDeleteIntern(intern) },
+      { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openInternDetails(intern) },
+      { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openInternEdit(intern) },
+    ]
+    if (intern.status === 'Active') {
+      actions.push({ id: 'renew', label: 'Renew', icon: RefreshCw, dismiss: false, onSelect: () => openRenewalDialog(intern) })
+    }
+    return actions
+  }
+
   // ─── Documents Submitted Extraction ───
   const internDocumentsSubmitted = computed<string[]>(() => {
     if (!selectedIntern.value) return []
@@ -484,6 +509,7 @@ export function useGipDetails() {
   })
 
   return {
+    getInternCard,
     // Data & Computed
     pgasLpiiData,
     doleLpiiData,
@@ -564,6 +590,7 @@ export function useGipDetails() {
     openInternEdit,
     closeInternDetails,
     openRenewalDialog,
+    getInternSwipeActions,
     closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,

@@ -1,6 +1,9 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
+import { Pencil, Trash2 } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { useRecruitmentActivityDetailsStore } from '@/stores/peso/provincialPeso/recruitmentActivityDetailsStore'
 import { formatJobFairSchedule, formatParticipantAddress, formatOptionalDate } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import {
@@ -172,7 +175,21 @@ export function useRecruitmentActivityDetails() {
     },
   })
 
+  // ─── Vacancies: mobile card view (DESIGN.md 13.2) ───
+  type VacancyRow = (typeof vacancies.value)[number]
+  const getVacancyCard = (row: VacancyRow): SwipeCard => ({
+    title: row.position_title,
+    subtitle: [row.nature_of_work, `${row.vacancy_count ?? 0} opening${row.vacancy_count === 1 ? '' : 's'}`, row.status].filter(Boolean).join(' · '),
+  })
+  /** Remove first (outer edge); neither collapses the card, since removal is confirmed */
+  const getVacancySwipeActions = (row: VacancyRow): SwipeAction[] => [
+    { id: 'remove', label: 'Remove', icon: Trash2, dismiss: false, onSelect: () => requestVacancyDelete(row) },
+    { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openEditVacancyDialog(row) },
+  ]
+
   return {
+    getVacancyCard,
+    getVacancySwipeActions,
     activity,
     requirements,
     vacancies,

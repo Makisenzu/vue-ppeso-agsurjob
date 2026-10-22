@@ -1,6 +1,10 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { Eye, MapPin } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
+import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
 import { useSkillRepositoryStore } from '@/stores/peso/provincialPeso/skillRepositoryStore'
 
 export function useSkillRepository() {
@@ -91,7 +95,32 @@ export function useSkillRepository() {
     store.resetFilters()
   }
 
+  // ─── Mobile Card View (DESIGN.md 13.2) ───
+  function getMunicipalityCard(row: MunicipalitySkillSummaryRow): SwipeCard {
+    const topSkill = row.topSkills[0]?.name
+    return {
+      title: row.name,
+      subtitle: [
+        row.isAgusanDelSur ? `${row.barangays} barangays` : row.province,
+        `${row.totalApplicants} applicant${row.totalApplicants === 1 ? '' : 's'}`,
+        topSkill ? `Top: ${topSkill}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    }
+  }
+
+  /** View opens the municipality's skill details; Map highlights it on the map. Neither is destructive. */
+  function getMunicipalitySwipeActions(row: MunicipalitySkillSummaryRow): SwipeAction[] {
+    return [
+      { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => gotoMunicipality(row.name) },
+      { id: 'map', label: 'Map', icon: MapPin, dismiss: false, onSelect: () => selectMunicipality(row.name) },
+    ]
+  }
+
   return {
+    getMunicipalityCard,
+    getMunicipalitySwipeActions,
     // State
     municipalityRows,
     agusanMunicipalityRows,

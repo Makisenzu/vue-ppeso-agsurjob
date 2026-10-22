@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { useApplicantEntry } from '@/composables/peso/provincialPeso/useApplicantEntry'
 
 const {
@@ -81,6 +82,8 @@ const {
   isBulkDeleteDialogOpen,
   isBulkDeleting,
   handleBulkDelete,
+  getApplicantCard,
+  getApplicantSwipeActions,
 } = useApplicantEntry()
 </script>
 
@@ -330,8 +333,29 @@ const {
           </Button>
         </div>
 
-        <!-- ─── Table ─── -->
-        <div class="relative overflow-x-auto border-t">
+        <!-- ─── Mobile: swipeable cards (DESIGN.md 13.2) ─── -->
+        <SwipeCardList
+          class="border-t p-3 md:hidden"
+          :items="paginatedApplicants"
+          :item-key="(applicant) => applicant.id"
+          :card="getApplicantCard"
+          :actions="getApplicantSwipeActions"
+          :loading="isLoading"
+          hint="Swipe left on an applicant for actions."
+          :is-selected="(applicant) => selectedApplicantIds.includes(applicant.id)"
+          :all-selected="isAllSelected ? true : isIndeterminate ? 'indeterminate' : false"
+          @toggle="(applicant, value) => toggleSelectApplicant(applicant.id, value)"
+          @toggle-all="toggleSelectAll"
+        >
+          <template #empty>
+            <p class="py-8 text-center text-sm text-muted-foreground">
+              {{ statsSummary.total === 0 ? 'No applicants registered yet.' : 'No matching applicant records.' }}
+            </p>
+          </template>
+        </SwipeCardList>
+
+        <!-- ─── Desktop: table ─── -->
+        <div class="relative hidden overflow-x-auto border-t md:block">
           <Table>
             <TableHeader class="bg-muted/40">
               <TableRow>
