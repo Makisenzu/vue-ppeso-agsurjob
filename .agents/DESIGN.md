@@ -456,7 +456,12 @@ These use sidebar-specific semantic tokens, not hardcoded colors.
 > 1. All layouts must be mobile-first (default classes = mobile).
 > 2. Sidebar collapses on mobile via `SidebarProvider` built-in behavior.
 > 3. Content must use `overflow-x-hidden` and `min-w-0` to prevent horizontal overflow.
-> 4. Tables should have horizontal scroll containers on mobile. The bulk action bar (Section 13.1) must stay visible outside the scroll container.
+> 4. **Data tables become swipeable cards below `md`** — never a sideways-scrolling table on a phone. See Section 13.2. The bulk action bar (Section 13.1) stays above both views.
+> 5. **Touch targets are at least 40px tall** on mobile (buttons, row actions, pagination).
+> 6. **Toolbars stack on mobile**: `flex flex-col gap-2 sm:flex-row`, with search and filters `w-full sm:w-auto`.
+> 7. **Dialogs fit the screen**: `max-h-[90vh] overflow-y-auto`, and multi-column form grids collapse to one column (`grid gap-4 sm:grid-cols-2`).
+> 8. **Media scales, never crops content away**: images and videos use `w-full h-auto` with a height cap per breakpoint instead of a fixed height.
+> 9. **Check every screen at 360px wide** before calling it done — no horizontal page scroll, no clipped text.
 
 ---
 
@@ -558,6 +563,128 @@ import { Checkbox } from '@/components/ui/checkbox'
 > 6. **Keep per-row delete** in row actions; bulk selection is in addition to it, not a replacement.
 > 7. **Clicking a checkbox must not trigger row navigation** — if rows are clickable, stop propagation in the select cell.
 > 8. Read-only tables whose records must never be deleted (e.g., audit logs) are the only exemption, and the exemption must be stated in a comment above the column definitions.
+
+### 13.2 Mobile Card View with `SwipeRow` — MANDATORY
+
+Below `md` (768px), every data table renders as a **list of cards** using [`SwipeRow`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/components/SwipeRow.vue). The user swipes a card left to reveal **View** and **Delete** (plus Edit or other row actions when the table has them). From `md` up, the normal `<Table>` is shown.
+
+#### How it fits together
+
+| Layer                     | Requirement                                                                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One data source**       | Both views loop over `table.getRowModel().rows`, so search, filters, sorting, pagination, and selection are shared. Never fetch or filter separately for mobile.                       |
+| **Swipe actions** (composable) | `getRowSwipeActions(row): SwipeAction[]` lives in the composable next to the column definitions and calls the **same handlers** as the desktop row actions. Not in the `.vue` file. |
+| **Component**             | Table wrapped in `hidden md:block`; card list in `md:hidden`. Pagination and the bulk action bar sit outside both, so they're shared.                                               |
+
+#### Action rules
+
+> [!CAUTION]
+> 1. **Delete is the first action** in the array (the primary one, at the outer edge), with `dismiss: false`, and it opens the same `<AlertDialog>` as desktop. A cancelled delete must leave the card in place.
+> 2. **Always set `:full-swipe="false"`** — a full swipe commits the primary action and collapses the card *before* the confirmation, which skips the `<AlertDialog>`.
+> 3. **View / Edit use `dismiss: false`** — they're not destructive, so the card stays.
+> 4. **Colors are design tokens with explicit text colors** — `SwipeRow` can only auto-pick text contrast for hex, so always pass the `*-text-color` props (see the pattern below).
+> 5. **No buttons, links, or checkboxes inside the `SwipeRow` slot.** It captures the pointer for dragging, so taps inside it never reach nested controls. Put the selection `Checkbox` **beside** the card, outside `SwipeRow`.
+> 6. **Card content is 2 lines max**: the record's main name (truncate), then one line of key details or status. Pick a `:height` that fits it (usually `68`–`76`). Everything else goes in the View dialog.
+> 7. **Add a one-line hint** above the list: "Swipe left on a row for actions." (Section 16.6 applies.)
+> 8. **Loading and empty states** mirror desktop: `Skeleton` cards of the same height while loading, the same `Empty` component when there are no rows.
+
+#### Selection on mobile — hidden until asked for
+
+Row checkboxes are **hidden by default** on mobile cards; only the select-all checkbox (next to the hint) shows. It cycles through three states:
+
+| Click | Result                                                                 |
+| ----- | ---------------------------------------------------------------------- |
+| 1st   | Row checkboxes appear beside every card; nothing is selected yet.      |
+| 2nd   | Every row on the page is selected.                                     |
+| 3rd   | The selection is cleared and the row checkboxes hide again.            |
+
+> [!IMPORTANT]
+> 1. **Use `SwipeCardList`** — it implements this via [`useSelectionCycle`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/composables/common/useSelectionCycle.ts). Pass `is-selected`, `all-selected`, `@toggle` and `@toggle-all`; never re-implement the cycle in a page.
+> 2. **A selection is never hidden**: if rows are already selected (e.g. on desktop before resizing), the row checkboxes show automatically.
+> 3. **Deselecting rows one by one, or clearing after a bulk action, returns to step 1's state** (checkboxes visible), so the next click selects all again.
+> 4. The select-all checkbox's `aria-label` / `title` says what the next click does ("Show selection checkboxes", "Select all rows on page", "Clear selection and hide checkboxes").
+> 5. Desktop tables are unchanged: their checkbox column is always visible (Section 13.1).
+
+#### Swipe actions pattern (composable)
+
+```ts
+import { Eye, Trash2 } from '@lucide/vue'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+
+/** Delete first (primary edge). Neither collapses the card: delete is confirmed, view is not destructive. */
+function getRowSwipeActions(row: JobFairRow): SwipeAction[] {
+  return [
+    { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => requestDelete(row) },
+    { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openViewDialog(row) },
+  ]
+}
+```
+
+#### Use `SwipeCardList` (preferred)
+
+[`SwipeCardList`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/components/SwipeCardList.vue) already applies every rule above: token colors, `:full-swipe="false"`, checkboxes beside the cards, hint, skeletons, and an `#empty` slot. The composable exposes `getRowCard(row): SwipeCard` (`{ title, subtitle }`) and `getRowSwipeActions(row)`; tables using `renderRowActions` get the swipe actions from `toSwipeActions()` with the same handlers.
+
+```vue
+<SwipeCardList
+  class="md:hidden"
+  :items="table.getRowModel().rows"
+  :item-key="(row) => row.id"
+  :card="(row) => getRowCard(row.original)"
+  :actions="(row) => getRowSwipeActions(row.original)"
+  :loading="isLoading && rows.length === 0"
+  :is-selected="(row) => row.getIsSelected()"
+  :all-selected="table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')"
+  @toggle="(row, value) => row.toggleSelected(value)"
+  @toggle-all="(value) => table.toggleAllPageRowsSelected(value)"
+>
+  <template #empty>…</template>
+</SwipeCardList>
+```
+
+Use `primary-tone="primary"` when the outer-edge action isn't destructive (e.g. Deploy, View). Read-only tables pass no `actions`: the cards still replace the table, without swipe.
+
+#### Card list pattern (raw `SwipeRow`, for custom card content)
+
+```vue
+<!-- Desktop -->
+<div class="hidden overflow-x-auto rounded-md border md:block">
+  <Table><!-- ... --></Table>
+</div>
+
+<!-- Mobile -->
+<div class="grid gap-2 md:hidden">
+  <p class="text-xs text-muted-foreground">Swipe left on a row for actions.</p>
+  <div v-for="row in table.getRowModel().rows" :key="row.id" class="flex items-center gap-3">
+    <Checkbox
+      :model-value="row.getIsSelected()"
+      aria-label="Select row"
+      @update:model-value="(value) => row.toggleSelected(!!value)"
+    />
+    <SwipeRow
+      class-name="min-w-0 flex-1"
+      :label="row.original.name"
+      :actions="getRowSwipeActions(row.original)"
+      :full-swipe="false"
+      :height="72"
+      :radius="10"
+      row-color="var(--card)"
+      text-color="var(--card-foreground)"
+      action-color="var(--destructive)"
+      action-text-color="var(--background)"
+      drawer-color="var(--secondary)"
+      drawer-text-color="var(--secondary-foreground)"
+    >
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium">{{ row.original.name }}</p>
+        <p class="truncate text-xs text-muted-foreground">{{ row.original.municipality }} · {{ row.original.status }}</p>
+      </div>
+    </SwipeRow>
+  </div>
+</div>
+```
+
+> [!NOTE]
+> Existing tables are converted whenever they are modified, the same as Section 13.1.
 
 ---
 
@@ -724,6 +851,7 @@ Every description in the UI (page header subtitles, `CardDescription`, `DialogDe
 | Adding `border` + `rounded` + `shadow` to everything  | Use `Card` when elevation is needed; plain containers otherwise    |
 | Avatar/initials on every list item in a dialog        | Only use Avatars in primary lists (member lists, profiles)         |
 | Multi-sentence descriptions, filler, restating titles | One short, on-point sentence — or none (see Section 16.6)          |
+| Sideways-scrolling `<Table>` on a phone               | Swipeable `SwipeRow` cards below `md` (see Section 13.2)           |
 
 > [!CAUTION]
 > **Every UI decision must be justifiable by a UX principle from Section 1.1.** If you cannot explain which principle a visual element serves, remove it.
