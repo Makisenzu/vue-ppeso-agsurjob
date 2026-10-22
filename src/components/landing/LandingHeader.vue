@@ -18,6 +18,7 @@ import {
 import GoeyNav from '@/components/GoeyNav.vue'
 import { useLandingNavigation } from '@/composables/landing/useLandingNavigation'
 import agsurLogo from '@/assets/images/agsur-logo.png'
+import agsurSeal from '@/assets/images/agsur.png'
 
 const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandingNavigation()
 </script>
@@ -28,7 +29,9 @@ const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandin
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
       <!-- Brand -->
       <RouterLink to="/" class="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <img :src="agsurLogo" alt="AGSURJOBS" class="h-9 w-auto shrink-0 object-contain" />
+        <!-- The wordmark has a light background, so dark mode shows the seal instead (same as ApplicantHeader) -->
+        <img :src="agsurLogo" alt="AGSURJOBS" class="h-9 w-auto shrink-0 object-contain dark:hidden" />
+        <img :src="agsurSeal" alt="AGSURJOBS" class="hidden size-9 shrink-0 object-contain dark:block" />
       </RouterLink>
 
       <!-- Desktop navigation -->

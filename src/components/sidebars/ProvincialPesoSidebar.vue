@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BetweenHorizontalEnd,Blocks, Database,SquareLibrary, Info, CalendarDays, Leaf, TrendingUp, Hammer, UsersRound, File, SquareUser, Plane, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, SportShoe, Star, UserRoundCog, BookMarked, MapPinned, IdCardLanyard} from '@lucide/vue'
+import { BetweenHorizontalEnd, Database, Home, Settings2, ChevronUp, ChevronRight, LayoutDashboard, UserRound } from '@lucide/vue'
 
 import {
   Sidebar,
@@ -15,7 +15,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
-  useSidebar,
 } from '@/components/ui/sidebar'
 
 import {
@@ -29,46 +28,24 @@ import { Avatar, AvatarFallback} from '@/components/ui/avatar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useRoute } from 'vue-router'
-import { useAuth } from '@/composables/common/useAuth'
+import { useProvincialPesoSidebar } from '@/composables/peso/provincialPeso/useProvincialPesoSidebar'
 
-const route = useRoute()
-
-const { state, isMobile } = useSidebar()
-const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
-
-const sddItems = [
-  { title: 'Job Start', to: {name: 'provincial-peso-dashboard'}, icon: TrendingUp },
-  { title: 'Skills Training', to: {name: 'provincial-peso-dashboard'}, icon: SportShoe },
-  { title: 'Free Wellness Services', to: {name: 'provincial-peso-dashboard'}, icon: Leaf },
-]
-const contactSubItems = [
-  { title: 'Help Center & FAQ', to: {name: 'provincial-peso-dashboard'}, icon: Search },
-  { title: 'Submit a Ticket', to: {name: 'provincial-peso-dashboard'}, icon: Mail },
-  { title: 'Live Chat', to: {name: 'provincial-peso-dashboard'}, icon: Phone },
-  { title: 'Feedbacks', to: {name: 'provincial-peso-dashboard'}, icon: Star },
-]
-const settingsSubItems = [
-  { title: 'Company Settings', to: {name: 'provincial-peso-dashboard'}, icon:  UserRoundCog },
-]
-
-const employmentItems = [
-  { title: 'Job Fair', to: {name: 'provincial-peso-job-fair'}, icon: IdCardLanyard },
-  { title: 'FNPLP / OFW', to: {name: 'provincial-peso-fnplp'}, icon: Plane },
-  { title: 'GIP', to: {name: 'provincial-peso-gip'}, icon: SquareUser },
-  { title: 'TUPAD', to: {name: 'provincial-peso-tupad'}, icon: Hammer },
-  { title: 'SPES', to: {name: 'provincial-peso-spes'}, icon: BookMarked },
-  { title: 'Recruitment Activity', to: {name: 'provincial-peso-recruitment-activity'}, icon: MapPinned },
-]
-
-const companyItems = [
-  { title: 'Events', to: {name: 'company-profile'}, icon: CalendarDays },
-  { title: 'Organizational Chart', to: {name: 'company-profile'}, icon: File },
-  { title: 'Citizen Charter', to: {name: 'company-profile'}, icon: UsersRound },
-  { title: 'Functional Charter', to: {name: 'company-profile'}, icon: Blocks },
-  { title: 'Records Charter', to: {name: 'company-profile'}, icon: SquareLibrary },
-  { title: 'Where Abouts', to: {name: 'company-profile'}, icon: Info },
-]
+const {
+  sddItems,
+  contactSubItems,
+  settingsSubItems,
+  employmentItems,
+  companyItems,
+  state,
+  isMobile,
+  displayName,
+  userInitials,
+  userEmail,
+  isVerified,
+  isLoading,
+  isActive,
+  handleSignOut,
+} = useProvincialPesoSidebar()
 </script>
 
 <template>
@@ -145,19 +122,19 @@ const companyItems = [
                     <span>Home</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'provincial-peso-dashboard'">
+              <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="isActive('provincial-peso-dashboard')">
                   <RouterLink :to="{ name: 'provincial-peso-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Entry of Applicants'" :is-active="route.name === 'provincial-peso-entry'">
+              <SidebarMenuButton as-child :tooltip="'Entry of Applicants'" :is-active="isActive('provincial-peso-entry')">
                   <RouterLink :to="{ name: 'provincial-peso-entry' }">
                     <BetweenHorizontalEnd />
                     <span>Entry of Applicants</span>
                   </RouterLink>
               </SidebarMenuButton>
-              <SidebarMenuButton as-child :tooltip="'Skill Tagging'" :is-active="route.name === 'provincial-peso-skills-repository'">
+              <SidebarMenuButton as-child :tooltip="'Skill Tagging'" :is-active="isActive('provincial-peso-skills-repository')">
                   <RouterLink :to="{ name: 'provincial-peso-skills-repository' }">
                     <Database />
                     <span>Skill Tagging</span>
@@ -170,7 +147,7 @@ const companyItems = [
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
@@ -182,7 +159,7 @@ const companyItems = [
 
               <SidebarGroupLabel>ESMDD</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in employmentItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
@@ -195,7 +172,7 @@ const companyItems = [
               
               <SidebarGroupLabel>Skill Development Division</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in sddItems" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title" :is-active="route.name === item.to.name">
+                <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>

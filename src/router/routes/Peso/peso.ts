@@ -192,6 +192,13 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: FnplpDashboard,
         meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'FNPLP / OFW' }
       },
+      // ─── Site Contents: landing page carousel (system.site_contents, migration 046) ───
+      {
+        path: 'site-contents',
+        name: 'provincial-peso-site-contents',
+        component: () => import('@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContents.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Site Contents' },
+      },
       // ─── Recruitment Activity: LRA / SRA (breadcrumb hierarchy: Recruitment Activity > Details) ───
       {
         path: 'recruitment-activity',

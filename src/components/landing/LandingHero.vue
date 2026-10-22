@@ -16,6 +16,7 @@ const {
   isLoading,
   hasMultipleSlides,
   selectedIndex,
+  registerVideo,
   setApi,
   scrollTo,
   pauseAutoplay,
@@ -26,9 +27,11 @@ const {
 <template>
   <!-- Full-bleed band; slide content stays aligned with the header's max-w-7xl container -->
   <section aria-label="Highlights" class="w-full border-b border-border bg-muted">
+    <!-- Slides can be photo-only, so the page heading can't depend on a slide title -->
+    <h1 class="sr-only">AGSURJOBS, the job portal of PESO Agusan del Sur</h1>
     <!-- Same footprint as a slide, so the page doesn't shift when the content arrives -->
-    <div v-if="isLoading" class="mx-auto grid min-h-[28rem] max-w-7xl items-center gap-8 px-4 pt-10 pb-6 sm:px-6 sm:pt-14 md:grid-cols-[1.4fr_1fr] lg:px-8 lg:pt-16" aria-busy="true">
-      <div class="flex flex-col gap-4">
+    <div v-if="isLoading" class="mx-auto flex min-h-[32rem] max-w-7xl items-center px-4 pt-12 pb-24 sm:px-6 sm:pt-16 lg:px-8" aria-busy="true">
+      <div class="flex w-full max-w-2xl flex-col gap-4">
         <Skeleton class="h-4 w-48" />
         <Skeleton class="h-12 w-full max-w-xl" />
         <Skeleton class="h-12 w-3/4 max-w-md" />
@@ -38,7 +41,6 @@ const {
           <Skeleton class="h-10 w-36" />
         </div>
       </div>
-      <Skeleton class="hidden aspect-square w-full max-w-xs justify-self-center rounded-full md:block" />
     </div>
     <Carousel
       v-else
@@ -57,16 +59,45 @@ const {
           :aria-label="`${index + 1} of ${slides.length}`"
           class="pl-0"
         >
-          <div class="mx-auto grid min-h-[28rem] max-w-7xl items-center gap-8 px-4 pt-10 pb-6 sm:px-6 sm:pt-14 md:grid-cols-[1.4fr_1fr] lg:px-8 lg:pt-16">
-            <div class="flex flex-col gap-4">
+          <div class="relative isolate">
+            <!-- Uploaded photo / video fills the slide; with text on top, a fade in the page color keeps it readable in both themes -->
+            <template v-if="slide.backgroundImage">
+              <!-- Silent looping background: no controls, playback is handled by useLandingHero -->
+              <video
+                v-if="slide.backgroundType === 'video'"
+                :ref="registerVideo(index)"
+                :src="slide.backgroundImage"
+                :aria-label="slide.imageAlt || undefined"
+                :aria-hidden="slide.imageAlt ? undefined : 'true'"
+                :preload="index === 0 ? 'auto' : 'metadata'"
+                muted
+                loop
+                playsinline
+                disablepictureinpicture
+                disableremoteplayback
+                class="absolute inset-0 -z-10 size-full object-cover"
+              />
+              <img
+                v-else
+                :src="slide.backgroundImage"
+                :alt="slide.imageAlt"
+                :loading="index === 0 ? 'eager' : 'lazy'"
+                :fetchpriority="index === 0 ? 'high' : 'auto'"
+                class="absolute inset-0 -z-10 size-full object-cover"
+              />
+              <div v-if="slide.hasText" class="absolute inset-0 -z-10 bg-background/80 md:bg-transparent md:bg-linear-to-r md:from-background md:via-background/80 md:to-background/10" />
+            </template>
+            <!-- Bottom padding leaves room for the controls floating over the slide -->
+            <div class="mx-auto flex min-h-[32rem] max-w-7xl items-center px-4 pt-12 pb-24 sm:px-6 sm:pt-16 lg:px-8">
+            <div v-if="slide.hasText" class="flex max-w-2xl flex-col gap-4">
               <p v-if="slide.eyebrow" class="text-sm font-semibold text-primary">{{ slide.eyebrow }}</p>
-              <component
-                :is="index === 0 ? 'h1' : 'h2'"
+              <h2
+                v-if="slide.title"
                 class="max-w-2xl text-3xl font-bold tracking-tight text-balance text-foreground sm:text-4xl lg:text-5xl"
               >
                 {{ slide.title }}
-              </component>
-              <p class="max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">{{ slide.description }}</p>
+              </h2>
+              <p v-if="slide.description" class="max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">{{ slide.description }}</p>
               <div v-if="slide.primary || slide.secondary" class="mt-2 flex flex-wrap gap-3">
                 <Button v-if="slide.primary" size="lg" as-child>
                   <RouterLink v-if="slide.primary.to" :to="slide.primary.to">{{ slide.primary.label }}</RouterLink>
@@ -88,27 +119,20 @@ const {
                 </Button>
               </div>
             </div>
-            <div class="hidden aspect-square w-full max-w-xs items-center justify-center justify-self-center rounded-full bg-background p-10 md:flex">
-              <img
-                :src="slide.image"
-                :alt="slide.imageAlt"
-                :loading="index === 0 ? 'eager' : 'lazy'"
-                class="size-full object-contain"
-              />
-            </div>
+          </div>
           </div>
         </CarouselItem>
       </CarouselContent>
 
-      <!-- Controls sit inside the band; the primitive's default offsets would place them off-screen -->
-      <div v-if="hasMultipleSlides" class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-8 sm:px-6 lg:px-8">
+      <!-- Controls float over the slide's bottom edge so the photo covers the whole band -->
+      <div v-if="hasMultipleSlides" class="absolute inset-x-0 bottom-0 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-8 sm:px-6 lg:px-8">
         <div class="flex items-center gap-2" aria-label="Choose slide">
           <button
             v-for="(slide, index) in slides"
             :key="slide.id"
             type="button"
             :aria-current="selectedIndex === index"
-            :aria-label="`Go to slide ${index + 1}: ${slide.eyebrow || slide.title}`"
+            :aria-label="`Go to slide ${index + 1}${slide.eyebrow || slide.title ? `: ${slide.eyebrow || slide.title}` : ''}`"
             :class="[
               'h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               selectedIndex === index ? 'w-8 bg-primary' : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50',

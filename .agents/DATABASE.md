@@ -671,7 +671,7 @@ Per-user read markers; PK (`announcement_id`, `user_id`). Insert a row when a us
 - `system.current_audience()` maps the role: applicant → `applicant`; company_owner / company_member → `employer`; provincial_peso / municipal_peso / dole / admin → `peso`.
 - `system.unread_announcement_count()` → live postings for the caller's audience without a read marker (bell badge).
 
-#### `site_contents` (migration 046)
+#### `site_contents` (migrations 046, 047, 048)
 
 PESO-managed blocks on public pages, starting with the landing hero carousel. Kept out of `announcements` so slides never count toward the bell badge or show in the announcements feed. Seeded with the landing page's built-in slides by `supabase/seeds/002_site_contents_hero.sql`.
 
@@ -680,9 +680,10 @@ PESO-managed blocks on public pages, starting with the landing hero carousel. Ke
 | `id`              | `uuid` | PK |
 | `placement`       | `site_content_placement` | `hero_carousel`; default `hero_carousel`. Add a value per new spot on a public page |
 | `eyebrow`         | `text` | nullable; short label above the title |
-| `title`           | `text` | required, non-blank |
+| `title`           | `text` | nullable (047); non-blank when set |
 | `description`     | `text` | default `''` |
-| `image_path`      | `text` | nullable; path in the public bucket `site-content-media` at `<site_content_id>/<filename>`. Empty → the page shows the PESO logo |
+| `image_path`      | `text` | path in the public bucket `site-content-media` at `<site_content_id>/<filename>`; the slide's background photo **or video** (see `media_type`). Required once published (CHECK, 047) |
+| `media_type`      | `site_content_media_type` | `image` / `video`; default `image` (048). Videos play muted, looped, without controls |
 | `image_alt`       | `text` | nullable |
 | `primary_label` / `primary_link`     | `text` | nullable, set together. Link is `/route`, `#section` or `https://…` (CHECK) |
 | `secondary_label` / `secondary_link` | `text` | same rules as the primary button |
@@ -693,6 +694,7 @@ PESO-managed blocks on public pages, starting with the landing hero carousel. Ke
 | `created_by`      | `uuid` | FK → `core.profiles`, default `auth.uid()` |
 
 - **Live** uses the same rule as announcements. Everyone (`anon` included) reads live rows; `provincial_peso` / `admin` have full CRUD on the table and the bucket.
+- **Image-first (047):** the photo is the only required part; text and buttons are optional, so a slide can be just the photo. A published row must have `image_path` (`NOT VALID`, so the image-less seed rows stay). The app inserts a new row as a draft, uploads the photo under its id, then sets `image_path` and the real status in one update.
 - PESO staff can also read drafts through RLS, so public queries repeat the live filter (`siteContentService.fetchLive`).
 
 #### `system_audit_logs`

@@ -2,8 +2,8 @@
 -- Seed: system.site_contents hero carousel (migration 046)
 -- ============================================================================
 -- The four slides the landing page ships with, published so PESO can edit them
--- instead of starting from an empty carousel. Images are left empty, so the page
--- shows the PESO logo until a photo is uploaded to 'site-content-media'.
+-- instead of starting from an empty carousel. Images are left empty, so the slides
+-- use the plain background until a photo is uploaded to 'site-content-media'.
 -- Re-runnable: a slide is skipped when its placement + title already exists.
 --
 -- Sources: program eligibility from the PESO requirements list (SPES, GIP, FNPLP).

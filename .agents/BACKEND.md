@@ -137,7 +137,7 @@ Services are in [`src/services/<role>/`](file:///c:/Users/Denmark%20B.%20Rivera/
 | `admin`    | [`userAccountService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/admin/userAccountService.ts), `systemDirectoryService.ts`, `documentTemplateService.ts` |
 | `applicant`| `applicantProfileService.ts`, `applicantRequirementUploadService.ts` |
 | `employer` | `companyProfileService.ts` |
-| `peso/provincialPeso` | `gipService.ts`, `ocrService.ts` |
+| `peso/provincialPeso` | `gipService.ts`, `ocrService.ts`, `siteContentManagerService.ts` |
 
 ### Service Pattern
 

@@ -13,17 +13,13 @@ export const useSiteContentStore = defineStore('siteContent', () => {
 
   // ─── Actions ───
   // Loads once per visit. No toast on failure: the landing page falls back to its built-in slides.
-  const loadHeroSlides = async (fallbackImage: string, fallbackAlt: string) => {
+  const loadHeroSlides = async () => {
     if (isHeroLoaded.value || isHeroLoading.value) return
     isHeroLoading.value = true
     try {
       const rows = await siteContentService.fetchLive('hero_carousel')
       heroSlides.value = rows.map(row =>
-        toHeroSlide(
-          row,
-          row.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : fallbackImage,
-          fallbackAlt,
-        ),
+        toHeroSlide(row, row.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : null),
       )
     } catch (error) {
       console.error(error)
@@ -33,5 +29,11 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     }
   }
 
-  return { heroSlides, isHeroLoading, isHeroLoaded, loadHeroSlides }
+  // Called after PESO edits the slides, so the landing page reloads them on its next visit
+  const resetHeroSlides = () => {
+    heroSlides.value = []
+    isHeroLoaded.value = false
+  }
+
+  return { heroSlides, isHeroLoading, isHeroLoaded, loadHeroSlides, resetHeroSlides }
 })

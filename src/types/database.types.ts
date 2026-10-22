@@ -3468,6 +3468,7 @@ export type Database = {
           id: string
           image_alt: string | null
           image_path: string | null
+          media_type: Database["system"]["Enums"]["site_content_media_type"]
           placement: Database["system"]["Enums"]["site_content_placement"]
           primary_label: string | null
           primary_link: string | null
@@ -3476,7 +3477,7 @@ export type Database = {
           secondary_link: string | null
           sort_order: number
           status: Database["system"]["Enums"]["announcement_status"]
-          title: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -3489,6 +3490,7 @@ export type Database = {
           id?: string
           image_alt?: string | null
           image_path?: string | null
+          media_type?: Database["system"]["Enums"]["site_content_media_type"]
           placement?: Database["system"]["Enums"]["site_content_placement"]
           primary_label?: string | null
           primary_link?: string | null
@@ -3497,7 +3499,7 @@ export type Database = {
           secondary_link?: string | null
           sort_order?: number
           status?: Database["system"]["Enums"]["announcement_status"]
-          title: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -3510,6 +3512,7 @@ export type Database = {
           id?: string
           image_alt?: string | null
           image_path?: string | null
+          media_type?: Database["system"]["Enums"]["site_content_media_type"]
           placement?: Database["system"]["Enums"]["site_content_placement"]
           primary_label?: string | null
           primary_link?: string | null
@@ -3518,7 +3521,7 @@ export type Database = {
           secondary_link?: string | null
           sort_order?: number
           status?: Database["system"]["Enums"]["announcement_status"]
-          title?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3590,6 +3593,7 @@ export type Database = {
         | "job_fair"
         | "vacancy"
         | "skills_training"
+      site_content_media_type: "image" | "video"
       site_content_placement: "hero_carousel"
     }
     CompositeTypes: {
@@ -3877,6 +3881,7 @@ export const Constants = {
         "vacancy",
         "skills_training",
       ],
+      site_content_media_type: ["image", "video"],
       site_content_placement: ["hero_carousel"],
     },
   },

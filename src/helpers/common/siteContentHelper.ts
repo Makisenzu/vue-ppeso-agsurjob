@@ -7,16 +7,25 @@ export function toHeroAction(label: string | null, link: string | null): Landing
   return { label, href: link, external: link.startsWith('https://') }
 }
 
-/** A site_contents row as a hero slide; `imageUrl` is the resolved public URL, or the default image when the row has none. */
-export function toHeroSlide(row: SiteContentRow, imageUrl: string, fallbackAlt: string): LandingHeroSlide {
+/** A site_contents row as a hero slide; `imageUrl` is the resolved public URL of its photo, if any. */
+export function toHeroSlide(row: SiteContentRow, imageUrl: string | null): LandingHeroSlide {
+  const primary = toHeroAction(row.primary_label, row.primary_link)
+  const secondary = toHeroAction(row.secondary_label, row.secondary_link)
   return {
     id: row.id,
     eyebrow: row.eyebrow ?? '',
-    title: row.title,
+    title: row.title ?? '',
     description: row.description,
-    image: imageUrl,
-    imageAlt: row.image_path ? (row.image_alt ?? '') : fallbackAlt,
-    primary: toHeroAction(row.primary_label, row.primary_link),
-    secondary: toHeroAction(row.secondary_label, row.secondary_link),
+    backgroundImage: imageUrl,
+    backgroundType: row.media_type,
+    imageAlt: row.image_alt ?? '',
+    hasText: !!(row.eyebrow || row.title || row.description || primary || secondary),
+    primary,
+    secondary,
   }
+}
+
+/** Name of a row for toasts, dialogs and the table; media-only slides have no title. */
+export function getSiteContentDisplayName(row: Pick<SiteContentRow, 'title' | 'eyebrow' | 'media_type'>): string {
+  return row.title || row.eyebrow || (row.media_type === 'video' ? 'Video-only slide' : 'Photo-only slide')
 }
