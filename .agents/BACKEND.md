@@ -133,7 +133,7 @@ Services are in [`src/services/<role>/`](file:///c:/Users/Denmark%20B.%20Rivera/
 
 | Role       | Service Files |
 | ---------- | ------------- |
-| `common`   | [`authService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/authService.ts), [`fileUploadService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/fileUploadService.ts), [`mediaService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/mediaService.ts), `ocrVisionService.ts`, `psgc.ts`, `signupService.ts` |
+| `common`   | [`authService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/authService.ts), [`fileUploadService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/fileUploadService.ts), [`mediaService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/common/mediaService.ts), `ocrVisionService.ts`, `psgc.ts`, `signupService.ts`, `siteContentService.ts` |
 | `admin`    | [`userAccountService.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/services/admin/userAccountService.ts), `systemDirectoryService.ts`, `documentTemplateService.ts` |
 | `applicant`| `applicantProfileService.ts`, `applicantRequirementUploadService.ts` |
 | `employer` | `companyProfileService.ts` |
@@ -191,7 +191,7 @@ Stores are in [`src/stores/<role>/`](file:///c:/Users/Denmark%20B.%20Rivera/OneD
 
 | Role       | Store Files |
 | ---------- | ----------- |
-| `common`   | [`auth.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/stores/common/auth.ts), [`fileUploadStore.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/stores/common/fileUploadStore.ts), `signupStore.ts` |
+| `common`   | [`auth.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/stores/common/auth.ts), [`fileUploadStore.ts`](file:///c:/Users/Denmark%20B.%20Rivera/OneDrive/Documents/Work/vue-agsurjobs/src/stores/common/fileUploadStore.ts), `signupStore.ts`, `siteContentStore.ts` |
 | `admin`    | `userAccountsStore.ts`, `systemDirectoryStore.ts`, `documentTemplateStore.ts` |
 | `applicant`| `profileStore.ts` |
 | `employer` | _(empty — uses composables directly)_ |

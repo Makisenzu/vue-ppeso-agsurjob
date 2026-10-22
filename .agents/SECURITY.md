@@ -340,6 +340,8 @@ src/services/common/      ← Shared across 2+ roles
 ### 9.1 Supabase Storage
 
 - **Bucket**: `media`
+- **Public buckets** (landing page loads them without a token): `announcement-media` (migration 036) and `site-content-media` (migration 046, images only, 5MB). Only `provincial_peso` / `admin` write to them, and new files must sit under an existing row id. Files of a draft are reachable by anyone with the exact URL, so never upload anything confidential there.
+- **anon table access**: 034 gives `anon` none, with two deliberate exceptions limited to live rows: `system.announcements` (+ media, `public` audience only) and `system.site_contents`.
 - **Upload method**: `upsert: true` (overwrites existing files at same path)
 - **Public URLs**: Generated via `supabase.storage.from(bucket).getPublicUrl(path)`
 

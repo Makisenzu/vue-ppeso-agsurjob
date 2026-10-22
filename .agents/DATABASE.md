@@ -671,6 +671,30 @@ Per-user read markers; PK (`announcement_id`, `user_id`). Insert a row when a us
 - `system.current_audience()` maps the role: applicant → `applicant`; company_owner / company_member → `employer`; provincial_peso / municipal_peso / dole / admin → `peso`.
 - `system.unread_announcement_count()` → live postings for the caller's audience without a read marker (bell badge).
 
+#### `site_contents` (migration 046)
+
+PESO-managed blocks on public pages, starting with the landing hero carousel. Kept out of `announcements` so slides never count toward the bell badge or show in the announcements feed. Seeded with the landing page's built-in slides by `supabase/seeds/002_site_contents_hero.sql`.
+
+| Column            | Type   | Notes |
+| ----------------- | ------ | ----- |
+| `id`              | `uuid` | PK |
+| `placement`       | `site_content_placement` | `hero_carousel`; default `hero_carousel`. Add a value per new spot on a public page |
+| `eyebrow`         | `text` | nullable; short label above the title |
+| `title`           | `text` | required, non-blank |
+| `description`     | `text` | default `''` |
+| `image_path`      | `text` | nullable; path in the public bucket `site-content-media` at `<site_content_id>/<filename>`. Empty → the page shows the PESO logo |
+| `image_alt`       | `text` | nullable |
+| `primary_label` / `primary_link`     | `text` | nullable, set together. Link is `/route`, `#section` or `https://…` (CHECK) |
+| `secondary_label` / `secondary_link` | `text` | same rules as the primary button |
+| `announcement_id` | `uuid` | nullable FK → `announcements`, set null on delete |
+| `sort_order`      | `int4` | lowest first within a placement; default 0 |
+| `status`          | `announcement_status` | `draft` / `published` / `archived`; default `draft` |
+| `published_at` / `expires_at` | `timestamptz` | same scheduling rules as `announcements` |
+| `created_by`      | `uuid` | FK → `core.profiles`, default `auth.uid()` |
+
+- **Live** uses the same rule as announcements. Everyone (`anon` included) reads live rows; `provincial_peso` / `admin` have full CRUD on the table and the bucket.
+- PESO staff can also read drafts through RLS, so public queries repeat the live filter (`siteContentService.fetchLive`).
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

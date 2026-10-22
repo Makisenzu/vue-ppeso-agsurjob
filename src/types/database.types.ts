@@ -3457,6 +3457,80 @@ export type Database = {
         }
         Relationships: []
       }
+      site_contents: {
+        Row: {
+          announcement_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          expires_at: string | null
+          eyebrow: string | null
+          id: string
+          image_alt: string | null
+          image_path: string | null
+          placement: Database["system"]["Enums"]["site_content_placement"]
+          primary_label: string | null
+          primary_link: string | null
+          published_at: string | null
+          secondary_label: string | null
+          secondary_link: string | null
+          sort_order: number
+          status: Database["system"]["Enums"]["announcement_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          announcement_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_alt?: string | null
+          image_path?: string | null
+          placement?: Database["system"]["Enums"]["site_content_placement"]
+          primary_label?: string | null
+          primary_link?: string | null
+          published_at?: string | null
+          secondary_label?: string | null
+          secondary_link?: string | null
+          sort_order?: number
+          status?: Database["system"]["Enums"]["announcement_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          announcement_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_alt?: string | null
+          image_path?: string | null
+          placement?: Database["system"]["Enums"]["site_content_placement"]
+          primary_label?: string | null
+          primary_link?: string | null
+          published_at?: string | null
+          secondary_label?: string | null
+          secondary_link?: string | null
+          sort_order?: number
+          status?: Database["system"]["Enums"]["announcement_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_contents_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_audit_logs: {
         Row: {
           action: string | null
@@ -3516,6 +3590,7 @@ export type Database = {
         | "job_fair"
         | "vacancy"
         | "skills_training"
+      site_content_placement: "hero_carousel"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3802,6 +3877,7 @@ export const Constants = {
         "vacancy",
         "skills_training",
       ],
+      site_content_placement: ["hero_carousel"],
     },
   },
 } as const

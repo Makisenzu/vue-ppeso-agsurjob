@@ -1,32 +1,17 @@
-import { onMounted, ref, shallowRef, watch } from 'vue'
-import type { RouteLocationRaw } from 'vue-router'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
 import type { CarouselApi } from '@/components/ui/carousel'
+import { useSiteContentStore } from '@/stores/common/siteContentStore'
+import type { LandingHeroSlide } from '@/types/common/siteContent'
 import pesoLogo from '@/assets/images/pesologo.png'
 import gipLogo from '@/assets/images/gip.png'
 import doleLogo from '@/assets/images/dole.png'
 import bagongPilipinasLogo from '@/assets/images/bagongPilipinas.png'
 
-export interface LandingHeroAction {
-  label: string
-  /** Router navigation; otherwise `href` jumps to a landing section */
-  to?: RouteLocationRaw
-  href?: string
-}
-
-export interface LandingHeroSlide {
-  id: string
-  eyebrow: string
-  title: string
-  description: string
-  image: string
-  imageAlt: string
-  primary: LandingHeroAction
-  secondary?: LandingHeroAction
-}
-
-// Program facts come from the PESO requirements list; swap the logos for program photos once available
-const slides: LandingHeroSlide[] = [
+// Built-in slides, shown until PESO publishes hero_carousel rows in system.site_contents (or when
+// loading them fails). Program facts come from the PESO requirements list.
+const FALLBACK_SLIDES: LandingHeroSlide[] = [
   {
     id: 'agsurjobs',
     eyebrow: 'PESO Agusan del Sur',
@@ -72,12 +57,21 @@ const slides: LandingHeroSlide[] = [
 const AUTOPLAY_DELAY = 6000
 
 export function useLandingHero() {
+  const store = useSiteContentStore()
+  const { heroSlides, isHeroLoaded } = storeToRefs(store)
+
+  // The carousel mounts once loading settles, so it never swaps slides under the visitor
+  const isLoading = computed(() => !isHeroLoaded.value)
+  const slides = computed(() => (heroSlides.value.length ? heroSlides.value : FALLBACK_SLIDES))
+  const hasMultipleSlides = computed(() => slides.value.length > 1)
+
   const api = shallowRef<CarouselApi>()
   const selectedIndex = ref(0)
   const reducedMotion = usePreferredReducedMotion()
 
   // Autoplay stays off for reduced motion and pauses while the carousel is hovered or focused
   const { pause, resume } = useIntervalFn(() => api.value?.scrollNext(), AUTOPLAY_DELAY, { immediate: false })
+  const canAutoplay = () => reducedMotion.value !== 'reduce' && hasMultipleSlides.value
 
   function setApi(value: CarouselApi) {
     api.value = value
@@ -92,7 +86,7 @@ export function useLandingHero() {
   }
 
   function resumeAutoplay() {
-    if (reducedMotion.value !== 'reduce') resume()
+    if (canAutoplay()) resume()
   }
 
   watch(api, value => {
@@ -103,15 +97,20 @@ export function useLandingHero() {
     })
   })
 
-  watch(reducedMotion, value => {
-    if (value === 'reduce') pause()
-    else resume()
+  watch([reducedMotion, hasMultipleSlides], () => {
+    if (canAutoplay()) resume()
+    else pause()
   })
 
-  onMounted(resumeAutoplay)
+  onMounted(() => {
+    store.loadHeroSlides(pesoLogo, 'PESO Agusan del Sur logo')
+    resumeAutoplay()
+  })
 
   return {
     slides,
+    isLoading,
+    hasMultipleSlides,
     selectedIndex,
     setApi,
     scrollTo,
