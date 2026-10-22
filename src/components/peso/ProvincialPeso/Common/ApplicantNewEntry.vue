@@ -52,6 +52,7 @@ import type {
   DuplicateResolutionAction,
 } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
+import ReferencePicker from '@/components/ReferencePicker.vue'
 
 const props = defineProps<{
   isSubmitting?: boolean
@@ -98,6 +99,11 @@ const {
   sex,
   civilStatus,
   religion,
+  religionOptions,
+  getCourseOptions,
+  trainingOptions,
+  isLoadingReferenceLists,
+  formResetCount,
   heightFt,
   tin,
   primaryContactNumber,
@@ -427,7 +433,16 @@ const confirmDuplicateResolution = () => {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div class="space-y-1">
                 <span class="text-[11px] text-muted-foreground">Religion</span>
-                <Input v-model="religion" placeholder="e.g. Roman Catholic, Christian, Islam" class="h-9 text-xs" />
+                <ReferencePicker
+                  :key="`religion-${formResetCount}`"
+                  v-model="religion"
+                  :options="religionOptions"
+                  :loading="isLoadingReferenceLists"
+                  placeholder="Select religion"
+                  search-placeholder="Search religion..."
+                  specify-placeholder="Specify religion"
+                  class="h-9 text-xs"
+                />
               </div>
               <div class="space-y-1">
                 <span class="text-[11px] text-muted-foreground">Height (feet)</span>
@@ -800,7 +815,18 @@ const confirmDuplicateResolution = () => {
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div class="space-y-1 sm:col-span-2">
                     <span class="text-[11px] text-muted-foreground">Course / Degree / Track</span>
-                    <Input v-model="edu.course" placeholder="e.g. BS in Information Technology" class="h-8 text-xs" />
+                    <ReferencePicker
+                      v-if="getCourseOptions(edu.level)"
+                      :key="`course-${formResetCount}-${idx}-${edu.level}`"
+                      v-model="edu.course"
+                      :options="getCourseOptions(edu.level) ?? []"
+                      :loading="isLoadingReferenceLists"
+                      placeholder="Select course / strand"
+                      search-placeholder="Search name or abbreviation (e.g. BSIT)..."
+                      specify-placeholder="Specify course / degree / track"
+                      class="h-8 text-xs"
+                    />
+                    <Input v-else v-model="edu.course" placeholder="Not applicable for this level" class="h-8 text-xs" />
                   </div>
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Year Graduated</span>
@@ -956,7 +982,16 @@ const confirmDuplicateResolution = () => {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Course / Training Title</span>
-                      <Input v-model="voc.course_training_title" placeholder="e.g. Shielded Metal Arc Welding (SMAW)" class="h-8 text-xs" />
+                      <ReferencePicker
+                        :key="`training-${formResetCount}-${idx}`"
+                        v-model="voc.course_training_title"
+                        :options="trainingOptions"
+                        :loading="isLoadingReferenceLists"
+                        placeholder="Select TESDA qualification"
+                        search-placeholder="Search qualification (e.g. NC II)..."
+                        specify-placeholder="Specify course / training title"
+                        class="h-8 text-xs"
+                      />
                     </div>
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Training Institution</span>

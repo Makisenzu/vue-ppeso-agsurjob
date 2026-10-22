@@ -11,6 +11,7 @@ import {
 } from '@lucide/vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
+import { useReferenceLists } from '@/composables/common/useReferenceLists'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import type {
   ApplicantInsert,
@@ -194,6 +195,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const sex = ref('Male')
   const civilStatus = ref('Single')
   const religion = ref('')
+
+  // Religion / course pick lists (core.religions, core.courses); values are still saved as text
+  const { religionOptions, getCourseOptions, trainingOptions, isLoadingReferenceLists } = useReferenceLists()
+  // Bumped on reset so the pick lists forget a chosen "Others"
+  const formResetCount = ref(0)
   const heightFt = ref<number | undefined>(undefined)
   const tin = ref('')
   const primaryContactNumber = ref('')
@@ -746,6 +752,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   }
 
   const resetForm = () => {
+    formResetCount.value++
     currentStep.value = 1
     firstName.value = ''
     middleName.value = ''
@@ -928,6 +935,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     sex,
     civilStatus,
     religion,
+    religionOptions,
+    getCourseOptions,
+    trainingOptions,
+    isLoadingReferenceLists,
+    formResetCount,
     heightFt,
     tin,
     primaryContactNumber,

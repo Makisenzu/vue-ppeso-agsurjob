@@ -69,6 +69,10 @@ VALUES
   ('tertiary', 'Bachelor of Special Needs Education', 'BSNEd', 'Education', false, 0),
   ('tertiary', 'Bachelor of Physical Education', 'BPEd', 'Education', false, 0),
   ('tertiary', 'Bachelor of Technology and Livelihood Education', 'BTLEd', 'Education', false, 0),
+  ('tertiary', 'Bachelor of Technology and Livelihood Education major in Agri-Fishery Arts', 'BTLEd-AFA', 'Education', false, 0),
+  ('tertiary', 'Bachelor of Technology and Livelihood Education major in Home Economics', 'BTLEd-HE', 'Education', false, 0),
+  ('tertiary', 'Bachelor of Technology and Livelihood Education major in Industrial Arts', 'BTLEd-IA', 'Education', false, 0),
+  ('tertiary', 'Bachelor of Technology and Livelihood Education major in Information and Communication Technology', 'BTLEd-ICT', 'Education', false, 0),
   ('tertiary', 'Bachelor of Technical-Vocational Teacher Education', 'BTVTEd', 'Education', false, 0),
   ('tertiary', 'Bachelor of Culture and Arts Education', 'BCAEd', 'Education', false, 0),
 
@@ -153,6 +157,7 @@ VALUES
   ('tertiary', 'Bachelor of Science in Agribusiness', 'BS AgriBus', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
   ('tertiary', 'Bachelor of Science in Agricultural Technology', 'BSAT', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
   ('tertiary', 'Bachelor of Science in Forestry', 'BSF', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
+  ('tertiary', 'Bachelor of Science in Agroforestry', 'BSAF', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
   ('tertiary', 'Bachelor of Science in Fisheries', 'BSFi', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
   ('tertiary', 'Bachelor of Science in Animal Science', 'BSAS', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),
   ('tertiary', 'Doctor of Veterinary Medicine', 'DVM', 'Agriculture, Forestry, Fisheries and Veterinary', false, 0),

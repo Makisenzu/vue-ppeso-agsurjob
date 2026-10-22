@@ -744,6 +744,45 @@ export type Database = {
           },
         ]
       }
+      courses: {
+        Row: {
+          abbreviation: string | null
+          created_at: string
+          field: string | null
+          id: number
+          is_active: boolean
+          level: string
+          name: string
+          requires_specify: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          abbreviation?: string | null
+          created_at?: string
+          field?: string | null
+          id?: never
+          is_active?: boolean
+          level: string
+          name: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          abbreviation?: string | null
+          created_at?: string
+          field?: string | null
+          id?: never
+          is_active?: boolean
+          level?: string
+          name?: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profile_media: {
         Row: {
           alt_text: string | null
@@ -898,6 +937,36 @@ export type Database = {
           status?: Database["core"]["Enums"]["status_type"] | null
           updated_at?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      religions: {
+        Row: {
+          created_at: string
+          id: number
+          is_active: boolean
+          name: string
+          requires_specify: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          name: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          name?: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
