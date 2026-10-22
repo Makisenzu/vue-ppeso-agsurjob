@@ -202,9 +202,7 @@ const {
       <form class="grid gap-6" @submit="submitContent">
         <DialogHeader>
           <DialogTitle>{{ isEditMode ? 'Edit Slide' : 'New Slide' }}</DialogTitle>
-          <DialogDescription>
-            A slide of the landing page carousel. Only the background photo or video is required. Drafts stay hidden until you publish them.
-          </DialogDescription>
+          <DialogDescription>Only the background photo or video is required.</DialogDescription>
         </DialogHeader>
 
         <!-- Background photo / video -->
@@ -212,9 +210,7 @@ const {
           <div>
             <h3 class="text-sm font-semibold">Background photo or video</h3>
             <p class="text-xs text-muted-foreground">
-              Required. Fills the whole slide; everything else is optional, so a slide can be just the photo or video.
-              Use a wide shape (about 1920 × 800): a JPG, PNG or WebP photo up to {{ imageMaxMb }}MB, or an MP4 or WebM
-              video up to {{ videoMaxMb }}MB. Videos play silently on a loop; a short clip (10–20 seconds) loads fastest.
+              About 1920 × 800. JPG, PNG, WebP (up to {{ imageMaxMb }}MB) or MP4, WebM (up to {{ videoMaxMb }}MB).
             </p>
           </div>
 
@@ -275,7 +271,7 @@ const {
               <FormControl>
                 <Input v-bind="componentField" placeholder="e.g. SPES beneficiaries at the Provincial Capitol" :disabled="isSubmitting" />
               </FormControl>
-              <FormDescription>Read aloud by screen readers. Worth filling in when the background is the whole slide.</FormDescription>
+              <FormDescription>Read aloud by screen readers.</FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -286,7 +282,7 @@ const {
         <section class="grid gap-4">
           <div>
             <h3 class="text-sm font-semibold">Text <span class="font-normal text-muted-foreground">(optional)</span></h3>
-            <p class="text-xs text-muted-foreground">Leave all of it empty to show only the photo or video, with no fade over it.</p>
+            <p class="text-xs text-muted-foreground">Leave empty to show only the background.</p>
           </div>
 
           <FormField v-slot="{ componentField }" name="eyebrow">
@@ -306,7 +302,7 @@ const {
               <FormControl>
                 <Input v-bind="componentField" placeholder="e.g. Earn during your school break with SPES" :disabled="isSubmitting" />
               </FormControl>
-              <FormDescription>Keep it short: it should fit on 2–3 lines.</FormDescription>
+              <FormDescription>Keep it to 2–3 lines.</FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -327,8 +323,7 @@ const {
           <div>
             <h3 class="text-sm font-semibold">Buttons <span class="font-normal text-muted-foreground">(optional)</span></h3>
             <p class="text-xs text-muted-foreground">
-              Links start with <code>/</code> for a page (e.g. <code>/signup</code>), <code>#</code> for a landing section
-              (e.g. <code>#program-spes</code>) or <code>https://</code> for another site.
+              Links start with <code>/</code>, <code>#</code> or <code>https://</code>.
             </p>
           </div>
 
@@ -417,7 +412,7 @@ const {
                 <FormControl>
                   <Input v-bind="componentField" type="datetime-local" :disabled="isSubmitting" />
                 </FormControl>
-                <FormDescription>Empty: from the moment it's published.</FormDescription>
+                <FormDescription>Empty: once published.</FormDescription>
                 <FormMessage />
               </FormItem>
             </FormField>
@@ -428,7 +423,7 @@ const {
                 <FormControl>
                   <Input v-bind="componentField" type="datetime-local" :disabled="isSubmitting" />
                 </FormControl>
-                <FormDescription>Empty: until it's archived.</FormDescription>
+                <FormDescription>Empty: until archived.</FormDescription>
                 <FormMessage />
               </FormItem>
             </FormField>
@@ -454,8 +449,7 @@ const {
       <AlertDialogHeader>
         <AlertDialogTitle>Delete slide?</AlertDialogTitle>
         <AlertDialogDescription>
-          <strong class="font-medium text-foreground">{{ contentToDeleteName }}</strong> and its photo or video will be
-          permanently deleted. To hide it for now, set it to Archived instead.
+          <strong class="font-medium text-foreground">{{ contentToDeleteName }}</strong> will be permanently deleted.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

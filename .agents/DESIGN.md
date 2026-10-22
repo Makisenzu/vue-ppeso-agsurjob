@@ -680,7 +680,35 @@ Not all information needs to be visible at once. Use installed shadcn-vue compon
 | Error feedback       | `useToastAlert().error()` — includes actionable message when possible                       |
 | Progress (uploads)   | `Progress` bar with percentage — not just a spinner                                         |
 
-### 16.6 Common Anti-Patterns — DO NOT DO THESE
+### 16.6 Descriptions & Microcopy — Short and On-Point
+
+Every description in the UI (page header subtitles, `CardDescription`, `DialogDescription`, `AlertDialog` text, form hints, empty states, toasts, tooltips) must be **short and on-point**. Say what the user needs to know or do, then stop.
+
+| Element                          | Limit                         | Example                                                    |
+| -------------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| Page / card / dialog description | **1 sentence**, ~15 words max | "Manage the slides shown on the landing page."             |
+| Form hint (`FormDescription`)    | A short phrase                | "JPG, PNG or WebP, up to 5MB."                             |
+| `AlertDialog` (destructive)      | 1 sentence: the consequence   | "This slide and its file will be permanently deleted."     |
+| Toast description                | 1 short sentence              | "\"Job Fair 2026\" has been created."                      |
+| Empty state                      | 1 sentence + optional action  | "No slides yet."                                           |
+| Tooltip                          | A few words                   | "Edit slide"                                               |
+
+**Rules:**
+
+1. **No restating the title.** A dialog titled "Delete slide" doesn't need "You are about to delete this slide."
+2. **No filler.** Drop "Here you can…", "This section allows you to…", "Please note that…", "Easily…".
+3. **No explaining the obvious.** Don't describe what a clearly labelled field or button already says.
+4. **No implementation details.** Users don't need to know about storage buckets, RLS, or caching.
+5. **One idea per description.** If it needs two sentences, split it into a hint on the right field — or cut it.
+6. **Omit when it adds nothing.** A description is optional; a missing one beats a redundant one.
+
+| ❌ Too long                                                                                                                     | ✅ Short and on-point                              |
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| "Here you can manage all of the content that appears in the hero carousel on the public landing page, including drafts and scheduled slides." | "Manage the slides shown on the landing page."     |
+| "Please upload an image or a video that will be displayed as the background of this slide. Photos can be up to 5MB."            | "JPG, PNG, WebP (5MB) or MP4, WebM (50MB)."        |
+| "Are you sure you want to delete this? This action cannot be undone and the record will be removed permanently."                | "This slide will be permanently deleted."          |
+
+### 16.7 Common Anti-Patterns — DO NOT DO THESE
 
 | ❌ Anti-Pattern                                      | ✅ Correct Approach                                                |
 | ---------------------------------------------------- | ------------------------------------------------------------------ |
@@ -695,6 +723,7 @@ Not all information needs to be visible at once. Use installed shadcn-vue compon
 | Creating a `<style scoped>` block for one-off styling | Use Tailwind utility classes exclusively                           |
 | Adding `border` + `rounded` + `shadow` to everything  | Use `Card` when elevation is needed; plain containers otherwise    |
 | Avatar/initials on every list item in a dialog        | Only use Avatars in primary lists (member lists, profiles)         |
+| Multi-sentence descriptions, filler, restating titles | One short, on-point sentence — or none (see Section 16.6)          |
 
 > [!CAUTION]
 > **Every UI decision must be justifiable by a UX principle from Section 1.1.** If you cannot explain which principle a visual element serves, remove it.
