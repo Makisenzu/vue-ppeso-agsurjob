@@ -17,6 +17,7 @@ const {
   hasMultipleSlides,
   selectedIndex,
   registerVideo,
+  contentStyle,
   setApi,
   scrollTo,
   pauseAutoplay,
@@ -30,7 +31,7 @@ const {
     <!-- Slides can be photo-only, so the page heading can't depend on a slide title -->
     <h1 class="sr-only">AGSURJOBS, the job portal of PESO Agusan del Sur</h1>
     <!-- Same footprint as a slide, so the page doesn't shift when the content arrives -->
-    <div v-if="isLoading" class="mx-auto flex min-h-[32rem] max-w-7xl items-center px-4 pt-12 pb-24 sm:px-6 sm:pt-16 lg:px-8" aria-busy="true">
+    <div v-if="isLoading" class="mx-auto flex min-h-[26rem] max-w-7xl items-center px-4 pt-10 pb-20 sm:min-h-[30rem] sm:px-6 sm:pt-16 sm:pb-24 lg:min-h-[32rem] lg:px-8" aria-busy="true">
       <div class="flex w-full max-w-2xl flex-col gap-4">
         <Skeleton class="h-4 w-48" />
         <Skeleton class="h-12 w-full max-w-xl" />
@@ -52,7 +53,8 @@ const {
       @focusin="pauseAutoplay"
       @focusout="resumeAutoplay"
     >
-      <CarouselContent class="ml-0">
+      <!-- Slides keep their own height (a media-only slide is as tall as its photo / video); the band follows the active one -->
+      <CarouselContent class="ml-0 items-start transition-[height] duration-300 ease-out" :style="contentStyle">
         <CarouselItem
           v-for="(slide, index) in slides"
           :key="slide.id"
@@ -60,7 +62,12 @@ const {
           class="pl-0"
         >
           <div class="relative isolate">
-            <!-- Uploaded photo / video fills the slide; with text on top, a fade in the page color keeps it readable in both themes -->
+            <!--
+              With text, the uploaded photo / video fills the slide behind it, and a fade in the page color keeps the text readable.
+              Without text, it is shown whole at its own proportions, so it shrinks with the screen instead of being cropped.
+              Its height is capped at the text slides' height, so on wide screens it doesn't grow to fill the window
+              (and loads eagerly: its height sets the band's height, so it can't wait until it's scrolled to).
+            -->
             <template v-if="slide.backgroundImage">
               <!-- Silent looping background: no controls, playback is handled by useLandingHero -->
               <video
@@ -75,34 +82,34 @@ const {
                 playsinline
                 disablepictureinpicture
                 disableremoteplayback
-                class="absolute inset-0 -z-10 size-full object-cover"
+                :class="slide.hasText ? 'absolute inset-0 -z-10 size-full object-cover' : 'block h-auto max-h-[26rem] w-full object-cover sm:max-h-[30rem] lg:max-h-[32rem]'"
               />
               <img
                 v-else
                 :src="slide.backgroundImage"
                 :alt="slide.imageAlt"
-                :loading="index === 0 ? 'eager' : 'lazy'"
+                :loading="index === 0 || !slide.hasText ? 'eager' : 'lazy'"
                 :fetchpriority="index === 0 ? 'high' : 'auto'"
-                class="absolute inset-0 -z-10 size-full object-cover"
+                :class="slide.hasText ? 'absolute inset-0 -z-10 size-full object-cover' : 'block h-auto max-h-[26rem] w-full object-cover sm:max-h-[30rem] lg:max-h-[32rem]'"
               />
               <div v-if="slide.hasText" class="absolute inset-0 -z-10 bg-background/80 md:bg-transparent md:bg-linear-to-r md:from-background md:via-background/80 md:to-background/10" />
             </template>
             <!-- Soft bottom edge: the slide fades into the page instead of ending on a hard line -->
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-6 bg-linear-to-b from-transparent to-background" />
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-b from-transparent to-background" />
 
             <!-- Bottom padding leaves room for the controls floating over the slide -->
-            <div class="mx-auto flex min-h-[32rem] max-w-7xl items-center px-4 pt-12 pb-24 sm:px-6 sm:pt-16 lg:px-8">
+            <div v-if="slide.hasText || !slide.backgroundImage" class="mx-auto flex min-h-[26rem] max-w-7xl items-center px-4 pt-10 pb-20 sm:min-h-[30rem] sm:px-6 sm:pt-16 sm:pb-24 lg:min-h-[32rem] lg:px-8">
             <div v-if="slide.hasText" class="flex max-w-2xl flex-col gap-4">
               <p v-if="slide.eyebrow" class="text-sm font-semibold text-primary">{{ slide.eyebrow }}</p>
               <h2
                 v-if="slide.title"
-                class="max-w-2xl text-3xl font-bold tracking-tight text-balance text-foreground sm:text-4xl lg:text-5xl"
+                class="max-w-2xl text-2xl font-bold tracking-tight text-balance text-foreground sm:text-4xl lg:text-5xl"
               >
                 {{ slide.title }}
               </h2>
               <p v-if="slide.description" class="max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">{{ slide.description }}</p>
-              <div v-if="slide.primary || slide.secondary" class="mt-2 flex flex-wrap gap-3">
-                <Button v-if="slide.primary" size="lg" as-child>
+              <div v-if="slide.primary || slide.secondary" class="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Button v-if="slide.primary" size="lg" class="w-full sm:w-auto" as-child>
                   <RouterLink v-if="slide.primary.to" :to="slide.primary.to">{{ slide.primary.label }}</RouterLink>
                   <a
                     v-else
@@ -111,7 +118,7 @@ const {
                     :rel="slide.primary.external ? 'noopener noreferrer' : undefined"
                   >{{ slide.primary.label }}</a>
                 </Button>
-                <Button v-if="slide.secondary" size="lg" variant="outline" as-child>
+                <Button v-if="slide.secondary" size="lg" variant="outline" class="w-full sm:w-auto" as-child>
                   <RouterLink v-if="slide.secondary.to" :to="slide.secondary.to">{{ slide.secondary.label }}</RouterLink>
                   <a
                     v-else
@@ -128,7 +135,7 @@ const {
       </CarouselContent>
 
       <!-- Controls float over the slide's bottom edge so the photo covers the whole band -->
-      <div v-if="hasMultipleSlides" class="absolute inset-x-0 bottom-0 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-8 sm:px-6 lg:px-8">
+      <div v-if="hasMultipleSlides" class="absolute inset-x-0 bottom-0 mx-auto flex max-w-7xl items-center justify-center gap-4 px-4 pb-6 sm:justify-between sm:px-6 sm:pb-8 lg:px-8">
         <div class="flex items-center gap-2" aria-label="Choose slide">
           <button
             v-for="(slide, index) in slides"
@@ -143,7 +150,8 @@ const {
             @click="scrollTo(index)"
           />
         </div>
-        <div class="flex items-center gap-2">
+        <!-- Phones swipe instead; the dots stay centered -->
+        <div class="hidden items-center gap-2 sm:flex">
           <CarouselPrevious class="static translate-y-0" />
           <CarouselNext class="static translate-y-0" />
         </div>

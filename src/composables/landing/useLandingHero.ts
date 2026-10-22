@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
 import type { CarouselApi } from '@/components/ui/carousel'
@@ -107,6 +107,26 @@ export function useLandingHero() {
     }
   }
 
+  // Slides keep their own height (a media-only slide is as tall as its photo / video at the current
+  // width), and the band takes the active slide's height. Re-measured whenever a slide resizes, e.g.
+  // when its photo / video finishes loading or the screen rotates.
+  const activeSlideHeight = ref<number | null>(null)
+  let slideObserver: ResizeObserver | null = null
+
+  function syncHeight() {
+    const node = api.value?.slideNodes()[selectedIndex.value]
+    activeSlideHeight.value = node ? node.offsetHeight : null
+  }
+
+  const contentStyle = computed(() => (activeSlideHeight.value ? { height: `${activeSlideHeight.value}px` } : undefined))
+
+  function observeSlides(value: NonNullable<CarouselApi>) {
+    slideObserver?.disconnect()
+    slideObserver = new ResizeObserver(syncHeight)
+    value.slideNodes().forEach(node => slideObserver!.observe(node))
+    syncHeight()
+  }
+
   function setApi(value: CarouselApi) {
     api.value = value
   }
@@ -129,9 +149,12 @@ export function useLandingHero() {
     value.on('select', () => {
       selectedIndex.value = value.selectedScrollSnap()
     })
+    value.on('reInit', () => observeSlides(value))
+    observeSlides(value)
   })
 
   watch([selectedIndex, reducedMotion], syncVideos)
+  watch(selectedIndex, syncHeight)
 
   watch([reducedMotion, hasMultipleSlides], () => {
     if (canAutoplay()) resume()
@@ -143,12 +166,18 @@ export function useLandingHero() {
     resumeAutoplay()
   })
 
+  onUnmounted(() => {
+    slideObserver?.disconnect()
+    slideObserver = null
+  })
+
   return {
     slides,
     isLoading,
     hasMultipleSlides,
     selectedIndex,
     registerVideo,
+    contentStyle,
     setApi,
     scrollTo,
     pauseAutoplay,

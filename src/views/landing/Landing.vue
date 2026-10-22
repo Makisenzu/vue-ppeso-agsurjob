@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 import LandingHero from '@/components/landing/LandingHero.vue'
+import LandingIntro from '@/components/landing/LandingIntro.vue'
 </script>
 
 <template>
   <div class="min-h-dvh bg-background font-sans text-foreground">
+    <LandingIntro />
     <LandingHeader />
     <main id="main">
       <LandingHero />
