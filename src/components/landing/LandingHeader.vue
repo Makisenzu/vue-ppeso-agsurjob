@@ -1,15 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useColorMode } from '@vueuse/core'
 import { ChevronDown, Menu, Moon, Sun } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Collapsible,
   CollapsibleContent,
@@ -24,42 +16,10 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import GoeyNav from '@/components/GoeyNav.vue'
+import { useLandingNavigation } from '@/composables/landing/useLandingNavigation'
 import agsurLogo from '@/assets/images/agsur-logo.png'
 
-interface NavLink {
-  label: string
-  href: string
-  children?: { label: string; href: string }[]
-}
-
-// Anchors point to landing page sections (to be added below the header)
-const navLinks: NavLink[] = [
-  { label: 'About', href: '#about' },
-  { label: 'Contact', href: '#contact' },
-  { label: 'Vacancies', href: '#jobs' },
-  {
-    label: 'Gov. Programs',
-    href: '#programs',
-    children: [
-      { label: 'TUPAD', href: '#program-tupad' },
-      { label: 'SPES', href: '#program-spes' },
-      { label: 'GIP', href: '#program-gip' },
-      { label: 'Fly Now Pay Later Program', href: '#program-fly-now-pay-later' },
-      { label: 'Skills Training', href: '#program-skills-training' },
-    ],
-  },
-]
-
-// GoeyNav only renders plain links, so links with children get a dropdown beside it
-const gooeyLinks = navLinks.filter(link => !link.children)
-const dropdownLinks = navLinks.filter(link => link.children)
-
-const mode = useColorMode()
-const mobileOpen = ref(false)
-
-function toggleTheme() {
-  mode.value = mode.value === 'dark' ? 'light' : 'dark'
-}
+const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandingNavigation()
 </script>
 
 <template>
@@ -73,8 +33,9 @@ function toggleTheme() {
 
       <!-- Desktop navigation -->
       <div class="ml-auto hidden items-center gap-2 md:flex">
+        <!-- Links with children render as GoeyNav dropdowns; opening one moves the gooey pill onto it -->
         <GoeyNav
-          :items="gooeyLinks"
+          :items="navLinks"
           :particle-count="15"
           :particle-distances="[90, 10]"
           :particle-r="100"
@@ -82,27 +43,15 @@ function toggleTheme() {
           :animation-time="600"
           :time-variance="300"
           :colors="[1, 2, 3, 1, 2, 3, 1, 4]"
+          aria-label="Main"
           class="text-[13px] font-medium"
         />
-        <DropdownMenu v-for="link in dropdownLinks" :key="link.href">
-          <DropdownMenuTrigger
-            class="group flex items-center gap-1 rounded-full px-[1em] py-[0.6em] text-[13px] font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-muted"
-          >
-            {{ link.label }}
-            <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="w-56">
-            <DropdownMenuItem v-for="child in link.children" :key="child.href" as-child>
-              <a :href="child.href">{{ child.label }}</a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" title="Toggle color theme" aria-label="Toggle color theme" @click="toggleTheme">
-          <component :is="mode === 'dark' ? Sun : Moon" class="size-4" />
+          <component :is="isDark ? Sun : Moon" class="size-4" />
         </Button>
 
         <div class="hidden items-center gap-2 sm:flex">
@@ -141,7 +90,7 @@ function toggleTheme() {
                       :key="child.href"
                       :href="child.href"
                       class="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      @click="mobileOpen = false"
+                      @click="closeMobileMenu"
                     >
                       {{ child.label }}
                     </a>
@@ -151,7 +100,7 @@ function toggleTheme() {
                   v-else
                   :href="link.href"
                   class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  @click="mobileOpen = false"
+                  @click="closeMobileMenu"
                 >
                   {{ link.label }}
                 </a>
