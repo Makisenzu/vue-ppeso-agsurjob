@@ -22,7 +22,7 @@ const navLinks: LandingNavLink[] = [
   { label: 'Announcements', href: '#contact' },
   { label: 'Vacancies', href: '#jobs' },
   {
-    label: 'Gov. Programs',
+    label: 'PESO Programs',
     href: '#programs',
     children: [
       { label: 'Fly Now Pay Later Program', href: '#program-fly-now-pay-later' },
