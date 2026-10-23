@@ -1,5 +1,6 @@
 import { computed, readonly, ref } from 'vue'
 import { breakpointsTailwind, useBreakpoints, useColorMode, useTimeoutFn } from '@vueuse/core'
+import { resolveTokenHex } from '@/helpers/common/colorTokenHelper'
 
 const INTRO_TEXT = 'Province of Agusan del Sur'
 // StrokeText timing (seconds). `delay` starts the draw as the seal lands
@@ -13,23 +14,6 @@ const INTRO_TEXT_FILL_END_MS =
 const INTRO_SWAP_DURATION_MS = 1400
 const INTRO_SWAP_DELAY_MS = Math.max(0, INTRO_TEXT_FILL_END_MS - INTRO_SWAP_DURATION_MS)
 const INTRO_DURATION_MS = 3200
-
-/** Resolves a CSS color token (e.g. `--foreground`, defined in oklch) to hex, since ElectricLogo's WebGL colors only take hex. */
-function resolveTokenHex(token: string): string {
-  const probe = document.createElement('span')
-  probe.style.color = `var(${token})`
-  document.body.appendChild(probe)
-  const color = getComputedStyle(probe).color
-  probe.remove()
-
-  // Paint one pixel so the browser converts any color space to sRGB bytes
-  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
-  if (!ctx) return '#ffffff'
-  ctx.fillStyle = color
-  ctx.fillRect(0, 0, 1, 1)
-  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
-  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`
-}
 
 // Module-level so the intro plays once per page load, not on every in-app return to the landing page
 let hasPlayed = false

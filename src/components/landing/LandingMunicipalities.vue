@@ -1,8 +1,20 @@
 <script setup lang="ts">
+import CircularGallery from '@/components/CircularGallery.vue'
 import InfiniteSpiral from '@/components/InfiniteSpiral.vue'
 import { useLandingMunicipalities } from '@/composables/landing/useLandingMunicipalities'
 
-const { titleLead, titleAccent, description, municipalities, spiralItems } = useLandingMunicipalities()
+const {
+  titleLead,
+  titleAccent,
+  description,
+  municipalities,
+  spiralItems,
+  isPhone,
+  setGalleryStage,
+  showGallery,
+  galleryItems,
+  galleryTextColor,
+} = useLandingMunicipalities()
 </script>
 
 <template>
@@ -28,8 +40,27 @@ const { titleLead, titleAccent, description, municipalities, spiralItems } = use
         </ul>
       </div>
 
+      <!-- Phones: swipeable carousel of round logos with their names, edge to edge past the 1rem gutter.
+           Mounted only near the viewport (see the composable); hidden from screen readers, as the list
+           above carries the names. -mt-14 pulls it up: the logos sit centered in a stage taller than them.
+           Labels at 60px are scaled down by the gallery, so they stay sharp -->
+      <div v-if="isPhone" :ref="setGalleryStage" class="-mx-4 -mt-14 h-96" aria-hidden="true">
+        <CircularGallery
+          v-if="showGallery"
+          :items="galleryItems"
+          :bend="0"
+          :card-aspect="1"
+          :border-radius="0.5"
+          :card-gap="0.6"
+          :text-color="galleryTextColor"
+          font="bold 60px 'Nunito Sans Variable'"
+          :scroll-ease="0.06"
+        />
+      </div>
+
       <!-- Circular cards with the whole logo showing (contain); the list above carries the names -->
       <InfiniteSpiral
+        v-else
         :items="spiralItems"
         :card-width="110"
         :card-height="110"
