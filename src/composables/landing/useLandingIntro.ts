@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 import { breakpointsTailwind, useBreakpoints, useColorMode, useTimeoutFn } from '@vueuse/core'
 
 const INTRO_TEXT = 'Province of Agusan del Sur'
@@ -33,6 +33,13 @@ function resolveTokenHex(token: string): string {
 
 // Module-level so the intro plays once per page load, not on every in-app return to the landing page
 let hasPlayed = false
+// Shared with the rest of the landing page, so entrance animations wait until the intro stops covering it
+const isIntroDone = ref(false)
+
+/** True once the landing intro has started fading out (or was skipped), so the page underneath is visible. */
+export function useLandingIntroDone() {
+  return readonly(isIntroDone)
+}
 
 /** Full-screen seal + "Province of Agusan del Sur" intro, shown for 3.2s on the first load of the landing page. */
 export function useLandingIntro() {
@@ -41,9 +48,11 @@ export function useLandingIntro() {
 
   const isIntroVisible = ref(!hasPlayed && !prefersReducedMotion)
   hasPlayed = true
+  if (!isIntroVisible.value) isIntroDone.value = true
 
   useTimeoutFn(() => {
     isIntroVisible.value = false
+    isIntroDone.value = true
   }, INTRO_DURATION_MS, { immediate: isIntroVisible.value })
 
   const isBackgroundSwapped = ref(false)

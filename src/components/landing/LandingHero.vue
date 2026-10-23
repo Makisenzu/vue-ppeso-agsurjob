@@ -2,6 +2,7 @@
 import { RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import SplitText from '@/components/SplitText.vue'
 import {
   Carousel,
   CarouselContent,
@@ -12,6 +13,10 @@ import {
 import { useLandingHero } from '@/composables/landing/useLandingHero'
 
 const {
+  officeName,
+  isIntroDone,
+  officeNameFrom,
+  officeNameTo,
   slides,
   isLoading,
   hasMultipleSlides,
@@ -157,5 +162,39 @@ const {
         </div>
       </div>
     </Carousel>
+
+    <!-- Times New Roman is a deliberate exception to DESIGN.md's Nunito-only rule, for this formal office name only
+         (a system font, nothing is imported). Bold, since Times New Roman has no heavier weight.
+         Revealed word by word, one every 1.5s (SplitText's delay is the stagger between pieces).
+         Below sm the size follows the screen width (4.4vw keeps the name inside the padding down to 320px) and it never wraps.
+         Each word's first letter is green, spelling P-E-S-O; it targets SplitText's .split-word wrappers, so it needs split-type words -->
+    <!-- Office name under the carousel. SplitText animates once on mount, so it mounts when the intro lifts;
+         until then an invisible copy with the same classes holds its space, so nothing shifts -->
+    <div class="bg-background px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <div class="mx-auto max-w-7xl text-center">
+        <SplitText
+          v-if="isIntroDone"
+          :text="officeName"
+          tag="p"
+          class-name="[&_.split-word]:first-letter:text-primary font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.2em] lg:text-4xl"
+          :delay="1500"
+          :duration="0.8"
+          ease="power3.out"
+          split-type="words"
+          :from="officeNameFrom"
+          :to="officeNameTo"
+          :threshold="0.1"
+          root-margin="-100px"
+          text-align="center"
+        />
+        <p
+          v-else
+          class="invisible inline-block font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.2em] lg:text-4xl"
+          aria-hidden="true"
+        >
+          {{ officeName }}
+        </p>
+      </div>
+    </div>
   </section>
 </template>

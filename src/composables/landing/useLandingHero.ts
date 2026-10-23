@@ -3,7 +3,11 @@ import { storeToRefs } from 'pinia'
 import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
 import type { CarouselApi } from '@/components/ui/carousel'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
+import { useLandingIntroDone } from '@/composables/landing/useLandingIntro'
 import type { LandingHeroSlide } from '@/types/common/siteContent'
+
+// Office name set under the carousel, revealed letter by letter once the landing intro lifts
+const OFFICE_NAME = 'Public Employment Service Office'
 
 // Built-in slides, shown until PESO publishes hero_carousel rows in system.site_contents (or when
 // loading them fails). Program facts come from the PESO requirements list. They have no photo, so
@@ -171,7 +175,16 @@ export function useLandingHero() {
     slideObserver = null
   })
 
+  // Rise-in for the office name; reduced motion keeps a plain fade
+  const isIntroDone = useLandingIntroDone()
+  const officeNameFrom = computed(() => (reducedMotion.value === 'reduce' ? { opacity: 0 } : { opacity: 0, y: 40 }))
+  const officeNameTo = computed(() => (reducedMotion.value === 'reduce' ? { opacity: 1 } : { opacity: 1, y: 0 }))
+
   return {
+    officeName: OFFICE_NAME,
+    isIntroDone,
+    officeNameFrom,
+    officeNameTo,
     slides,
     isLoading,
     hasMultipleSlides,
