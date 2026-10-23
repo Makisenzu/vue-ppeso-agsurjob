@@ -70,11 +70,17 @@ const companyItems: ProvincialPesoSidebarItem[] = [
 
 export function useProvincialPesoSidebar() {
   const route = useRoute()
-  const { state, isMobile } = useSidebar()
+  const { state, isMobile, setOpenMobile } = useSidebar()
   const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut } = useAuth()
 
   function isActive(name: string) {
     return route.name === name
+  }
+
+  /** Called when a nav link is clicked: closes the mobile sheet. On desktop the sidebar stays as it is;
+   * only its collapse button folds it. */
+  function collapseSidebar() {
+    if (isMobile.value) setOpenMobile(false)
   }
 
   return {
@@ -91,6 +97,7 @@ export function useProvincialPesoSidebar() {
     isVerified,
     isLoading,
     isActive,
+    collapseSidebar,
     handleSignOut,
   }
 }
