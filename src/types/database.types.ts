@@ -359,6 +359,27 @@ export type Database = {
         }
         Relationships: []
       }
+      applicants_backup_045: {
+        Row: {
+          backed_up_at: string
+          educational_background: Json | null
+          id: string
+          religion: string | null
+        }
+        Insert: {
+          backed_up_at?: string
+          educational_background?: Json | null
+          id: string
+          religion?: string | null
+        }
+        Update: {
+          backed_up_at?: string
+          educational_background?: Json | null
+          id?: string
+          religion?: string | null
+        }
+        Relationships: []
+      }
       spes_form: {
         Row: {
           age: number | null
@@ -3427,6 +3448,48 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_municipality_logos: {
+        Row: {
+          image_path: string | null
+          municipality: Database["system"]["Enums"]["agsur_municipality"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          image_path?: string | null
+          municipality: Database["system"]["Enums"]["agsur_municipality"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          image_path?: string | null
+          municipality?: Database["system"]["Enums"]["agsur_municipality"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      landing_program_cards: {
+        Row: {
+          image_path: string | null
+          program: Database["system"]["Enums"]["landing_program"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          image_path?: string | null
+          program: Database["system"]["Enums"]["landing_program"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          image_path?: string | null
+          program?: Database["system"]["Enums"]["landing_program"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -3582,6 +3645,21 @@ export type Database = {
       unread_announcement_count: { Args: never; Returns: number }
     }
     Enums: {
+      agsur_municipality:
+        | "bayugan"
+        | "bunawan"
+        | "esperanza"
+        | "la_paz"
+        | "loreto"
+        | "prosperidad"
+        | "rosario"
+        | "san_francisco"
+        | "san_luis"
+        | "santa_josefa"
+        | "sibagat"
+        | "talacogon"
+        | "trento"
+        | "veruela"
       announcement_audience: "public" | "applicant" | "employer" | "peso"
       announcement_status: "draft" | "published" | "archived"
       announcement_type:
@@ -3592,6 +3670,12 @@ export type Database = {
         | "fnplp"
         | "job_fair"
         | "vacancy"
+        | "skills_training"
+      landing_program:
+        | "tupad"
+        | "gip"
+        | "fly_now_pay_later"
+        | "spes"
         | "skills_training"
       site_content_media_type: "image" | "video"
       site_content_placement: "hero_carousel"
@@ -3869,6 +3953,22 @@ export const Constants = {
   },
   system: {
     Enums: {
+      agsur_municipality: [
+        "bayugan",
+        "bunawan",
+        "esperanza",
+        "la_paz",
+        "loreto",
+        "prosperidad",
+        "rosario",
+        "san_francisco",
+        "san_luis",
+        "santa_josefa",
+        "sibagat",
+        "talacogon",
+        "trento",
+        "veruela",
+      ],
       announcement_audience: ["public", "applicant", "employer", "peso"],
       announcement_status: ["draft", "published", "archived"],
       announcement_type: [
@@ -3879,6 +3979,13 @@ export const Constants = {
         "fnplp",
         "job_fair",
         "vacancy",
+        "skills_training",
+      ],
+      landing_program: [
+        "tupad",
+        "gip",
+        "fly_now_pay_later",
+        "spes",
         "skills_training",
       ],
       site_content_media_type: ["image", "video"],

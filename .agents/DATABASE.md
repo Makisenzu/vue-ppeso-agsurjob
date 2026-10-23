@@ -713,6 +713,22 @@ Background photos of the landing page's "PESO Programs" gallery (`AccordionGalle
 - Not in `database.types.ts` until `npm run types:gen` is re-run; until then `siteContentService` / `siteContentManagerService` query it through one untyped accessor and type rows with `ProgramCardRow`.
 - Managed from Site Contents → Program cards (`ProgramCards.vue`, `programCardManagerStore`).
 
+#### `landing_municipality_logos` (migration 050)
+
+Logos of the province's 13 municipalities and 1 city for the landing page's municipalities section (`InfiniteSpiral`). Same shape as `landing_program_cards`: one fixed row per LGU, seeded by the migration; nobody inserts or deletes from the app. Names and display order live in the app (`LANDING_MUNICIPALITIES` in `src/types/common/siteContent.ts`).
+
+| Column         | Type                 | Notes |
+| -------------- | -------------------- | ----- |
+| `municipality` | `agsur_municipality` | PK: `bayugan` (city) / `bunawan` / `esperanza` / `la_paz` / `loreto` / `prosperidad` / `rosario` / `san_francisco` / `san_luis` / `santa_josefa` / `sibagat` / `talacogon` / `trento` / `veruela` |
+| `image_path`   | `text`               | nullable; path in `site-content-media` at `municipalities/<municipality>/<filename>` (CHECK). NULL shows the province seal |
+| `updated_by`   | `uuid`               | FK → `core.profiles`, set by trigger on update |
+| `updated_at`   | `timestamptz`        | set by trigger on update |
+
+- RLS: everyone (`anon` included) reads all rows; `provincial_peso` / `admin` update `image_path` only (column grant). Images only, no video.
+- Storage: policy `site_content_media_municipality_logos_insert` lets staff upload under `municipalities/<municipality>/`; 046's staff policy already covers reading, replacing and deleting.
+- Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query it through an untyped accessor and type rows with `MunicipalityLogoRow`.
+- Managed from Site Contents → Municipality logos (`MunicipalityLogos.vue`, `municipalityLogoManagerStore`).
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

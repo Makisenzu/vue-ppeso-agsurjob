@@ -3,7 +3,10 @@ import { mediaService } from '@/services/common/mediaService'
 import { buildSiteContentMediaPath } from '@/helpers/peso/provincialPeso/siteContentManagerHelper'
 import {
   SITE_CONTENT_MEDIA_BUCKET,
+  type AgsurMunicipality,
   type LandingProgram,
+  type MunicipalityLogoItem,
+  type MunicipalityLogoRow,
   type ProgramCardItem,
   type ProgramCardRow,
   type SiteContentInsert,
@@ -17,6 +20,15 @@ import {
 // is re-run, so the typed client does not know the table yet. Rows are typed by ProgramCardRow.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const programCardsTable = () => (supabase.schema('system') as any).from('landing_program_cards')
+
+// Same for system.landing_municipality_logos (migration 050), typed by MunicipalityLogoRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const municipalityLogosTable = () => (supabase.schema('system') as any).from('landing_municipality_logos')
+
+const toMunicipalityLogoItem = (row: MunicipalityLogoRow): MunicipalityLogoItem => ({
+  ...row,
+  image_url: row.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : null,
+})
 
 const toProgramCardItem = (row: ProgramCardRow): ProgramCardItem => ({
   ...row,
@@ -111,6 +123,35 @@ export const siteContentManagerService = {
       .upload(path, file, { contentType: file.type, upsert: false })
 
     if (error) throw new Error(error.message || 'Failed to upload the photo.')
+    return path
+  },
+
+  async fetchMunicipalityLogos(): Promise<MunicipalityLogoItem[]> {
+    const { data, error } = await municipalityLogosTable().select('*')
+    if (error) throw new Error(error.message || 'Failed to load the municipality logos.')
+    return ((data ?? []) as MunicipalityLogoRow[]).map(toMunicipalityLogoItem)
+  },
+
+  /** Sets or clears a logo; the rows themselves are fixed (050), so there is no create or delete. */
+  async updateMunicipalityLogo(municipality: AgsurMunicipality, imagePath: string | null): Promise<MunicipalityLogoItem> {
+    const { data, error } = await municipalityLogosTable()
+      .update({ image_path: imagePath })
+      .eq('municipality', municipality)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to update the logo.')
+    return toMunicipalityLogoItem(data as MunicipalityLogoRow)
+  },
+
+  /** Uploads a logo under municipalities/<municipality>/ (the storage policy in 050 only allows those folders); returns the path. */
+  async uploadMunicipalityLogo(municipality: AgsurMunicipality, file: File): Promise<string> {
+    const path = buildSiteContentMediaPath(`municipalities/${municipality}`, file.name)
+    const { error } = await supabase.storage
+      .from(SITE_CONTENT_MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false })
+
+    if (error) throw new Error(error.message || 'Failed to upload the logo.')
     return path
   },
 

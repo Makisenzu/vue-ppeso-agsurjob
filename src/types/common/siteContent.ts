@@ -78,3 +78,52 @@ export const LANDING_PROGRAMS: { key: LandingProgram; label: string; name: strin
   { key: 'spes', label: 'SPES', name: 'Special Program for Employment of Students' },
   { key: 'skills_training', label: 'Skills Training', name: 'Skills Training' },
 ]
+
+// ─── Municipality logos (migration 050) ───
+// system.landing_municipality_logos is not in database.types.ts until `npm run types:gen` is re-run,
+// so its row is typed here; switch to the generated types once they include it.
+
+export type AgsurMunicipality =
+  | 'bayugan'
+  | 'bunawan'
+  | 'esperanza'
+  | 'la_paz'
+  | 'loreto'
+  | 'prosperidad'
+  | 'rosario'
+  | 'san_francisco'
+  | 'san_luis'
+  | 'santa_josefa'
+  | 'sibagat'
+  | 'talacogon'
+  | 'trento'
+  | 'veruela'
+
+export interface MunicipalityLogoRow {
+  municipality: AgsurMunicipality
+  /** Path in 'site-content-media' at municipalities/<municipality>/<filename>; null shows the province seal */
+  image_path: string | null
+  updated_by: string | null
+  updated_at: string
+}
+
+/** A logo for the management page, resolved to a public URL. */
+export type MunicipalityLogoItem = MunicipalityLogoRow & { image_url: string | null }
+
+/** The province's 13 municipalities and 1 city, the city first, then A to Z; the table only holds their logos. */
+export const LANDING_MUNICIPALITIES: { key: AgsurMunicipality; name: string; isCity: boolean }[] = [
+  { key: 'bayugan', name: 'Bayugan', isCity: true },
+  { key: 'bunawan', name: 'Bunawan', isCity: false },
+  { key: 'esperanza', name: 'Esperanza', isCity: false },
+  { key: 'la_paz', name: 'La Paz', isCity: false },
+  { key: 'loreto', name: 'Loreto', isCity: false },
+  { key: 'prosperidad', name: 'Prosperidad', isCity: false },
+  { key: 'rosario', name: 'Rosario', isCity: false },
+  { key: 'san_francisco', name: 'San Francisco', isCity: false },
+  { key: 'san_luis', name: 'San Luis', isCity: false },
+  { key: 'santa_josefa', name: 'Santa Josefa', isCity: false },
+  { key: 'sibagat', name: 'Sibagat', isCity: false },
+  { key: 'talacogon', name: 'Talacogon', isCity: false },
+  { key: 'trento', name: 'Trento', isCity: false },
+  { key: 'veruela', name: 'Veruela', isCity: false },
+]

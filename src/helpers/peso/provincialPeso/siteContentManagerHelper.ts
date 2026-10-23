@@ -71,9 +71,15 @@ export function assertProgramCardPhoto(file: File): void {
   if (getSiteContentMediaType(file) === 'video') throw new Error('Program cards need a photo: use a JPG, PNG or WebP.')
 }
 
+/** Municipality logos are images only (the spiral renders an <img>); throws a readable message otherwise. */
+export function assertMunicipalityLogo(file: File): void {
+  if (getSiteContentMediaType(file) === 'video') throw new Error('Logos need an image: use a PNG, WebP or JPG.')
+}
+
 /**
  * Storage path for an uploaded photo / video: <folder>/<cleaned name>_<timestamp>.<ext>. The folder is a
- * site_contents id for slides (policy in 046) or programs/<program> for program cards (policy in 049).
+ * site_contents id for slides (policy in 046), programs/<program> for program cards (policy in 049) or
+ * municipalities/<municipality> for municipality logos (policy in 050).
  */
 export function buildSiteContentMediaPath(contentId: string, filename: string): string {
   const lastDot = filename.lastIndexOf('.')

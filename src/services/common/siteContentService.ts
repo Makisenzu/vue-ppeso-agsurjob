@@ -1,10 +1,13 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { ProgramCardRow, SiteContentPlacement, SiteContentRow } from '@/types/common/siteContent'
+import type { MunicipalityLogoRow, ProgramCardRow, SiteContentPlacement, SiteContentRow } from '@/types/common/siteContent'
 
 // system.landing_program_cards (migration 049) is not in database.types.ts until `npm run types:gen`
 // is re-run, so the typed client does not know the table yet. Rows are typed by ProgramCardRow.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const programCardsTable = () => (supabase.schema('system') as any).from('landing_program_cards')
+// Same for system.landing_municipality_logos (migration 050), typed by MunicipalityLogoRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const municipalityLogosTable = () => (supabase.schema('system') as any).from('landing_municipality_logos')
 
 export const siteContentService = {
   /**
@@ -33,5 +36,12 @@ export const siteContentService = {
     const { data, error } = await programCardsTable().select('*')
     if (error) throw new Error(error.message || 'Failed to load the program cards.')
     return (data ?? []) as ProgramCardRow[]
+  },
+
+  /** Logos of the province's municipalities and city; every row is public (RLS, 050). */
+  async fetchMunicipalityLogos(): Promise<MunicipalityLogoRow[]> {
+    const { data, error } = await municipalityLogosTable().select('*')
+    if (error) throw new Error(error.message || 'Failed to load the municipality logos.')
+    return (data ?? []) as MunicipalityLogoRow[]
   },
 }

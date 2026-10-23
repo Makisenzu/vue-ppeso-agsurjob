@@ -3,7 +3,12 @@ import { ref } from 'vue'
 import { siteContentService } from '@/services/common/siteContentService'
 import { mediaService } from '@/services/common/mediaService'
 import { toHeroSlide } from '@/helpers/common/siteContentHelper'
-import { SITE_CONTENT_MEDIA_BUCKET, type LandingHeroSlide, type LandingProgram } from '@/types/common/siteContent'
+import {
+  SITE_CONTENT_MEDIA_BUCKET,
+  type AgsurMunicipality,
+  type LandingHeroSlide,
+  type LandingProgram,
+} from '@/types/common/siteContent'
 
 export const useSiteContentStore = defineStore('siteContent', () => {
   // ─── State ───
@@ -14,6 +19,10 @@ export const useSiteContentStore = defineStore('siteContent', () => {
   const programImages = ref<Partial<Record<LandingProgram, string>>>({})
   const isProgramCardsLoading = ref(false)
   const isProgramCardsLoaded = ref(false)
+  // Public URL of each municipality's logo; municipalities without one are missing
+  const municipalityLogos = ref<Partial<Record<AgsurMunicipality, string>>>({})
+  const isMunicipalityLogosLoading = ref(false)
+  const isMunicipalityLogosLoaded = ref(false)
 
   // ─── Actions ───
   // Loads once per visit. No toast on failure: the landing page falls back to its built-in slides.
@@ -64,6 +73,31 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isProgramCardsLoaded.value = false
   }
 
+  // Loads once per visit. No toast on failure: municipalities without a logo show the province seal.
+  const loadMunicipalityLogos = async () => {
+    if (isMunicipalityLogosLoaded.value || isMunicipalityLogosLoading.value) return
+    isMunicipalityLogosLoading.value = true
+    try {
+      const rows = await siteContentService.fetchMunicipalityLogos()
+      municipalityLogos.value = Object.fromEntries(
+        rows.flatMap(row =>
+          row.image_path ? [[row.municipality, mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET)]] : [],
+        ),
+      )
+    } catch (error) {
+      console.error(error)
+    } finally {
+      isMunicipalityLogosLoaded.value = true
+      isMunicipalityLogosLoading.value = false
+    }
+  }
+
+  // Called after PESO changes a logo, so the landing page reloads them on its next visit
+  const resetMunicipalityLogos = () => {
+    municipalityLogos.value = {}
+    isMunicipalityLogosLoaded.value = false
+  }
+
   return {
     heroSlides,
     isHeroLoading,
@@ -74,5 +108,9 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isProgramCardsLoaded,
     loadProgramCards,
     resetProgramCards,
+    municipalityLogos,
+    isMunicipalityLogosLoaded,
+    loadMunicipalityLogos,
+    resetMunicipalityLogos,
   }
 })
