@@ -697,6 +697,22 @@ PESO-managed blocks on public pages, starting with the landing hero carousel. Ke
 - **Image-first (047):** the photo is the only required part; text and buttons are optional, so a slide can be just the photo. A published row must have `image_path` (`NOT VALID`, so the image-less seed rows stay). The app inserts a new row as a draft, uploads the photo under its id, then sets `image_path` and the real status in one update.
 - PESO staff can also read drafts through RLS, so public queries repeat the live filter (`siteContentService.fetchLive`).
 
+#### `landing_program_cards` (migration 049)
+
+Background photos of the landing page's "PESO Programs" gallery (`AccordionGallery`). One fixed row per program, seeded by the migration; nobody inserts or deletes from the app. Labels and display order live in the app (`LANDING_PROGRAMS` in `src/types/common/siteContent.ts`).
+
+| Column       | Type              | Notes |
+| ------------ | ----------------- | ----- |
+| `program`    | `landing_program` | PK: `tupad` / `gip` / `fly_now_pay_later` / `spes` / `skills_training` |
+| `image_path` | `text`            | nullable; path in `site-content-media` at `programs/<program>/<filename>` (CHECK). NULL shows a plain panel with the program's name |
+| `updated_by` | `uuid`            | FK → `core.profiles`, set by trigger on update |
+| `updated_at` | `timestamptz`     | set by trigger on update |
+
+- RLS: everyone (`anon` included) reads all rows; `provincial_peso` / `admin` update `image_path` only (column grant). Photos only, no video.
+- Storage: policy `site_content_media_program_cards_insert` lets staff upload under `programs/<program>/`; 046's staff policy already covers reading, replacing and deleting.
+- Not in `database.types.ts` until `npm run types:gen` is re-run; until then `siteContentService` / `siteContentManagerService` query it through one untyped accessor and type rows with `ProgramCardRow`.
+- Managed from Site Contents → Program cards (`ProgramCards.vue`, `programCardManagerStore`).
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

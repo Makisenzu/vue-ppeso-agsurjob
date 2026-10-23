@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useLandingAbout } from '@/composables/landing/useLandingAbout'
 
-const { eyebrow, titleLead, titleAccent, points, logos } = useLandingAbout()
+const { titleLead, titleAccent, points, logos } = useLandingAbout()
 const [provinceLogo, pesoLogo] = logos
 </script>
 
@@ -11,7 +11,6 @@ const [provinceLogo, pesoLogo] = logos
   <section id="about" aria-labelledby="about-title" class="scroll-mt-16 bg-background">
     <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-6 pb-16 sm:px-6 sm:pt-8 sm:pb-20 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-10 lg:pb-24">
       <div class="flex flex-col gap-6">
-
         <!-- Second line in the same Times New Roman as the office name above (DESIGN.md exception) -->
         <h2 id="about-title" class="text-4xl leading-tight font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
           {{ titleLead }}

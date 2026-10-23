@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import ProgramCards from '@/components/peso/ProvincialPeso/Administrative/SiteContents/ProgramCards.vue'
+import { Separator } from '@/components/ui/separator'
 import { useSiteContents } from '@/composables/peso/provincialPeso/useSiteContents'
 import { useSiteContentForm } from '@/composables/peso/provincialPeso/useSiteContentForm'
 
@@ -74,7 +76,7 @@ const {
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Site Contents</h1>
       <p class="text-sm text-muted-foreground">
-        Slides of the landing page carousel.
+        Landing page carousel slides and program photos.
         <template v-if="!isLoading">
           {{ liveCount }} {{ liveCount === 1 ? 'slide is' : 'slides are' }} live now{{ liveCount === 0 ? ', so visitors see the built-in slides' : '' }}.
         </template>
@@ -212,6 +214,11 @@ const {
         </div>
       </div>
     </template>
+
+    <Separator class="my-6" />
+
+    <!-- Photos of the landing page's PESO Programs gallery -->
+    <ProgramCards />
   </div>
 
   <!-- New / Edit Slide Dialog -->

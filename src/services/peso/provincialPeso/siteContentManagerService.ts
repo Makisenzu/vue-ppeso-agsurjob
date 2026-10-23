@@ -3,12 +3,25 @@ import { mediaService } from '@/services/common/mediaService'
 import { buildSiteContentMediaPath } from '@/helpers/peso/provincialPeso/siteContentManagerHelper'
 import {
   SITE_CONTENT_MEDIA_BUCKET,
+  type LandingProgram,
+  type ProgramCardItem,
+  type ProgramCardRow,
   type SiteContentInsert,
   type SiteContentListItem,
   type SiteContentPlacement,
   type SiteContentRow,
   type SiteContentUpdate,
 } from '@/types/common/siteContent'
+
+// system.landing_program_cards (migration 049) is not in database.types.ts until `npm run types:gen`
+// is re-run, so the typed client does not know the table yet. Rows are typed by ProgramCardRow.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const programCardsTable = () => (supabase.schema('system') as any).from('landing_program_cards')
+
+const toProgramCardItem = (row: ProgramCardRow): ProgramCardItem => ({
+  ...row,
+  image_url: row.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : null,
+})
 
 const toListItem = (row: SiteContentRow): SiteContentListItem => ({
   ...row,
@@ -69,6 +82,35 @@ export const siteContentManagerService = {
       .upload(path, file, { contentType: file.type, upsert: false })
 
     if (error) throw new Error(error.message || 'Failed to upload the file.')
+    return path
+  },
+
+  async fetchProgramCards(): Promise<ProgramCardItem[]> {
+    const { data, error } = await programCardsTable().select('*')
+    if (error) throw new Error(error.message || 'Failed to load the program cards.')
+    return ((data ?? []) as ProgramCardRow[]).map(toProgramCardItem)
+  },
+
+  /** Sets or clears a card's photo; the rows themselves are fixed (049), so there is no create or delete. */
+  async updateProgramCardImage(program: LandingProgram, imagePath: string | null): Promise<ProgramCardItem> {
+    const { data, error } = await programCardsTable()
+      .update({ image_path: imagePath })
+      .eq('program', program)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to update the program card.')
+    return toProgramCardItem(data as ProgramCardRow)
+  },
+
+  /** Uploads a card photo under programs/<program>/ (the storage policy in 049 only allows those folders); returns the path. */
+  async uploadProgramCardImage(program: LandingProgram, file: File): Promise<string> {
+    const path = buildSiteContentMediaPath(`programs/${program}`, file.name)
+    const { error } = await supabase.storage
+      .from(SITE_CONTENT_MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false })
+
+    if (error) throw new Error(error.message || 'Failed to upload the photo.')
     return path
   },
 

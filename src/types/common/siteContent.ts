@@ -52,3 +52,29 @@ export interface LandingHeroSlide {
   primary?: LandingHeroAction
   secondary?: LandingHeroAction
 }
+
+// ─── PESO Programs gallery (migration 049) ───
+// system.landing_program_cards is not in database.types.ts until `npm run types:gen` is re-run,
+// so its row is typed here; switch to the generated types once they include it.
+
+export type LandingProgram = 'tupad' | 'gip' | 'fly_now_pay_later' | 'spes' | 'skills_training'
+
+export interface ProgramCardRow {
+  program: LandingProgram
+  /** Path in 'site-content-media' at programs/<program>/<filename>; null shows the plain panel */
+  image_path: string | null
+  updated_by: string | null
+  updated_at: string
+}
+
+/** A card for the management page, with its photo resolved to a public URL. */
+export type ProgramCardItem = ProgramCardRow & { image_url: string | null }
+
+/** Cards of the landing gallery in display order; the table only holds their photos. */
+export const LANDING_PROGRAMS: { key: LandingProgram; label: string; name: string }[] = [
+  { key: 'tupad', label: 'TUPAD', name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers' },
+  { key: 'gip', label: 'GIP', name: 'Government Internship Program' },
+  { key: 'fly_now_pay_later', label: 'Fly Now Pay Later', name: 'OFW Fly Now Pay Later Plan' },
+  { key: 'spes', label: 'SPES', name: 'Special Program for Employment of Students' },
+  { key: 'skills_training', label: 'Skills Training', name: 'Skills Training' },
+]

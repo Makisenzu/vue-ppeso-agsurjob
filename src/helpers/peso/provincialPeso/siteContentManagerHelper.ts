@@ -66,7 +66,15 @@ export function getSiteContentMediaType(file: File): SiteContentMediaType {
   return isVideo ? 'video' : 'image'
 }
 
-/** Storage path for an uploaded photo / video: <site_content_id>/<cleaned name>_<timestamp>.<ext> (policy in 046). */
+/** Program card backgrounds are photos only (the gallery renders an <img>); throws a readable message otherwise. */
+export function assertProgramCardPhoto(file: File): void {
+  if (getSiteContentMediaType(file) === 'video') throw new Error('Program cards need a photo: use a JPG, PNG or WebP.')
+}
+
+/**
+ * Storage path for an uploaded photo / video: <folder>/<cleaned name>_<timestamp>.<ext>. The folder is a
+ * site_contents id for slides (policy in 046) or programs/<program> for program cards (policy in 049).
+ */
 export function buildSiteContentMediaPath(contentId: string, filename: string): string {
   const lastDot = filename.lastIndexOf('.')
   const ext = lastDot !== -1 ? filename.slice(lastDot + 1).toLowerCase() : 'jpg'

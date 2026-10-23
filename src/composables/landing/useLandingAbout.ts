@@ -32,10 +32,9 @@ const LOGOS: [LandingAboutLogo, LandingAboutLogo] = [
   { src: pesoLogo, alt: 'Provincial PESO logo', fallback: 'PESO' },
 ]
 
-/** "What is PESO?" section under the hero: eyebrow, two-line title, three key points, two logo avatars side by side. */
+/** "What is PESO?" section under the hero: two-line title, three key points, two logo avatars side by side. */
 export function useLandingAbout() {
   return {
-    eyebrow: 'What is PESO?',
     titleLead: 'Provincial PESO',
     titleAccent: 'Agusan del Sur',
     points: POINTS,
