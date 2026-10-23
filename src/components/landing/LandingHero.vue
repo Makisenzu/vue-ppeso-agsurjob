@@ -179,7 +179,7 @@ const {
          2. full: the same words, re-rendered as green initial + rest, so they can fold.
          3. merged: each rest (and the space after it) collapses, leaving PESO; hovering, focusing or tapping an initial
             unfolds its word in place (P -> Public ESO), one at a time -->
-    <div class="bg-background px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <div class="bg-background px-4 pt-10 pb-4 sm:px-6 sm:pt-14 sm:pb-6 lg:px-8">
       <div class="mx-auto max-w-7xl text-center">
         <SplitText
           v-if="isIntroDone && officeNamePhase === 'reveal'"
