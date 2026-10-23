@@ -1,13 +1,21 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
+import { useIntervalFn, usePreferredReducedMotion, useTimeoutFn } from '@vueuse/core'
 import type { CarouselApi } from '@/components/ui/carousel'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { useLandingIntroDone } from '@/composables/landing/useLandingIntro'
 import type { LandingHeroSlide } from '@/types/common/siteContent'
 
-// Office name set under the carousel, revealed letter by letter once the landing intro lifts
+// Office name set under the carousel: revealed word by word once the landing intro lifts, then the
+// words fold into their initials, P-E-S-O, and each initial unfolds its word in place on hover / focus / tap
 const OFFICE_NAME = 'Public Employment Service Office'
+// How long the full name holds before folding into PESO
+const OFFICE_NAME_HOLD_MS = 1000
+
+// Non-breaking space: a plain one would collapse at the edge of the folding span
+const NBSP = String.fromCharCode(160)
+
+export type OfficeNamePhase = 'reveal' | 'full' | 'merged'
 
 // Built-in slides, shown until PESO publishes hero_carousel rows in system.site_contents (or when
 // loading them fails). Program facts come from the PESO requirements list. They have no photo, so
@@ -180,11 +188,61 @@ export function useLandingHero() {
   const officeNameFrom = computed(() => (reducedMotion.value === 'reduce' ? { opacity: 0 } : { opacity: 0, y: 40 }))
   const officeNameTo = computed(() => (reducedMotion.value === 'reduce' ? { opacity: 1 } : { opacity: 1, y: 0 }))
 
+  // 'reveal' runs SplitText; once every word is in, the same words render as initial + rest ('full'),
+  // then the rest of each word (and the space after it) collapses away ('merged')
+  const officeNamePhase = ref<OfficeNamePhase>('reveal')
+  const officeWords = OFFICE_NAME.split(' ').map((word, index, words) => ({
+    word,
+    initial: word.charAt(0),
+    rest: word.slice(1) + (index < words.length - 1 ? NBSP : ''),
+  }))
+  const { start: startOfficeNameMerge } = useTimeoutFn(
+    () => {
+      officeNamePhase.value = 'merged'
+    },
+    OFFICE_NAME_HOLD_MS,
+    { immediate: false },
+  )
+  const onOfficeNameShown = () => {
+    officeNamePhase.value = 'full'
+    startOfficeNameMerge()
+  }
+
+  // One word unfolded at a time. Mouse hover and keyboard focus unfold it; touch has no hover, so a tap toggles
+  // instead (touch pointers are ignored for hover, since a tap also fires enter/leave)
+  const openInitial = ref<number | null>(null)
+  const setInitialOpen = (index: number, open: boolean) => {
+    if (open) openInitial.value = index
+    else if (openInitial.value === index) openInitial.value = null
+  }
+  const hoverWord = (index: number, open: boolean, event: PointerEvent) => {
+    if (event.pointerType === 'mouse') setInitialOpen(index, open)
+  }
+  // Keyboard focus only: a tap also focuses the initial, and opening here would be undone by the tap's toggle
+  const focusWord = (index: number, open: boolean, event: FocusEvent) => {
+    if (open && !(event.target as Element).matches(':focus-visible')) return
+    setInitialOpen(index, open)
+  }
+  const tapInitial = (index: number, event: PointerEvent) => {
+    if (event.pointerType === 'mouse') return
+    openInitial.value = openInitial.value === index ? null : index
+  }
+  // A word shows in full while the name is whole, or when its initial is unfolded after the merge
+  const isWordOpen = (index: number) =>
+    officeNamePhase.value === 'full' || (officeNamePhase.value === 'merged' && openInitial.value === index)
+
   return {
     officeName: OFFICE_NAME,
     isIntroDone,
     officeNameFrom,
     officeNameTo,
+    officeNamePhase,
+    officeWords,
+    onOfficeNameShown,
+    hoverWord,
+    focusWord,
+    isWordOpen,
+    tapInitial,
     slides,
     isLoading,
     hasMultipleSlides,

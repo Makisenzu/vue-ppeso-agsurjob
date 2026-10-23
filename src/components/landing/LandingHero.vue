@@ -17,6 +17,13 @@ const {
   isIntroDone,
   officeNameFrom,
   officeNameTo,
+  officeNamePhase,
+  officeWords,
+  onOfficeNameShown,
+  hoverWord,
+  focusWord,
+  isWordOpen,
+  tapInitial,
   slides,
   isLoading,
   hasMultipleSlides,
@@ -163,20 +170,22 @@ const {
       </div>
     </Carousel>
 
-    <!-- Times New Roman is a deliberate exception to DESIGN.md's Nunito-only rule, for this formal office name only
-         (a system font, nothing is imported). Bold, since Times New Roman has no heavier weight.
-         Revealed word by word, one every 1.5s (SplitText's delay is the stagger between pieces).
-         Below sm the size follows the screen width (4.4vw keeps the name inside the padding down to 320px) and it never wraps.
-         Each word's first letter is green, spelling P-E-S-O; it targets SplitText's .split-word wrappers, so it needs split-type words -->
-    <!-- Office name under the carousel. SplitText animates once on mount, so it mounts when the intro lifts;
-         until then an invisible copy with the same classes holds its space, so nothing shifts -->
+    <!-- Office name under the carousel. Times New Roman is a deliberate exception to DESIGN.md's Nunito-only rule, for
+         this formal name only (a system font, nothing is imported); bold, since it has no heavier weight. Below sm the size
+         follows the screen width (4.4vw fits down to 320px); tracking steps 0.08 / 0.15 / 0.2em so it is one line at every width,
+         which the fold needs.
+         1. reveal: SplitText brings the words in one every 1.5s. It animates once on mount, so it mounts when the intro
+            lifts; until then an invisible copy holds the space.
+         2. full: the same words, re-rendered as green initial + rest, so they can fold.
+         3. merged: each rest (and the space after it) collapses, leaving PESO; hovering, focusing or tapping an initial
+            unfolds its word in place (P -> Public ESO), one at a time -->
     <div class="bg-background px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <div class="mx-auto max-w-7xl text-center">
         <SplitText
-          v-if="isIntroDone"
+          v-if="isIntroDone && officeNamePhase === 'reveal'"
           :text="officeName"
           tag="p"
-          class-name="[&_.split-word]:first-letter:text-primary font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.2em] lg:text-4xl"
+          class-name="[&_.split-word]:first-letter:text-primary font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.15em] lg:text-4xl lg:tracking-[0.2em]"
           :delay="1500"
           :duration="0.8"
           ease="power3.out"
@@ -186,10 +195,48 @@ const {
           :threshold="0.1"
           root-margin="-100px"
           text-align="center"
+          @animation-complete="onOfficeNameShown"
         />
         <p
+          v-else-if="officeNamePhase !== 'reveal'"
+          class="inline-flex font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] whitespace-nowrap text-foreground sm:text-3xl sm:tracking-[0.15em] lg:text-4xl lg:tracking-[0.2em]"
+        >
+          <!-- Hover covers the whole word, so the pointer stays inside it as the unfolding word re-centers the line -->
+          <span
+            v-for="(item, index) in officeWords"
+            :key="item.word"
+            class="inline-flex"
+            @pointerenter="(event: PointerEvent) => hoverWord(index, true, event)"
+            @pointerleave="(event: PointerEvent) => hoverWord(index, false, event)"
+          >
+            <span
+              :role="officeNamePhase === 'merged' ? 'button' : undefined"
+              :tabindex="officeNamePhase === 'merged' ? 0 : -1"
+              :aria-expanded="officeNamePhase === 'merged' ? isWordOpen(index) : undefined"
+              :aria-label="officeNamePhase === 'merged' ? item.word : undefined"
+              class="rounded-sm text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              :class="officeNamePhase === 'merged' ? 'cursor-pointer' : ''"
+              @focus="(event: FocusEvent) => focusWord(index, true, event)"
+              @blur="(event: FocusEvent) => focusWord(index, false, event)"
+              @pointerup="(event: PointerEvent) => tapInitial(index, event)"
+            >{{ item.initial }}</span>
+            <!-- Grid column 1fr <-> 0fr folds the rest to exactly zero width, whatever the word's length -->
+            <!-- Hidden from screen readers: each initial is labelled with its whole word -->
+            <span
+              aria-hidden="true"
+              class="inline-grid transition-[grid-template-columns,opacity] ease-in-out motion-reduce:transition-none"
+              :class="[
+                isWordOpen(index) ? 'grid-cols-[1fr] opacity-100' : 'grid-cols-[0fr] opacity-0',
+                officeNamePhase === 'merged' ? 'duration-500' : 'duration-700',
+              ]"
+            >
+              <span class="min-w-0 overflow-hidden">{{ item.rest }}</span>
+            </span>
+          </span>
+        </p>
+        <p
           v-else
-          class="invisible inline-block font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.2em] lg:text-4xl"
+          class="invisible inline-block font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] text-balance max-sm:whitespace-nowrap! text-foreground sm:text-3xl sm:tracking-[0.15em] lg:text-4xl lg:tracking-[0.2em]"
           aria-hidden="true"
         >
           {{ officeName }}
