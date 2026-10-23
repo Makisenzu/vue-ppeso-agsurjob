@@ -232,6 +232,9 @@ export function useLandingHero() {
   // A word shows in full while the name is whole, or when its initial is unfolded after the merge
   const isWordOpen = (index: number) =>
     officeNamePhase.value === 'full' || (officeNamePhase.value === 'merged' && openInitial.value === index)
+  // After the merge the initials are spaced out as P . E . S . O; a word's dot folds away while it is unfolded
+  const isSeparatorShown = (index: number) =>
+    officeNamePhase.value === 'merged' && index < officeWords.length - 1 && !isWordOpen(index)
 
   return {
     officeName: OFFICE_NAME,
@@ -244,6 +247,8 @@ export function useLandingHero() {
     hoverWord,
     focusWord,
     isWordOpen,
+    isSeparatorShown,
+    officeNameSeparator: `${NBSP}.${NBSP}`,
     tapInitial,
     slides,
     isLoading,

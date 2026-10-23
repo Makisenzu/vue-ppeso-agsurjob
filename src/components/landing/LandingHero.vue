@@ -23,6 +23,8 @@ const {
   hoverWord,
   focusWord,
   isWordOpen,
+  isSeparatorShown,
+  officeNameSeparator,
   tapInitial,
   slides,
   isLoading,
@@ -179,7 +181,8 @@ const {
             lifts; until then an invisible copy holds the space.
          2. full: the same words, re-rendered as green initial + rest, so they can fold.
          3. merged: each rest (and the space after it) collapses, leaving PESO; hovering, focusing or tapping an initial
-            unfolds its word in place (P -> Public ESO), one at a time -->
+            unfolds its word in place (P -> Public ESO), one at a time. Merged, the line grows a step and the initials are
+            spaced out as P . E . S . O (an unfolded word's dot folds away) -->
     <div class="bg-background px-4 pt-10 pb-4 sm:px-6 sm:pt-14 sm:pb-6 lg:px-8">
       <div class="mx-auto max-w-7xl text-center">
         <SplitText
@@ -200,7 +203,8 @@ const {
         />
         <p
           v-else-if="officeNamePhase !== 'reveal'"
-          class="inline-flex font-['Times_New_Roman',Times,serif] text-[4.4vw] font-bold tracking-[0.08em] whitespace-nowrap text-foreground sm:text-3xl sm:tracking-[0.15em] lg:text-4xl lg:tracking-[0.2em]"
+          class="inline-flex font-['Times_New_Roman',Times,serif] font-bold tracking-[0.08em] whitespace-nowrap text-foreground transition-[font-size] duration-500 ease-in-out motion-reduce:transition-none sm:tracking-[0.15em] lg:tracking-[0.2em]"
+          :class="officeNamePhase === 'merged' ? 'text-[6vw] sm:text-4xl lg:text-5xl' : 'text-[4.4vw] sm:text-3xl lg:text-4xl'"
         >
           <!-- Hover covers the whole word, so the pointer stays inside it as the unfolding word re-centers the line -->
           <span
@@ -232,6 +236,13 @@ const {
               ]"
             >
               <span class="min-w-0 overflow-hidden">{{ item.rest }}</span>
+            </span>
+            <span
+              aria-hidden="true"
+              class="inline-grid text-muted-foreground transition-[grid-template-columns,opacity] duration-500 ease-in-out motion-reduce:transition-none"
+              :class="isSeparatorShown(index) ? 'grid-cols-[1fr] opacity-100' : 'grid-cols-[0fr] opacity-0'"
+            >
+              <span class="min-w-0 overflow-hidden">{{ officeNameSeparator }}</span>
             </span>
           </span>
         </p>
