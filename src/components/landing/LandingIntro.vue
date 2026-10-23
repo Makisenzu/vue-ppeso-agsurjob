@@ -23,10 +23,11 @@ const {
     leave-to-class="scale-105 opacity-0 blur-sm"
   >
     <!-- Seal lands at ~0.9s while its electric outline charges up over ~1.4s. From 0.5s the text draws; at ~0.7s the
-         pixel background starts swapping in random order and lands with the text fill at ~2.1s, then the green sheen runs by ~2.8s, before the 3.2s exit -->
+         inverted background starts pixel-swapping to the page background (strands flip at ~1.4s) and lands with the
+         text fill at ~2.1s, then it holds until the 3.2s exit -->
     <div
       v-if="isIntroVisible"
-      class="fixed inset-0 z-100 flex items-center justify-center bg-background px-4 text-primary sm:px-6 lg:px-8"
+      class="fixed inset-0 z-100 flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8"
     >
       <p class="sr-only">{{ introText }}</p>
 
@@ -47,11 +48,13 @@ const {
         fade
         aria-hidden="true"
       >
+        <!-- Opens inverted (black in light mode, white in dark mode) and swaps to the plain page background,
+             so the exit hands off seamlessly -->
         <template #first>
-          <div class="size-full bg-background" />
+          <div class="size-full bg-foreground" />
         </template>
         <template #second>
-          <div class="size-full bg-background bg-radial-[at_50%_42%] from-primary/45 via-primary/20 to-primary/10" />
+          <div class="size-full bg-background" />
         </template>
       </PixelSwap>
 
@@ -60,26 +63,30 @@ const {
         <div class="relative flex items-center justify-center" aria-hidden="true">
           <div class="relative size-24 animate-intro-seal-in sm:size-32 lg:size-40">
             <img :src="agsurSeal" alt="" class="size-full object-contain" />
-            <!-- ElectricLogo fits the traced seal to 70% of its box, so the box overhangs the seal by 22% per side to line the strands up with its edge -->
+            <!-- The glow spreads ~70% of the seal's size past its edge, so the canvas overhangs the seal by a full seal
+                 per side (3x box, seal at ~1/3 scale) and fades out radially; a tighter box clips the glow into a visible square -->
             <ElectricLogo
-              class-name="pointer-events-none absolute! -inset-[22%] size-auto!"
+              class-name="pointer-events-none absolute! -inset-full size-auto! [mask-image:radial-gradient(closest-side,black_60%,transparent)]"
               :src="agsurSeal"
               :color="electric.color"
               :glow-color="electric.glowColor"
               :theme="electric.theme"
               :interactive="false"
-              :scale="0.7"
+              :scale="0.336"
               :speed="2"
             />
           </div>
         </div>
 
-        <div class="w-full max-w-5xl" aria-hidden="true">
+        <!-- Drawn in the invert color with mix-blend-difference, so each letter shows as the opposite of the tile
+             behind it and flips as the pixels swap, ending dark on light (light mode) or light on dark (dark mode).
+             No sheen: a colored band would come out as its inverse -->
+        <div class="w-full max-w-5xl mix-blend-difference" aria-hidden="true">
           <StrokeText
             :text="introText"
-            stroke-color="var(--foreground)"
-            fill-color="var(--foreground)"
-            sheen-color="var(--primary)"
+            stroke-color="var(--invert)"
+            fill-color="var(--invert)"
+            :sheen="false"
             :font-size="fontSize"
             :letter-spacing="letterSpacing"
             :delay="introTextTiming.delay"
@@ -89,8 +96,8 @@ const {
           />
         </div>
 
-        <div class="h-0.5 w-40 overflow-hidden rounded-full bg-primary/15 sm:w-56" aria-hidden="true">
-          <div class="h-full w-full origin-left animate-intro-progress rounded-full bg-primary" />
+        <div class="h-0.5 w-40 overflow-hidden rounded-full bg-invert/20 mix-blend-difference sm:w-56" aria-hidden="true">
+          <div class="h-full w-full origin-left animate-intro-progress rounded-full bg-invert" />
         </div>
       </div>
     </div>

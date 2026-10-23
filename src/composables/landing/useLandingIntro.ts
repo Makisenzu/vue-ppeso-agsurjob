@@ -14,7 +14,7 @@ const INTRO_SWAP_DURATION_MS = 1400
 const INTRO_SWAP_DELAY_MS = Math.max(0, INTRO_TEXT_FILL_END_MS - INTRO_SWAP_DURATION_MS)
 const INTRO_DURATION_MS = 3200
 
-/** Resolves a CSS color token (e.g. `--primary`, defined in oklch) to hex, since ElectricLogo's WebGL colors only take hex. */
+/** Resolves a CSS color token (e.g. `--foreground`, defined in oklch) to hex, since ElectricLogo's WebGL colors only take hex. */
 function resolveTokenHex(token: string): string {
   const probe = document.createElement('span')
   probe.style.color = `var(${token})`
@@ -51,6 +51,13 @@ export function useLandingIntro() {
     isBackgroundSwapped.value = true
   }, INTRO_SWAP_DELAY_MS, { immediate: isIntroVisible.value })
 
+  // The intro opens on the inverted background, so the electric strands start inverted too and
+  // flip to the page's colors halfway through the swap (ElectricLogo eases the change over ~0.35s)
+  const isElectricSettled = ref(false)
+  useTimeoutFn(() => {
+    isElectricSettled.value = true
+  }, INTRO_SWAP_DELAY_MS + INTRO_SWAP_DURATION_MS / 2, { immediate: isIntroVisible.value })
+
   // StrokeText renders at a fixed pixel size, so the size steps with the Tailwind breakpoints.
   // Each step keeps the full one-line phrase inside the container (it also scales down to fit if it doesn't)
   const breakpoints = useBreakpoints(breakpointsTailwind)
@@ -61,15 +68,15 @@ export function useLandingIntro() {
   })
   const letterSpacing = computed(() => -Math.round(fontSize.value / 40))
 
-  // Electric strands around the seal: a bright core over a brand-green glow in dark mode,
-  // and green "ink" strands in light mode (ElectricLogo's light theme draws dark on light)
+  // Monochrome strands that contrast whatever background is behind the seal. ElectricLogo's 'dark' theme
+  // glows light-on-dark and its 'light' theme draws ink on light, so the theme follows the background too
   const mode = useColorMode()
   const isDark = computed(() => mode.value === 'dark')
   const electric = computed(() => {
-    const primary = resolveTokenHex('--primary')
-    return isDark.value
-      ? { color: resolveTokenHex('--foreground'), glowColor: primary, theme: 'dark' as const }
-      : { color: primary, glowColor: primary, theme: 'light' as const }
+    // Before the flip the background is --foreground (dark in light mode), so the strands use --background
+    const onDarkBackground = isElectricSettled.value ? isDark.value : !isDark.value
+    const color = resolveTokenHex(isElectricSettled.value ? '--foreground' : '--background')
+    return { color, glowColor: color, theme: onDarkBackground ? ('dark' as const) : ('light' as const) }
   })
 
   return {

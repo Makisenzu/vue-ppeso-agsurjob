@@ -22,6 +22,11 @@
 
   /* Custom */
   --sheen: oklch(1 0 0 / 0.75); /* Light sweep across StrokeText after it fills */
+  /* AGSURJOBS wordmark colors (landing intro). App UI stays on --primary green */
+  --brand-navy: oklch(0.42 0.16 264);
+  --brand-red: oklch(0.58 0.22 27);
+  /* Operand for mix-blend-difference: shows as the inverse of whatever is behind it (landing intro) */
+  --invert: oklch(1 0 0);
   --button: oklch(58.862% 0.18554 139.497);
   --buttonTwo: oklch(43.895% 0.12656 148.166);
 
@@ -79,6 +84,9 @@
    ═══════════════════════════════════════════════════════════════ */
 .dark {
   --sheen: oklch(1 0 0 / 0.5);
+  /* Lifted so the navy glow and red accent still show on the near-black background */
+  --brand-navy: oklch(0.55 0.17 264);
+  --brand-red: oklch(0.64 0.21 27);
 
   /* Surfaces */
   --background: oklch(0.147 0.004 49.3);
@@ -133,6 +141,11 @@
    Tailwind Theme Registration
    ═══════════════════════════════════════════════════════════════ */
 @theme inline {
+  /* Brand */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-red: var(--brand-red);
+  --color-invert: var(--invert);
+
   /* Typography */
   --font-sans: 'Nunito Sans Variable', sans-serif;
   --font-heading: var(--font-sans);
