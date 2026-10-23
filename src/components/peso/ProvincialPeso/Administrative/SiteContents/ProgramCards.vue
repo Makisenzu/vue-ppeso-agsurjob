@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
 import { useProgramCards } from '@/composables/peso/provincialPeso/useProgramCards'
 
 const {
@@ -29,13 +30,10 @@ const {
 </script>
 
 <template>
-  <section class="space-y-4" aria-labelledby="program-cards-title">
-    <div>
-      <h2 id="program-cards-title" class="text-lg font-semibold">Program cards</h2>
-      <p class="text-sm text-muted-foreground">
-        Background photos of the PESO Programs gallery. Portrait, about 900 × 1200, JPG, PNG or WebP up to {{ imageMaxMb }}MB.
-      </p>
-    </div>
+  <SiteContentSection section-id="program-cards" title="Program cards">
+    <template #description>
+      Background photos of the PESO Programs gallery. Portrait, about 900 × 1200, JPG, PNG or WebP up to {{ imageMaxMb }}MB.
+    </template>
 
     <div
       v-if="errorMessage"
@@ -96,7 +94,7 @@ const {
         </div>
       </template>
     </div>
-  </section>
+  </SiteContentSection>
 
   <AlertDialog v-model:open="isClearDialogOpen">
     <AlertDialogContent>

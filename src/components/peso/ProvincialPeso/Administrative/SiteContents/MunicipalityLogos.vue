@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
 import { useMunicipalityLogos } from '@/composables/peso/provincialPeso/useMunicipalityLogos'
 
 const {
@@ -29,14 +30,11 @@ const {
 </script>
 
 <template>
-  <section class="space-y-4" aria-labelledby="municipality-logos-title">
-    <div>
-      <h2 id="municipality-logos-title" class="text-lg font-semibold">Municipality logos</h2>
-      <p class="text-sm text-muted-foreground">
-        Logos of the 13 municipalities and 1 city on the landing page. Square, about 512 × 512, PNG or WebP with a
-        transparent background (JPG works too), up to {{ imageMaxMb }}MB.
-      </p>
-    </div>
+  <SiteContentSection section-id="municipality-logos" title="Municipality logos">
+    <template #description>
+      Logos of the 13 municipalities and 1 city on the landing page. Square, about 512 × 512, PNG or WebP with a
+      transparent background (JPG works too), up to {{ imageMaxMb }}MB.
+    </template>
 
     <div
       v-if="errorMessage"
@@ -104,7 +102,7 @@ const {
         </div>
       </template>
     </div>
-  </section>
+  </SiteContentSection>
 
   <AlertDialog v-model:open="isClearDialogOpen">
     <AlertDialogContent>
