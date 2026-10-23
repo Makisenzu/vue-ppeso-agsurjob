@@ -1,14 +1,15 @@
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import type { AccordionGalleryItem } from '@/components/AccordionGallery.vue'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { LANDING_PROGRAMS } from '@/types/common/siteContent'
 
-// Transparent 1x1 GIF for programs PESO hasn't given a photo yet: AccordionGallery needs an image,
-// and this leaves its dark panel, overlay and label showing
+// Transparent 1x1 GIF for programs PESO hasn't given a photo yet: the galleries need an image,
+// and this leaves their dark card showing
 const NO_PHOTO = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
-/** "PESO Programs" section under the about section: a centered heading over an accordion gallery of the programs. */
+/** "PESO Programs" section under the about section: a centered heading over a gallery of the programs. */
 export function useLandingPrograms() {
   const store = useSiteContentStore()
   const { programImages } = storeToRefs(store)
@@ -22,6 +23,16 @@ export function useLandingPrograms() {
     })),
   )
 
+  // Phones get a swipeable card stack (DepthCarousel); the accordion's panels are too narrow there
+  const isPhone = useBreakpoints(breakpointsTailwind).smaller('sm')
+
+  // DepthCarousel has no labels, so the front card's program is captioned under the stack
+  const activeIndex = ref(0)
+  const activeProgram = computed(() => LANDING_PROGRAMS[activeIndex.value])
+  const onCarouselChange = (index: number) => {
+    activeIndex.value = index
+  }
+
   onMounted(() => {
     void store.loadProgramCards()
   })
@@ -29,5 +40,8 @@ export function useLandingPrograms() {
   return {
     title: 'PESO Programs',
     programs,
+    isPhone,
+    activeProgram,
+    onCarouselChange,
   }
 }

@@ -27,8 +27,8 @@ const [provinceLogo, pesoLogo] = logos
       </div>
 
       <!-- The province's seal on the left, the PESO logo on the right, the same size. after:hidden drops the
-           Avatar's outline so only the logos show -->
-      <div class="flex items-center justify-center gap-6 sm:gap-10 lg:gap-12">
+           Avatar's outline so only the logos show. Hidden on phones, where the text carries the section -->
+      <div class="hidden items-center justify-center gap-6 sm:flex sm:gap-10 lg:gap-12">
         <Avatar class="size-36 after:hidden sm:size-48 lg:size-56">
           <AvatarImage :src="provinceLogo.src" :alt="provinceLogo.alt" class="size-full object-contain" />
           <AvatarFallback class="text-2xl font-bold">{{ provinceLogo.fallback }}</AvatarFallback>
