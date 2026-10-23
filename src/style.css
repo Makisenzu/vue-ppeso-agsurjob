@@ -21,6 +21,7 @@
   --radius: 0.625rem;
 
   /* Custom */
+  --sheen: oklch(1 0 0 / 0.75); /* Light sweep across StrokeText after it fills */
   --button: oklch(58.862% 0.18554 139.497);
   --buttonTwo: oklch(43.895% 0.12656 148.166);
 
@@ -77,6 +78,8 @@
    Design Tokens — Dark
    ═══════════════════════════════════════════════════════════════ */
 .dark {
+  --sheen: oklch(1 0 0 / 0.5);
+
   /* Surfaces */
   --background: oklch(0.147 0.004 49.3);
   --foreground: oklch(0.986 0.002 67.8);
@@ -236,6 +239,26 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   Landing Intro — the seal settles in and a bar fills just
+   before the 3.2s exit (useLandingIntro).
+   ═══════════════════════════════════════════════════════════════ */
+@theme {
+  --animate-intro-seal-in: intro-seal-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-intro-progress: intro-progress 3s cubic-bezier(0.65, 0, 0.35, 1) both;
+
+  @keyframes intro-seal-in {
+    0% { transform: scale(0.6) rotate(-25deg); opacity: 0; filter: blur(8px); }
+    60% { transform: scale(1.06) rotate(3deg); opacity: 1; filter: blur(0); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+  }
+
+  @keyframes intro-progress {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    Route Transitions
    ═══════════════════════════════════════════════════════════════ */
 .fade-enter-active,
@@ -357,4 +380,4 @@
 
 .dark .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
   filter: invert(1) brightness(1.2);
-}
+}
