@@ -81,6 +81,8 @@ export function useLandingHero() {
   const isLoading = computed(() => !isHeroLoaded.value)
   const slides = computed(() => (heroSlides.value.length ? heroSlides.value : FALLBACK_SLIDES))
   const hasMultipleSlides = computed(() => slides.value.length > 1)
+  // A single slide can't be dragged or looped: Embla would otherwise still let it be pulled sideways
+  const carouselOpts = computed(() => ({ loop: hasMultipleSlides.value, watchDrag: hasMultipleSlides.value }))
 
   const api = shallowRef<CarouselApi>()
   const selectedIndex = ref(0)
@@ -246,6 +248,7 @@ export function useLandingHero() {
     slides,
     isLoading,
     hasMultipleSlides,
+    carouselOpts,
     selectedIndex,
     registerVideo,
     contentStyle,

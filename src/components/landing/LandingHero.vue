@@ -27,6 +27,7 @@ const {
   slides,
   isLoading,
   hasMultipleSlides,
+  carouselOpts,
   selectedIndex,
   registerVideo,
   contentStyle,
@@ -57,7 +58,7 @@ const {
     </div>
     <Carousel
       v-else
-      :opts="{ loop: true }"
+      :opts="carouselOpts"
       class="overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       @init-api="setApi"
       @mouseenter="pauseAutoplay"
