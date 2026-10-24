@@ -15,8 +15,6 @@ const navLinks: LandingNavLink[] = [
     children: [
       { label: 'History of Agusan del Sur', href: '#about-mission' },
       { label: 'What is PESO?', href: '#about' },
-      { label: 'Skills Training', href: '#about-faqs' },
-      { label: 'JobStart', href: '#about-peso' },
     ],
   },
   { label: 'Announcements', href: '#contact' },
