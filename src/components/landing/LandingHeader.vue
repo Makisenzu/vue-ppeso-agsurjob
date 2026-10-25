@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import GoeyNav from '@/components/GoeyNav.vue'
+import LandingLink from '@/components/landing/LandingLink.vue'
 import { useLandingNavigation } from '@/composables/landing/useLandingNavigation'
 import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
@@ -79,7 +80,7 @@ const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandin
               <SheetDescription>Province of Agusan del Sur job portal</SheetDescription>
             </SheetHeader>
             <nav aria-label="Mobile" class="flex flex-col gap-1 px-4">
-              <template v-for="link in navLinks" :key="link.href">
+              <template v-for="link in navLinks" :key="link.label">
                 <Collapsible v-if="link.children">
                   <CollapsibleTrigger
                     class="group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -88,25 +89,25 @@ const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandin
                     <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
                   </CollapsibleTrigger>
                   <CollapsibleContent class="ml-3 flex flex-col gap-1 border-l border-border pl-2">
-                    <a
+                    <LandingLink
                       v-for="child in link.children"
-                      :key="child.href"
-                      :href="child.href"
+                      :key="child.label"
+                      :link="child"
                       class="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       @click="closeMobileMenu"
                     >
                       {{ child.label }}
-                    </a>
+                    </LandingLink>
                   </CollapsibleContent>
                 </Collapsible>
-                <a
+                <LandingLink
                   v-else
-                  :href="link.href"
+                  :link="link"
                   class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                   @click="closeMobileMenu"
                 >
                   {{ link.label }}
-                </a>
+                </LandingLink>
               </template>
             </nav>
             <div class="mt-auto flex flex-col gap-2 p-4">

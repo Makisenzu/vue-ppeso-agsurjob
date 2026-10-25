@@ -1,4 +1,4 @@
-import { h, type Component, type FunctionalComponent } from 'vue'
+import { computed, h, type Component, type FunctionalComponent } from 'vue'
 import { Mail } from '@lucide/vue'
 import agsurSeal from '@/assets/images/agsur.png'
 import pesoLogo from '@/assets/images/pesologo.png'
@@ -6,11 +6,10 @@ import doleLogo from '@/assets/images/dole.png'
 import doleLogoDark from '@/assets/images/dole-dark.png'
 import bagongPilipinasLogo from '@/assets/images/bagongPilipinas.png'
 import bagongPilipinasLogoDark from '@/assets/images/bagongPh-dark.png'
-import { navLinks } from '@/composables/landing/useLandingNavigation'
+import { useLandingLinks, type LandingLinkTarget } from '@/composables/landing/useLandingNavigation'
 
-export interface LandingFooterLink {
+export interface LandingFooterLink extends LandingLinkTarget {
   label: string
-  href: string
 }
 
 export interface LandingFooterLogo {
@@ -22,11 +21,8 @@ export interface LandingFooterLogo {
   alt: string
 }
 
-// Same anchors as the header: top-level links under "Explore", the PESO Programs dropdown under "Programs"
-const EXPLORE_LINKS: LandingFooterLink[] = navLinks.map(({ label, href }) => ({ label, href }))
-const PROGRAM_LINKS: LandingFooterLink[] = navLinks.find((link) => link.href === '#programs')?.children ?? []
-
 export interface LandingFooterContact extends LandingFooterLink {
+  href: string
   type: string
   icon: Component
 }
@@ -55,12 +51,19 @@ const LOGOS: LandingFooterLogo[] = [
 
 /** Landing page footer: brand and partner seals, link columns, and a copyright bar. */
 export function useLandingFooter() {
+  // Same links as the header: top-level links under "Explore", the PESO Programs dropdown under "Programs"
+  const { links } = useLandingLinks()
+  const exploreLinks = computed<LandingFooterLink[]>(() => links.value.map(({ label, href, to }) => ({ label, href, to })))
+  const programLinks = computed<LandingFooterLink[]>(
+    () => links.value.find((link) => link.label === 'PESO Programs')?.children ?? [],
+  )
+
   return {
     office: 'Provincial Public Employment Service Office',
     address: 'Government Center, Patin-ay, Prosperidad, Agusan del Sur',
     contacts: CONTACTS,
-    exploreLinks: EXPLORE_LINKS,
-    programLinks: PROGRAM_LINKS,
+    exploreLinks,
+    programLinks,
     logos: LOGOS,
     year: new Date().getFullYear(),
   }

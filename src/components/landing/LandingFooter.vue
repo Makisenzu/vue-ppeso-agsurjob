@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { Separator } from '@/components/ui/separator'
+import LandingLink from '@/components/landing/LandingLink.vue'
 import { useLandingFooter } from '@/composables/landing/useLandingFooter'
 import agsurSeal from '@/assets/images/agsur.png'
 
@@ -59,10 +60,10 @@ const { office, address, contacts, exploreLinks, programLinks, logos, year } = u
       <nav aria-labelledby="footer-explore" class="flex flex-col gap-4">
         <h3 id="footer-explore" class="text-sm font-semibold text-foreground">Explore</h3>
         <ul class="flex flex-col gap-1">
-          <li v-for="link in exploreLinks" :key="link.href">
-            <a :href="link.href" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
+          <li v-for="link in exploreLinks" :key="link.label">
+            <LandingLink :link="link" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
               {{ link.label }}
-            </a>
+            </LandingLink>
           </li>
         </ul>
       </nav>
@@ -71,10 +72,10 @@ const { office, address, contacts, exploreLinks, programLinks, logos, year } = u
       <nav aria-labelledby="footer-programs" class="flex flex-col gap-4">
         <h3 id="footer-programs" class="text-sm font-semibold text-foreground">Programs</h3>
         <ul class="flex flex-col gap-1">
-          <li v-for="link in programLinks" :key="link.href">
-            <a :href="link.href" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
+          <li v-for="link in programLinks" :key="link.label">
+            <LandingLink :link="link" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
               {{ link.label }}
-            </a>
+            </LandingLink>
           </li>
         </ul>
       </nav>
