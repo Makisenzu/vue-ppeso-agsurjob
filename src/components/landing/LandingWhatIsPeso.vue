@@ -73,10 +73,10 @@ const {
           </h2>
           <p class="max-w-2xl text-base text-pretty text-muted-foreground sm:text-lg">{{ chartDescription }}</p>
 
-          <!-- Employment status legend: the dot on each photo -->
+          <!-- Employment status legend: a swatch of each card border color -->
           <ul class="flex flex-wrap gap-x-5 gap-y-2 pt-2 lg:justify-center" aria-label="Legend">
             <li v-for="item in legend" :key="item.label" class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="size-2.5 shrink-0 rounded-full" :class="item.dot" aria-hidden="true" />
+              <span class="h-3.5 w-6 shrink-0 rounded-sm border-2 bg-card" :class="item.border" aria-hidden="true" />
               {{ item.label }}
             </li>
           </ul>
@@ -96,7 +96,7 @@ const {
           <li class="flex flex-col lg:w-full lg:items-center">
             <!-- Top of the chart (Governor over the PESO Manager), joined by short stems; the office head is tinted -->
             <template v-for="(person, index) in orgChart.top" :key="person.id">
-              <span v-if="index > 0" class="ml-8 h-6 w-px bg-border lg:ml-0" aria-hidden="true" />
+              <span v-if="index > 0" class="ml-8 h-6 w-px bg-org-line lg:ml-0" aria-hidden="true" />
               <LandingOrgChartCard
                 :person="person"
                 :status-style="statusStyles[person.status]"
@@ -106,17 +106,17 @@ const {
             </template>
 
             <!-- Desktop: stem from the top down to the divisions' crossbar -->
-            <span v-if="orgChart.top.length && orgChart.units.length" class="hidden h-8 w-px bg-border lg:block" aria-hidden="true" />
+            <span v-if="orgChart.top.length && orgChart.units.length" class="hidden h-8 w-px bg-org-line lg:block" aria-hidden="true" />
 
             <ul
               v-if="orgChart.units.length"
-              class="ml-4 flex flex-col gap-10 border-l border-border pt-6 pl-6 lg:ml-0 lg:grid lg:w-full lg:grid-cols-3 lg:gap-0 lg:border-l-0 lg:pt-0 lg:pl-0"
+              class="ml-4 flex flex-col gap-10 border-l border-org-line pt-6 pl-6 lg:ml-0 lg:grid lg:w-full lg:grid-cols-3 lg:gap-0 lg:border-l-0 lg:pt-0 lg:pl-0"
               aria-label="Divisions"
             >
               <li
                 v-for="unit in orgChart.units"
                 :key="unit.id"
-                class="relative flex flex-col gap-3 before:absolute before:top-4 before:-left-6 before:h-px before:w-6 before:bg-border lg:px-3 lg:pt-8 lg:before:top-0 lg:before:left-1/2 lg:before:h-8 lg:before:w-px lg:after:absolute lg:after:top-0 lg:after:right-0 lg:after:left-0 lg:after:h-px lg:after:bg-border lg:first:after:left-1/2 lg:last:after:right-1/2"
+                class="relative flex flex-col gap-3 before:absolute before:top-4 before:-left-6 before:h-px before:w-6 before:bg-org-line lg:px-3 lg:pt-8 lg:before:top-0 lg:before:left-1/2 lg:before:h-8 lg:before:w-px lg:after:absolute lg:after:top-0 lg:after:right-0 lg:after:left-0 lg:after:h-px lg:after:bg-org-line lg:first:after:left-1/2 lg:last:after:right-1/2"
               >
                 <!-- Division name over its column -->
                 <div class="flex flex-col gap-0.5 lg:min-h-16 lg:items-center lg:text-center">
@@ -129,14 +129,14 @@ const {
                 <ul
                   v-if="unit.members.length"
                   class="flex flex-col gap-3"
-                  :class="unit.head ? 'ml-6 border-l border-border pl-4' : ''"
+                  :class="unit.head ? 'ml-6 border-l border-org-line pl-4' : ''"
                   :aria-label="`${unit.abbreviation ?? unit.name} staff`"
                 >
                   <li
                     v-for="person in unit.members"
                     :key="person.id"
                     class="relative"
-                    :class="unit.head ? 'before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4 before:bg-border' : ''"
+                    :class="unit.head ? 'before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4 before:bg-org-line' : ''"
                   >
                     <LandingOrgChartCard :person="person" :status-style="statusStyles[person.status]" />
                   </li>

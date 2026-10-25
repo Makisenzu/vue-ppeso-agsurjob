@@ -10,8 +10,8 @@ export interface LandingPesoService {
 
 export interface LandingPesoStatusStyle {
   label: string
-  /** Small dot beside the name in the status color */
-  dot: string
+  /** Card border in the status color (also the legend's swatch) */
+  border: string
 }
 
 export interface LandingPesoLaw {
@@ -55,11 +55,11 @@ const SERVICES: LandingPesoService[] = [
 
 // Legend colors are tokens in style.css (--org-*), following the office's own staffing pattern chart
 const STATUS_STYLES: Record<OrgChartStatus, LandingPesoStatusStyle> = {
-  elected: { label: ORG_EMPLOYMENT_STATUS_LABELS.elected, dot: 'bg-org-elected' },
-  permanent: { label: ORG_EMPLOYMENT_STATUS_LABELS.permanent, dot: 'bg-org-permanent' },
-  casual: { label: ORG_EMPLOYMENT_STATUS_LABELS.casual, dot: 'bg-org-casual' },
-  job_order: { label: ORG_EMPLOYMENT_STATUS_LABELS.job_order, dot: 'bg-org-job-order' },
-  vacant: { label: 'Vacant', dot: 'border border-dashed border-muted-foreground' },
+  elected: { label: ORG_EMPLOYMENT_STATUS_LABELS.elected, border: 'border-org-elected' },
+  permanent: { label: ORG_EMPLOYMENT_STATUS_LABELS.permanent, border: 'border-org-permanent' },
+  casual: { label: ORG_EMPLOYMENT_STATUS_LABELS.casual, border: 'border-org-casual' },
+  job_order: { label: ORG_EMPLOYMENT_STATUS_LABELS.job_order, border: 'border-org-job-order' },
+  vacant: { label: 'Vacant', border: 'border-dashed border-muted-foreground/60' },
 }
 
 const LEGEND = Object.values(STATUS_STYLES)
@@ -83,8 +83,8 @@ export function useLandingWhatIsPeso() {
       'It is the first stop for anyone looking for work, and for employers looking for workers, in the province.',
     laws: LAWS,
     services: SERVICES,
-    chartTitle: 'Organizational Structure',
-    chartDescription: 'How the Provincial PESO is organized and staffed, from the Governor to each division.',
+    chartTitle: 'Provincial Public Employment Service Office',
+    chartDescription: 'Organizational Structure and Staffing Pattern.',
     orgChart,
     isOrgChartLoading,
     legend: LEGEND,
