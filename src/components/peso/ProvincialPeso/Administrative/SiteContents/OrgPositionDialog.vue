@@ -126,7 +126,7 @@ const {
 
           <div class="grid gap-4 sm:grid-cols-2">
             <FormField v-slot="{ componentField }" name="status">
-              <FormItem>
+              <FormItem class="min-w-0">
                 <FormLabel>Employment status</FormLabel>
                 <Select v-bind="componentField" :disabled="isSubmitting">
                   <FormControl>
@@ -145,16 +145,17 @@ const {
               </FormItem>
             </FormField>
 
+            <!-- min-w-0 + truncate: long division names end in "…" instead of widening the dialog -->
             <FormField v-slot="{ componentField }" name="unitId">
-              <FormItem>
+              <FormItem class="min-w-0">
                 <FormLabel>Belongs to</FormLabel>
                 <Select v-bind="componentField" :disabled="isSubmitting">
                   <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select a group" />
+                    <SelectTrigger class="w-full min-w-0">
+                      <SelectValue placeholder="Select a group" class="block! min-w-0 truncate" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent class="max-w-[calc(100vw-2rem)]">
                     <SelectItem v-for="option in groupOptions" :key="option.value" :value="option.value">
                       {{ option.label }}
                     </SelectItem>
