@@ -18,6 +18,8 @@ export interface LandingNavLink extends LandingNavChild {
 
 // Hash anchors point to landing page sections; `to` links open their own page
 export const navLinks: LandingNavLink[] = [
+  // Top of the landing page (the hero); from other public pages it leads back there
+  { label: 'Home', href: '#main' },
   {
     label: 'About',
     href: '#about',
@@ -64,7 +66,16 @@ export function useLandingLinks() {
 export function useLandingNavigation() {
   const mode = useColorMode()
   const mobileOpen = ref(false)
+  const route = useRoute()
   const { links } = useLandingLinks()
+
+  // Nav item highlighted on load: Home on the landing page, otherwise the item whose dropdown holds the page
+  const activeNavIndex = computed(() => {
+    const index = navLinks.findIndex((link) =>
+      link.children?.some((child) => typeof child.to === 'object' && 'name' in child.to && child.to.name === route.name),
+    )
+    return Math.max(index, 0)
+  })
 
   const isDark = computed(() => mode.value === 'dark')
 
@@ -78,6 +89,7 @@ export function useLandingNavigation() {
 
   return {
     navLinks: links,
+    activeNavIndex,
     mobileOpen,
     isDark,
     toggleTheme,

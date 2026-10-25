@@ -21,7 +21,7 @@ import { useLandingNavigation } from '@/composables/landing/useLandingNavigation
 import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
 
-const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandingNavigation()
+const { navLinks, activeNavIndex, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandingNavigation()
 </script>
 
 <template>
@@ -43,7 +43,7 @@ const { navLinks, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandin
           :particle-count="15"
           :particle-distances="[90, 10]"
           :particle-r="100"
-          :initial-active-index="0"
+          :initial-active-index="activeNavIndex"
           :animation-time="600"
           :time-variance="300"
           :colors="[1, 2, 3, 1, 2, 3, 1, 4]"
