@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LandingFooter from '@/components/landing/LandingFooter.vue'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 import LandingAbout from '@/components/landing/LandingAbout.vue'
 import LandingHero from '@/components/landing/LandingHero.vue'
@@ -18,5 +19,6 @@ import LandingPrograms from '@/components/landing/LandingPrograms.vue'
       <LandingMunicipalities />
       <!-- Remaining landing sections (jobs, programs, about, contact) go here -->
     </main>
+    <LandingFooter />
   </div>
 </template>

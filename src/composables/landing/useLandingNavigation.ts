@@ -8,7 +8,7 @@ export interface LandingNavLink {
 }
 
 // Anchors point to landing page sections (to be added below the header)
-const navLinks: LandingNavLink[] = [
+export const navLinks: LandingNavLink[] = [
   {
     label: 'About',
     href: '#about',
