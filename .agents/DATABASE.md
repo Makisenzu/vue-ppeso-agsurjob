@@ -749,6 +749,29 @@ Hero banners of the public pages outside the landing page (first: `/what-is-peso
 - Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query it through an untyped accessor and type rows with `PageHeroRow`.
 - Managed from Site Contents → Page banners (`PageHeroes.vue`, `PageHeroEditor.vue`, `pageHeroManagerStore`).
 
+#### `org_chart_units` / `org_chart_positions` (migration 052)
+
+The Provincial PESO's organizational structure & staffing pattern on `/what-is-peso`, fully managed by PESO: divisions, positions, who holds them and their photos. Seeded with the office's chart as of October 2026 (only into empty tables).
+
+`org_chart_units`: `id` (uuid PK), `name` (≤ 120), `abbreviation` (nullable, ≤ 20), `sort_order` (left to right), `created_at`, `updated_by` / `updated_at` (trigger).
+
+| `org_chart_positions` column | Type                    | Notes |
+| ---------------------------- | ----------------------- | ----- |
+| `id`                         | `uuid`                  | PK |
+| `unit_id`                    | `uuid`                  | nullable FK → `org_chart_units` (ON DELETE RESTRICT). NULL: top of the chart (Governor, PESO Manager) |
+| `title`                      | `text`                  | ≤ 200; plantilla title with the designation in parentheses |
+| `holder_name`                | `text`                  | nullable, ≤ 120. NULL: vacant |
+| `employment_status`          | `org_employment_status` | `elected` / `permanent` / `casual` / `job_order` (the office's legend) |
+| `is_head`                    | `boolean`               | unit head, or the office head at the top; unique per group (partial index on `COALESCE(unit_id, 'top')`) |
+| `photo_path`                 | `text`                  | nullable; `site-content-media` at `org-chart/<id>/<filename>` (CHECK) |
+| `sort_order`                 | `int4`                  | top to bottom within the group |
+| `created_at` / `updated_by` / `updated_at` | | `updated_*` set by trigger |
+
+- RLS: everyone (`anon` included) reads both tables; `provincial_peso` / `admin` have full CRUD. A unit with positions can't be deleted (FK RESTRICT); the service turns that and the one-head index into readable messages.
+- Storage: policy `site_content_media_org_chart_insert` lets staff upload under `org-chart/<existing position id>/`; 046's staff policy already covers reading, replacing and deleting.
+- Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query them through an untyped accessor and type rows with `OrgChartUnitRow` / `OrgChartPositionRow`.
+- Managed from Site Contents → Organizational chart (`OrgChart.vue`, `OrgUnitDialog.vue`, `OrgPositionDialog.vue`, `orgChartManagerStore`); the public page loads it through `siteContentStore.loadOrgChart()` and `toOrgChart()`.
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

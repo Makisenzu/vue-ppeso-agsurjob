@@ -1,5 +1,9 @@
 import {
   PUBLIC_PAGES,
+  type OrgChart,
+  type OrgChartPerson,
+  type OrgChartPositionItem,
+  type OrgChartUnitRow,
   type LandingHeroAction,
   type LandingHeroSlide,
   type PageHero,
@@ -47,5 +51,50 @@ export function toPageHero(page: PublicPage, row: PageHeroRow | null, imageUrl: 
     description: row?.description || defaults.description,
     backgroundImage: imageUrl,
     imageAlt: row?.image_alt ?? '',
+  }
+}
+
+/** First and last name initials, skipping the title, suffix and middle initials ("Hon. Santiago B. Cane, Jr." → "SC"). */
+export function getNameInitials(name: string | null): string {
+  if (!name) return ''
+  const words = name
+    .replace(/^Hon\.\s*/i, '')
+    .replace(/,.*$/, '')
+    .split(/\s+/)
+    .filter((word) => word && !/^[A-Z]\.$/i.test(word))
+  return ((words[0]?.[0] ?? '') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase()
+}
+
+export function toOrgChartPerson(position: OrgChartPositionItem): OrgChartPerson {
+  return {
+    id: position.id,
+    name: position.holder_name,
+    position: position.title,
+    status: position.holder_name ? position.employment_status : 'vacant',
+    photo: position.photo_url,
+    initials: getNameInitials(position.holder_name),
+    isHead: position.is_head,
+  }
+}
+
+const bySortOrder = <T extends { sort_order: number; created_at: string }>(a: T, b: T) =>
+  a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)
+
+/** Units and positions (migration 052) → the public chart: top positions, then each unit's head and staff. */
+export function toOrgChart(units: OrgChartUnitRow[], positions: OrgChartPositionItem[]): OrgChart {
+  const sorted = [...positions].sort(bySortOrder)
+  return {
+    top: sorted.filter((position) => !position.unit_id).map(toOrgChartPerson),
+    units: [...units].sort(bySortOrder).map((unit) => {
+      const own = sorted.filter((position) => position.unit_id === unit.id)
+      const head = own.find((position) => position.is_head)
+      return {
+        id: unit.id,
+        name: unit.name,
+        abbreviation: unit.abbreviation,
+        head: head ? toOrgChartPerson(head) : null,
+        members: own.filter((position) => position !== head).map(toOrgChartPerson),
+      }
+    }),
   }
 }

@@ -2,12 +2,13 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { siteContentService } from '@/services/common/siteContentService'
 import { mediaService } from '@/services/common/mediaService'
-import { toHeroSlide, toPageHero } from '@/helpers/common/siteContentHelper'
+import { toHeroSlide, toOrgChart, toPageHero } from '@/helpers/common/siteContentHelper'
 import {
   SITE_CONTENT_MEDIA_BUCKET,
   type AgsurMunicipality,
   type LandingHeroSlide,
   type LandingProgram,
+  type OrgChart,
   type PageHero,
   type PublicPage,
 } from '@/types/common/siteContent'
@@ -28,6 +29,10 @@ export const useSiteContentStore = defineStore('siteContent', () => {
   // Hero of each public page, saved text already merged over the built-in text
   const pageHeroes = ref<Partial<Record<PublicPage, PageHero>>>({})
   const loadingPageHeroes = ref<PublicPage[]>([])
+  // Organizational chart of the "What is PESO?" page; null until loaded or when loading failed
+  const orgChart = ref<OrgChart | null>(null)
+  const isOrgChartLoading = ref(false)
+  const isOrgChartLoaded = ref(false)
 
   // ─── Actions ───
   // Loads once per visit. No toast on failure: the landing page falls back to its built-in slides.
@@ -125,6 +130,33 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     pageHeroes.value = rest
   }
 
+  // Loads once per visit. No toast on failure: the page leaves the chart out.
+  const loadOrgChart = async () => {
+    if (isOrgChartLoaded.value || isOrgChartLoading.value) return
+    isOrgChartLoading.value = true
+    try {
+      const { units, positions } = await siteContentService.fetchOrgChart()
+      orgChart.value = toOrgChart(
+        units,
+        positions.map(position => ({
+          ...position,
+          photo_url: position.photo_path ? mediaService.getPublicUrl(position.photo_path, SITE_CONTENT_MEDIA_BUCKET) : null,
+        })),
+      )
+    } catch (error) {
+      console.error(error)
+    } finally {
+      isOrgChartLoaded.value = true
+      isOrgChartLoading.value = false
+    }
+  }
+
+  // Called after PESO edits the chart, so the page reloads it on its next visit
+  const resetOrgChart = () => {
+    orgChart.value = null
+    isOrgChartLoaded.value = false
+  }
+
   return {
     heroSlides,
     isHeroLoading,
@@ -142,5 +174,9 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     pageHeroes,
     loadPageHero,
     resetPageHero,
+    orgChart,
+    isOrgChartLoading,
+    loadOrgChart,
+    resetOrgChart,
   }
 })

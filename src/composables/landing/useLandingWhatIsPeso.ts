@@ -1,6 +1,17 @@
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSiteContentStore } from '@/stores/common/siteContentStore'
+import { ORG_EMPLOYMENT_STATUS_LABELS, type OrgChartStatus } from '@/types/common/siteContent'
+
 export interface LandingPesoService {
   name: string
   description: string
+}
+
+export interface LandingPesoStatusStyle {
+  label: string
+  /** Small dot beside the name in the status color */
+  dot: string
 }
 
 export interface LandingPesoLaw {
@@ -42,8 +53,28 @@ const SERVICES: LandingPesoService[] = [
   },
 ]
 
-/** "What is PESO?" page (/what-is-peso), under its banner: a definition and legal basis on the left, the office's services listed on the right. */
+// Legend colors are tokens in style.css (--org-*), following the office's own staffing pattern chart
+const STATUS_STYLES: Record<OrgChartStatus, LandingPesoStatusStyle> = {
+  elected: { label: ORG_EMPLOYMENT_STATUS_LABELS.elected, dot: 'bg-org-elected' },
+  permanent: { label: ORG_EMPLOYMENT_STATUS_LABELS.permanent, dot: 'bg-org-permanent' },
+  casual: { label: ORG_EMPLOYMENT_STATUS_LABELS.casual, dot: 'bg-org-casual' },
+  job_order: { label: ORG_EMPLOYMENT_STATUS_LABELS.job_order, dot: 'bg-org-job-order' },
+  vacant: { label: 'Vacant', dot: 'border border-dashed border-muted-foreground' },
+}
+
+const LEGEND = Object.values(STATUS_STYLES)
+
+/** "What is PESO?" page (/what-is-peso), under its banner: a definition and legal basis on the left, the office's services listed on the right,
+ * then the organizational structure and staffing pattern below. */
 export function useLandingWhatIsPeso() {
+  // The chart is managed by Provincial PESO in Site Contents → Organizational chart (migration 052)
+  const store = useSiteContentStore()
+  const { orgChart, isOrgChartLoading } = storeToRefs(store)
+
+  onMounted(() => {
+    void store.loadOrgChart()
+  })
+
   return {
     title: 'Public Employment Service Office',
     definition:
@@ -52,5 +83,11 @@ export function useLandingWhatIsPeso() {
       'It is the first stop for anyone looking for work, and for employers looking for workers, in the province.',
     laws: LAWS,
     services: SERVICES,
+    chartTitle: 'Organizational Structure',
+    chartDescription: 'How the Provincial PESO is organized and staffed, from the Governor to each division.',
+    orgChart,
+    isOrgChartLoading,
+    legend: LEGEND,
+    statusStyles: STATUS_STYLES,
   }
 }

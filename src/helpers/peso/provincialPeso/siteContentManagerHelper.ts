@@ -81,10 +81,15 @@ export function assertPageHeroPhoto(file: File): void {
   if (getSiteContentMediaType(file) === 'video') throw new Error('Page banners need a photo: use a JPG, PNG or WebP.')
 }
 
+/** Organizational chart photos are images only (the avatar renders an <img>); throws a readable message otherwise. */
+export function assertOrgChartPhoto(file: File): void {
+  if (getSiteContentMediaType(file) === 'video') throw new Error('Photos need an image: use a JPG, PNG or WebP.')
+}
+
 /**
  * Storage path for an uploaded photo / video: <folder>/<cleaned name>_<timestamp>.<ext>. The folder is a
  * site_contents id for slides (policy in 046), programs/<program> for program cards (policy in 049) or
- * municipalities/<municipality> for municipality logos (policy in 050) or pages/<page> for page banners (policy in 051).
+ * municipalities/<municipality> for municipality logos (policy in 050) pages/<page> for page banners (policy in 051) or org-chart/<position id> for staff photos (policy in 052).
  */
 export function buildSiteContentMediaPath(contentId: string, filename: string): string {
   const lastDot = filename.lastIndexOf('.')

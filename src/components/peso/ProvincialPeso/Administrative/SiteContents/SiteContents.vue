@@ -28,6 +28,7 @@ import {
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import ProgramCards from '@/components/peso/ProvincialPeso/Administrative/SiteContents/ProgramCards.vue'
+import OrgChart from '@/components/peso/ProvincialPeso/Administrative/SiteContents/OrgChart.vue'
 import PageHeroes from '@/components/peso/ProvincialPeso/Administrative/SiteContents/PageHeroes.vue'
 import MunicipalityLogos from '@/components/peso/ProvincialPeso/Administrative/SiteContents/MunicipalityLogos.vue'
 import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
@@ -77,7 +78,7 @@ const {
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Site Contents</h1>
-      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos and page banners.</p>
+      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos, page banners and the organizational chart.</p>
     </div>
 
     <!-- Each section can be hidden or shown (remembered per browser) -->
@@ -230,6 +231,9 @@ const {
 
     <!-- Banners of the public pages outside the landing page (What is PESO?) -->
     <PageHeroes />
+
+    <!-- Organizational chart of the What is PESO? page -->
+    <OrgChart />
   </div>
 
   <!-- New / Edit Slide Dialog -->

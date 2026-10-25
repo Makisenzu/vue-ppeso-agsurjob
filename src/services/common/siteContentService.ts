@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabaseClient'
 import type {
   MunicipalityLogoRow,
+  OrgChartPositionRow,
+  OrgChartUnitRow,
   PageHeroRow,
   ProgramCardRow,
   PublicPage,
@@ -18,6 +20,9 @@ const municipalityLogosTable = () => (supabase.schema('system') as any).from('la
 // Same for system.public_page_heroes (migration 051), typed by PageHeroRow
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pageHeroesTable = () => (supabase.schema('system') as any).from('public_page_heroes')
+// Same for system.org_chart_units / org_chart_positions (migration 052)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const orgChartTable = (table: 'org_chart_units' | 'org_chart_positions') => (supabase.schema('system') as any).from(table)
 
 export const siteContentService = {
   /**
@@ -60,5 +65,16 @@ export const siteContentService = {
     const { data, error } = await pageHeroesTable().select('*').eq('page', page).maybeSingle()
     if (error) throw new Error(error.message || 'Failed to load the page banner.')
     return (data as PageHeroRow | null) ?? null
+  },
+
+  /** Units and positions of the organizational chart; every row is public (RLS, 052). */
+  async fetchOrgChart(): Promise<{ units: OrgChartUnitRow[]; positions: OrgChartPositionRow[] }> {
+    const [units, positions] = await Promise.all([
+      orgChartTable('org_chart_units').select('*'),
+      orgChartTable('org_chart_positions').select('*'),
+    ])
+    const error = units.error ?? positions.error
+    if (error) throw new Error(error.message || 'Failed to load the organizational chart.')
+    return { units: (units.data ?? []) as OrgChartUnitRow[], positions: (positions.data ?? []) as OrgChartPositionRow[] }
   },
 }

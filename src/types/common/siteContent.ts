@@ -177,3 +177,87 @@ export const PUBLIC_PAGES: { key: PublicPage; name: string; path: string; defaul
     },
   },
 ]
+
+// ─── Organizational chart (migration 052) ───
+// system.org_chart_units / org_chart_positions are not in database.types.ts until `npm run types:gen`
+// is re-run, so their rows are typed here; switch to the generated types once they include them.
+
+/** The office's legend; a position without a holder shows as vacant instead */
+export type OrgEmploymentStatus = 'elected' | 'permanent' | 'casual' | 'job_order'
+
+export interface OrgChartUnitRow {
+  id: string
+  name: string
+  abbreviation: string | null
+  sort_order: number
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface OrgChartPositionRow {
+  id: string
+  /** Null: top of the chart (Governor, PESO Manager) */
+  unit_id: string | null
+  title: string
+  /** Null: vacant */
+  holder_name: string | null
+  employment_status: OrgEmploymentStatus
+  /** The unit's head, or the office head at the top */
+  is_head: boolean
+  /** Path in 'site-content-media' at org-chart/<id>/<filename> */
+  photo_path: string | null
+  sort_order: number
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type OrgChartUnitInsert = Pick<OrgChartUnitRow, 'name' | 'abbreviation' | 'sort_order'>
+export type OrgChartPositionInsert = Pick<
+  OrgChartPositionRow,
+  'unit_id' | 'title' | 'holder_name' | 'employment_status' | 'is_head' | 'sort_order'
+>
+
+/** A position for the management page, with its photo resolved to a public URL. */
+export type OrgChartPositionItem = OrgChartPositionRow & { photo_url: string | null }
+
+export type OrgChartStatus = OrgEmploymentStatus | 'vacant'
+
+/** One card of the public chart. */
+export interface OrgChartPerson {
+  id: string
+  /** Null for a vacant position */
+  name: string | null
+  position: string
+  status: OrgChartStatus
+  photo: string | null
+  /** Avatar fallback; empty for a vacant position, which shows a person icon */
+  initials: string
+  isHead: boolean
+}
+
+export interface OrgChartUnit {
+  id: string
+  name: string
+  abbreviation: string | null
+  /** Null when no position of the unit is marked as its head */
+  head: OrgChartPerson | null
+  members: OrgChartPerson[]
+}
+
+export interface OrgChart {
+  /** Positions above the divisions, top first (Governor, then the PESO Manager) */
+  top: OrgChartPerson[]
+  units: OrgChartUnit[]
+}
+
+export const ORG_EMPLOYMENT_STATUS_LABELS: Record<OrgEmploymentStatus, string> = {
+  elected: 'Coterminous / Elected',
+  permanent: 'Permanent',
+  casual: 'Casual',
+  job_order: 'Job order',
+}
+
+// Mirror the column CHECKs in 052
+export const ORG_CHART_LIMITS = { unitName: 120, abbreviation: 20, title: 200, holderName: 120 }
