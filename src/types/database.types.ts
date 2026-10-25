@@ -3520,6 +3520,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_page_heroes: {
+        Row: {
+          description: string | null
+          eyebrow: string | null
+          image_alt: string | null
+          image_path: string | null
+          page: Database["system"]["Enums"]["public_page"]
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          eyebrow?: string | null
+          image_alt?: string | null
+          image_path?: string | null
+          page: Database["system"]["Enums"]["public_page"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          eyebrow?: string | null
+          image_alt?: string | null
+          image_path?: string | null
+          page?: Database["system"]["Enums"]["public_page"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       site_contents: {
         Row: {
           announcement_id: string | null
@@ -3677,6 +3710,7 @@ export type Database = {
         | "fly_now_pay_later"
         | "spes"
         | "skills_training"
+      public_page: "what_is_peso"
       site_content_media_type: "image" | "video"
       site_content_placement: "hero_carousel"
     }
@@ -3988,6 +4022,7 @@ export const Constants = {
         "spes",
         "skills_training",
       ],
+      public_page: ["what_is_peso"],
       site_content_media_type: ["image", "video"],
       site_content_placement: ["hero_carousel"],
     },

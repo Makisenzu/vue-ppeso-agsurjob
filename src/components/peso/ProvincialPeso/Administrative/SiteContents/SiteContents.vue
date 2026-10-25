@@ -28,6 +28,7 @@ import {
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import ProgramCards from '@/components/peso/ProvincialPeso/Administrative/SiteContents/ProgramCards.vue'
+import PageHeroes from '@/components/peso/ProvincialPeso/Administrative/SiteContents/PageHeroes.vue'
 import MunicipalityLogos from '@/components/peso/ProvincialPeso/Administrative/SiteContents/MunicipalityLogos.vue'
 import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
 import { useSiteContents } from '@/composables/peso/provincialPeso/useSiteContents'
@@ -76,7 +77,7 @@ const {
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Site Contents</h1>
-      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos and municipality logos.</p>
+      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos and page banners.</p>
     </div>
 
     <!-- Each section can be hidden or shown (remembered per browser) -->
@@ -226,6 +227,9 @@ const {
 
     <!-- Logos of the landing page's municipalities section -->
     <MunicipalityLogos />
+
+    <!-- Banners of the public pages outside the landing page (What is PESO?) -->
+    <PageHeroes />
   </div>
 
   <!-- New / Edit Slide Dialog -->

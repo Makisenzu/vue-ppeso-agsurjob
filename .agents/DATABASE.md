@@ -729,6 +729,26 @@ Logos of the province's 13 municipalities and 1 city for the landing page's muni
 - Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query it through an untyped accessor and type rows with `MunicipalityLogoRow`.
 - Managed from Site Contents → Municipality logos (`MunicipalityLogos.vue`, `municipalityLogoManagerStore`).
 
+#### `public_page_heroes` (migration 051)
+
+Hero banners of the public pages outside the landing page (first: `/what-is-peso`). Same fixed-row shape as `landing_program_cards`: one row per page, seeded by the migration; new pages add an enum value and a seeded row in a later migration. Page names and built-in texts live in the app (`PUBLIC_PAGES` in `src/types/common/siteContent.ts`).
+
+| Column        | Type          | Notes |
+| ------------- | ------------- | ----- |
+| `page`        | `public_page` | PK: `what_is_peso` |
+| `eyebrow`     | `text`        | nullable, ≤ 80 chars. NULL shows the built-in label |
+| `title`       | `text`        | nullable, ≤ 120 chars. NULL shows the built-in title |
+| `description` | `text`        | nullable, ≤ 300 chars. NULL shows the built-in description |
+| `image_path`  | `text`        | nullable; path in `site-content-media` at `pages/<page>/<filename>` (CHECK). NULL shows the plain band |
+| `image_alt`   | `text`        | nullable, ≤ 200 chars |
+| `updated_by`  | `uuid`        | FK → `core.profiles`, set by trigger on update |
+| `updated_at`  | `timestamptz` | set by trigger on update |
+
+- RLS: everyone (`anon` included) reads all rows; `provincial_peso` / `admin` update the text and image columns only (column grant). Photos only, no video.
+- Storage: policy `site_content_media_page_heroes_insert` lets staff upload under `pages/<page>/`; 046's staff policy already covers reading, replacing and deleting.
+- Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query it through an untyped accessor and type rows with `PageHeroRow`.
+- Managed from Site Contents → Page banners (`PageHeroes.vue`, `PageHeroEditor.vue`, `pageHeroManagerStore`).
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

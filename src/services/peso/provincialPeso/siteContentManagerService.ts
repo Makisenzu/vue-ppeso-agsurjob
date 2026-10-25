@@ -7,8 +7,11 @@ import {
   type LandingProgram,
   type MunicipalityLogoItem,
   type MunicipalityLogoRow,
+  type PageHeroItem,
+  type PageHeroRow,
   type ProgramCardItem,
   type ProgramCardRow,
+  type PublicPage,
   type SiteContentInsert,
   type SiteContentListItem,
   type SiteContentPlacement,
@@ -24,6 +27,15 @@ const programCardsTable = () => (supabase.schema('system') as any).from('landing
 // Same for system.landing_municipality_logos (migration 050), typed by MunicipalityLogoRow
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const municipalityLogosTable = () => (supabase.schema('system') as any).from('landing_municipality_logos')
+
+// Same for system.public_page_heroes (migration 051), typed by PageHeroRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pageHeroesTable = () => (supabase.schema('system') as any).from('public_page_heroes')
+
+const toPageHeroItem = (row: PageHeroRow): PageHeroItem => ({
+  ...row,
+  image_url: row.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : null,
+})
 
 const toMunicipalityLogoItem = (row: MunicipalityLogoRow): MunicipalityLogoItem => ({
   ...row,
@@ -152,6 +164,33 @@ export const siteContentManagerService = {
       .upload(path, file, { contentType: file.type, upsert: false })
 
     if (error) throw new Error(error.message || 'Failed to upload the logo.')
+    return path
+  },
+
+  async fetchPageHeroes(): Promise<PageHeroItem[]> {
+    const { data, error } = await pageHeroesTable().select('*')
+    if (error) throw new Error(error.message || 'Failed to load the page banners.')
+    return ((data ?? []) as PageHeroRow[]).map(toPageHeroItem)
+  },
+
+  /** Edits a page's banner; the rows themselves are fixed (051), so there is no create or delete. */
+  async updatePageHero(
+    page: PublicPage,
+    payload: Partial<Pick<PageHeroRow, 'eyebrow' | 'title' | 'description' | 'image_path' | 'image_alt'>>,
+  ): Promise<PageHeroItem> {
+    const { data, error } = await pageHeroesTable().update(payload).eq('page', page).select().single()
+    if (error) throw new Error(error.message || 'Failed to update the page banner.')
+    return toPageHeroItem(data as PageHeroRow)
+  },
+
+  /** Uploads a banner photo under pages/<page>/ (the storage policy in 051 only allows those folders); returns the path. */
+  async uploadPageHeroImage(page: PublicPage, file: File): Promise<string> {
+    const path = buildSiteContentMediaPath(`pages/${page}`, file.name)
+    const { error } = await supabase.storage
+      .from(SITE_CONTENT_MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false })
+
+    if (error) throw new Error(error.message || 'Failed to upload the photo.')
     return path
   },
 

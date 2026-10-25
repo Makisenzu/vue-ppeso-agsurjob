@@ -10,12 +10,12 @@ const { title, definition, purpose, laws, services } = useLandingWhatIsPeso()
       <!-- Definition stays in view beside the services on desktop -->
       <div class="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
         <!-- Same Times New Roman treatment as the other landing headings (DESIGN.md exception) -->
-        <h1
+        <h2
           id="what-is-peso-title"
-          class="font-['Times_New_Roman',Times,serif] text-2xl font-bold tracking-[0.15em] text-foreground uppercase sm:text-3xl lg:text-4xl lg:tracking-[0.2em]"
+          class="font-['Times_New_Roman',Times,serif] text-2xl font-bold tracking-[0.15em] text-foreground uppercase sm:text-3xl lg:tracking-[0.2em]"
         >
           {{ title }}
-        </h1>
+        </h2>
 
         <p class="text-base text-pretty text-foreground sm:text-lg">{{ definition }}</p>
         <p class="text-base text-pretty text-muted-foreground sm:text-lg">{{ purpose }}</p>
@@ -39,7 +39,7 @@ const { title, definition, purpose, laws, services } = useLandingWhatIsPeso()
             {{ String(index + 1).padStart(2, '0') }}
           </span>
           <div class="flex flex-col gap-1">
-            <h2 class="text-base font-semibold text-foreground sm:text-lg">{{ service.name }}</h2>
+            <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ service.name }}</h3>
             <p class="text-sm text-pretty text-muted-foreground sm:text-base">{{ service.description }}</p>
           </div>
         </li>

@@ -127,3 +127,53 @@ export const LANDING_MUNICIPALITIES: { key: AgsurMunicipality; name: string; isC
   { key: 'trento', name: 'Trento', isCity: false },
   { key: 'veruela', name: 'Veruela', isCity: false },
 ]
+
+// ─── Public page heroes (migration 051) ───
+// system.public_page_heroes is not in database.types.ts until `npm run types:gen` is re-run,
+// so its row is typed here; switch to the generated types once they include it.
+
+export type PublicPage = 'what_is_peso'
+
+export interface PageHeroRow {
+  page: PublicPage
+  /** Empty text falls back to the page's built-in text (PUBLIC_PAGES) */
+  eyebrow: string | null
+  title: string | null
+  description: string | null
+  /** Path in 'site-content-media' at pages/<page>/<filename>; null shows the plain band */
+  image_path: string | null
+  image_alt: string | null
+  updated_by: string | null
+  updated_at: string
+}
+
+/** A hero for the management page, with its photo resolved to a public URL. */
+export type PageHeroItem = PageHeroRow & { image_url: string | null }
+
+/** What the public page renders: saved text over the built-in text, and the photo's public URL. */
+export interface PageHero {
+  eyebrow: string
+  title: string
+  description: string
+  backgroundImage: string | null
+  imageAlt: string
+}
+
+export type PageHeroText = Pick<PageHero, 'eyebrow' | 'title' | 'description'>
+
+// Mirrors the column CHECKs in 051
+export const PAGE_HERO_LIMITS = { eyebrow: 80, title: 120, description: 300, imageAlt: 200 }
+
+/** Public pages with a hero; the table only holds what PESO changed, these are the built-in texts. */
+export const PUBLIC_PAGES: { key: PublicPage; name: string; path: string; defaults: PageHeroText }[] = [
+  {
+    key: 'what_is_peso',
+    name: 'What is PESO?',
+    path: '/what-is-peso',
+    defaults: {
+      eyebrow: 'Provincial PESO Agusan del Sur',
+      title: 'What is PESO?',
+      description: 'Free employment services for every Agsurnon, from a first job to the next one.',
+    },
+  },
+]

@@ -42,10 +42,10 @@ const SERVICES: LandingPesoService[] = [
   },
 ]
 
-/** "What is PESO?" page (/what-is-peso): a definition and legal basis on the left, the office's services listed on the right. */
+/** "What is PESO?" page (/what-is-peso), under its banner: a definition and legal basis on the left, the office's services listed on the right. */
 export function useLandingWhatIsPeso() {
   return {
-    title: 'What is PESO?',
+    title: 'Public Employment Service Office',
     definition:
       'The Public Employment Service Office is a non-fee charging, multi-employment service facility run by local government units in coordination with the Department of Labor and Employment.',
     purpose:

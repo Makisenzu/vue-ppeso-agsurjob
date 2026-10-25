@@ -2,12 +2,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { siteContentService } from '@/services/common/siteContentService'
 import { mediaService } from '@/services/common/mediaService'
-import { toHeroSlide } from '@/helpers/common/siteContentHelper'
+import { toHeroSlide, toPageHero } from '@/helpers/common/siteContentHelper'
 import {
   SITE_CONTENT_MEDIA_BUCKET,
   type AgsurMunicipality,
   type LandingHeroSlide,
   type LandingProgram,
+  type PageHero,
+  type PublicPage,
 } from '@/types/common/siteContent'
 
 export const useSiteContentStore = defineStore('siteContent', () => {
@@ -23,6 +25,9 @@ export const useSiteContentStore = defineStore('siteContent', () => {
   const municipalityLogos = ref<Partial<Record<AgsurMunicipality, string>>>({})
   const isMunicipalityLogosLoading = ref(false)
   const isMunicipalityLogosLoaded = ref(false)
+  // Hero of each public page, saved text already merged over the built-in text
+  const pageHeroes = ref<Partial<Record<PublicPage, PageHero>>>({})
+  const loadingPageHeroes = ref<PublicPage[]>([])
 
   // ─── Actions ───
   // Loads once per visit. No toast on failure: the landing page falls back to its built-in slides.
@@ -98,6 +103,28 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isMunicipalityLogosLoaded.value = false
   }
 
+  // Loads once per visit. No toast on failure: the page shows its built-in text on the plain band.
+  const loadPageHero = async (page: PublicPage) => {
+    if (pageHeroes.value[page] || loadingPageHeroes.value.includes(page)) return
+    loadingPageHeroes.value = [...loadingPageHeroes.value, page]
+    let row = null
+    try {
+      row = await siteContentService.fetchPageHero(page)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      const imageUrl = row?.image_path ? mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET) : null
+      pageHeroes.value = { ...pageHeroes.value, [page]: toPageHero(page, row, imageUrl) }
+      loadingPageHeroes.value = loadingPageHeroes.value.filter(item => item !== page)
+    }
+  }
+
+  // Called after PESO edits a hero, so the page reloads it on its next visit
+  const resetPageHero = (page: PublicPage) => {
+    const { [page]: _removed, ...rest } = pageHeroes.value
+    pageHeroes.value = rest
+  }
+
   return {
     heroSlides,
     isHeroLoading,
@@ -112,5 +139,8 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isMunicipalityLogosLoaded,
     loadMunicipalityLogos,
     resetMunicipalityLogos,
+    pageHeroes,
+    loadPageHero,
+    resetPageHero,
   }
 })

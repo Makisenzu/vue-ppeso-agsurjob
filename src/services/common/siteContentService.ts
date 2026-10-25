@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { MunicipalityLogoRow, ProgramCardRow, SiteContentPlacement, SiteContentRow } from '@/types/common/siteContent'
+import type {
+  MunicipalityLogoRow,
+  PageHeroRow,
+  ProgramCardRow,
+  PublicPage,
+  SiteContentPlacement,
+  SiteContentRow,
+} from '@/types/common/siteContent'
 
 // system.landing_program_cards (migration 049) is not in database.types.ts until `npm run types:gen`
 // is re-run, so the typed client does not know the table yet. Rows are typed by ProgramCardRow.
@@ -8,6 +15,9 @@ const programCardsTable = () => (supabase.schema('system') as any).from('landing
 // Same for system.landing_municipality_logos (migration 050), typed by MunicipalityLogoRow
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const municipalityLogosTable = () => (supabase.schema('system') as any).from('landing_municipality_logos')
+// Same for system.public_page_heroes (migration 051), typed by PageHeroRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pageHeroesTable = () => (supabase.schema('system') as any).from('public_page_heroes')
 
 export const siteContentService = {
   /**
@@ -43,5 +53,12 @@ export const siteContentService = {
     const { data, error } = await municipalityLogosTable().select('*')
     if (error) throw new Error(error.message || 'Failed to load the municipality logos.')
     return (data ?? []) as MunicipalityLogoRow[]
+  },
+
+  /** Hero of a public page; every row is public (RLS, 051). Null if the page's row is missing. */
+  async fetchPageHero(page: PublicPage): Promise<PageHeroRow | null> {
+    const { data, error } = await pageHeroesTable().select('*').eq('page', page).maybeSingle()
+    if (error) throw new Error(error.message || 'Failed to load the page banner.')
+    return (data as PageHeroRow | null) ?? null
   },
 }
