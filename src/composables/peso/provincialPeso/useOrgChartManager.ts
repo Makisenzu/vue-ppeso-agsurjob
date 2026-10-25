@@ -1,5 +1,6 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useLocalStorage } from '@vueuse/core'
 import { useOrgChartManagerStore } from '@/stores/peso/provincialPeso/orgChartManagerStore'
 import { getNameInitials } from '@/helpers/common/siteContentHelper'
 import {
@@ -65,6 +66,15 @@ export function useOrgChartManager() {
     ]
   })
 
+  // Collapsed groups, remembered per browser like the Site Contents sections; every group starts open
+  const closedGroups = useLocalStorage<string[]>('site-contents:org-chart:closed-groups', [])
+  const isGroupOpen = (key: string) => !closedGroups.value.includes(key)
+  const setGroupOpen = (key: string, open: boolean) => {
+    closedGroups.value = open
+      ? closedGroups.value.filter((item) => item !== key)
+      : [...new Set([...closedGroups.value, key])]
+  }
+
   const positionCount = computed(() => positions.value.length)
   const vacantCount = computed(() => positions.value.filter((position) => !position.holder_name).length)
 
@@ -89,6 +99,8 @@ export function useOrgChartManager() {
 
   return {
     groups,
+    isGroupOpen,
+    setGroupOpen,
     positionCount,
     vacantCount,
     isLoading,

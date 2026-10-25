@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { ExternalLink, Loader2, Pencil, Plus, RefreshCw, Trash2, UserRound } from '@lucide/vue'
+import { ChevronDown, ExternalLink, Loader2, Pencil, Plus, RefreshCw, Trash2, UserRound } from '@lucide/vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -21,6 +22,8 @@ import { useOrgChartManager } from '@/composables/peso/provincialPeso/useOrgChar
 
 const {
   groups,
+  isGroupOpen,
+  setGroupOpen,
   positionCount,
   vacantCount,
   isLoading,
@@ -76,18 +79,35 @@ const {
       <Skeleton v-for="i in 3" :key="i" class="h-48 w-full rounded-lg" />
     </template>
 
-    <!-- One block per group: the top of the chart, then each division -->
+    <!-- One collapsible block per group: the top of the chart, then each division. Accordion pattern like
+         SiteContentSection: the heading holds the toggle; the action buttons stay outside it -->
     <template v-else>
-      <section
+      <Collapsible
         v-for="group in groups"
         :key="group.key"
-        class="rounded-lg border border-border"
+        as="section"
+        :open="isGroupOpen(group.key)"
+        class="group/org rounded-lg border border-border"
         :aria-labelledby="`org-group-${group.key}`"
+        @update:open="(open: boolean) => setGroupOpen(group.key, open)"
       >
-        <div class="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="min-w-0">
-            <h3 :id="`org-group-${group.key}`" class="font-semibold text-pretty">{{ group.title }}</h3>
-            <p v-if="group.subtitle" class="text-sm text-muted-foreground">{{ group.subtitle }}</p>
+        <div class="flex flex-col gap-3 p-4 group-data-[state=open]/org:border-b group-data-[state=open]/org:border-border sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <h3 :id="`org-group-${group.key}`" class="font-semibold text-pretty">
+              <CollapsibleTrigger
+                class="group flex w-full cursor-pointer items-start gap-2 rounded-md text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <ChevronDown
+                  class="mt-0.5 size-5 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90"
+                  aria-hidden="true"
+                />
+                {{ group.title }}
+              </CollapsibleTrigger>
+            </h3>
+            <p class="pl-7 text-sm text-muted-foreground">
+              <template v-if="group.subtitle">{{ group.subtitle }} · </template>
+              {{ group.positions.length }} {{ group.positions.length === 1 ? 'position' : 'positions' }}
+            </p>
           </div>
           <div class="flex shrink-0 flex-wrap gap-2">
             <template v-if="group.unit">
@@ -113,50 +133,52 @@ const {
           </div>
         </div>
 
-        <ul v-if="group.positions.length" class="divide-y divide-border">
-          <li v-for="position in group.positions" :key="position.id" class="flex items-center gap-3 p-4">
-            <Avatar class="size-10 shrink-0">
-              <AvatarImage v-if="position.photo_url" :src="position.photo_url" :alt="position.holder_name ?? ''" class="object-cover" />
-              <AvatarFallback class="text-xs font-semibold">
-                <UserRound v-if="!position.holder_name" class="size-4 text-muted-foreground" aria-hidden="true" />
-                <span v-else aria-hidden="true">{{ position.initials }}</span>
-              </AvatarFallback>
-            </Avatar>
+        <CollapsibleContent>
+          <ul v-if="group.positions.length" class="divide-y divide-border">
+            <li v-for="position in group.positions" :key="position.id" class="flex items-center gap-3 p-4">
+              <Avatar class="size-10 shrink-0">
+                <AvatarImage v-if="position.photo_url" :src="position.photo_url" :alt="position.holder_name ?? ''" class="object-cover" />
+                <AvatarFallback class="text-xs font-semibold">
+                  <UserRound v-if="!position.holder_name" class="size-4 text-muted-foreground" aria-hidden="true" />
+                  <span v-else aria-hidden="true">{{ position.initials }}</span>
+                </AvatarFallback>
+              </Avatar>
 
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm" :class="position.holder_name ? 'font-medium' : 'text-muted-foreground italic'">
-                {{ position.holder_name ?? 'Vacant' }}
-              </p>
-              <p class="text-xs text-pretty text-muted-foreground">{{ position.title }}</p>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <Badge variant="outline" :class="position.statusClass">{{ position.statusLabel }}</Badge>
-                <Badge v-if="position.is_head" variant="outline">{{ group.unit ? 'Head' : 'Office head' }}</Badge>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm" :class="position.holder_name ? 'font-medium' : 'text-muted-foreground italic'">
+                  {{ position.holder_name ?? 'Vacant' }}
+                </p>
+                <p class="text-xs text-pretty text-muted-foreground">{{ position.title }}</p>
+                <div class="mt-1 flex flex-wrap gap-1.5">
+                  <Badge variant="outline" :class="position.statusClass">{{ position.statusLabel }}</Badge>
+                  <Badge v-if="position.is_head" variant="outline">{{ group.unit ? 'Head' : 'Office head' }}</Badge>
+                </div>
               </div>
-            </div>
 
-            <div class="flex shrink-0 gap-1">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                :aria-label="`Edit ${position.holder_name ?? position.title}`"
-                @click="openPositionDialog(position)"
-              >
-                <Pencil class="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                :aria-label="`Delete ${position.holder_name ?? position.title}`"
-                @click="requestDeletePosition(position)"
-              >
-                <Trash2 class="size-4" />
-              </Button>
-            </div>
-          </li>
-        </ul>
-        <p v-else class="p-4 text-center text-sm text-muted-foreground">No positions yet.</p>
-      </section>
+              <div class="flex shrink-0 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :aria-label="`Edit ${position.holder_name ?? position.title}`"
+                  @click="openPositionDialog(position)"
+                >
+                  <Pencil class="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  :aria-label="`Delete ${position.holder_name ?? position.title}`"
+                  @click="requestDeletePosition(position)"
+                >
+                  <Trash2 class="size-4" />
+                </Button>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="p-4 text-center text-sm text-muted-foreground">No positions yet.</p>
+        </CollapsibleContent>
+      </Collapsible>
     </template>
   </SiteContentSection>
 
