@@ -3,7 +3,9 @@ import { Mail } from '@lucide/vue'
 import agsurSeal from '@/assets/images/agsur.png'
 import pesoLogo from '@/assets/images/pesologo.png'
 import doleLogo from '@/assets/images/dole.png'
+import doleLogoDark from '@/assets/images/dole-dark.png'
 import bagongPilipinasLogo from '@/assets/images/bagongPilipinas.png'
+import bagongPilipinasLogoDark from '@/assets/images/bagongPh-dark.png'
 import { navLinks } from '@/composables/landing/useLandingNavigation'
 
 export interface LandingFooterLink {
@@ -13,6 +15,10 @@ export interface LandingFooterLink {
 
 export interface LandingFooterLogo {
   src: string
+  /** Shown instead of `src` in dark mode, for logos that disappear on a dark background */
+  darkSrc?: string
+  /** Extra classes for the dark image, for dark variants drawn smaller within their canvas */
+  darkClass?: string
   alt: string
 }
 
@@ -43,8 +49,8 @@ const CONTACTS: LandingFooterContact[] = [
 const LOGOS: LandingFooterLogo[] = [
   { src: agsurSeal, alt: 'Seal of the Province of Agusan del Sur' },
   { src: pesoLogo, alt: 'Provincial PESO logo' },
-  { src: doleLogo, alt: 'Department of Labor and Employment logo' },
-  { src: bagongPilipinasLogo, alt: 'Bagong Pilipinas logo' },
+  { src: doleLogo, darkSrc: doleLogoDark, darkClass: 'scale-125', alt: 'Department of Labor and Employment logo' },
+  { src: bagongPilipinasLogo, darkSrc: bagongPilipinasLogoDark, alt: 'Bagong Pilipinas logo' },
 ]
 
 /** Landing page footer: brand and partner seals, link columns, and a copyright bar. */

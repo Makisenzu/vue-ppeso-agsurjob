@@ -2,7 +2,6 @@
 import { RouterLink } from 'vue-router'
 import { Separator } from '@/components/ui/separator'
 import { useLandingFooter } from '@/composables/landing/useLandingFooter'
-import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
 
 const { office, address, contacts, exploreLinks, programLinks, logos, year } = useLandingFooter()
@@ -18,9 +17,7 @@ const { office, address, contacts, exploreLinks, programLinks, logos, year } = u
         <!-- Logo on the left, office name and address beside it -->
         <div class="flex items-center gap-4">
           <RouterLink to="/" class="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <!-- Same light/dark swap as LandingHeader: the wordmark has a light background -->
-            <img :src="agsurLogo" alt="AGSURJOBS" class="h-12 w-auto object-contain dark:hidden" />
-            <img :src="agsurSeal" alt="AGSURJOBS" class="hidden size-12 object-contain dark:block" />
+            <img :src="agsurSeal" alt="AGSURJOBS" class="size-12 object-contain" />
           </RouterLink>
 
           <div class="flex min-w-0 flex-col gap-1">
@@ -49,7 +46,11 @@ const { office, address, contacts, exploreLinks, programLinks, logos, year } = u
 
         <ul class="flex flex-wrap items-center gap-4" aria-label="Partner offices">
           <li v-for="logo in logos" :key="logo.alt">
-            <img :src="logo.src" :alt="logo.alt" class="size-10 object-contain" loading="lazy" />
+            <template v-if="logo.darkSrc">
+              <img :src="logo.src" :alt="logo.alt" class="size-10 object-contain dark:hidden" loading="lazy" />
+              <img :src="logo.darkSrc" :alt="logo.alt" :class="['hidden size-10 object-contain dark:block', logo.darkClass]" loading="lazy" />
+            </template>
+            <img v-else :src="logo.src" :alt="logo.alt" class="size-10 object-contain" loading="lazy" />
           </li>
         </ul>
       </div>
