@@ -170,9 +170,9 @@ BEGIN
   END IF;
 
   INSERT INTO system.org_chart_units (name, abbreviation, sort_order)
-  VALUES ('Administrative Support Unit', 'ASU', 0) RETURNING id INTO asu;
+  VALUES ('Administrative Support Unit', 'ASU', 1) RETURNING id INTO asu;
   INSERT INTO system.org_chart_units (name, abbreviation, sort_order)
-  VALUES ('Employment Services and Migration Development Division', 'ESMDD', 1) RETURNING id INTO esmdd;
+  VALUES ('Employment Services and Migration Development Division', 'ESMDD', 0) RETURNING id INTO esmdd;
   INSERT INTO system.org_chart_units (name, abbreviation, sort_order)
   VALUES ('Skills Development Division', 'SDD', 2) RETURNING id INTO sdd;
 
