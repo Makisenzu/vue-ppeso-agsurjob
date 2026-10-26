@@ -20,7 +20,7 @@ export function normalizeGipStatus(status: string | null | undefined): string {
 /** Error message for a soft copy that can't be uploaded, or null when it is fine. */
 export function validateGipAttachment(file: File): string | null {
   if (!(GIP_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
-    return 'Upload an image (JPG, PNG, WEBP) or a PDF file.'
+    return 'Upload a PDF file.'
   }
   if (file.size > GIP_ATTACHMENT_MAX_BYTES) {
     return `The file must be ${GIP_ATTACHMENT_MAX_BYTES / 1024 / 1024} MB or smaller.`

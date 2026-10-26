@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { gipApplicationService } from '@/services/applicant/gipApplicationService'
 import { gipDocumentService } from '@/services/common/gipDocumentService'
+import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type { GipApplicationRow, MyGipInternship } from '@/types/applicant/gipApplication'
 import type { GipApplicantDocumentMap, GipPendingDocumentMap } from '@/types/common/gipProgram'
@@ -20,6 +21,9 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
   const isLoading = ref(false)
   const errorMessage = ref<string | null>(null)
   const isSubmitting = ref(false)
+  const isGeneratingNsrp = ref(false)
+  /** Document whose saved file is being removed */
+  const deletingDocument = ref<string | null>(null)
 
   // ─── Getters ───
   /** Uploads are allowed while Pending and not yet an intern — the rule RLS enforces (migration 060). */
@@ -95,6 +99,53 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
     }
   }
 
+  /**
+   * Builds the applicant's NSRP Form 1 PDF from a fresh copy of their registry record — the same form
+   * PESO generates. The PDF libraries load only when asked. Returns null on failure.
+   */
+  async function generateNsrpPdf(profileId: string): Promise<File | null> {
+    isGeneratingNsrp.value = true
+    try {
+      const [record, { mapToApplicantEntryRecord }, pdf] = await Promise.all([
+        applicantCompletionService.fetchMyRecord(profileId),
+        import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
+        import('@/helpers/peso/provincialPeso/nsrpTemplateHelper'),
+      ])
+      if (!record) throw new Error('Your NSRP record could not be loaded.')
+      return await pdf.generateNsrpFormPdfFile(mapToApplicantEntryRecord(record))
+    } catch (error: unknown) {
+      console.error('Failed to generate NSRP PDF:', error)
+      toastAlert.error('NSRP form not generated', errorMessageOf(error, 'Please try again.'))
+      return null
+    } finally {
+      isGeneratingNsrp.value = false
+    }
+  }
+
+  /** Removes a saved file while the application is still editable; returns true on success. */
+  async function deleteDocument(documentName: string): Promise<boolean> {
+    const application = myApplication.value
+    const document = documents.value[documentName]
+    if (!application || !document || isLocked.value) return false
+    deletingDocument.value = documentName
+    try {
+      await gipDocumentService.deleteDocument(document)
+      const [docs, refreshed] = await Promise.all([
+        gipDocumentService.fetchDocuments(application.id),
+        gipApplicationService.fetchMyApplication(application.applicant_id ?? ''),
+      ])
+      documents.value = docs
+      if (refreshed) myApplication.value = refreshed
+      toastAlert.success('File removed', `Your ${documentName} file was removed.`)
+      return true
+    } catch (error: unknown) {
+      toastAlert.error('Error', errorMessageOf(error, `Failed to remove the ${documentName}`))
+      return false
+    } finally {
+      deletingDocument.value = null
+    }
+  }
+
   return {
     myApplication,
     documents,
@@ -103,7 +154,11 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
     errorMessage,
     isSubmitting,
     isLocked,
+    isGeneratingNsrp,
+    deletingDocument,
     fetchMyApplication,
     submitDocuments,
+    generateNsrpPdf,
+    deleteDocument,
   }
 })

@@ -101,4 +101,11 @@ export const gipDocumentService = {
       if (current) await removeStorageFiles([current.path])
     }
   },
+
+  /** Removes one attached file (row first, then the stored file). */
+  async deleteDocument(document: Pick<GipApplicantDocumentRow, 'id' | 'path' | 'document_name'>): Promise<void> {
+    const { error } = await documentsTable().delete().eq('id', document.id)
+    if (error) throw new Error(error.message || `Failed to remove the ${document.document_name}.`)
+    await removeStorageFiles([document.path])
+  },
 }

@@ -91,6 +91,12 @@ export const applicantRoutes : RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'GIP Application', fullWidth: true }
       },
       {
+        path: 'gip-application/form',
+        name: 'gip-application-form',
+        component: () => import('@/components/applicant/Gip/ApplicantGipApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'GIP Application Form' }
+      },
+      {
         path: 'fnplp-application',
         name: 'fnplp-application',
         component: () => import('@/components/applicant/Fnplp/ApplicantFnplpApplication.vue'),

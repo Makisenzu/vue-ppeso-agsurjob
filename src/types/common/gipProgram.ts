@@ -34,17 +34,18 @@ export const GIP_REQUIRED_DOCUMENTS: readonly string[] = [
   'Certificates',
 ]
 
-/** NSRP is the applicant's registry record, filled in after signing up, so it is never uploaded. */
+/** NSRP Form 1: generated from the applicant's registry record and attached as a PDF, not picked from files. */
 export const GIP_NSRP_DOCUMENT = 'NSRP'
 
-/** Soft copies the applicant uploads to apply (CHECK in migration 060). */
-export const GIP_UPLOAD_DOCUMENTS: readonly string[] = GIP_REQUIRED_DOCUMENTS.filter((doc) => doc !== GIP_NSRP_DOCUMENT)
+/** Soft copies attached to the application, NSRP included (CHECK in migrations 060 / 061). */
+export const GIP_UPLOAD_DOCUMENTS: readonly string[] = GIP_REQUIRED_DOCUMENTS
 
 /** Training / award certificates: not everyone has one, so applying doesn't wait for it. */
 export const GIP_OPTIONAL_DOCUMENTS: readonly string[] = ['Certificates']
 
-export const GIP_ATTACHMENT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const
-export const GIP_ATTACHMENT_ACCEPT = GIP_ATTACHMENT_MIME_TYPES.join(',')
+// Every requirement is a PDF (CHECK in migration 061)
+export const GIP_ATTACHMENT_MIME_TYPES = ['application/pdf'] as const
+export const GIP_ATTACHMENT_ACCEPT = 'application/pdf,.pdf'
 export const GIP_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
 
 /**

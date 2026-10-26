@@ -1389,6 +1389,21 @@ export async function downloadNsrpFormPdf(
 }
 
 /**
+ * Generates the filled NSRP form as a PDF File (not downloaded), e.g. to attach it to an application.
+ */
+export async function generateNsrpFormPdfFile(
+  applicant: Partial<ApplicantEntryRecord>,
+  customFilename?: string
+): Promise<File> {
+  const pdf = await createNsrpFormJsPdf(applicant)
+  const safeName = (applicant.fullName || applicant.surname || 'applicant')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/gi, '_')
+  const fileName = customFilename || `NSRP_Form1_${safeName}.pdf`
+  return new File([pdf.output('blob')], fileName, { type: 'application/pdf' })
+}
+
+/**
  * Prepares the NSRP form as a PDF and triggers the browser print interface.
  */
 export async function printNsrpForm(applicant: Partial<ApplicantEntryRecord>): Promise<void> {

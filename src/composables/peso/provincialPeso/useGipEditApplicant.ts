@@ -90,6 +90,13 @@ export function useGipEditApplicant() {
     { immediate: true }
   )
 
+  // A document with an uploaded soft copy counts as submitted, even when the cached list predates the upload
+  watch(applicantToEditDocuments, (uploaded) => {
+    const names = Object.keys(uploaded).map(normalizeDocumentName)
+    const missing = names.filter((name) => !editDocuments.value.includes(name))
+    if (missing.length) setFieldValue('documentsSubmitted', [...editDocuments.value, ...missing])
+  })
+
   const toggleEditDocument = (doc: string) => {
     if (doc === LOCKED_DOCUMENT) return
     const current = editDocuments.value
