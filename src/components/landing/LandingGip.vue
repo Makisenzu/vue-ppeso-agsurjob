@@ -57,8 +57,7 @@ const { hero, about, facts, requirements, cta, isLoading } = useLandingGip()
             Requirements
           </h2>
           <p class="text-sm text-pretty text-muted-foreground sm:text-base">
-            Every requirement is submitted as a PDF. Your NSRP Form 1 is generated from your profile when you apply;
-            prepare a PDF copy of each of the other requirements.
+            All requirements must be in PDF. NSRP Form 1 is generated from your profile.
           </p>
         </div>
 
