@@ -1,4 +1,4 @@
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { ORG_EMPLOYMENT_STATUS_LABELS, type OrgChartStatus } from '@/types/common/siteContent'
@@ -69,10 +69,25 @@ const LEGEND = Object.values(STATUS_STYLES)
 export function useLandingWhatIsPeso() {
   // The chart is managed by Provincial PESO in Site Contents → Organizational chart (migration 052)
   const store = useSiteContentStore()
-  const { orgChart, isOrgChartLoading } = storeToRefs(store)
+  const { orgChart, isOrgChartLoading, achievements, isAchievementsLoading } = storeToRefs(store)
+
+  // PESO's achievements under the chart, managed in Site Contents → Achievements (migration 059). Tiles keep
+  // each photo's aspect ratio from its stored size; photos without one get a square tile. A click opens the
+  // full photo; the title shows on hover.
+  const achievementItems = computed(() =>
+    achievements.value.map(achievement => ({
+      id: achievement.id,
+      img: achievement.image_url,
+      url: achievement.image_url,
+      width: achievement.width ?? 1,
+      height: achievement.height ?? 1,
+      label: achievement.title ?? undefined,
+    })),
+  )
 
   onMounted(() => {
     void store.loadOrgChart()
+    void store.loadAchievements()
   })
 
   return {
@@ -89,5 +104,9 @@ export function useLandingWhatIsPeso() {
     isOrgChartLoading,
     legend: LEGEND,
     statusStyles: STATUS_STYLES,
+    achievementsTitle: 'Achievements',
+    achievementsDescription: 'Awards, recognitions and milestones of the Provincial Public Employment Service Office.',
+    achievementItems,
+    isAchievementsLoading,
   }
 }

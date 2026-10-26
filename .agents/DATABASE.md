@@ -784,6 +784,14 @@ The Provincial PESO's organizational structure & staffing pattern on `/what-is-p
 - Not in `database.types.ts` until `npm run types:gen` is re-run; until then the services query them through an untyped accessor and type rows with `OrgChartUnitRow` / `OrgChartPositionRow`.
 - Managed from Site Contents → Organizational chart (`OrgChart.vue`, `OrgUnitDialog.vue`, `OrgPositionDialog.vue`, `orgChartManagerStore`); the public page loads it through `siteContentStore.loadOrgChart()` and `toOrgChart()`.
 
+#### `peso_achievements` (migration 059)
+
+The Provincial PESO's achievements (awards, recognitions, milestones) as a photo masonry under the org chart on `/what-is-peso`, managed by PESO. Columns: `id` (uuid PK), `image_path` (`site-content-media` at `achievements/<filename>`, CHECK), `title` (nullable; hover text and alt), `width` / `height` (the photo's pixel size, read in the browser at upload, so `Masonry.vue` keeps the aspect ratio), `created_by`, `created_at` (list order, newest first).
+
+- RLS: everyone (`anon` included) reads; `provincial_peso` / `admin` insert, update (title only, by column grant) and delete. Storage policy `site_content_media_achievements_insert` allows uploads under `achievements/`.
+- Not in `database.types.ts` until `npm run types:gen`; typed by `AchievementRow`.
+- Managed from Site Contents → Achievements (`Achievements.vue`, `useAchievements`, `achievementManagerStore`); the public page loads it through `siteContentStore.loadAchievements()`.
+
 #### `system_audit_logs`
 
 | Column       | Type   | Notes               |

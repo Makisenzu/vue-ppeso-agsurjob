@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Skeleton } from '@/components/ui/skeleton'
 import LandingOrgChartCard from '@/components/landing/LandingOrgChartCard.vue'
+import Masonry from '@/components/Masonry.vue'
 import { useLandingWhatIsPeso } from '@/composables/landing/useLandingWhatIsPeso'
 
 const {
@@ -15,6 +16,10 @@ const {
   isOrgChartLoading,
   legend,
   statusStyles,
+  achievementsTitle,
+  achievementsDescription,
+  achievementItems,
+  isAchievementsLoading,
 } = useLandingWhatIsPeso()
 </script>
 
@@ -145,6 +150,35 @@ const {
             </ul>
           </li>
         </ul>
+      </section>
+
+      <!-- PESO's achievements under the chart, managed in Site Contents → Achievements; hidden while there are none -->
+      <section v-if="isAchievementsLoading || achievementItems.length" class="flex flex-col gap-10" aria-labelledby="peso-achievements-title">
+        <div class="flex flex-col gap-3 lg:items-center lg:text-center">
+          <h2
+            id="peso-achievements-title"
+            class="font-['Times_New_Roman',Times,serif] text-2xl font-bold tracking-[0.15em] text-foreground uppercase sm:text-3xl lg:tracking-[0.2em]"
+          >
+            {{ achievementsTitle }}
+          </h2>
+          <p class="max-w-2xl text-base text-pretty text-muted-foreground sm:text-lg">{{ achievementsDescription }}</p>
+        </div>
+
+        <div v-if="!achievementItems.length" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" aria-busy="true">
+          <Skeleton v-for="i in 8" :key="i" class="w-full rounded-[10px]" :class="i % 3 === 0 ? 'h-56' : 'h-40'" />
+        </div>
+        <Masonry
+          v-else
+          :items="achievementItems"
+          ease="power3.out"
+          :duration="0.6"
+          :stagger="0.05"
+          animate-from="bottom"
+          :scale-on-hover="true"
+          :hover-scale="0.95"
+          :blur-to-focus="true"
+          :color-shift-on-hover="false"
+        />
       </section>
     </div>
   </section>

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import type {
+  AchievementRow,
   MunicipalityLogoRow,
   OrgChartPositionRow,
   OrgChartUnitRow,
@@ -23,6 +24,9 @@ const pageHeroesTable = () => (supabase.schema('system') as any).from('public_pa
 // Same for system.org_chart_units / org_chart_positions (migration 052)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const orgChartTable = (table: 'org_chart_units' | 'org_chart_positions') => (supabase.schema('system') as any).from(table)
+// Same for system.peso_achievements (migration 059), typed by AchievementRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const achievementsTable = () => (supabase.schema('system') as any).from('peso_achievements')
 
 export const siteContentService = {
   /**
@@ -54,6 +58,13 @@ export const siteContentService = {
   },
 
   /** Logos of the province's municipalities and city; every row is public (RLS, 050). */
+  /** Newest first; readable by everyone, logged-out visitors included (059). */
+  async fetchAchievements(): Promise<AchievementRow[]> {
+    const { data, error } = await achievementsTable().select('*').order('created_at', { ascending: false })
+    if (error) throw new Error(error.message || 'Failed to load the achievements.')
+    return (data ?? []) as AchievementRow[]
+  },
+
   async fetchMunicipalityLogos(): Promise<MunicipalityLogoRow[]> {
     const { data, error } = await municipalityLogosTable().select('*')
     if (error) throw new Error(error.message || 'Failed to load the municipality logos.')

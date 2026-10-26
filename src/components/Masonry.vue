@@ -1,11 +1,14 @@
 <template>
-  <div ref="containerRef" class="relative w-full h-full">
+  <!-- Tiles are absolutely positioned, so the container takes the tallest column's height -->
+  <div ref="containerRef" class="relative w-full" :style="{ height: `${layout.height}px` }">
     <div
       v-for="item in grid"
       :key="item.id"
       :data-key="item.id"
       class="absolute box-content"
       :style="{ willChange: 'transform, width, height, opacity' }"
+      :class="{ 'cursor-pointer': !!item.url }"
+      :title="item.label"
       @click="openUrl(item.url)"
       @mouseenter="e => handleMouseEnter(item.id, e.currentTarget as HTMLElement)"
       @mouseleave="e => handleMouseLeave(item.id, e.currentTarget as HTMLElement)"
@@ -30,8 +33,13 @@ import { gsap } from 'gsap';
 interface Item {
   id: string;
   img: string;
+  /** Opened in a new tab on click; empty for no link */
   url: string;
+  /** With `width`: the image's own size, and the tile keeps its aspect ratio. Alone: tile height × 2, in px */
   height: number;
+  width?: number | null;
+  /** Hover tooltip */
+  label?: string;
 }
 
 interface MasonryProps {
@@ -121,26 +129,30 @@ const [containerRef, size] = useMeasure();
 const imagesReady = ref(false);
 const hasMounted = ref(false);
 
-const grid = computed(() => {
-  if (!size.value.width) return [];
+const layout = computed(() => {
+  if (!size.value.width) return { items: [], height: 0 };
   const colHeights = new Array(columns.value).fill(0);
   const gap = 16;
   const totalGaps = (columns.value - 1) * gap;
   const columnWidth = (size.value.width - totalGaps) / columns.value;
 
-  return props.items.map(child => {
+  const items = props.items.map(child => {
     const col = colHeights.indexOf(Math.min(...colHeights));
     const x = col * (columnWidth + gap);
-    const height = child.height / 2;
+    const height = child.width ? (columnWidth * child.height) / child.width : child.height / 2;
     const y = colHeights[col];
 
     colHeights[col] += height + gap;
     return { ...child, x, y, w: columnWidth, h: height };
   });
+
+  return { items, height: Math.max(0, Math.max(...colHeights) - gap) };
 });
 
+const grid = computed(() => layout.value.items);
+
 const openUrl = (url: string) => {
-  window.open(url, '_blank', 'noopener');
+  if (url) window.open(url, '_blank', 'noopener');
 };
 
 interface GridItem extends Item {

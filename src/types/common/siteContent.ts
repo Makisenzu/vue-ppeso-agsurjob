@@ -110,6 +110,30 @@ export interface MunicipalityLogoRow {
 /** A logo for the management page, resolved to a public URL. */
 export type MunicipalityLogoItem = MunicipalityLogoRow & { image_url: string | null }
 
+// ─── PESO achievements (migration 059) ───
+// system.peso_achievements is not in database.types.ts until `npm run types:gen` is re-run.
+
+export interface AchievementRow {
+  id: string
+  /** Path in 'site-content-media' at achievements/<filename> */
+  image_path: string
+  /** e.g. "Best PESO in Caraga, 2025" */
+  title: string | null
+  /** The photo's own pixel size, read at upload, so the masonry keeps its aspect ratio */
+  width: number | null
+  height: number | null
+  created_by: string | null
+  created_at: string
+}
+
+export type AchievementInsert = Pick<AchievementRow, 'image_path' | 'title' | 'width' | 'height'>
+
+/** An achievement resolved to its photo's public URL. */
+export type AchievementItem = AchievementRow & { image_url: string }
+
+/** Photos uploaded in one go from Site Contents → Achievements */
+export const ACHIEVEMENT_MAX_FILES_PER_UPLOAD = 20
+
 /** The province's 13 municipalities and 1 city, the city first, then A to Z; the table only holds their logos. */
 export const LANDING_MUNICIPALITIES: { key: AgsurMunicipality; name: string; isCity: boolean }[] = [
   { key: 'bayugan', name: 'Bayugan', isCity: true },

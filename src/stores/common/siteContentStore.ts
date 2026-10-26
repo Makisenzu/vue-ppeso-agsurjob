@@ -6,6 +6,7 @@ import { toHeroSlide, toOrgChart, toPageHero } from '@/helpers/common/siteConten
 import {
   SITE_CONTENT_MEDIA_BUCKET,
   type AgsurMunicipality,
+  type AchievementItem,
   type LandingHeroSlide,
   type LandingProgram,
   type OrgChart,
@@ -33,6 +34,10 @@ export const useSiteContentStore = defineStore('siteContent', () => {
   const orgChart = ref<OrgChart | null>(null)
   const isOrgChartLoading = ref(false)
   const isOrgChartLoaded = ref(false)
+  // Achievements masonry under the org chart on the "What is PESO?" page, newest first
+  const achievements = ref<AchievementItem[]>([])
+  const isAchievementsLoading = ref(false)
+  const isAchievementsLoaded = ref(false)
 
   // ─── Actions ───
   // Loads once per visit. No toast on failure: the landing page falls back to its built-in slides.
@@ -157,6 +162,30 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isOrgChartLoaded.value = false
   }
 
+  // Loads once per visit. No toast on failure: the page leaves the achievements out.
+  const loadAchievements = async () => {
+    if (isAchievementsLoaded.value || isAchievementsLoading.value) return
+    isAchievementsLoading.value = true
+    try {
+      const rows = await siteContentService.fetchAchievements()
+      achievements.value = rows.map(row => ({
+        ...row,
+        image_url: mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET),
+      }))
+    } catch (error) {
+      console.error(error)
+    } finally {
+      isAchievementsLoaded.value = true
+      isAchievementsLoading.value = false
+    }
+  }
+
+  // Called after PESO edits the achievements, so the page reloads them on its next visit
+  const resetAchievements = () => {
+    achievements.value = []
+    isAchievementsLoaded.value = false
+  }
+
   return {
     heroSlides,
     isHeroLoading,
@@ -178,5 +207,9 @@ export const useSiteContentStore = defineStore('siteContent', () => {
     isOrgChartLoading,
     loadOrgChart,
     resetOrgChart,
+    achievements,
+    isAchievementsLoading,
+    loadAchievements,
+    resetAchievements,
   }
 })

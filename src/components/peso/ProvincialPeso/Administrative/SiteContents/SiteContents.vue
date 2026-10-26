@@ -31,6 +31,7 @@ import ProgramCards from '@/components/peso/ProvincialPeso/Administrative/SiteCo
 import OrgChart from '@/components/peso/ProvincialPeso/Administrative/SiteContents/OrgChart.vue'
 import PageHeroes from '@/components/peso/ProvincialPeso/Administrative/SiteContents/PageHeroes.vue'
 import MunicipalityLogos from '@/components/peso/ProvincialPeso/Administrative/SiteContents/MunicipalityLogos.vue'
+import Achievements from '@/components/peso/ProvincialPeso/Administrative/SiteContents/Achievements.vue'
 import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
 import { useSiteContents } from '@/composables/peso/provincialPeso/useSiteContents'
 import { useSiteContentForm } from '@/composables/peso/provincialPeso/useSiteContentForm'
@@ -78,7 +79,7 @@ const {
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Site Contents</h1>
-      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos, page banners and the organizational chart.</p>
+      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos, page banners, the organizational chart and achievements.</p>
     </div>
 
     <!-- Each section can be hidden or shown (remembered per browser) -->
@@ -234,6 +235,9 @@ const {
 
     <!-- Organizational chart of the What is PESO? page -->
     <OrgChart />
+
+    <!-- Achievements masonry under the org chart on the What is PESO? page -->
+    <Achievements />
   </div>
 
   <!-- New / Edit Slide Dialog -->

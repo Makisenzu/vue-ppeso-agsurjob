@@ -4,6 +4,9 @@ import { buildSiteContentMediaPath } from '@/helpers/peso/provincialPeso/siteCon
 import {
   SITE_CONTENT_MEDIA_BUCKET,
   type AgsurMunicipality,
+  type AchievementInsert,
+  type AchievementItem,
+  type AchievementRow,
   type LandingProgram,
   type MunicipalityLogoItem,
   type MunicipalityLogoRow,
@@ -40,6 +43,15 @@ const pageHeroesTable = () => (supabase.schema('system') as any).from('public_pa
 // Same for system.org_chart_units / org_chart_positions (migration 052)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const orgChartTable = (table: 'org_chart_units' | 'org_chart_positions') => (supabase.schema('system') as any).from(table)
+
+// Same for system.peso_achievements (migration 059), typed by AchievementRow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const achievementsTable = () => (supabase.schema('system') as any).from('peso_achievements')
+
+const toAchievementItem = (row: AchievementRow): AchievementItem => ({
+  ...row,
+  image_url: mediaService.getPublicUrl(row.image_path, SITE_CONTENT_MEDIA_BUCKET),
+})
 
 const toOrgChartPositionItem = (row: OrgChartPositionRow): OrgChartPositionItem => ({
   ...row,
@@ -274,6 +286,40 @@ export const siteContentManagerService = {
 
     if (error) throw new Error(error.message || 'Failed to upload the photo.')
     return path
+  },
+
+  async fetchAchievements(): Promise<AchievementItem[]> {
+    const { data, error } = await achievementsTable().select('*').order('created_at', { ascending: false })
+    if (error) throw new Error(error.message || 'Failed to load the achievements.')
+    return ((data ?? []) as AchievementRow[]).map(toAchievementItem)
+  },
+
+  /** Uploads an achievement photo under achievements/ (the storage policy in 059 only allows that folder); returns the path. */
+  async uploadAchievementPhoto(file: File): Promise<string> {
+    const path = buildSiteContentMediaPath('achievements', file.name)
+    const { error } = await supabase.storage
+      .from(SITE_CONTENT_MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false })
+
+    if (error) throw new Error(error.message || 'Failed to upload the photo.')
+    return path
+  },
+
+  async createAchievement(payload: AchievementInsert): Promise<AchievementItem> {
+    const { data, error } = await achievementsTable().insert(payload).select().single()
+    if (error) throw new Error(error.message || 'Failed to add the achievement.')
+    return toAchievementItem(data as AchievementRow)
+  },
+
+  async updateAchievementTitle(id: string, title: string | null): Promise<AchievementItem> {
+    const { data, error } = await achievementsTable().update({ title }).eq('id', id).select().single()
+    if (error) throw new Error(error.message || 'Failed to save the title.')
+    return toAchievementItem(data as AchievementRow)
+  },
+
+  async deleteAchievement(id: string): Promise<void> {
+    const { error } = await achievementsTable().delete().eq('id', id)
+    if (error) throw new Error(error.message || 'Failed to delete the achievement.')
   },
 
   async removeImages(paths: string[]): Promise<void> {
