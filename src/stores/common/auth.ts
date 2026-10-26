@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { authService, type UserBundleData } from '@/services/common/authService'
+import { authService, isInactiveProfile, type UserBundleData } from '@/services/common/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
 import { clearUserScopedCache } from '@/helpers/common/persistentCache'
@@ -34,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isHydrating = ref(false)
   const isInitialized = ref(false)
   const isAuthListenerBound = ref(false)
+  const isAccountInactive = ref(false)
 
   // ─── Computed ───
   const isAuthenticated = computed(() => !!session.value)
@@ -128,11 +129,21 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = currentSession?.user ?? null
 
     if (!currentSession?.user) {
+      isAccountInactive.value = false
       clearSessionData()
       return
     }
 
     await hydrateUserData(currentSession.user.id, forceHydrate)
+
+    // Inactive accounts are treated as signed out. The Supabase session itself is ended by init()
+    // or the login flow: calling signOut from inside onAuthStateChange can deadlock the auth client
+    isAccountInactive.value = isInactiveProfile(profile.value)
+    if (isAccountInactive.value) {
+      session.value = null
+      user.value = null
+      clearSessionData()
+    }
   }
 
   async function init(forceHydrate = false) {
@@ -142,6 +153,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     const { data: { session: currentSession } } = await supabase.auth.getSession()
     await syncSessionData(currentSession, forceHydrate)
+    // An account deactivated while signed in loses its session on the next page load
+    if (isAccountInactive.value) {
+      await authService.logout().catch(error => console.error('Inactive account sign-out failed:', error))
+    }
 
     if (isAuthListenerBound.value) {
       isInitialized.value = true
@@ -154,6 +169,7 @@ export const useAuthStore = defineStore('auth', () => {
     supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         // Silently update the session token without re-hydrating user data
+        if (isAccountInactive.value) return
         session.value = newSession
         user.value = newSession?.user ?? null
         return
@@ -182,6 +198,7 @@ export const useAuthStore = defineStore('auth', () => {
     userBundle,
     isHydrating,
     isInitialized,
+    isAccountInactive,
     // Computed
     isAuthenticated,
     userEmail,

@@ -47,10 +47,23 @@ export interface UserBundleData {
   profileMedia: ProfileMediaRow[]
 }
 
+export const INACTIVE_ACCOUNT_MESSAGE = 'Your account is inactive. Please contact the PESO office to reactivate it.'
+
+/** Accounts set to 'inactive' (Admin → User Accounts) may not sign in */
+export const isInactiveProfile = (profile: Pick<ProfileRow, 'status'> | null | undefined) => profile?.status === 'inactive'
+
 export const authService = {
   async login(credentials: SignInWithPasswordCredentials) {
     const { data, error } = await supabase.auth.signInWithPassword(credentials)
     if (error) throw error
+
+    // Supabase Auth doesn't know the account status, so check it right after sign-in and
+    // end the session again for inactive accounts
+    const profile = await this.fetchProfileIfExists(data.user.id)
+    if (isInactiveProfile(profile)) {
+      await supabase.auth.signOut()
+      throw new Error(INACTIVE_ACCOUNT_MESSAGE)
+    }
     return data
   },
 
