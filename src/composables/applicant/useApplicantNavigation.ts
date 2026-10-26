@@ -49,7 +49,8 @@ const navItems: ApplicantNavItem[] = [
     title: 'PESO Programs',
     children: [
       { title: 'Fly Now Pay Later Program', to: { name: 'fnplp-application' } },
-      { title: 'Skills Training' },
+      // No application form yet: opens the PESO Programs section on Home
+      { title: 'Skills Training', to: { name: 'spes-application', hash: '#programs' } },
       { title: 'TUPAD', to: { name: 'tupad-application' } },
       { title: 'SPES', to: { name: 'spes-application' } },
       { title: 'GIP', to: { name: 'gip-application' } },
@@ -58,10 +59,7 @@ const navItems: ApplicantNavItem[] = [
   {
     title: 'My Activities',
     children: [
-      { title: 'Job Applications', to: { name: 'application' } },
-      { title: 'Interviews', to: { name: 'interview' } },
-      { title: 'Chats', to: { name: 'chat' } },
-      { title: 'Offers', to: { name: 'offer' } },
+      { title: 'Application Tracker', to: { name: 'application' } },
     ],
   },
 ]
