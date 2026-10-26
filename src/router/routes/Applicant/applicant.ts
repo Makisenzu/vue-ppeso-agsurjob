@@ -88,7 +88,7 @@ export const applicantRoutes : RouteRecordRaw[] = [
         path: 'gip-application',
         name: 'gip-application',
         component: () => import('@/components/applicant/Gip/ApplicantGipApplication.vue'),
-        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'GIP Application' }
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'GIP Application', fullWidth: true }
       },
       {
         path: 'fnplp-application',
