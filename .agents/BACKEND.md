@@ -569,3 +569,39 @@ and — once built — job application stages, interview schedules and referral 
 The UI needs no changes per event: `NotificationBell.vue` (every role's header) and `NotificationCenter.vue`
 (each role's `…-notifications` route) read `system.notifications` through
 `useNotifications` → `notificationStore` → `notificationService`.
+
+---
+
+## 18. Applications — Reuse What the Applicant Already Gave Us
+
+Every application flow — PESO programs (GIP, SPES, TUPAD, FNPLP, Skills Training) and job vacancies —
+follows the GIP application (`ApplicantGipApplicationForm.vue`, `useGipApplicationForm.ts`). The applicant
+should only ever upload a document once.
+
+> [!IMPORTANT]
+> 1. **NSRP is generated, never uploaded.** Build it from the registry record with
+>    `generateNsrpFormPdfFile` (`nsrpTemplateHelper.ts`), attach it automatically, and let the applicant view,
+>    remove or generate it again.
+> 2. **Profile documents fill in automatically — by document type, never by file name.** Each program keeps a
+>    `<PROGRAM>_PROFILE_DOCUMENT_MATCHES` map (requirement → profile document types; see
+>    `GIP_PROFILE_DOCUMENT_MATCHES` in `src/types/common/gipProgram.ts`). Profile document types are the
+>    `applicant_requirements` rows of `public.requirement_templates`: required `REQUIRED_UPLOAD_ORDER`
+>    (Application Form, Resume, Birth Certificate) and optional `OPTIONAL_PROFILE_DOCUMENTS` (TOR/Diploma,
+>    Certificates — migration 065). Only map documents that mean the same thing (Application Form is not an
+>    Application Letter). A requirement that applicants keep re-uploading is a missing profile document type:
+>    add it as an optional template instead of guessing.
+> 3. **Everything else is one click away.** Every requirement without a match offers "My documents"
+>    (`listReusableProfileDocuments` in `applicantRequirementDocuments.ts`) next to Upload. Filter by the
+>    program's accepted file types (GIP: PDF only).
+> 4. **Copy on submit, never link.** Reused files are copied into the uploader's folder of the documents bucket
+>    (`gipDocumentService.uploadDocuments`, `reused`), so deleting one never breaks the other.
+> 5. **Same layout:**
+>    - the program page only shows the requirements and links to the form ("Apply now" / "View my application");
+>    - the form is a stepper: Your details → Requirements → Review & submit;
+>    - after submitting: a read-only progress tracker, the application details (reference no., date applied,
+>      last updated, applied through), the applicant's NSRP details, the requirements and any deployments.
+> 6. **Editable until reviewed.** Upload, view and remove stay open while the application is Pending and not yet
+>    deployed; RLS enforces the same rule (`can_edit_own_<program>_application`, see migration 060). An uploaded
+>    file ticks the document in both the application's checklist and the registry's `documents_submitted` (062).
+> 7. **Notify (§17).** New applications notify the program's staff; status changes notify the applicant except
+>    staff-only statuses (`system.is_staff_only_program_status`, migration 064).

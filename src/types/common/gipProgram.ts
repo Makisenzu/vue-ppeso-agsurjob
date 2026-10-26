@@ -1,4 +1,5 @@
 // Content of the GIP program page (public /gip and the applicant's GIP page)
+import type { ReusableProfileDocument } from '@/helpers/applicant/applicantRequirementDocuments'
 
 export interface GipProgramFact {
   label: string
@@ -72,3 +73,18 @@ export type GipApplicantDocumentMap = Partial<Record<string, GipApplicantDocumen
 
 /** Files picked but not uploaded yet, per document name. */
 export type GipPendingDocumentMap = Partial<Record<string, File>>
+
+/** Profile documents chosen for a requirement, copied into the application on submit, per document name. */
+export type GipReusedDocumentMap = Partial<Record<string, ReusableProfileDocument>>
+
+/**
+ * Profile document types (REQUIRED_UPLOAD_ORDER / OPTIONAL_PROFILE_DOCUMENTS in useApplicantProfile.ts)
+ * attached automatically to the GIP requirement that means the same thing (AGENTS.md rule 16). Exact
+ * document types only, never guessed from file names; any other profile PDF can still be picked by hand.
+ * Application Form is not the Application Letter, so it stays a manual pick.
+ */
+export const GIP_PROFILE_DOCUMENT_MATCHES: Partial<Record<string, readonly string[]>> = {
+  Resume: ['Resume'],
+  'TOR/Form 137/Form 138/Diploma': ['TOR/Diploma'],
+  Certificates: ['Certificates'],
+}

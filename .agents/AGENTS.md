@@ -206,3 +206,7 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 > 14. **DO NOT remove unrelated existing comments, docstrings, or code blocks**.
 > 15. **DO NOT ship a user-facing activity without its notification** — every status change, review decision or
 >     assignment a user should know about gets a `system.notify()` trigger. See [`BACKEND.md`](.agents/BACKEND.md) §17.
+> 16. **DO NOT make applicants re-submit what they already gave us** — every application flow (PESO programs and
+>     job vacancies) generates the NSRP from the registry record, auto-fills each requirement that matches a
+>     profile document type, offers the rest through "My documents", and uses the GIP application layout.
+>     See [`BACKEND.md`](.agents/BACKEND.md) §18.

@@ -114,6 +114,54 @@ export function getRequirementMediaMeta(
   }
 }
 
+/** A document the applicant already uploaded to their profile, offered again when they apply to a program. */
+export interface ReusableProfileDocument {
+  /** applicant_requirement_media id */
+  id: string
+  /** Requirement it was uploaded for, e.g. "Resume" */
+  label: string
+  fileName: string
+  /** Path in the documents bucket (<profile id>/<file>) */
+  path: string
+  mimeType: string | null
+  size: number | null
+  url: string | null
+}
+
+const isPdfMedia = (media: RequirementMediaLike) =>
+  String(media.mime_type ?? '').toLowerCase() === 'application/pdf' ||
+  String(media.filename ?? '').toLowerCase().endsWith('.pdf')
+
+/**
+ * The applicant's uploaded profile documents that can be reused, newest first. Rejected documents
+ * are left out, and so is NSRP (programs generate it from the record instead).
+ */
+export function listReusableProfileDocuments(
+  requirementMedia: (RequirementMediaLike & { id?: string | number | null })[] = [],
+  requirementRows: RequirementRowLike[] = [],
+  options: { pdfOnly?: boolean } = {}
+): ReusableProfileDocument[] {
+  const rowsById = new Map(requirementRows.map((row) => [String(row.id ?? ''), row]))
+  const documents: ReusableProfileDocument[] = []
+  for (const media of [...requirementMedia].reverse()) {
+    if (!media.path || (options.pdfOnly && !isPdfMedia(media))) continue
+    const row = rowsById.get(String(media.applicant_requirement_id ?? ''))
+    if (String(row?.status ?? '').toLowerCase() === 'rejected') continue
+    const label = row ? getRequirementRowLabel(row) : String(media.description ?? media.alt_text ?? 'Document')
+    if (normalizeRequirementLabel(label).includes('nsrp')) continue
+    documents.push({
+      id: String(media.id ?? media.path),
+      label,
+      fileName: String(media.filename ?? label),
+      path: media.path,
+      mimeType: media.mime_type ?? null,
+      size: media.size ?? null,
+      url: mediaService.getPublicUrl(media.path, DOCUMENT_UPLOAD_BUCKET),
+    })
+  }
+  return documents
+}
+
 export function isRequirementUploaded(
   requirement: string,
   requirementMedia: RequirementMediaLike[] = [],

@@ -16,6 +16,12 @@ export const NSRP_FORM = 'NSRP Form'
 /** Uploaded requirements, in the order the applicant must submit them. */
 export const REQUIRED_UPLOAD_ORDER = ['Application Form', 'Resume', 'Birth Certificate'] as const
 
+/**
+ * Optional profile documents (migration 065): never block the upload order or verification, and fill in
+ * the matching requirement of program / vacancy applications (AGENTS.md rule 16).
+ */
+export const OPTIONAL_PROFILE_DOCUMENTS = ['TOR/Diploma', 'Certificates'] as const
+
 export function useApplicantProfile() {
   const authStore = useAuthStore()
   const route = useRoute()

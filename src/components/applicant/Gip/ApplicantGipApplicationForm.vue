@@ -44,7 +44,9 @@ const {
   goToStep,
   nextStep,
   previousStep,
+  profileDocuments,
   selectFile,
+  attachProfileDocument,
   removeFile,
   generateNsrp,
   submit,
@@ -162,6 +164,8 @@ const INDICATOR_CLASS =
           :is-submitting="isSubmitting"
           :is-generating-nsrp="isGeneratingNsrp"
           :attachment-accept="attachmentAccept"
+          :profile-documents="profileDocuments"
+          @use-profile="attachProfileDocument"
           @pick="selectFile"
           @remove="removeFile"
           @generate-nsrp="generateNsrp"
@@ -188,6 +192,7 @@ const INDICATOR_CLASS =
               <span v-if="doc.pendingFileName || doc.savedFileName" class="flex min-w-0 items-center gap-1 text-muted-foreground">
                 <FileText class="size-4 shrink-0" />
                 <span class="truncate">{{ doc.pendingFileName ?? doc.savedFileName }}</span>
+                <span v-if="doc.isFromProfile" class="hidden shrink-0 text-xs sm:inline">· from your documents</span>
               </span>
               <span v-else class="inline-flex items-center gap-1 text-muted-foreground">
                 <X class="size-4" /> Not attached
@@ -298,6 +303,8 @@ const INDICATOR_CLASS =
           :is-submitting="isSubmitting"
           :is-generating-nsrp="isGeneratingNsrp"
           :attachment-accept="attachmentAccept"
+          :profile-documents="profileDocuments"
+          @use-profile="attachProfileDocument"
           @pick="selectFile"
           @remove="removeFile"
           @generate-nsrp="generateNsrp"

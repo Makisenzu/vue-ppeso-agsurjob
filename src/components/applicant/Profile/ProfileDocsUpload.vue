@@ -288,6 +288,20 @@ const acceptLabel = computed(() =>
     .join(', ')
 )
 
+/** Documents outside the required order (TOR/Diploma, Certificates — migration 065) */
+function isOptionalDocument(doc: UploadDocumentDefinition) {
+  return getUploadOrder(doc.label) >= REQUIRED_UPLOAD_ORDER.length
+}
+
+/** Other optional documents the dropzone can take instead, so one can be skipped for another */
+const alternativeOptionalDocuments = computed(() =>
+  selectedDocument.value && isOptionalDocument(selectedDocument.value)
+    ? pendingDocuments.value.filter(
+        (doc) => doc.id !== selectedDocument.value?.id && isOptionalDocument(doc) && isSelectableDocument(doc)
+      )
+    : []
+)
+
 /** Point the dropzone at the next unblocked requirement that has neither an upload nor a queued file. */
 function selectNextDocument() {
   selectedDocId.value = pendingDocuments.value.find(isSelectableDocument)?.id ?? ''
@@ -450,6 +464,17 @@ const submitDocuments = async () => {
             </p>
             <p class="mt-1">
               Next up: <span class="font-medium text-primary">{{ selectedDocument.label }}</span>
+              <span v-if="isOptionalDocument(selectedDocument)"> (optional)</span>
+              <template v-for="doc in alternativeOptionalDocuments" :key="doc.id">
+                ·
+                <button
+                  type="button"
+                  class="cursor-pointer font-medium text-foreground underline-offset-4 hover:underline"
+                  @click="selectedDocId = doc.id"
+                >
+                  Upload {{ doc.label }} instead
+                </button>
+              </template>
             </p>
           </div>
 
@@ -530,7 +555,10 @@ const submitDocuments = async () => {
             </AttachmentMedia>
 
             <AttachmentContent class="min-w-0">
-              <AttachmentTitle>{{ doc.label }}</AttachmentTitle>
+              <AttachmentTitle>
+                {{ doc.label }}
+                <span v-if="isOptionalDocument(doc)" class="font-normal text-muted-foreground">(optional)</span>
+              </AttachmentTitle>
               <AttachmentDescription class="truncate">
                 {{ uploadedFiles[doc.id].file.name }} ·
                 <span v-if="getBlockingDocument(doc)" class="text-destructive">Add your {{ getBlockingDocument(doc)?.label }} first</span>
@@ -584,7 +612,10 @@ const submitDocuments = async () => {
                 <CircleCheckIcon class="size-4 text-success" />
               </div>
               <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium">{{ doc.label }}</p>
+                <p class="truncate text-sm font-medium">
+                  {{ doc.label }}
+                  <span v-if="isOptionalDocument(doc)" class="font-normal text-muted-foreground">(optional)</span>
+                </p>
                 <p class="truncate text-xs text-muted-foreground">
                   {{ getExistingRequirementMedia(doc.label)?.filename }} ·
                   {{ getExistingRequirementMedia(doc.label)?.sizeLabel ?? 'Unknown size' }}

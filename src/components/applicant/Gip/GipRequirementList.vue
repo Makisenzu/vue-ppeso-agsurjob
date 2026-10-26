@@ -1,19 +1,33 @@
 <script setup lang="ts">
-import { CircleDashed, Eye, FileText, Loader2, RefreshCw, Trash2, Upload } from '@lucide/vue'
+import { ChevronDown, CircleDashed, Eye, FileText, FolderOpen, Loader2, RefreshCw, Trash2, Upload } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { GipRequirementRow } from '@/composables/applicant/useGipApplicationForm'
+import type { ReusableProfileDocument } from '@/helpers/applicant/applicantRequirementDocuments'
 
-defineProps<{
-  requirements: GipRequirementRow[]
-  /** Upload / remove / generate controls; otherwise read-only */
-  canUpload: boolean
-  isSubmitting: boolean
-  isGeneratingNsrp: boolean
-  attachmentAccept: string
-}>()
+withDefaults(
+  defineProps<{
+    requirements: GipRequirementRow[]
+    /** Upload / remove / generate controls; otherwise read-only */
+    canUpload: boolean
+    isSubmitting: boolean
+    isGeneratingNsrp: boolean
+    attachmentAccept: string
+    /** PDFs already on the applicant's profile, offered for any requirement */
+    profileDocuments?: ReusableProfileDocument[]
+  }>(),
+  { profileDocuments: () => [] }
+)
 
 const emit = defineEmits<{
   pick: [doc: string, file: File | undefined]
+  useProfile: [doc: string, profileDocumentId: string]
   remove: [doc: string]
   generateNsrp: []
 }>()
@@ -57,7 +71,8 @@ const onFilePicked = (doc: string, event: Event) => {
             <span class="truncate text-sm text-foreground" :title="doc.pendingFileName ?? doc.savedFileName ?? ''">
               {{ doc.pendingFileName ?? doc.savedFileName }}
             </span>
-            <span v-if="doc.pendingFileName" class="shrink-0 text-xs text-muted-foreground">· uploads on submit</span>
+            <span v-if="doc.isFromProfile" class="shrink-0 text-xs text-muted-foreground">· from your documents</span>
+            <span v-else-if="doc.pendingFileName" class="shrink-0 text-xs text-muted-foreground">· uploads on submit</span>
             <span v-else-if="doc.uploadedAt" class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
               · {{ doc.uploadedAt }}
             </span>
@@ -115,6 +130,29 @@ const onFilePicked = (doc: string, event: Event) => {
                   />
                 </label>
               </Button>
+              <!-- Reuse a PDF already uploaded on the profile -->
+              <DropdownMenu v-if="!doc.isNsrp && profileDocuments.length">
+                <DropdownMenuTrigger as-child>
+                  <Button type="button" variant="outline" size="sm" class="cursor-pointer" :disabled="isSubmitting">
+                    <FolderOpen class="size-4" /> My documents
+                    <ChevronDown class="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-64">
+                  <DropdownMenuLabel class="text-xs text-muted-foreground">Use a document from your profile</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    v-for="item in profileDocuments"
+                    :key="item.id"
+                    class="cursor-pointer"
+                    @select="emit('useProfile', doc.name, item.id)"
+                  >
+                    <div class="flex min-w-0 flex-col">
+                      <span class="text-sm font-medium">{{ item.label }}</span>
+                      <span class="truncate text-xs text-muted-foreground">{{ item.fileName }}</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </template>
             <span v-else-if="doc.isReceived" class="text-sm text-success">Received by PESO</span>
             <span v-else class="inline-flex items-center gap-1 text-sm text-muted-foreground">

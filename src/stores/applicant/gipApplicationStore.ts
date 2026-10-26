@@ -5,7 +5,11 @@ import { gipDocumentService } from '@/services/common/gipDocumentService'
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type { GipApplicationRow, MyGipInternship } from '@/types/applicant/gipApplication'
-import type { GipApplicantDocumentMap, GipPendingDocumentMap } from '@/types/common/gipProgram'
+import type {
+  GipApplicantDocumentMap,
+  GipPendingDocumentMap,
+  GipReusedDocumentMap,
+} from '@/types/common/gipProgram'
 
 const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
 
@@ -60,10 +64,14 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
   }
 
   /**
-   * Applies to GIP when the applicant hasn't yet, then uploads the picked soft copies.
-   * Returns true on success.
+   * Applies to GIP when the applicant hasn't yet, then uploads the picked soft copies and copies the
+   * chosen profile documents. Returns true on success.
    */
-  async function submitDocuments(uploaderId: string, pending: GipPendingDocumentMap): Promise<boolean> {
+  async function submitDocuments(
+    uploaderId: string,
+    pending: GipPendingDocumentMap,
+    reused: GipReusedDocumentMap = {}
+  ): Promise<boolean> {
     if (isLocked.value) {
       toastAlert.error('Application locked', 'Your GIP application has already been reviewed by PESO.')
       return false
@@ -75,7 +83,7 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
       const application = myApplication.value ?? (await gipApplicationService.applyToGip())
       myApplication.value = application
       try {
-        await gipDocumentService.uploadDocuments({ gipApplicantId: application.id, uploaderId, pending })
+        await gipDocumentService.uploadDocuments({ gipApplicantId: application.id, uploaderId, pending, reused })
       } finally {
         // Uploaded files tick the checklist (trigger in 060), so re-read both even after a failure
         const [docs, refreshed] = await Promise.all([

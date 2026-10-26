@@ -17,9 +17,15 @@ import {
   GIP_NSRP_DOCUMENT,
   GIP_OPTIONAL_DOCUMENTS,
   GIP_REQUIRED_DOCUMENTS,
+  GIP_PROFILE_DOCUMENT_MATCHES,
   GIP_UPLOAD_DOCUMENTS,
   type GipPendingDocumentMap,
+  type GipReusedDocumentMap,
 } from '@/types/common/gipProgram'
+import {
+  listReusableProfileDocuments,
+  normalizeRequirementLabel,
+} from '@/helpers/applicant/applicantRequirementDocuments'
 
 export const GIP_STATUS_DESCRIPTIONS: Record<string, string> = {
   Pending: 'PESO is reviewing your requirements. You can still replace a file until then.',
@@ -59,6 +65,8 @@ export interface GipRequirementRow {
   pendingFileName: string | null
   /** Object URL of the picked / generated file, to view it before submitting */
   pendingFileUrl: string | null
+  /** The attached file is a document from the applicant's profile, copied on submit */
+  isFromProfile: boolean
   isDeleting: boolean
   error: string | null
 }
@@ -111,20 +119,58 @@ export function useGipApplicationForm() {
       fileErrors[doc] = error
       return
     }
+    const { [doc]: _reused, ...otherReused } = reusedDocs.value
+    reusedDocs.value = otherReused
     setPendingFile(doc, file)
   }
 
   const clearPendingFile = (doc: string) => {
     const { [doc]: _removed, ...rest } = pendingFiles.value
     pendingFiles.value = rest
+    const { [doc]: _reused, ...otherReused } = reusedDocs.value
+    reusedDocs.value = otherReused
     revokePreview(doc)
     delete fileErrors[doc]
   }
 
   const resetPicks = () => {
     pendingFiles.value = {}
+    reusedDocs.value = {}
+    dismissedProfileMatches.clear()
     for (const key of Object.keys(previewUrls)) revokePreview(key)
     for (const key of Object.keys(fileErrors)) delete fileErrors[key]
+  }
+
+  // ─── Documents already on the profile ───
+  /** Profile documents chosen for a requirement, copied into the application on submit */
+  const reusedDocs = ref<GipReusedDocumentMap>({})
+  /** Requirements whose auto-attached profile document was removed, so it isn't attached again */
+  const dismissedProfileMatches = reactive(new Set<string>())
+
+  /** PDFs the applicant already uploaded on their profile (application form, resume, birth certificate, ...) */
+  const profileDocuments = computed(() =>
+    listReusableProfileDocuments(authStore.applicantRequirementMedia ?? [], authStore.applicantRequirements ?? [], {
+      pdfOnly: true,
+    })
+  )
+
+  const attachProfileDocument = (doc: string, profileDocumentId: string) => {
+    const document = profileDocuments.value.find((item) => item.id === profileDocumentId)
+    if (!document) return
+    clearPendingFile(doc)
+    reusedDocs.value = { ...reusedDocs.value, [doc]: document }
+  }
+
+  /** Attaches the profile document of the same kind to each requirement that has nothing yet */
+  const attachProfileMatches = () => {
+    for (const [doc, labels] of Object.entries(GIP_PROFILE_DOCUMENT_MATCHES)) {
+      if (dismissedProfileMatches.has(doc) || documents.value[doc] || pendingFiles.value[doc] || reusedDocs.value[doc]) {
+        continue
+      }
+      const wanted = (labels ?? []).map(normalizeRequirementLabel)
+      const match = profileDocuments.value.find((item) => wanted.includes(normalizeRequirementLabel(item.label)))
+      if (match) reusedDocs.value = { ...reusedDocs.value, [doc]: match }
+    }
   }
 
   onScopeDispose(resetPicks)
@@ -147,7 +193,8 @@ export function useGipApplicationForm() {
   /** Removes a picked file, or the saved one when there's nothing picked */
   const removeFile = async (doc: string) => {
     if (doc === GIP_NSRP_DOCUMENT) isNsrpDismissed.value = true
-    if (pendingFiles.value[doc]) {
+    if (reusedDocs.value[doc]) dismissedProfileMatches.add(doc)
+    if (pendingFiles.value[doc] || reusedDocs.value[doc]) {
       clearPendingFile(doc)
       return
     }
@@ -168,8 +215,9 @@ export function useGipApplicationForm() {
         savedFileName: saved?.file_name ?? null,
         savedFileUrl: saved?.url ?? null,
         uploadedAt: saved ? formatGipDateTime(saved.updated_at) : null,
-        pendingFileName: pendingFiles.value[name]?.name ?? null,
-        pendingFileUrl: previewUrls[name] ?? null,
+        pendingFileName: pendingFiles.value[name]?.name ?? reusedDocs.value[name]?.fileName ?? null,
+        pendingFileUrl: previewUrls[name] ?? reusedDocs.value[name]?.url ?? null,
+        isFromProfile: !pendingFiles.value[name] && !!reusedDocs.value[name],
         isDeleting: deletingDocument.value === name,
         error: fileErrors[name] ?? null,
       }
@@ -177,14 +225,16 @@ export function useGipApplicationForm() {
   )
 
   const canUpload = computed(() => !!applicantId.value && !isLocked.value && !isLoading.value)
-  const hasPendingFiles = computed(() => Object.keys(pendingFiles.value).length > 0)
+  const hasPendingFiles = computed(
+    () => Object.keys(pendingFiles.value).length > 0 || Object.keys(reusedDocs.value).length > 0
+  )
 
   /** Every required soft copy needs a file — the saved one or a newly picked one. */
   const validateFiles = (): boolean => {
     let valid = true
     for (const doc of GIP_UPLOAD_DOCUMENTS) {
       if (GIP_OPTIONAL_DOCUMENTS.includes(doc)) continue
-      if (!pendingFiles.value[doc] && !documents.value[doc]) {
+      if (!pendingFiles.value[doc] && !reusedDocs.value[doc] && !documents.value[doc]) {
         fileErrors[doc] =
           doc === GIP_NSRP_DOCUMENT ? 'Generate your NSRP form to attach it.' : 'Upload a PDF copy of this document.'
         valid = false
@@ -197,7 +247,7 @@ export function useGipApplicationForm() {
     const uploaderId = user.value?.id
     if (!uploaderId || !validateFiles()) return
     if (myApplication.value && !hasPendingFiles.value) return
-    if (await store.submitDocuments(uploaderId, pendingFiles.value)) resetPicks()
+    if (await store.submitDocuments(uploaderId, pendingFiles.value, reusedDocs.value)) resetPicks()
   }
 
   // ─── Status ───
@@ -303,6 +353,15 @@ export function useGipApplicationForm() {
     { immediate: true }
   )
 
+  // Matching profile documents (e.g. the resume) are attached as soon as the form can take them
+  watch(
+    [canUpload, profileDocuments],
+    ([can]) => {
+      if (can) attachProfileMatches()
+    },
+    { immediate: true }
+  )
+
   return {
     requirements,
     attachmentAccept: GIP_ATTACHMENT_ACCEPT,
@@ -332,7 +391,9 @@ export function useGipApplicationForm() {
     goToStep,
     nextStep,
     previousStep,
+    profileDocuments,
     selectFile,
+    attachProfileDocument,
     removeFile,
     generateNsrp,
     submit,
