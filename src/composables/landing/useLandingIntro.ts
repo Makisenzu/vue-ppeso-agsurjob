@@ -25,6 +25,12 @@ export function useLandingIntroDone() {
   return readonly(isIntroDone)
 }
 
+/** For pages that show the landing sections without the intro (the applicant home): lets their entrance animations run. */
+export function skipLandingIntro() {
+  hasPlayed = true
+  isIntroDone.value = true
+}
+
 /** Full-screen seal + "Province of Agusan del Sur" intro, shown for 3.2s on the first load of the landing page. */
 export function useLandingIntro() {
   const prefersReducedMotion =

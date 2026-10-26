@@ -21,7 +21,7 @@ import { useLandingNavigation } from '@/composables/landing/useLandingNavigation
 import agsurLogo from '@/assets/images/agsur-logo.png'
 import agsurSeal from '@/assets/images/agsur.png'
 
-const { navLinks, activeNavIndex, mobileOpen, isDark, toggleTheme, closeMobileMenu } = useLandingNavigation()
+const { navLinks, activeNavIndex, mobileOpen, isDark, isSignedIn, toggleTheme, closeMobileMenu } = useLandingNavigation()
 </script>
 
 <template>
@@ -58,7 +58,11 @@ const { navLinks, activeNavIndex, mobileOpen, isDark, toggleTheme, closeMobileMe
           <component :is="isDark ? Sun : Moon" class="size-4" />
         </Button>
 
-        <div class="hidden items-center gap-2 sm:flex">
+        <!-- "/" redirects a signed-in user to their role's dashboard (router guard) -->
+        <Button v-if="isSignedIn" size="sm" class="hidden sm:inline-flex" as-child>
+          <RouterLink to="/">Dashboard</RouterLink>
+        </Button>
+        <div v-else class="hidden items-center gap-2 sm:flex">
           <Button variant="outline" size="sm" as-child>
             <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
           </Button>
@@ -111,12 +115,17 @@ const { navLinks, activeNavIndex, mobileOpen, isDark, toggleTheme, closeMobileMe
               </template>
             </nav>
             <div class="mt-auto flex flex-col gap-2 p-4">
-              <Button variant="outline" as-child>
-                <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
+              <Button v-if="isSignedIn" as-child>
+                <RouterLink to="/" @click="closeMobileMenu">Dashboard</RouterLink>
               </Button>
-              <Button as-child>
-                <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
-              </Button>
+              <template v-else>
+                <Button variant="outline" as-child>
+                  <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
+                </Button>
+                <Button as-child>
+                  <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
+                </Button>
+              </template>
             </div>
           </SheetContent>
         </Sheet>

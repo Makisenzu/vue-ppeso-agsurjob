@@ -10,7 +10,8 @@ usePrefetchApplicantPages()
     <!-- Top navigation replaces the sidebar for applicants (same pattern as the landing page header) -->
     <ApplicantHeader />
 
-    <main class="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
+    <!-- fullWidth pages (the About pages) bring their own section padding -->
+    <main class="w-full flex-1" :class="{ 'mx-auto max-w-7xl p-4 sm:p-6': !$route.meta.fullWidth }">
       <RouterView />
     </main>
   </div>

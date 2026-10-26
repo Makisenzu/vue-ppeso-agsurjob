@@ -26,12 +26,21 @@ export interface ApplicantNavItem {
   children?: ApplicantNavChild[]
 }
 
+// Mirrors the public landing nav (useLandingNavigation.ts), plus My Activities.
+// About links open in-app copies of the public pages so the user stays in the applicant layout;
+// Announcements has no applicant page yet and points at Home
 const navItems: ApplicantNavItem[] = [
   { title: 'Home', to: { name: 'home' } },
-  { title: 'Trainings', to: { name: 'home' } },
+  {
+    title: 'About',
+    children: [
+      { title: 'History of Agusan del Sur', to: { name: 'applicant-about' } },
+      { title: 'What is PESO?', to: { name: 'applicant-what-is-peso' } },
+    ],
+  },
   { title: 'Announcements', to: { name: 'home' } },
   {
-    title: 'Job Search',
+    title: 'Vacancies',
     children: [
       { title: 'Vacancies', to: { name: 'vacancies' } },
       { title: 'Saved Jobs', to: { name: 'saved-job' } },
@@ -39,12 +48,13 @@ const navItems: ApplicantNavItem[] = [
     ],
   },
   {
-    title: 'Gov. Programs',
+    title: 'PESO Programs',
     children: [
-      { title: 'SPES', to: { name: 'spes-application' } },
+      { title: 'Fly Now Pay Later Program', to: { name: 'fnplp-application' } },
+      { title: 'Skills Training' },
       { title: 'TUPAD', to: { name: 'tupad-application' } },
+      { title: 'SPES', to: { name: 'spes-application' } },
       { title: 'GIP', to: { name: 'gip-application' } },
-      { title: 'FNPLP', to: { name: 'fnplp-application' } },
     ],
   },
   {

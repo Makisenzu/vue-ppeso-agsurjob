@@ -15,7 +15,21 @@ export const applicantRoutes : RouteRecordRaw[] = [
       {
         path: 'home',
         name: 'home',
-        component: () => import('@/components/applicant/ApplicantHome.vue')
+        component: () => import('@/components/applicant/ApplicantHome.vue'),
+        meta: { fullWidth: true }
+      },
+      // Public About pages, rendered edge to edge inside the applicant layout (fullWidth)
+      {
+        path: 'about',
+        name: 'applicant-about',
+        component: () => import('@/components/applicant/About/ApplicantAboutHistory.vue'),
+        meta: { fullWidth: true }
+      },
+      {
+        path: 'what-is-peso',
+        name: 'applicant-what-is-peso',
+        component: () => import('@/components/applicant/About/ApplicantWhatIsPeso.vue'),
+        meta: { fullWidth: true }
       },
       {
         path: 'notification',

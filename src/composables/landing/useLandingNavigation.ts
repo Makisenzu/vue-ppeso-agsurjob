@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
+import { useAuthStore } from '@/stores/common/auth'
 
 /** A section anchor on the landing page (`href`) or a separate public page (`to`) */
 export interface LandingLinkTarget {
@@ -68,6 +69,10 @@ export function useLandingNavigation() {
   const mobileOpen = ref(false)
   const route = useRoute()
   const { links } = useLandingLinks()
+  const authStore = useAuthStore()
+
+  // Signed-in users see a Dashboard button instead of Log in / Sign up
+  const isSignedIn = computed(() => authStore.isAuthenticated)
 
   // Nav item highlighted on load: Home on the landing page, otherwise the item whose dropdown holds the page
   const activeNavIndex = computed(() => {
@@ -92,6 +97,7 @@ export function useLandingNavigation() {
     activeNavIndex,
     mobileOpen,
     isDark,
+    isSignedIn,
     toggleTheme,
     closeMobileMenu,
   }

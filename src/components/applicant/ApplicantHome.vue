@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
+import LandingAbout from '@/components/landing/LandingAbout.vue'
+import LandingHero from '@/components/landing/LandingHero.vue'
+import LandingMunicipalities from '@/components/landing/LandingMunicipalities.vue'
+import LandingPrograms from '@/components/landing/LandingPrograms.vue'
+import { skipLandingIntro } from '@/composables/landing/useLandingIntro'
+
+skipLandingIntro()
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 w-full max-w-7xl mx-auto">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <CustomBreadcrumbs />
-    </div>
+  <!-- Same sections as the public landing page (views/landing/Landing.vue), minus its intro animation.
+       Single root: App.vue's out-in <transition> needs one -->
+  <div>
+    <LandingHero />
+    <LandingAbout />
+    <LandingPrograms />
+    <LandingMunicipalities />
   </div>
 </template>
