@@ -8,6 +8,12 @@ export const adminRoutes: RouteRecordRaw[] = [
     meta: { breadcrumb: false, requiresAuth: true, role: 'admin' },
     children: [
       {
+        path: 'notifications',
+        name: 'admin-notifications',
+        component: () => import('@/components/NotificationCenter.vue'),
+        meta: { breadcrumb: 'Notifications' },
+      },
+      {
         path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('@/components/admin/AdminDashboard.vue'),

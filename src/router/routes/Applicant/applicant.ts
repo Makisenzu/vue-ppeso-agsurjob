@@ -34,7 +34,8 @@ export const applicantRoutes : RouteRecordRaw[] = [
       {
         path: 'notification',
         name: 'notification',
-        component: () => import('@/components/applicant/ApplicantNotification.vue')
+        component: () => import('@/components/NotificationCenter.vue'),
+        meta: { breadcrumb: 'Notifications' }
       },
       {
         path: 'vacancies',

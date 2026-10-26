@@ -15,6 +15,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
     meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
     children: [
       {
+        path: 'notifications',
+        name: 'provincial-peso-notifications',
+        component: () => import('@/components/NotificationCenter.vue'),
+        meta: { breadcrumb: 'Notifications' },
+      },
+      {
         path: 'dashboard',
         name: 'provincial-peso-dashboard',
         component: PPESODashboard,
@@ -254,6 +260,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         path: 'dashboard',
         name: 'municipal-peso-dashboard',
         component: PPESODashboard
+      },
+      {
+        path: 'notifications',
+        name: 'municipal-peso-notifications',
+        component: () => import('@/components/NotificationCenter.vue'),
+        meta: { breadcrumb: 'Notifications' },
       }
     ]
   },

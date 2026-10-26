@@ -2,8 +2,8 @@
 import EmployerSidebar from '@/components/sidebars/EmployerSidebar.vue'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useColorMode } from '@vueuse/core'
-import { Sun, Moon, Bell } from '@lucide/vue'
-import NotificationCountBadge from '@/components/NotificationCountBadge.vue'
+import { Sun, Moon } from '@lucide/vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const mode = useColorMode()
 
@@ -25,14 +25,9 @@ function toggleTheme() {
         <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/40 px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200">
           <SidebarTrigger class="-ml-1 text-muted-foreground" />
 
-          <RouterLink 
-            to="#" 
-            class="relative ml-auto flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            title="Notifications"
-          >
-            <Bell class="size-4 shrink-0" />
-            <NotificationCountBadge />
-          </RouterLink>
+          <div class="ml-auto">
+            <NotificationBell :to="{ name: 'employer-notifications' }" />
+          </div>
           <button 
             @click="toggleTheme" 
             class="flex size-8 items-center justify-center rounded-md bg-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
