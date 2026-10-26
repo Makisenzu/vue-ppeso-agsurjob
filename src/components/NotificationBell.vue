@@ -9,10 +9,10 @@ import NotificationCountBadge from '@/components/NotificationCountBadge.vue'
 import { useNotificationBell } from '@/composables/common/useNotifications'
 
 // Each layout passes its role's notifications page
-defineProps<{ to: RouteLocationRaw }>()
+const props = defineProps<{ to: RouteLocationRaw }>()
 
-const { open, preview, unreadCount, isLoading, hasLoaded, isMutating, markAllRead, readItem, getTypeMeta, formatTime } =
-  useNotificationBell()
+const { open, preview, unreadCount, isLoading, hasLoaded, isMutating, markAllRead, readItem, getTypeMeta, formatTime, getBody } =
+  useNotificationBell(() => props.to)
 </script>
 
 <template>
@@ -77,7 +77,7 @@ const { open, preview, unreadCount, isLoading, hasLoaded, isMutating, markAllRea
                   </span>
                   <span v-if="!item.is_read" class="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />
                 </span>
-                <span v-if="item.message" class="line-clamp-2 text-xs text-muted-foreground">{{ item.message }}</span>
+                <span v-if="getBody(item)" class="line-clamp-2 text-xs text-muted-foreground">{{ getBody(item) }}</span>
                 <span class="text-xs text-muted-foreground">{{ getTypeMeta(item.type).label }} · {{ formatTime(item.created_at) }}</span>
               </span>
             </button>

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
-import type { NotificationRow } from '@/types/common/notification'
+import type { NotificationRow, NotificationUpdate } from '@/types/common/notification'
 
 // RLS already limits system.notifications to the recipient's own rows (034); the recipient_id
 // filters keep each query on that user's rows explicitly
@@ -56,9 +56,23 @@ export const notificationService = {
     return data ?? []
   },
 
-  async deleteNotification(id: number): Promise<void> {
-    const { error } = await supabase.schema('system').from('notifications').delete().eq('id', id)
-    if (error) throw new Error(error.message || 'Failed to delete notification')
+  async setStarred(id: number, isStarred: boolean): Promise<NotificationRow> {
+    const { data, error } = await supabase
+      .schema('system')
+      .from('notifications')
+      // is_starred (migration 056) is not in the generated Update type yet
+      .update({ is_starred: isStarred } as NotificationUpdate)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message || 'Failed to star notification')
+    return data
+  },
+
+  async deleteNotifications(ids: number[]): Promise<void> {
+    const { error } = await supabase.schema('system').from('notifications').delete().in('id', ids)
+    if (error) throw new Error(error.message || 'Failed to delete notifications')
   },
 
   /**
@@ -83,16 +97,5 @@ export const notificationService = {
     return () => {
       void supabase.removeChannel(channel)
     }
-  },
-
-  async deleteRead(userId: string): Promise<void> {
-    const { error } = await supabase
-      .schema('system')
-      .from('notifications')
-      .delete()
-      .eq('recipient_id', userId)
-      .eq('is_read', true)
-
-    if (error) throw new Error(error.message || 'Failed to clear read notifications')
   },
 }

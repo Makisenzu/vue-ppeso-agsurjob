@@ -339,7 +339,8 @@ Document verification submissions.
 | `profile_id`     | `uuid`        | FK → `core.profiles.id`    |
 | `requirement_id` | `int4`        | FK → requirement template  |
 | `status`         | `status_type` | `pending/approved/rejected`|
-| `remarks`        | `text`        | nullable                   |
+| `remarks`        | `text`        | the document's name ("Application Form"), matched by the profile stepper — **not** review notes |
+| `status_remarks` | `text`        | why it was rejected (058)  |
 
 Auto-verification (migration `030_applicant_auto_verify.sql`): when staff (`admin` / `provincial_peso` / `municipal_peso`) approve a requirement and the applicant now has all three account-verification documents (`Application Form`, `Resume`, `Birth Certificate` — legacy applicant templates, no `spes_form_id`; checked by `applicants.has_all_verification_documents_approved`) `approved`, `trg_applicant_requirements_verify_profile` sets the applicant's `core.profiles.status = 'approved'` (read by `useAuth().isVerified`). SECURITY INVOKER. Migration `031_applicant_auto_unverify.sql`: if staff later set any of the three back to `pending` / `rejected` (or delete it), an `approved` profile reverts to `pending`.
 
@@ -628,6 +629,8 @@ Personal inbox events (one row per recipient). Broadcast posts go in `announceme
 | `message`      | `text` | nullable        |
 | `type`         | `text` | notification_type enum values, plus `account_status`, `document_status`, `deployment`, `establishment_status`, `recruitment_activity` (053) |
 | `is_read`      | `boolean` | default false |
+| `is_starred`   | `boolean` | default false; starred on the notifications page (056) |
+| `remarks`      | `text`    | staff remarks for a rejection / cancellation, shown apart from `message` (057) |
 
 Notification triggers (migration `053_notification_triggers.sql`): every user-facing status change writes a row through
 `system.notify()` (SECURITY DEFINER, not granted to clients; skips NULL recipients and self-caused changes).
@@ -635,7 +638,7 @@ Covered: `core.profiles.status`, `applicants.applicant_requirements.status`, `ap
 `esmdd.tupad_applicants.status`, `esmdd.gip_applicants.status`, inserts / status of `esmdd.spes_appointments`,
 `esmdd.gip_appointments`, `esmdd.tupad`, `employers.companies.verification_status`, `employers.establishments.status`,
 `esmdd.recruitment_activities.status`. New user-facing activities must add their trigger (`.agents/BACKEND.md` §17).
-Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
+Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities`, and (058) `applicants.applicant_requirements`, `employers.employer_requirements` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
 Realtime (migration `054_notifications_realtime.sql`): the table is in the `supabase_realtime` publication; the app subscribes to INSERT / UPDATE filtered by `recipient_id` (`notificationService.subscribe`), RLS limits events to the recipient.
 
 #### `announcements` (migration 036)

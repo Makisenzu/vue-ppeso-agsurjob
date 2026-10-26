@@ -1,7 +1,12 @@
 import type { Database } from '@/types/database.types'
 
-// system.notifications: one row per recipient, readable / markable / deletable by that recipient only (034 RLS)
-export type NotificationRow = Database['system']['Tables']['notifications']['Row']
+// system.notifications: one row per recipient, readable / markable / deletable by that recipient only (034 RLS).
+// is_starred (056) and remarks (057) are not in database.types.ts until `npm run types:gen`
+export type NotificationRow = Database['system']['Tables']['notifications']['Row'] & {
+  is_starred?: boolean
+  remarks?: string | null
+}
+export type NotificationUpdate = Database['system']['Tables']['notifications']['Update']
 // `type` is free text: the original enum values plus the ones written by 053_notification_triggers.sql
 export type NotificationType =
   | Database['public']['Enums']['notification_type']
@@ -13,7 +18,7 @@ export type NotificationType =
   | 'job_fair'
 
 /** Tabs of the notification list */
-export type NotificationFilter = 'all' | 'unread'
+export type NotificationFilter = 'all' | 'unread' | 'starred'
 
 /** Unread rows shown in the bell popover; the full page lists read ones too */
 export const NOTIFICATION_PREVIEW_LIMIT = 8

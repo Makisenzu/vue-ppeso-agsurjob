@@ -543,18 +543,22 @@ and — once built — job application stages, interview schedules and referral 
 > 1. **Write notifications in a database trigger, never from the client.** Add an `AFTER INSERT / UPDATE OF <column>`
 >    trigger in a new migration (pattern: `supabase/migrations/053_notification_triggers.sql`). A trigger fires
 >    for every code path (UI, RPC, SQL editor, other triggers such as 030/031 auto-verify), so no caller can forget it.
-> 2. **Call `system.notify(recipient, type, title, message)`** — the only writer. It skips a NULL recipient
+> 2. **Call `system.notify(recipient, type, title, message, remarks)`** — the only writer (`remarks` optional). It skips a NULL recipient
 >    (registry applicants without an account) and changes made by the recipient themself.
 > 3. Trigger functions are `SECURITY DEFINER` with `SET search_path = ''`; resolve recipients with
 >    `system.applicant_profile_id(applicants.id)` / `system.company_profile_id(companies.id)`.
 >    Never grant `system.notify` to `authenticated` — it would let any user message anyone.
 > 4. Only notify on a real change (`OLD.x IS NOT DISTINCT FROM NEW.x` → return).
 > 5. Messages are plain sentences for the end user ("Your SPES application has been approved."), include
->    staff remarks on rejections / cancellations, and never expose internal IDs.
+>    never expose internal IDs. Staff remarks go in the `remarks` argument (wrap with
+>    `system.status_remarks(status, remarks)`), **never appended to the message** — the app shows them in a
+>    separate Remarks box (migration 057).
 > 8. **Rejected / Cancelled always need remarks.** Every status control that can reject or cancel shows a
 >    required Remarks field (zod forms: `.superRefine(refineStatusRemarks)`; plain dialogs: `useStatusRemarks`),
 >    and the service calls `assertStatusRemarks(status, remarks)` before writing. Store them in the table's
->    review-remarks column (`status_remarks` where `remarks` means something else — migration 055).
+>    review-remarks column (`status_remarks` where `remarks` means something else — migrations 055 / 058).
+>    Check what an existing `remarks` column holds before writing to it: on `applicant_requirements` it is the
+>    document's name, and overwriting it broke the profile stepper (fixed by 058).
 > 6. Use an existing `type` or add a new one to **both** `NotificationType` (`src/types/common/notification.ts`)
 >    and `TYPE_META` (`src/helpers/common/notificationHelper.ts`) so it gets a label and icon.
 > 7. Add the event to the "Notified events" table in the migration header and to `.agents/DATABASE.md` §9.

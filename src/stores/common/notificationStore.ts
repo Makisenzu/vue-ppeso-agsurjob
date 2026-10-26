@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { notificationService } from '@/services/common/notificationService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { NOTIFICATION_PAGE_LIMIT, type NotificationRow } from '@/types/common/notification'
+import { splitNotificationRemarks } from '@/helpers/common/notificationHelper'
 
 // Shared by every role: the bell popover and the notifications page read the same list
 export const useNotificationStore = defineStore('notification', () => {
@@ -16,9 +17,8 @@ export const useNotificationStore = defineStore('notification', () => {
   const isMutating = ref(false)
 
   // ─── UI Flags ───
-  const isClearReadOpen = ref(false)
-
-  const hasRead = computed(() => notifications.value.some(item => item.is_read))
+  /** Ids waiting for the delete confirmation on the notifications page */
+  const idsToDelete = ref<number[]>([])
 
   // ─── Actions ───
   // No toast on failure: this runs in the background on every page, so a failed refresh keeps the last count
@@ -87,13 +87,41 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
 
-  const deleteNotification = async (notification: NotificationRow) => {
+  /** Marks several notifications read / unread (the page's bulk toolbar) */
+  const setReadMany = async (ids: number[], isRead: boolean) => {
+    const targets = notifications.value.filter(item => ids.includes(item.id) && !!item.is_read !== isRead)
+    if (targets.length === 0) return
+    isMutating.value = true
     try {
-      await notificationService.deleteNotification(notification.id)
-      notifications.value = notifications.value.filter(item => item.id !== notification.id)
-      if (!notification.is_read) unreadCount.value = Math.max(0, unreadCount.value - 1)
+      applyUpdates(await notificationService.setRead(targets.map(item => item.id), isRead))
     } catch (error: any) {
       toastAlert.error('Error', error.message)
+    } finally {
+      isMutating.value = false
+    }
+  }
+
+  const toggleStar = async (notification: NotificationRow) => {
+    try {
+      applyUpdates([await notificationService.setStarred(notification.id, !notification.is_starred)])
+    } catch (error: any) {
+      toastAlert.error('Error', error.message)
+    }
+  }
+
+  const deleteNotifications = async (ids: number[]) => {
+    if (ids.length === 0) return
+    isMutating.value = true
+    try {
+      await notificationService.deleteNotifications(ids)
+      const removedUnread = notifications.value.filter(item => ids.includes(item.id) && !item.is_read).length
+      notifications.value = notifications.value.filter(item => !ids.includes(item.id))
+      unreadCount.value = Math.max(0, unreadCount.value - removedUnread)
+      idsToDelete.value = []
+    } catch (error: any) {
+      toastAlert.error('Error', error.message)
+    } finally {
+      isMutating.value = false
     }
   }
 
@@ -107,7 +135,7 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications.value = [row, ...notifications.value]
     if (!row.is_read) {
       unreadCount.value += 1
-      toastAlert.info(row.title || 'New notification', row.message || undefined)
+      toastAlert.info(row.title || 'New notification', splitNotificationRemarks(row).body || undefined)
     }
   }
 
@@ -136,35 +164,20 @@ export const useNotificationStore = defineStore('notification', () => {
     subscribedUserId = null
   }
 
-  const clearRead = async (userId: string | undefined) => {
-    if (!userId) return
-    isMutating.value = true
-    try {
-      await notificationService.deleteRead(userId)
-      notifications.value = notifications.value.filter(item => !item.is_read)
-      isClearReadOpen.value = false
-      toastAlert.success('Notifications Cleared', 'Read notifications have been removed.')
-    } catch (error: any) {
-      toastAlert.error('Error', error.message)
-    } finally {
-      isMutating.value = false
-    }
-  }
-
   return {
     notifications,
     unreadCount,
     isLoading,
     hasLoaded,
     isMutating,
-    isClearReadOpen,
-    hasRead,
+    idsToDelete,
     fetchUnreadCount,
     fetchNotifications,
     setRead,
     markAllRead,
-    deleteNotification,
-    clearRead,
+    setReadMany,
+    toggleStar,
+    deleteNotifications,
     startRealtime,
     stopRealtime,
   }

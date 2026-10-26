@@ -341,7 +341,9 @@ export const systemDirectoryService = {
   ): Promise<void> {
     assertStatusRemarks(newStatus, remarks)
     const normalizedStatus = normalizeRequirementStatus(newStatus)
-    const normalizedRemarks = normalizeStatusRemarks(remarks)
+    // Review remarks go to status_remarks (migration 058): `remarks` on these rows holds the document's
+    // name ("Application Form"), which the applicant's profile stepper matches on — never overwrite it
+    const update = { status: normalizedStatus, status_remarks: normalizeStatusRemarks(remarks) }
 
     if (isApplicantDoc) {
       const { data: docData, error: docError } = await supabase
@@ -358,7 +360,7 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('applicants')
         .from('applicant_requirements')
-        .update({ status: normalizedStatus as any, remarks: normalizedRemarks })
+        .update(update as any)
         .eq('id', docData.applicant_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')
@@ -377,7 +379,7 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('employers')
         .from('employer_requirements')
-        .update({ status: normalizedStatus as any, remarks: normalizedRemarks })
+        .update(update as any)
         .eq('id', docData.employer_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')

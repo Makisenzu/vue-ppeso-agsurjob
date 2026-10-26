@@ -263,7 +263,23 @@ function getBlockingDocument(doc: UploadDocumentDefinition) {
 const hasOutOfOrderFiles = computed(() => stagedDocuments.value.some((doc) => getBlockingDocument(doc)))
 
 const selectedDocId = ref('')
-const selectedDocument = computed(() => pendingDocuments.value.find((doc) => doc.id === selectedDocId.value) ?? null)
+
+/** A requirement the dropzone can take next: still missing on the profile, not queued, not blocked by the order. */
+function isSelectableDocument(doc: UploadDocumentDefinition) {
+  return !uploadedFiles.value[doc.id] && !getBlockingDocument(doc)
+}
+
+/**
+ * The chosen requirement, or else the next selectable one. Derived instead of only re-targeted by the watch
+ * below: deleting a file from the profile adds a pending requirement without changing the old (empty)
+ * selection, so the dialog kept saying every document had a file until all were deleted.
+ */
+const selectedDocument = computed(
+  () =>
+    pendingDocuments.value.find((doc) => doc.id === selectedDocId.value && isSelectableDocument(doc)) ??
+    pendingDocuments.value.find(isSelectableDocument) ??
+    null
+)
 const selectedAccept = computed(() => selectedDocument.value?.accept ?? DEFAULT_ACCEPT)
 const acceptLabel = computed(() =>
   selectedAccept.value
@@ -274,16 +290,12 @@ const acceptLabel = computed(() =>
 
 /** Point the dropzone at the next unblocked requirement that has neither an upload nor a queued file. */
 function selectNextDocument() {
-  const next = pendingDocuments.value.find((doc) => !uploadedFiles.value[doc.id] && !getBlockingDocument(doc))
-  selectedDocId.value = next?.id ?? ''
+  selectedDocId.value = pendingDocuments.value.find(isSelectableDocument)?.id ?? ''
 }
 
 /** Re-target when the selection gets a file, or becomes blocked because an earlier queued file was removed. */
 watch(
-  () =>
-    pendingDocuments.value.some(
-      (doc) => doc.id === selectedDocId.value && !uploadedFiles.value[doc.id] && !getBlockingDocument(doc)
-    ),
+  () => pendingDocuments.value.some((doc) => doc.id === selectedDocId.value && isSelectableDocument(doc)),
   (isSelectable) => {
     if (!isSelectable) selectNextDocument()
   },
