@@ -22,6 +22,8 @@ const {
   statusRemarks,
   appliedOn,
   appointments,
+  applicationDetails,
+  applicantDetails,
   isGeneratingNsrp,
   selectFile,
   removeFile,
@@ -95,7 +97,40 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
       </AlertDescription>
     </Alert>
 
-    <form v-else class="flex flex-col gap-6" @submit.prevent="submit">
+    <form v-else class="flex flex-col gap-8" @submit.prevent="submit">
+      <!-- ─── Application details (once applied) ─── -->
+      <section v-if="applicationDetails.length" aria-labelledby="gip-form-details-title" class="flex flex-col gap-3">
+        <h2 id="gip-form-details-title" class="text-lg font-semibold text-foreground">Application Details</h2>
+        <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
+          <div
+            v-for="detail in applicationDetails"
+            :key="detail.label"
+            class="flex flex-col gap-0.5 border-b border-border py-3"
+          >
+            <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
+            <dd class="text-sm text-foreground">{{ detail.value }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- ─── Applicant: from the NSRP record PESO reviews ─── -->
+      <section v-if="applicantDetails.length" aria-labelledby="gip-form-applicant-title" class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="gip-form-applicant-title" class="text-lg font-semibold text-foreground">Applicant</h2>
+          <span class="text-xs text-muted-foreground">From your NSRP profile</span>
+        </div>
+        <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
+          <div
+            v-for="detail in applicantDetails"
+            :key="detail.label"
+            class="flex flex-col gap-0.5 border-b border-border py-3"
+          >
+            <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
+            <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
+          </div>
+        </dl>
+      </section>
+
       <!-- ─── Requirements ─── -->
       <section aria-labelledby="gip-form-requirements-title" class="flex flex-col gap-3">
         <h2 id="gip-form-requirements-title" class="text-lg font-semibold text-foreground">Requirements</h2>
@@ -130,6 +165,9 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
                     {{ doc.pendingFileName ?? doc.savedFileName }}
                   </span>
                   <span v-if="doc.pendingFileName" class="shrink-0 text-xs text-muted-foreground">· uploads on submit</span>
+                  <span v-else-if="doc.uploadedAt" class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                    · {{ doc.uploadedAt }}
+                  </span>
                   <Button
                     v-if="doc.pendingFileUrl || doc.savedFileUrl"
                     variant="ghost"

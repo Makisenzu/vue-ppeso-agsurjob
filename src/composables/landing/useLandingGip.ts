@@ -3,7 +3,6 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/common/auth'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
-import { normalizeGipStatus } from '@/helpers/applicant/gipApplicationHelper'
 import {
   GIP_ABOUT,
   GIP_FACTS,
@@ -47,8 +46,6 @@ export function useLandingGip() {
     return myApplication.value ? 'applied' : 'apply'
   })
 
-  const status = computed(() => normalizeGipStatus(myApplication.value?.status))
-
   // Only applicants have an application to look up; it picks "Apply now" or "View my application"
   watch(
     applicantId,
@@ -68,7 +65,6 @@ export function useLandingGip() {
     facts: GIP_FACTS,
     requirements,
     cta,
-    status,
     isLoading,
   }
 }

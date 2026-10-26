@@ -3,6 +3,10 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/common/auth'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import {
+  formatGipDateTime,
+  gipApplicationCode,
+  gipApplicationSource,
+  describeGipApplicant,
   normalizeGipDocumentName,
   normalizeGipStatus,
   validateGipAttachment,
@@ -37,6 +41,8 @@ export interface GipRequirementRow {
   isReceived: boolean
   savedFileName: string | null
   savedFileUrl: string | null
+  /** When the saved file was uploaded */
+  uploadedAt: string | null
   pendingFileName: string | null
   /** Object URL of the picked / generated file, to view it before submitting */
   pendingFileUrl: string | null
@@ -148,6 +154,7 @@ export function useGipApplicationForm() {
         isReceived: name === GIP_NSRP_DOCUMENT ? true : received.value.has(name),
         savedFileName: saved?.file_name ?? null,
         savedFileUrl: saved?.url ?? null,
+        uploadedAt: saved ? formatGipDateTime(saved.updated_at) : null,
         pendingFileName: pendingFiles.value[name]?.name ?? null,
         pendingFileUrl: previewUrls[name] ?? null,
         isDeleting: deletingDocument.value === name,
@@ -186,6 +193,24 @@ export function useGipApplicationForm() {
   const statusDescription = computed(() => GIP_STATUS_DESCRIPTIONS[status.value] ?? '')
   const statusRemarks = computed(() => (status.value === 'Rejected' ? (myApplication.value?.status_remarks ?? null) : null))
   const appliedOn = computed(() => formatDate(myApplication.value?.created_at?.slice(0, 10)))
+
+  /** Details of the application, label → value; empty values are left out */
+  const applicationDetails = computed(() => {
+    const application = myApplication.value
+    if (!application) return []
+    const submitted = requirements.value.filter((doc) => doc.isReceived).length
+    return [
+      { label: 'Reference no.', value: gipApplicationCode(application.id, application.created_at) },
+      { label: 'Program', value: 'Government Internship Program (GIP)' },
+      { label: 'Date applied', value: formatGipDateTime(application.created_at) },
+      { label: 'Last updated', value: formatGipDateTime(application.updated_at ?? application.created_at) },
+      { label: 'Applied through', value: gipApplicationSource(application.remarks) },
+      { label: 'Requirements', value: `${submitted} of ${requirements.value.length} submitted` },
+    ]
+  })
+
+  /** The applicant's own details PESO reviews, from their NSRP record */
+  const applicantDetails = computed(() => (applicantProfile.value ? describeGipApplicant(applicantProfile.value) : []))
 
   const appointments = computed(() =>
     internships.value.flatMap((internship) =>
@@ -232,6 +257,8 @@ export function useGipApplicationForm() {
     statusRemarks,
     appliedOn,
     appointments,
+    applicationDetails,
+    applicantDetails,
     isGeneratingNsrp,
     selectFile,
     removeFile,

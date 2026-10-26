@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useLandingGip } from '@/composables/landing/useLandingGip'
 
-const { hero, about, facts, requirements, cta, status, isLoading } = useLandingGip()
-
-const STATUS_BADGE_CLASS: Record<string, string> = {
-  Pending: 'bg-warning/10 text-warning border-warning/30',
-  Approved: 'bg-success/10 text-success border-success/30',
-  Hired: 'bg-primary/10 text-primary border-primary/30',
-  Rejected: 'bg-destructive/10 text-destructive border-destructive/30',
-}
+const { hero, about, facts, requirements, cta, isLoading } = useLandingGip()
 </script>
 
 <template>
@@ -106,11 +98,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
             <RouterLink :to="{ name: 'gip-application-form' }">Apply now</RouterLink>
           </Button>
         </div>
-        <div v-else-if="cta === 'applied' && !isLoading" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="flex items-center gap-2 text-sm text-muted-foreground">
-            You applied to GIP.
-            <Badge variant="outline" :class="STATUS_BADGE_CLASS[status]">{{ status }}</Badge>
-          </p>
+        <div v-else-if="cta === 'applied' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" variant="outline" class="w-full sm:w-auto">
             <RouterLink :to="{ name: 'gip-application-form' }">View my application</RouterLink>
           </Button>
