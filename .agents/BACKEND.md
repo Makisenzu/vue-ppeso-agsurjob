@@ -605,3 +605,6 @@ should only ever upload a document once.
 >    file ticks the document in both the application's checklist and the registry's `documents_submitted` (062).
 > 7. **Notify (§17).** New applications notify the program's staff; status changes notify the applicant except
 >    staff-only statuses (`system.is_staff_only_program_status`, migration 064).
+> 8. **List it on Application Status.** Every program or vacancy application appears on the applicant's
+>    Application Status page (route `application`): read its rows in `applicationStatusService` and map them in
+>    `toApplicationSummaries` (`applicationStatusHelper.ts`) with a reference no., dates, stage and link.
