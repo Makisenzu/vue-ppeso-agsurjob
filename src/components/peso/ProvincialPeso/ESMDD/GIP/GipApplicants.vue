@@ -19,6 +19,7 @@ import {
   UploadCloud,
   Users,
   X,
+  ExternalLink,
 } from '@lucide/vue'
 import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
 import { Button } from '@/components/ui/button'
@@ -237,6 +238,8 @@ const {
   isSavingApplicantReview,
   isEditingHiredApplicant,
   isRemarksRequired,
+  uploadedDocuments,
+  isLoadingUploadedDocuments,
   editStatusOptions,
   editDocuments,
   editDocumentOptions,
@@ -1392,6 +1395,31 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             <FormMessage />
           </FormItem>
         </FormField>
+
+        <!-- Soft copies the applicant uploaded from their GIP page (migration 060) -->
+        <div class="grid gap-2">
+          <p class="text-sm font-medium">Uploaded Soft Copies</p>
+          <p v-if="isLoadingUploadedDocuments" class="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 class="size-4 animate-spin" /> Loading files...
+          </p>
+          <ul v-else-if="Object.keys(uploadedDocuments).length" class="grid gap-1.5">
+            <li v-for="(file, name) in uploadedDocuments" :key="name" class="flex min-w-0 items-center justify-between gap-3 text-sm">
+              <span class="shrink-0 text-muted-foreground">{{ name }}</span>
+              <a
+                v-if="file?.url"
+                :href="file.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex min-w-0 items-center gap-1 text-primary hover:underline"
+              >
+                <span class="truncate" :title="file.file_name">{{ file.file_name }}</span>
+                <ExternalLink class="size-3.5 shrink-0" />
+              </a>
+              <span v-else class="truncate text-muted-foreground">{{ file?.file_name }}</span>
+            </li>
+          </ul>
+          <p v-else class="text-sm text-muted-foreground">The applicant hasn't uploaded any files.</p>
+        </div>
 
         <DialogFooter>
           <Button

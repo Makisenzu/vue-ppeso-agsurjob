@@ -16,6 +16,8 @@ import type {
   GipConcludeAppointmentPayload,
   GipApplicantReviewPayload,
 } from '@/types/peso/provincialPeso/gip'
+import type { GipApplicantDocumentMap } from '@/types/common/gipProgram'
+import { gipDocumentService } from '@/services/common/gipDocumentService'
 import {
   gipService,
   GIP_INTERNS_CACHE_KEY,
@@ -580,6 +582,9 @@ export const useGipStore = defineStore('gipStore', () => {
   const applicantToEdit = ref<GipApplicantRecord | null>(null)
   const isEditApplicantDialogOpen = ref<boolean>(false)
   const isSavingApplicantReview = ref<boolean>(false)
+  /** Soft copies the applicant uploaded from the GIP page (migration 060), per document name */
+  const applicantToEditDocuments = ref<GipApplicantDocumentMap>({})
+  const isLoadingApplicantDocuments = ref<boolean>(false)
 
   // ─── Priority Applicants Ranking State ───
   const priorityApplicants = ref<GipPriorityApplicantRecord[]>([])
@@ -846,6 +851,21 @@ export const useGipStore = defineStore('gipStore', () => {
   const openEditApplicantDialog = (app: GipApplicantRecord) => {
     applicantToEdit.value = app
     isEditApplicantDialogOpen.value = true
+    void loadApplicantToEditDocuments(app.id)
+  }
+
+  // No toast on failure: the checklist still works without the file links
+  const loadApplicantToEditDocuments = async (applicationId: string) => {
+    applicantToEditDocuments.value = {}
+    isLoadingApplicantDocuments.value = true
+    try {
+      const documents = await gipDocumentService.fetchDocuments(applicationId)
+      if (applicantToEdit.value?.id === applicationId) applicantToEditDocuments.value = documents
+    } catch (error) {
+      console.error(error)
+    } finally {
+      isLoadingApplicantDocuments.value = false
+    }
   }
 
   const closeEditApplicantDialog = () => {
@@ -1149,6 +1169,8 @@ export const useGipStore = defineStore('gipStore', () => {
     applicantToEdit,
     isEditApplicantDialogOpen,
     isSavingApplicantReview,
+    applicantToEditDocuments,
+    isLoadingApplicantDocuments,
     selectedInternForRenewal,
     isRenewalDialogOpen,
     isSubmittingRenewal,

@@ -509,6 +509,8 @@ Government Internship Program applicant tracking.
 | `document_submitted` | `text[]` | array of doc names  |
 | `remarks`            | `text[]` | array of remarks    |
 
+Applicants apply online from the GIP page (migration `060_gip_online_application.sql`): the RPC `esmdd.apply_to_gip()` adds `GIP` to their `referred_programs`, creates the `Pending` row with `NSRP` checked (NSRP is the registry record itself) or returns the existing one, and notifies Provincial PESO staff. They then upload soft copies of the other requirements into `esmdd.gip_applicant_documents` (one file per `Resume` / `Application Letter` / `TOR/Form 137/Form 138/Diploma` / `Certificates`, documents bucket at `<uid>/<file>`), allowed while the application is `Pending` and they are not yet in `gips`; a trigger ticks / unticks each document in `document_submitted`. There is still no applicant INSERT / UPDATE policy on `gip_applicants`.
+
 #### `gips`
 Individual GIP entries linked to GIP applicants.
 

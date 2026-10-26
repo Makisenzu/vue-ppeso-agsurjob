@@ -36,7 +36,13 @@ function normalizeDocumentName(doc: string): string {
 
 export function useGipEditApplicant() {
   const store = useGipStore()
-  const { applicantToEdit, isEditApplicantDialogOpen, isSavingApplicantReview } = storeToRefs(store)
+  const {
+    applicantToEdit,
+    isEditApplicantDialogOpen,
+    isSavingApplicantReview,
+    applicantToEditDocuments,
+    isLoadingApplicantDocuments,
+  } = storeToRefs(store)
   const { closeEditApplicantDialog, updateApplicantReview } = store
 
   const { handleSubmit, resetForm, setFieldValue, values } = useForm({
@@ -117,6 +123,8 @@ export function useGipEditApplicant() {
     isSavingApplicantReview,
     isEditingHiredApplicant,
     isRemarksRequired,
+    uploadedDocuments: applicantToEditDocuments,
+    isLoadingUploadedDocuments: isLoadingApplicantDocuments,
     editStatusOptions: GIP_EDITABLE_STATUSES,
     editDocuments,
     editDocumentOptions,

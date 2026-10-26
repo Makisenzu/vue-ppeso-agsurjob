@@ -38,7 +38,7 @@ export const navLinks: LandingNavLink[] = [
       { label: 'Skills Training', href: '#program-skills-training' },
       { label: 'TUPAD', href: '#program-tupad' },
       { label: 'SPES', href: '#program-spes' },
-      { label: 'GIP', href: '#program-gip' },
+      { label: 'GIP', to: { name: 'gip' } },
     ],
   },
 ]
