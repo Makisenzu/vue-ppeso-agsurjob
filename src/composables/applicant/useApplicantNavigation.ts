@@ -43,7 +43,6 @@ const navItems: ApplicantNavItem[] = [
     title: 'Vacancies',
     children: [
       { title: 'Vacancies', to: { name: 'vacancies' } },
-      { title: 'Saved Jobs', to: { name: 'saved-job' } },
       { title: 'Companies', to: { name: 'company' } },
     ],
   },

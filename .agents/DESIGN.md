@@ -355,7 +355,7 @@ Key features:
 | Layout File                    | Sidebar Component         |
 | ------------------------------ | ------------------------- |
 | `AdminLayout.vue`              | `AdminSidebar.vue`        |
-| `ApplicantLayout.vue`          | `ApplicantSidebar.vue`    |
+| `ApplicantLayout.vue`          | _(no sidebar — top nav `ApplicantHeader.vue`)_ |
 | `EmployerLayout.vue`           | `EmployerSidebar.vue`     |
 | `ProvincialPesoLayout.vue`     | `ProvincialPesoSidebar.vue` |
 | `MunicipalPesoLayout.vue`      | `MunicipalPesoSidebar.vue`  |

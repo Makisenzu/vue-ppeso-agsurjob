@@ -98,7 +98,7 @@ src/
 ├── assets/                  # Static assets (images, SVGs)
 ├── components/
 │   ├── ui/                  # shadcn-vue primitives (DO NOT edit manually)
-│   ├── sidebars/            # One sidebar per role: AdminSidebar, ApplicantSidebar, etc.
+│   ├── sidebars/            # One sidebar per staff role: AdminSidebar, EmployerSidebar, etc. (applicants use ApplicantHeader)
 │   ├── admin/               # Admin-specific page components
 │   ├── applicant/           # Applicant-specific page components
 │   ├── employer/            # Employer-specific page components
