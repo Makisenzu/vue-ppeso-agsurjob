@@ -47,14 +47,17 @@ export const navLinks: LandingNavLink[] = [
 /**
  * On the landing page, section anchors stay plain hash links (clicking one again re-scrolls to it).
  * On other public pages they become router links back to that section of the landing page.
+ * Signed-in applicants get the same sections on their home page ("/" would redirect them there and drop the hash).
  */
 export function useLandingLinks() {
   const route = useRoute()
-  const onLanding = computed(() => route.name === 'landing')
+  const authStore = useAuthStore()
+  const sectionsRoute = computed(() => (authStore.isAuthenticated && authStore.userRole === 'applicant' ? 'home' : 'landing'))
+  const onSectionsPage = computed(() => route.name === sectionsRoute.value)
 
   function resolve<T extends LandingLinkTarget>(link: T): T {
-    if (onLanding.value || !link.href?.startsWith('#')) return link
-    return { ...link, href: undefined, to: { name: 'landing', hash: link.href } }
+    if (onSectionsPage.value || !link.href?.startsWith('#')) return link
+    return { ...link, href: undefined, to: { name: sectionsRoute.value, hash: link.href } }
   }
 
   const links = computed(() =>

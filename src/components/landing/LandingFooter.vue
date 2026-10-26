@@ -5,7 +5,7 @@ import LandingLink from '@/components/landing/LandingLink.vue'
 import { useLandingFooter } from '@/composables/landing/useLandingFooter'
 import agsurSeal from '@/assets/images/agsur.png'
 
-const { office, address, contacts, exploreLinks, programLinks, logos, year } = useLandingFooter()
+const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos, year } = useLandingFooter()
 </script>
 
 <template>
@@ -81,7 +81,7 @@ const { office, address, contacts, exploreLinks, programLinks, logos, year } = u
       </nav>
 
       <!-- Account -->
-      <nav aria-labelledby="footer-account" class="flex flex-col gap-4">
+      <nav v-if="!isSignedIn" aria-labelledby="footer-account" class="flex flex-col gap-4">
         <h3 id="footer-account" class="text-sm font-semibold text-foreground">Account</h3>
         <ul class="flex flex-col gap-1">
           <li>

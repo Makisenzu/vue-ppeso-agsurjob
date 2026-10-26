@@ -3,6 +3,8 @@ import { storeToRefs } from 'pinia'
 import { useIntervalFn, usePreferredReducedMotion, useTimeoutFn } from '@vueuse/core'
 import type { CarouselApi } from '@/components/ui/carousel'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
+import { useAuthStore } from '@/stores/common/auth'
+import { isAccountAction } from '@/helpers/common/siteContentHelper'
 import { useLandingIntroDone } from '@/composables/landing/useLandingIntro'
 import type { LandingHeroSlide } from '@/types/common/siteContent'
 
@@ -79,7 +81,17 @@ export function useLandingHero() {
 
   // The carousel mounts once loading settles, so it never swaps slides under the visitor
   const isLoading = computed(() => !isHeroLoaded.value)
-  const slides = computed(() => (heroSlides.value.length ? heroSlides.value : FALLBACK_SLIDES))
+  const authStore = useAuthStore()
+  // Signed-in users (the applicant home) don't get Log in / Sign up buttons
+  const slides = computed(() => {
+    const source = heroSlides.value.length ? heroSlides.value : FALLBACK_SLIDES
+    if (!authStore.isAuthenticated) return source
+    return source.map(slide => ({
+      ...slide,
+      primary: isAccountAction(slide.primary) ? undefined : slide.primary,
+      secondary: isAccountAction(slide.secondary) ? undefined : slide.secondary,
+    }))
+  })
   const hasMultipleSlides = computed(() => slides.value.length > 1)
   // A single slide can't be dragged or looped: Embla would otherwise still let it be pulled sideways
   const carouselOpts = computed(() => ({ loop: hasMultipleSlides.value, watchDrag: hasMultipleSlides.value }))

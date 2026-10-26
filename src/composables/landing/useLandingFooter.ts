@@ -7,6 +7,7 @@ import doleLogoDark from '@/assets/images/dole-dark.png'
 import bagongPilipinasLogo from '@/assets/images/bagongPilipinas.png'
 import bagongPilipinasLogoDark from '@/assets/images/bagongPh-dark.png'
 import { useLandingLinks, type LandingLinkTarget } from '@/composables/landing/useLandingNavigation'
+import { useAuthStore } from '@/stores/common/auth'
 
 export interface LandingFooterLink extends LandingLinkTarget {
   label: string
@@ -53,6 +54,9 @@ const LOGOS: LandingFooterLogo[] = [
 export function useLandingFooter() {
   // Same links as the header: top-level links under "Explore", the PESO Programs dropdown under "Programs"
   const { links } = useLandingLinks()
+  const authStore = useAuthStore()
+  // The Account column (Log in / Sign up) is hidden once signed in
+  const isSignedIn = computed(() => authStore.isAuthenticated)
   const exploreLinks = computed<LandingFooterLink[]>(() => links.value.map(({ label, href, to }) => ({ label, href, to })))
   const programLinks = computed<LandingFooterLink[]>(
     () => links.value.find((link) => link.label === 'PESO Programs')?.children ?? [],
@@ -64,6 +68,7 @@ export function useLandingFooter() {
     contacts: CONTACTS,
     exploreLinks,
     programLinks,
+    isSignedIn,
     logos: LOGOS,
     year: new Date().getFullYear(),
   }

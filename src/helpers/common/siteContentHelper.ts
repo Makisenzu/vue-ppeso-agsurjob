@@ -19,6 +19,13 @@ export function toHeroAction(label: string | null, link: string | null): Landing
   return { label, href: link, external: link.startsWith('https://') }
 }
 
+/** True for a button leading to Log in / Sign up, which signed-in users don't need. */
+export function isAccountAction(action: LandingHeroAction | undefined): boolean {
+  const to = action?.to
+  if (typeof to === 'string') return /^\/(login|signup)\b/.test(to)
+  return !!to && 'name' in to && (to.name === 'login' || to.name === 'signup')
+}
+
 /** A site_contents row as a hero slide; `imageUrl` is the resolved public URL of its photo, if any. */
 export function toHeroSlide(row: SiteContentRow, imageUrl: string | null): LandingHeroSlide {
   const primary = toHeroAction(row.primary_label, row.primary_link)
