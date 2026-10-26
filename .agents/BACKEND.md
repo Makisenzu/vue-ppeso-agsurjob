@@ -549,6 +549,9 @@ and — once built — job application stages, interview schedules and referral 
 >    `system.applicant_profile_id(applicants.id)` / `system.company_profile_id(companies.id)`.
 >    Never grant `system.notify` to `authenticated` — it would let any user message anyone.
 > 4. Only notify on a real change (`OLD.x IS NOT DISTINCT FROM NEW.x` → return).
+>    Staff-only statuses are not user-facing: **Hired / Deployed / Completed / Resigned** never notify the applicant
+>    on any program — GIP `gip_applicants` / `gip_appointments` (063), SPES `spes_appointments` and TUPAD `tupad`
+>    (064). Check with `system.is_staff_only_program_status(NEW.status)` in new program triggers.
 > 5. Messages are plain sentences for the end user ("Your SPES application has been approved."), include
 >    never expose internal IDs. Staff remarks go in the `remarks` argument (wrap with
 >    `system.status_remarks(status, remarks)`), **never appended to the message** — the app shows them in a
