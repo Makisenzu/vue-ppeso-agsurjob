@@ -23,7 +23,7 @@ const STAGE_BADGE_CLASS: Record<string, string> = {
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-1">
       <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Application Status</h1>
-      <p class="text-sm text-muted-foreground">Every application you sent, to PESO programs and job vacancies.</p>
+      <p class="text-sm text-muted-foreground">Monitor your application status.</p>
     </div>
 
     <!-- ─── Filter ─── -->
