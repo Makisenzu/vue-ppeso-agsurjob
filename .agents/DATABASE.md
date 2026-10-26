@@ -626,8 +626,17 @@ Personal inbox events (one row per recipient). Broadcast posts go in `announceme
 | `recipient_id` | `uuid` | target user     |
 | `title`        | `text` | nullable        |
 | `message`      | `text` | nullable        |
-| `type`         | `text` | notification_type enum |
+| `type`         | `text` | notification_type enum values, plus `account_status`, `document_status`, `deployment`, `establishment_status`, `recruitment_activity` (053) |
 | `is_read`      | `boolean` | default false |
+
+Notification triggers (migration `053_notification_triggers.sql`): every user-facing status change writes a row through
+`system.notify()` (SECURITY DEFINER, not granted to clients; skips NULL recipients and self-caused changes).
+Covered: `core.profiles.status`, `applicants.applicant_requirements.status`, `applicants.spes_form.status`,
+`esmdd.tupad_applicants.status`, `esmdd.gip_applicants.status`, inserts / status of `esmdd.spes_appointments`,
+`esmdd.gip_appointments`, `esmdd.tupad`, `employers.companies.verification_status`, `employers.establishments.status`,
+`esmdd.recruitment_activities.status`. New user-facing activities must add their trigger (`.agents/BACKEND.md` §17).
+Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
+Realtime (migration `054_notifications_realtime.sql`): the table is in the `supabase_realtime` publication; the app subscribes to INSERT / UPDATE filtered by `recipient_id` (`notificationService.subscribe`), RLS limits events to the recipient.
 
 #### `announcements` (migration 036)
 

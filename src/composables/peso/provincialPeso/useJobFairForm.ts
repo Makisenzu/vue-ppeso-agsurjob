@@ -16,6 +16,7 @@ import {
 import { formatFileSize, validateUploadFile } from '@/helpers/common/uploadHelpers'
 import { getJobFairStatusForDates } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import type { MapCoordinates } from '@/helpers/common/mapboxHelpers'
+import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 const jobFairSchema = toTypedSchema(
   z
@@ -29,12 +30,15 @@ const jobFairSchema = toTypedSchema(
       description: z.string().trim().optional(),
       latitude: z.number().min(-90).max(90).nullable().optional(),
       longitude: z.number().min(-180).max(180).nullable().optional(),
+      remarks: z.string().trim().optional(),
     })
     // ISO yyyy-mm-dd strings compare correctly as plain strings
     .refine((v) => !v.startDate || !v.endDate || v.endDate >= v.startDate, {
       message: 'End date cannot be before the start date.',
       path: ['endDate'],
     })
+    // Cancelling needs remarks; registered applicants read them in their notification
+    .superRefine(refineStatusRemarks)
 )
 
 const INITIAL_VALUES = {
@@ -47,6 +51,7 @@ const INITIAL_VALUES = {
   description: '',
   latitude: null as number | null,
   longitude: null as number | null,
+  remarks: '',
 }
 
 export interface PendingAttachment {
@@ -71,6 +76,7 @@ function toFormValues(row: JobFairRow): typeof INITIAL_VALUES {
     description: row.description ?? '',
     latitude: row.latitude,
     longitude: row.longitude,
+    remarks: row.status_remarks ?? '',
   }
 }
 
@@ -144,6 +150,7 @@ export function useJobFairForm() {
   // dates, so the form only offers that status or Cancelled.
   const dateStatus = computed(() => getJobFairStatusForDates(values.startDate ?? '', values.endDate ?? ''))
   const formStatusOptions = computed(() => [dateStatus.value, 'Cancelled'] as const)
+  const isRemarksRequired = computed(() => requiresStatusRemarks(values.status))
 
   watch(dateStatus, (status) => {
     if (values.status !== 'Cancelled') setFieldValue('status', status)
@@ -183,6 +190,7 @@ export function useJobFairForm() {
       description: formValues.description || null,
       latitude: formValues.latitude ?? null,
       longitude: formValues.longitude ?? null,
+      status_remarks: normalizeStatusRemarks(formValues.remarks),
     }
 
     if (editingJobFair.value) {
@@ -200,6 +208,7 @@ export function useJobFairForm() {
     editingJobFairId,
     statusOptions: JOB_FAIR_STATUSES,
     formStatusOptions,
+    isRemarksRequired,
     formValues: values,
     onFormDialogOpenChange,
     setMapLocation,

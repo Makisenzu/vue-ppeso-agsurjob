@@ -16,6 +16,10 @@ import {
   type RecruitmentActivityVacancyFormPayload,
   type RecruitmentActivityVacancyRow,
 } from '@/types/peso/provincialPeso/recruitmentActivity'
+import { assertStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import type { Database } from '@/types/database.types'
+
+type EsmddRecruitmentActivityUpdate = Database['esmdd']['Tables']['recruitment_activities']['Update']
 
 const LIST_SELECT = '*, recruitment_activity_requirements(stage, is_submitted), recruitment_activity_vacancies(count)'
 const REQUIREMENT_SELECT = '*, recruitment_activity_attachments(*)'
@@ -121,10 +125,12 @@ export const recruitmentActivityService = {
   },
 
   async updateActivity(activityId: string, payload: RecruitmentActivityUpdate): Promise<RecruitmentActivityRow> {
+    if (payload.status !== undefined) assertStatusRemarks(payload.status, payload.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('recruitment_activities')
-      .update(payload)
+      // status_remarks is not in the generated Update type yet
+      .update(payload as EsmddRecruitmentActivityUpdate)
       .eq('id', activityId)
       .select('*')
       .single()

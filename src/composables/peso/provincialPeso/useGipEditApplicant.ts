@@ -6,18 +6,23 @@ import * as z from 'zod'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { DOCUMENT_OPTIONS } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 import type { EditableGipApplicantStatus } from '@/types/peso/provincialPeso/gip'
+import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 export const GIP_EDITABLE_STATUSES = ['Pending', 'Approved', 'Rejected'] as const satisfies readonly EditableGipApplicantStatus[]
 
 const LOCKED_DOCUMENT = 'NSRP'
 
 const editApplicantSchema = toTypedSchema(
-  z.object({
-    status: z.enum(GIP_EDITABLE_STATUSES),
-    documentsSubmitted: z
-      .array(z.string().trim().min(1))
-      .refine((docs) => docs.includes(LOCKED_DOCUMENT), { message: 'NSRP must be included.' }),
-  })
+  z
+    .object({
+      status: z.enum(GIP_EDITABLE_STATUSES),
+      documentsSubmitted: z
+        .array(z.string().trim().min(1))
+        .refine((docs) => docs.includes(LOCKED_DOCUMENT), { message: 'NSRP must be included.' }),
+      remarks: z.string().trim().optional(),
+    })
+    // Rejecting needs remarks; the applicant reads them in their notification
+    .superRefine(refineStatusRemarks)
 )
 
 // Older records use longer labels; map them onto the applicant-entry checklist names
@@ -36,8 +41,10 @@ export function useGipEditApplicant() {
 
   const { handleSubmit, resetForm, setFieldValue, values } = useForm({
     validationSchema: editApplicantSchema,
-    initialValues: { status: 'Pending' as EditableGipApplicantStatus, documentsSubmitted: [LOCKED_DOCUMENT] },
+    initialValues: { status: 'Pending' as EditableGipApplicantStatus, documentsSubmitted: [LOCKED_DOCUMENT], remarks: '' },
   })
+
+  const isRemarksRequired = computed(() => requiresStatusRemarks(values.status))
 
   const editDocuments = computed<string[]>(() => values.documentsSubmitted ?? [])
 
@@ -70,7 +77,9 @@ export function useGipEditApplicant() {
       const documents = Array.from(new Set(source.map(normalizeDocumentName).filter(Boolean)))
       if (!documents.includes(LOCKED_DOCUMENT)) documents.unshift(LOCKED_DOCUMENT)
 
-      resetForm({ values: { status, documentsSubmitted: documents } })
+      // status_remarks (migration 055) comes with the raw gip_applicants row
+      const remarks = typeof app.rawApplication?.status_remarks === 'string' ? app.rawApplication.status_remarks : ''
+      resetForm({ values: { status, documentsSubmitted: documents, remarks } })
     },
     { immediate: true }
   )
@@ -98,6 +107,7 @@ export function useGipEditApplicant() {
       applicantId: app.applicantId,
       status: formValues.status,
       documentsSubmitted: ordered,
+      remarks: normalizeStatusRemarks(formValues.remarks),
     })
   })
 
@@ -106,6 +116,7 @@ export function useGipEditApplicant() {
     isEditApplicantDialogOpen,
     isSavingApplicantReview,
     isEditingHiredApplicant,
+    isRemarksRequired,
     editStatusOptions: GIP_EDITABLE_STATUSES,
     editDocuments,
     editDocumentOptions,

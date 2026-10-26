@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from '@lucide/vue'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useRecruitmentActivityDetailsStore } from '@/stores/peso/provincialPeso/recruitmentActivityDetailsStore'
+import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
 import { formatJobFairSchedule, formatParticipantAddress, formatOptionalDate } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import {
   formatDateTime,
@@ -112,16 +113,28 @@ export function useRecruitmentActivityDetails() {
     },
   })
 
+  // Cancelling asks for remarks in the confirmation dialog
+  const {
+    remarks: statusRemarks,
+    remarksError: statusRemarksError,
+    isRemarksRequired: isStatusRemarksRequired,
+    remarksToSave: statusRemarksToSave,
+    validateRemarks: validateStatusRemarks,
+    resetRemarks: resetStatusRemarks,
+  } = useStatusRemarks(pendingStatus)
+
   const requestStatusChange = (status: RecruitmentActivityStatus) => {
     if (status === activity.value?.status) return
-    if (CONFIRMED_STATUSES.includes(status)) pendingStatus.value = status
-    else void changeStatus(status)
+    if (CONFIRMED_STATUSES.includes(status)) {
+      resetStatusRemarks()
+      pendingStatus.value = status
+    } else void changeStatus(status)
   }
 
   const confirmStatusChange = async () => {
-    if (!pendingStatus.value) return
-    await changeStatus(pendingStatus.value)
-    pendingStatus.value = null
+    if (!pendingStatus.value || !validateStatusRemarks()) return
+    const saved = await changeStatus(pendingStatus.value, statusRemarksToSave.value)
+    if (saved) pendingStatus.value = null
   }
 
   // ─── SRA: CONO and recruitment fee ───
@@ -222,6 +235,9 @@ export function useRecruitmentActivityDetails() {
     documentMaxSizeMB: RECRUITMENT_ACTIVITY_DOCUMENT_MAX_SIZE_MB,
     statusOptions,
     pendingStatus,
+    statusRemarks,
+    statusRemarksError,
+    isStatusRemarksRequired,
     isStatusDialogOpen,
     requestStatusChange,
     confirmStatusChange,

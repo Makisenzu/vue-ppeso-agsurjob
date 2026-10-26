@@ -2,7 +2,15 @@ import type { Database } from '@/types/database.types'
 
 // system.notifications: one row per recipient, readable / markable / deletable by that recipient only (034 RLS)
 export type NotificationRow = Database['system']['Tables']['notifications']['Row']
-export type NotificationType = Database['public']['Enums']['notification_type']
+// `type` is free text: the original enum values plus the ones written by 053_notification_triggers.sql
+export type NotificationType =
+  | Database['public']['Enums']['notification_type']
+  | 'account_status'
+  | 'document_status'
+  | 'deployment'
+  | 'establishment_status'
+  | 'recruitment_activity'
+  | 'job_fair'
 
 /** Tabs of the notification list */
 export type NotificationFilter = 'all' | 'unread'

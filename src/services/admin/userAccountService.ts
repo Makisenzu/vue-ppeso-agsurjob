@@ -5,6 +5,7 @@ import type { Database } from '@/types/database.types'
 import { mediaService } from '@/services/common/mediaService'
 import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { ProfileRow, CreateAccountPayload } from '@/types/admin/userAccounts'
+import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
@@ -12,6 +13,8 @@ const USER_ACCOUNTS_CACHE_KEY = 'admin:user-accounts:profiles'
 const USER_ACCOUNTS_CACHE_TTL_MS = 1000 * 60 * 15
 
 type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
+// status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
+type ProfileStatusUpdate = Database['core']['Tables']['profiles']['Update'] & { status_remarks?: string | null }
 
 function normalizeBarangayName(value?: string | null): string {
   const normalized = value?.trim().toLowerCase() ?? ''
@@ -294,11 +297,17 @@ export const userAccountService = {
     return { ...data, email: payload.email }
   },
 
-  async updateProfileStatus(profileId: string, status: string): Promise<ProfileRow> {
+  async updateProfileStatus(profileId: string, status: string, remarks?: string | null): Promise<ProfileRow> {
+    assertStatusRemarks(status, remarks)
+    const update: ProfileStatusUpdate = {
+      status: status as Database['core']['Enums']['status_type'],
+      status_remarks: normalizeStatusRemarks(remarks),
+      updated_at: new Date().toISOString(),
+    }
     const { data, error } = await supabase
       .schema('core')
       .from('profiles')
-      .update({ status: status as Database['core']['Enums']['status_type'], updated_at: new Date().toISOString() })
+      .update(update as Database['core']['Tables']['profiles']['Update'])
       .eq('id', profileId)
       .select()
       .maybeSingle()

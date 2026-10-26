@@ -81,6 +81,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Combobox,
   ComboboxAnchor,
@@ -235,6 +236,7 @@ const {
   isEditApplicantDialogOpen,
   isSavingApplicantReview,
   isEditingHiredApplicant,
+  isRemarksRequired,
   editStatusOptions,
   editDocuments,
   editDocumentOptions,
@@ -1333,6 +1335,22 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                 </SelectItem>
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <!-- Required for Rejected; sent to the applicant in their notification -->
+        <FormField v-if="isRemarksRequired && !isEditingHiredApplicant" v-slot="{ componentField }" name="remarks">
+          <FormItem>
+            <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
+            <FormControl>
+              <Textarea
+                v-bind="componentField"
+                rows="3"
+                placeholder="Why the application is rejected; the applicant will see this"
+                :disabled="isSavingApplicantReview"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>

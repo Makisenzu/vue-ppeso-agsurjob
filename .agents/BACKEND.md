@@ -525,3 +525,40 @@ When creating a new feature, create files in ALL relevant layers:
 
 > [!IMPORTANT]
 > Never skip layers. Never place admin logic in `applicant/`, or vice versa.
+> If the feature changes a status, decision or assignment that a user should hear about, also add its
+> notification trigger (§17).
+
+---
+
+## 17. Notifications — Every User-Facing Activity Must Notify
+
+Every activity that changes something a user needs to know about **must** create a personal notification
+(`system.notifications`) for that user. Examples: account status, document review, program application
+review (SPES / TUPAD / GIP), deployments, company / establishment verification, recruitment activity status,
+and — once built — job application stages, interview schedules and referral outcomes.
+
+### How
+
+> [!IMPORTANT]
+> 1. **Write notifications in a database trigger, never from the client.** Add an `AFTER INSERT / UPDATE OF <column>`
+>    trigger in a new migration (pattern: `supabase/migrations/053_notification_triggers.sql`). A trigger fires
+>    for every code path (UI, RPC, SQL editor, other triggers such as 030/031 auto-verify), so no caller can forget it.
+> 2. **Call `system.notify(recipient, type, title, message)`** — the only writer. It skips a NULL recipient
+>    (registry applicants without an account) and changes made by the recipient themself.
+> 3. Trigger functions are `SECURITY DEFINER` with `SET search_path = ''`; resolve recipients with
+>    `system.applicant_profile_id(applicants.id)` / `system.company_profile_id(companies.id)`.
+>    Never grant `system.notify` to `authenticated` — it would let any user message anyone.
+> 4. Only notify on a real change (`OLD.x IS NOT DISTINCT FROM NEW.x` → return).
+> 5. Messages are plain sentences for the end user ("Your SPES application has been approved."), include
+>    staff remarks on rejections / cancellations, and never expose internal IDs.
+> 8. **Rejected / Cancelled always need remarks.** Every status control that can reject or cancel shows a
+>    required Remarks field (zod forms: `.superRefine(refineStatusRemarks)`; plain dialogs: `useStatusRemarks`),
+>    and the service calls `assertStatusRemarks(status, remarks)` before writing. Store them in the table's
+>    review-remarks column (`status_remarks` where `remarks` means something else — migration 055).
+> 6. Use an existing `type` or add a new one to **both** `NotificationType` (`src/types/common/notification.ts`)
+>    and `TYPE_META` (`src/helpers/common/notificationHelper.ts`) so it gets a label and icon.
+> 7. Add the event to the "Notified events" table in the migration header and to `.agents/DATABASE.md` §9.
+
+The UI needs no changes per event: `NotificationBell.vue` (every role's header) and `NotificationCenter.vue`
+(each role's `…-notifications` route) read `system.notifications` through
+`useNotifications` → `notificationStore` → `notificationService`.

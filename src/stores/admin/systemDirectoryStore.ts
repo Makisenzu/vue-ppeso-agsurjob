@@ -78,11 +78,11 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     isEditStatusOpen.value = false
   }
 
-  const updateAccountStatus = async (profileId: string, newStatus: string) => {
+  const updateAccountStatus = async (profileId: string, newStatus: string, remarks?: string | null) => {
     isSubmitting.value = true
     errorMessage.value = null
     try {
-      const updated = await systemDirectoryService.updateAccountStatus(profileId, newStatus)
+      const updated = await systemDirectoryService.updateAccountStatus(profileId, newStatus, remarks)
 
       // 1. Immutable array update for TanStack Table
       const target = records.value.find((item) => item.id === profileId)
@@ -130,12 +130,13 @@ export const useSystemDirectoryStore = defineStore('systemDirectory', () => {
     profileId: string,
     documentId: number,
     newStatus: string,
-    isApplicantDoc: boolean
+    isApplicantDoc: boolean,
+    remarks?: string | null
   ) => {
     isSubmitting.value = true
     errorMessage.value = null
     try {
-      await systemDirectoryService.updateDocumentStatus(documentId, newStatus, isApplicantDoc)
+      await systemDirectoryService.updateDocumentStatus(documentId, newStatus, isApplicantDoc, remarks)
 
       // 1. Deep-update main records array (Triggers main table re-render)
       records.value = records.value.map((record) => {

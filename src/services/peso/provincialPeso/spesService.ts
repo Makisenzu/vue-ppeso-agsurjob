@@ -18,6 +18,7 @@ import type {
 } from '@/types/peso/provincialPeso/spes'
 import type { SpesFormTableInsert, SpesFormTableUpdate } from '@/types/common/spesForm'
 import { generateSpesAppointmentCode } from '@/helpers/peso/provincialPeso/spesHelper'
+import { assertStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 // esmdd.spes_appointments (migration 015) is not in database.types.ts until `npm run types:gen`
 // is re-run, so the typed client does not know the table yet. Rows are typed by SpesAppointmentRow.
@@ -120,6 +121,7 @@ export const spesService = {
 
   /** PESO review decision (status / remarks) on a submitted form. */
   async reviewSpesForm(formId: string, review: SpesFormReview): Promise<SpesFormRow> {
+    assertStatusRemarks(review.status, review.remarks)
     const { data, error } = await supabase
       .schema('applicants')
       .from('spes_form')

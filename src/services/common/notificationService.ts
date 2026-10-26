@@ -61,6 +61,30 @@ export const notificationService = {
     if (error) throw new Error(error.message || 'Failed to delete notification')
   },
 
+  /**
+   * Live INSERT / UPDATE events for the user's notifications (system.notifications is published by
+   * migration 054; RLS still limits events to the recipient). Returns the unsubscribe function.
+   */
+  subscribe(
+    userId: string,
+    handlers: { onInsert: (row: NotificationRow) => void; onUpdate: (row: NotificationRow) => void },
+  ): () => void {
+    const filter = `recipient_id=eq.${userId}`
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'system', table: 'notifications', filter }, (payload) =>
+        handlers.onInsert(payload.new as NotificationRow),
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'system', table: 'notifications', filter }, (payload) =>
+        handlers.onUpdate(payload.new as NotificationRow),
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  },
+
   async deleteRead(userId: string): Promise<void> {
     const { error } = await supabase
       .schema('system')

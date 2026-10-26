@@ -10,12 +10,16 @@ import {
   type SpesApplicantStatus,
   type SpesFormRow,
 } from '@/types/peso/provincialPeso/spes'
+import { refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 const spesReviewSchema = toTypedSchema(
-  z.object({
-    status: z.enum(SPES_APPLICANT_STATUSES),
-    remarks: z.string().trim().optional(),
-  })
+  z
+    .object({
+      status: z.enum(SPES_APPLICANT_STATUSES),
+      remarks: z.string().trim().optional(),
+    })
+    // Rejecting needs remarks; the applicant reads them in their notification
+    .superRefine(refineStatusRemarks)
 )
 
 const INITIAL_VALUES = {
@@ -39,12 +43,13 @@ export function useSpesApplicantForm() {
   const { reviewingForm, isSubmitting, formAttachments, isLoadingAttachments } = storeToRefs(store)
   const { reviewSpesForm, closeReviewDialog } = store
 
-  const { handleSubmit, resetForm } = useForm({
+  const { handleSubmit, resetForm, values } = useForm({
     validationSchema: spesReviewSchema,
     initialValues: INITIAL_VALUES,
   })
 
   const isReviewDialogOpen = computed(() => reviewingForm.value !== null)
+  const isRemarksRequired = computed(() => requiresStatusRemarks(values.status))
 
   // Load the selected applicant's current review each time the dialog opens.
   watch(reviewingForm, (row) => {
@@ -72,6 +77,7 @@ export function useSpesApplicantForm() {
     isLoadingAttachments,
     isSubmitting,
     reviewingForm,
+    isRemarksRequired,
     statusOptions: SPES_APPLICANT_STATUSES,
     onReviewDialogOpenChange,
     openEditDetails,

@@ -91,6 +91,7 @@ const {
   isLoadingAttachments,
   isSubmitting,
   reviewingForm,
+  isRemarksRequired,
   statusOptions: reviewStatusOptions,
   onReviewDialogOpenChange,
   openEditDetails,
@@ -425,9 +426,18 @@ const previousAvailments = computed(() => {
 
           <FormField v-slot="{ componentField }" name="remarks">
             <FormItem>
-              <FormLabel>Remarks <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
+              <FormLabel>
+                Remarks
+                <span v-if="isRemarksRequired" class="text-destructive">*</span>
+                <span v-else class="font-normal text-muted-foreground">(optional)</span>
+              </FormLabel>
               <FormControl>
-                <Textarea v-bind="componentField" rows="3" placeholder="Notes from the review" :disabled="isSubmitting" />
+                <Textarea
+                  v-bind="componentField"
+                  rows="3"
+                  :placeholder="isRemarksRequired ? 'Why the application is rejected; the applicant will see this' : 'Notes from the review'"
+                  :disabled="isSubmitting"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

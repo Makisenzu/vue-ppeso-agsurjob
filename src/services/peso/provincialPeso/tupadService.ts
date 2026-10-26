@@ -2,14 +2,18 @@ import { supabase } from '@/lib/supabaseClient'
 import { fetchAllInChunks, fetchAllPages, IN_FILTER_CHUNK_SIZE } from '@/helpers/common/supabasePaging'
 import { TUPAD_LOCKED_DOCUMENT } from '@/types/peso/provincialPeso/tupad'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
+import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 import type {
   TupadApplicantReview,
   TupadApplicantRow,
   TupadApplicantStatus,
+  TupadApplicantUpdate,
   TupadApplicantWithRegistry,
   TupadAttachmentWithUrl,
   TupadBatchFormValues,
+  TupadBatchInsert,
   TupadBatchRow,
+  TupadBatchUpdate,
   TupadBatchWithCount,
   TupadInsert,
   TupadMember,
@@ -66,10 +70,12 @@ export const tupadService = {
   },
 
   async createBatch(values: TupadBatchFormValues): Promise<TupadBatchRow> {
+    assertStatusRemarks(values.status, values.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('tupad_batch')
-      .insert({ ...values, edl_number: values.edl_number.trim() })
+      // status_remarks is not in the generated Insert type yet
+      .insert({ ...values, edl_number: values.edl_number.trim() } as TupadBatchInsert)
       .select()
       .single()
 
@@ -81,10 +87,11 @@ export const tupadService = {
   },
 
   async updateBatch(id: string, values: TupadBatchFormValues): Promise<TupadBatchRow> {
+    assertStatusRemarks(values.status, values.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('tupad_batch')
-      .update({ ...values, edl_number: values.edl_number.trim() })
+      .update({ ...values, edl_number: values.edl_number.trim() } as TupadBatchUpdate)
       .eq('id', id)
       .select()
       .single()
@@ -119,10 +126,12 @@ export const tupadService = {
   },
 
   async updateTupadApplicant(id: string, review: TupadApplicantReview): Promise<TupadApplicantRow> {
+    assertStatusRemarks(review.status, review.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('tupad_applicants')
-      .update(review)
+      // status_remarks (migration 055) is not in the generated Update type yet
+      .update({ ...review, status_remarks: normalizeStatusRemarks(review.status_remarks) } as TupadApplicantUpdate)
       .eq('id', id)
       .select()
       .single()
@@ -131,13 +140,20 @@ export const tupadService = {
     return data
   },
 
-  async bulkUpdateTupadApplicantStatus(ids: string[], status: TupadApplicantStatus): Promise<TupadApplicantRow[]> {
+  /** One set of remarks for the whole selection; required when Rejected. */
+  async bulkUpdateTupadApplicantStatus(
+    ids: string[],
+    status: TupadApplicantStatus,
+    remarks: string | null = null
+  ): Promise<TupadApplicantRow[]> {
+    assertStatusRemarks(status, remarks)
+    const update = { status, status_remarks: normalizeStatusRemarks(remarks) } as TupadApplicantUpdate
     const updated: TupadApplicantRow[] = []
     for (let i = 0; i < ids.length; i += IN_FILTER_CHUNK_SIZE) {
       const { data, error } = await supabase
         .schema('esmdd')
         .from('tupad_applicants')
-        .update({ status })
+        .update(update)
         .in('id', ids.slice(i, i + IN_FILTER_CHUNK_SIZE))
         .select()
 

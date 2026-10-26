@@ -97,6 +97,45 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
 
+  // ─── Realtime ───
+  // One live subscription per signed-in user, however many bells are mounted
+  let unsubscribe: (() => void) | null = null
+  let subscribedUserId: string | null = null
+
+  const handleInsert = (row: NotificationRow) => {
+    if (notifications.value.some(item => item.id === row.id)) return
+    notifications.value = [row, ...notifications.value]
+    if (!row.is_read) {
+      unreadCount.value += 1
+      toastAlert.info(row.title || 'New notification', row.message || undefined)
+    }
+  }
+
+  // Keeps other tabs / devices in step when the user reads a notification somewhere else
+  const handleUpdate = (row: NotificationRow) => {
+    const previous = notifications.value.find(item => item.id === row.id)
+    if (previous) {
+      applyUpdates([row])
+    } else if (row.is_read) {
+      // Not in the loaded list (e.g. never opened the bell): only the badge needs the change
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    }
+  }
+
+  const startRealtime = (userId: string | undefined) => {
+    if (userId === subscribedUserId) return
+    stopRealtime()
+    if (!userId) return
+    subscribedUserId = userId
+    unsubscribe = notificationService.subscribe(userId, { onInsert: handleInsert, onUpdate: handleUpdate })
+  }
+
+  const stopRealtime = () => {
+    unsubscribe?.()
+    unsubscribe = null
+    subscribedUserId = null
+  }
+
   const clearRead = async (userId: string | undefined) => {
     if (!userId) return
     isMutating.value = true
@@ -126,5 +165,7 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllRead,
     deleteNotification,
     clearRead,
+    startRealtime,
+    stopRealtime,
   }
 })

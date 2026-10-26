@@ -86,7 +86,9 @@ export const useRecruitmentActivityDetailsStore = defineStore('pesoRecruitmentAc
     }
   }
 
-  const changeStatus = (status: RecruitmentActivityStatus) => updateActivity({ status }, `Marked as ${status}`)
+  /** `remarks` is required for Cancelled (saved as status_remarks and sent to the agency) */
+  const changeStatus = (status: RecruitmentActivityStatus, remarks: string | null = null) =>
+    updateActivity({ status, status_remarks: remarks }, `Marked as ${status}`)
 
   // ─── Actions: Checklist ───
   async function setRequirementSubmitted(requirement: RecruitmentActivityRequirement, isSubmitted: boolean) {

@@ -54,12 +54,16 @@ const {
   reviewDocuments,
   isLoadingReviewDocuments,
   isReviewDialogOpen,
+  isReviewRemarksRequired,
   isSubmitting,
   onReviewDialogOpenChange,
   toggleDocument,
   submitReview,
   selectedApplicants,
   bulkStatus,
+  bulkRemarks,
+  bulkRemarksError,
+  isBulkRemarksRequired,
   clearSelection,
   applyBulkStatus,
   requestBulkDelete,
@@ -148,7 +152,7 @@ const {
     <!-- Bulk actions for the selected applicants -->
     <div
       v-if="selectedApplicants.length > 0"
-      class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
     >
       <div class="flex items-center gap-2 text-sm">
         <span class="font-medium">{{ selectedApplicants.length }} selected</span>
@@ -176,6 +180,18 @@ const {
           <Trash2 class="size-4" />
           Delete
         </Button>
+      </div>
+      <!-- Required for Rejected; one reason for every selected applicant, sent in their notifications -->
+      <div v-if="isBulkRemarksRequired" class="w-full space-y-1 sm:basis-full">
+        <Textarea
+          v-model="bulkRemarks"
+          rows="2"
+          placeholder="Remarks (required): why these applications are rejected"
+          aria-label="Remarks for rejected applicants"
+          :aria-invalid="!!bulkRemarksError"
+          :disabled="isSubmitting || isDeleting"
+        />
+        <p v-if="bulkRemarksError" class="text-sm text-destructive">{{ bulkRemarksError }}</p>
       </div>
     </div>
 
@@ -338,6 +354,22 @@ const {
               </FormItem>
             </FormField>
           </div>
+
+          <!-- Required for Rejected; sent to the applicant in their notification -->
+          <FormField v-if="isReviewRemarksRequired" v-slot="{ componentField }" name="remarks">
+            <FormItem>
+              <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
+              <FormControl>
+                <Textarea
+                  v-bind="componentField"
+                  rows="3"
+                  placeholder="Why the application is rejected; the applicant will see this"
+                  :disabled="isSubmitting"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <FormField v-slot="{ componentField }" name="dependent_name">
             <FormItem>

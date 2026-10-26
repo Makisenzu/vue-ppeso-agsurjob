@@ -4,9 +4,10 @@ import type { EstablishmentFormFields } from '@/types/common/establishment'
 type EsmddTables = Database['esmdd']['Tables']
 type EsmddEnums = Database['esmdd']['Enums']
 
-export type JobFairRow = EsmddTables['job_fairs']['Row']
-export type JobFairInsert = EsmddTables['job_fairs']['Insert']
-export type JobFairUpdate = EsmddTables['job_fairs']['Update']
+// status_remarks (migration 055: why it was cancelled) is not in database.types.ts until `npm run types:gen`
+export type JobFairRow = EsmddTables['job_fairs']['Row'] & { status_remarks?: string | null }
+export type JobFairInsert = EsmddTables['job_fairs']['Insert'] & { status_remarks?: string | null }
+export type JobFairUpdate = EsmddTables['job_fairs']['Update'] & { status_remarks?: string | null }
 
 /** Job fair row joined with its employer / applicant / hire counts and the openings of each vacancy offered. */
 export type JobFairWithCounts = JobFairRow & {

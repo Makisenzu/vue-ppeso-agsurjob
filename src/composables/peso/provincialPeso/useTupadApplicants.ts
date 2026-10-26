@@ -42,15 +42,21 @@ import {
   type TupadApplicantStatus,
   type TupadApplicantWithRegistry,
 } from '@/types/peso/provincialPeso/tupad'
+import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
 
 const reviewSchema = toTypedSchema(
-  z.object({
-    status: z.enum(TUPAD_APPLICANT_STATUSES),
-    // Accepts the number v-model gives for <input type="number"> (was string-only: "Expected string, received number")
-    monthly_income: tupadIncomeSchema,
-    dependent_name: z.string().trim().optional(),
-    doc_submitted: tupadDocumentsSchema,
-  })
+  z
+    .object({
+      status: z.enum(TUPAD_APPLICANT_STATUSES),
+      // Accepts the number v-model gives for <input type="number"> (was string-only: "Expected string, received number")
+      monthly_income: tupadIncomeSchema,
+      dependent_name: z.string().trim().optional(),
+      doc_submitted: tupadDocumentsSchema,
+      remarks: z.string().trim().optional(),
+    })
+    // Rejecting needs remarks; the applicant reads them in their notification
+    .superRefine(refineStatusRemarks)
 )
 
 const INITIAL_VALUES = {
@@ -58,6 +64,7 @@ const INITIAL_VALUES = {
   monthly_income: '' as number | string,
   dependent_name: '',
   doc_submitted: [TUPAD_LOCKED_DOCUMENT] as string[],
+  remarks: '',
 }
 
 function toFormValues(row: TupadApplicantWithRegistry): typeof INITIAL_VALUES {
@@ -66,6 +73,7 @@ function toFormValues(row: TupadApplicantWithRegistry): typeof INITIAL_VALUES {
     monthly_income: row.monthly_income ?? '',
     dependent_name: row.dependent_name ?? '',
     doc_submitted: withLockedTupadDocument(row.doc_submitted),
+    remarks: row.status_remarks ?? '',
   }
 }
 
@@ -255,17 +263,28 @@ export function useTupadApplicants() {
   })
 
   const bulkStatus = ref<TupadApplicantStatus | ''>('')
+  // Bulk Rejected applies one set of remarks to every selected applicant
+  const {
+    remarks: bulkRemarks,
+    remarksError: bulkRemarksError,
+    isRemarksRequired: isBulkRemarksRequired,
+    remarksToSave: bulkRemarksToSave,
+    validateRemarks: validateBulkRemarks,
+    resetRemarks: resetBulkRemarks,
+  } = useStatusRemarks(bulkStatus)
 
   const clearSelection = () => {
     rowSelection.value = {}
     bulkStatus.value = ''
+    resetBulkRemarks()
   }
 
   const applyBulkStatus = async () => {
-    if (!bulkStatus.value || selectedApplicants.value.length === 0) return
+    if (!bulkStatus.value || selectedApplicants.value.length === 0 || !validateBulkRemarks()) return
     const ok = await bulkUpdateApplicantStatus(
       selectedApplicants.value.map((row) => row.id),
-      bulkStatus.value
+      bulkStatus.value,
+      bulkRemarksToSave.value
     )
     if (ok) clearSelection()
   }
@@ -295,12 +314,13 @@ export function useTupadApplicants() {
 
   // ─── Review dialog ───
 
-  const { handleSubmit, resetForm } = useForm({
+  const { handleSubmit, resetForm, values: reviewValues } = useForm({
     validationSchema: reviewSchema,
     initialValues: INITIAL_VALUES,
   })
 
   const isReviewDialogOpen = computed(() => reviewingApplicant.value !== null)
+  const isReviewRemarksRequired = computed(() => requiresStatusRemarks(reviewValues.status))
 
   watch(reviewingApplicant, (row) => {
     if (row) resetForm({ values: toFormValues(row) })
@@ -319,6 +339,7 @@ export function useTupadApplicants() {
       monthly_income: parseTupadIncome(values.monthly_income),
       dependent_name: values.dependent_name || null,
       doc_submitted: values.doc_submitted,
+      status_remarks: normalizeStatusRemarks(values.remarks),
     })
   })
 
@@ -343,9 +364,13 @@ export function useTupadApplicants() {
     reviewDocuments,
     isLoadingReviewDocuments,
     isReviewDialogOpen,
+    isReviewRemarksRequired,
     // bulk actions & delete
     selectedApplicants,
     bulkStatus,
+    bulkRemarks,
+    bulkRemarksError,
+    isBulkRemarksRequired,
     clearSelection,
     applyBulkStatus,
     requestBulkDelete,

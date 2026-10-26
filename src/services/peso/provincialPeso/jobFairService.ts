@@ -22,6 +22,8 @@ import {
 import type { EstablishmentFormFields } from '@/types/common/establishment'
 import { establishmentService } from '@/services/common/establishmentService'
 import { pickEstablishmentFormFields } from '@/helpers/common/establishmentHelper'
+import { assertStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import type { Database } from '@/types/database.types'
 
 const JOB_FAIR_WITH_COUNTS_SELECT =
   '*, job_fair_participants(count), job_fair_vacancies(vacancy_count), job_fair_applicants(count), hots(count)'
@@ -101,10 +103,12 @@ export const jobFairService = {
   },
 
   async createJobFair(payload: JobFairInsert): Promise<JobFairWithCounts> {
+    assertStatusRemarks(payload.status, payload.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('job_fairs')
-      .insert(payload)
+      // status_remarks is not in the generated Insert type yet
+      .insert(payload as Database['esmdd']['Tables']['job_fairs']['Insert'])
       .select(JOB_FAIR_WITH_COUNTS_SELECT)
       .single()
 
@@ -113,10 +117,11 @@ export const jobFairService = {
   },
 
   async updateJobFair(jobFairId: string, payload: JobFairUpdate): Promise<JobFairWithCounts> {
+    if (payload.status !== undefined) assertStatusRemarks(payload.status, payload.status_remarks)
     const { data, error } = await supabase
       .schema('esmdd')
       .from('job_fairs')
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update({ ...payload, updated_at: new Date().toISOString() } as Database['esmdd']['Tables']['job_fairs']['Update'])
       .eq('id', jobFairId)
       .select(JOB_FAIR_WITH_COUNTS_SELECT)
       .single()

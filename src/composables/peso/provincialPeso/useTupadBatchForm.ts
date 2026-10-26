@@ -9,6 +9,7 @@ import {
   type TupadBatchRow,
   type TupadBatchStatus,
 } from '@/types/peso/provincialPeso/tupad'
+import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 const batchSchema = toTypedSchema(
   z
@@ -17,11 +18,14 @@ const batchSchema = toTypedSchema(
       status: z.enum(TUPAD_BATCH_STATUSES),
       start_date: z.string().optional(),
       end_date: z.string().optional(),
+      remarks: z.string().trim().optional(),
     })
     .refine((v) => !v.start_date || !v.end_date || v.end_date >= v.start_date, {
       message: 'End date cannot be before the start date.',
       path: ['end_date'],
     })
+    // Cancelling needs remarks; the batch's applicants read them in their notification
+    .superRefine(refineStatusRemarks)
 )
 
 const INITIAL_VALUES = {
@@ -29,6 +33,7 @@ const INITIAL_VALUES = {
   status: 'Pending' as TupadBatchStatus,
   start_date: '',
   end_date: '',
+  remarks: '',
 }
 
 function toFormValues(batch: TupadBatchRow): typeof INITIAL_VALUES {
@@ -38,6 +43,7 @@ function toFormValues(batch: TupadBatchRow): typeof INITIAL_VALUES {
     status,
     start_date: batch.start_date ?? '',
     end_date: batch.end_date ?? '',
+    remarks: batch.status_remarks ?? '',
   }
 }
 
@@ -47,12 +53,13 @@ export function useTupadBatchForm() {
   const { isBatchDialogOpen, editingBatch, isSubmitting } = storeToRefs(store)
   const { openCreateBatch, openEditBatch, closeBatchDialog, saveBatch } = store
 
-  const { handleSubmit, resetForm } = useForm({
+  const { handleSubmit, resetForm, values: formValues } = useForm({
     validationSchema: batchSchema,
     initialValues: INITIAL_VALUES,
   })
 
   const isEditMode = computed(() => editingBatch.value !== null)
+  const isRemarksRequired = computed(() => requiresStatusRemarks(formValues.status))
 
   // Load the batch (or a blank form) each time the dialog opens
   watch(isBatchDialogOpen, (open) => {
@@ -69,6 +76,7 @@ export function useTupadBatchForm() {
       status: values.status,
       start_date: values.start_date || null,
       end_date: values.end_date || null,
+      status_remarks: normalizeStatusRemarks(values.remarks),
     })
   })
 
@@ -76,6 +84,7 @@ export function useTupadBatchForm() {
     isBatchDialogOpen,
     isEditMode,
     isSubmitting,
+    isRemarksRequired,
     batchStatusOptions: TUPAD_BATCH_STATUSES,
     openCreateBatch,
     openEditBatch,

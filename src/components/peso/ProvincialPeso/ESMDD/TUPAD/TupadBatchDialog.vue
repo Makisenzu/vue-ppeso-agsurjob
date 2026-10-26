@@ -2,6 +2,7 @@
 import { Loader2 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
@@ -14,7 +15,7 @@ import {
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useTupadBatchForm } from '@/composables/peso/provincialPeso/useTupadBatchForm'
 
-const { isBatchDialogOpen, isEditMode, isSubmitting, batchStatusOptions, onBatchDialogOpenChange, submitBatch } =
+const { isBatchDialogOpen, isEditMode, isSubmitting, isRemarksRequired, batchStatusOptions, onBatchDialogOpenChange, submitBatch } =
   useTupadBatchForm()
 </script>
 
@@ -76,6 +77,17 @@ const { isBatchDialogOpen, isEditMode, isSubmitting, batchStatusOptions, onBatch
                   </SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- Required for Cancelled; sent to the batch's applicants in their notification -->
+          <FormField v-if="isRemarksRequired" v-slot="{ componentField }" name="remarks">
+            <FormItem>
+              <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
+              <FormControl>
+                <Textarea v-bind="componentField" rows="3" placeholder="Why the batch is cancelled" :disabled="isSubmitting" />
+              </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>

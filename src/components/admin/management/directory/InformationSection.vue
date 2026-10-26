@@ -39,6 +39,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   Dialog,
@@ -109,18 +111,33 @@ const goBack = () => {
 
 // Edit document status state
 const selectedDocStatus = ref<string>('submitted')
+const {
+  remarks: docRemarks,
+  remarksError: docRemarksError,
+  isRemarksRequired: docRemarksRequired,
+  remarksToSave: docRemarksToSave,
+  validateRemarks: validateDocRemarks,
+  resetRemarks: resetDocRemarks,
+} = useStatusRemarks(selectedDocStatus)
 
 watch(selectedDocument, (newVal) => {
   if (newVal) {
     selectedDocStatus.value = newVal.status || 'submitted'
+    resetDocRemarks()
   }
 })
 
 const handleUpdateDocumentStatus = async () => {
-  if (!selectedRecord.value || !selectedDocument.value) return
+  if (!selectedRecord.value || !selectedDocument.value || !validateDocRemarks()) return
   const isApplicantDoc = selectedRecord.value.category === 'applicant'
   try {
-    await updateDocumentStatus(selectedRecord.value.id, selectedDocument.value.id, selectedDocStatus.value, isApplicantDoc)
+    await updateDocumentStatus(
+      selectedRecord.value.id,
+      selectedDocument.value.id,
+      selectedDocStatus.value,
+      isApplicantDoc,
+      docRemarksToSave.value
+    )
   } catch {
     // Error handled in store
   }
@@ -543,6 +560,18 @@ const handleUpdateDocumentStatus = async () => {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <!-- Required for Rejected; sent to the user in their notification -->
+            <div v-if="docRemarksRequired" class="space-y-2">
+              <Label for="edit-doc-status-remarks">Remarks <span class="text-destructive">*</span></Label>
+              <Textarea
+                id="edit-doc-status-remarks"
+                v-model="docRemarks"
+                rows="3"
+                placeholder="What is wrong with the document, so the user can re-upload it"
+                :aria-invalid="!!docRemarksError"
+              />
+              <p v-if="docRemarksError" class="text-sm text-destructive">{{ docRemarksError }}</p>
             </div>
           </div>
 

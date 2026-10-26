@@ -3,6 +3,7 @@ import { getOrSetPersistentCache, removePersistentCacheValue } from '@/helpers/c
 import { mediaService } from '@/services/common/mediaService'
 import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { Database } from '@/types/database.types'
+import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 import type {
   DirectoryProfileRow,
   CompanyRow,
@@ -299,13 +300,20 @@ export const systemDirectoryService = {
     })
   },
 
-  async updateAccountStatus(profileId: string, status: string): Promise<DirectoryProfileRow> {
+  async updateAccountStatus(profileId: string, status: string, remarks?: string | null): Promise<DirectoryProfileRow> {
+    assertStatusRemarks(status, remarks)
     const normalizedStatus = normalizeProfileStatus(status)
+    // status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
+    const update: Database['core']['Tables']['profiles']['Update'] & { status_remarks?: string | null } = {
+      status: normalizedStatus,
+      status_remarks: normalizeStatusRemarks(remarks),
+      updated_at: new Date().toISOString(),
+    }
 
     const { data, error } = await supabase
       .schema('core')
       .from('profiles')
-      .update({ status: normalizedStatus, updated_at: new Date().toISOString() })
+      .update(update as Database['core']['Tables']['profiles']['Update'])
       .eq('id', profileId)
       .select()
       .single()
@@ -328,9 +336,12 @@ export const systemDirectoryService = {
   async updateDocumentStatus(
     documentId: number,
     newStatus: string,
-    isApplicantDoc: boolean
+    isApplicantDoc: boolean,
+    remarks?: string | null
   ): Promise<void> {
+    assertStatusRemarks(newStatus, remarks)
     const normalizedStatus = normalizeRequirementStatus(newStatus)
+    const normalizedRemarks = normalizeStatusRemarks(remarks)
 
     if (isApplicantDoc) {
       const { data: docData, error: docError } = await supabase
@@ -347,7 +358,7 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('applicants')
         .from('applicant_requirements')
-        .update({ status: normalizedStatus as any })
+        .update({ status: normalizedStatus as any, remarks: normalizedRemarks })
         .eq('id', docData.applicant_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')
@@ -366,7 +377,7 @@ export const systemDirectoryService = {
       const { error: updateError } = await supabase
         .schema('employers')
         .from('employer_requirements')
-        .update({ status: normalizedStatus as any })
+        .update({ status: normalizedStatus as any, remarks: normalizedRemarks })
         .eq('id', docData.employer_requirement_id)
 
       if (updateError) throw new Error(updateError.message || 'Failed to update document status')

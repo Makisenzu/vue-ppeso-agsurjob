@@ -203,11 +203,15 @@ export const useTupadStore = defineStore('pesoTupad', () => {
   }
 
   /** Sets the status of several TUPAD applicants; returns true on success. */
-  const bulkUpdateApplicantStatus = async (ids: string[], status: TupadApplicantStatus): Promise<boolean> => {
+  const bulkUpdateApplicantStatus = async (
+    ids: string[],
+    status: TupadApplicantStatus,
+    remarks: string | null = null
+  ): Promise<boolean> => {
     if (ids.length === 0) return false
     isSubmitting.value = true
     try {
-      const updated = await tupadService.bulkUpdateTupadApplicantStatus(ids, status)
+      const updated = await tupadService.bulkUpdateTupadApplicantStatus(ids, status, remarks)
       const byId = new Map(updated.map((row) => [row.id, row]))
       tupadApplicants.value = tupadApplicants.value.map((item) => {
         const saved = byId.get(item.id)

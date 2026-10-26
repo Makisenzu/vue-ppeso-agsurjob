@@ -204,3 +204,5 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 > 12. **DO NOT hard-code color hex values** — use semantic design tokens from `style.css`.
 > 13. **DO NOT use `any` type** without explicit necessity and explanatory comment.
 > 14. **DO NOT remove unrelated existing comments, docstrings, or code blocks**.
+> 15. **DO NOT ship a user-facing activity without its notification** — every status change, review decision or
+>     assignment a user should know about gets a `system.notify()` trigger. See [`BACKEND.md`](.agents/BACKEND.md) §17.

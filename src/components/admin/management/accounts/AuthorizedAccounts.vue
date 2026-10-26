@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ import {
 } from '@/components/ui/sheet'
 import { onMounted, watch } from 'vue'
 import { usePsgc } from '@/composables/common/usePsgc'
+import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
 import {
   Select,
   SelectContent,
@@ -117,17 +119,20 @@ const formData = ref<CreateAccountPayload>({
 
 // Edit status state
 const selectedStatus = ref<string>('active')
+const { remarks: statusRemarks, remarksError: statusRemarksError, isRemarksRequired, remarksToSave, validateRemarks, resetRemarks } =
+  useStatusRemarks(selectedStatus)
 
 watch(selectedProfile, (newVal) => {
   if (newVal) {
     selectedStatus.value = newVal.status || 'pending'
+    resetRemarks()
   }
 })
 
 const handleUpdateStatus = async () => {
-  if (!selectedProfile.value) return
+  if (!selectedProfile.value || !validateRemarks()) return
   try {
-    await updateAccountStatus(selectedProfile.value.id, selectedStatus.value)
+    await updateAccountStatus(selectedProfile.value.id, selectedStatus.value, remarksToSave.value)
   } catch {
     // Error handled in store
   }
@@ -605,6 +610,19 @@ const handleCreateAccount = async () => {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <!-- Required for Rejected; sent to the user in their notification -->
+            <div v-if="isRemarksRequired" class="space-y-2">
+              <Label for="edit-status-remarks">Remarks <span class="text-destructive">*</span></Label>
+              <Textarea
+                id="edit-status-remarks"
+                v-model="statusRemarks"
+                rows="3"
+                placeholder="Explain why, so the user knows what to fix"
+                :aria-invalid="!!statusRemarksError"
+              />
+              <p v-if="statusRemarksError" class="text-sm text-destructive">{{ statusRemarksError }}</p>
             </div>
           </div>
 

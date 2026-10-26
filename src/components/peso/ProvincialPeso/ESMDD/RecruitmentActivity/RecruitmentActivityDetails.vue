@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -82,6 +83,9 @@ const {
   documentMaxSizeMB,
   statusOptions,
   pendingStatus,
+  statusRemarks,
+  statusRemarksError,
+  isStatusRemarksRequired,
   isStatusDialogOpen,
   requestStatusChange,
   confirmStatusChange,
@@ -558,6 +562,19 @@ const {
           }}
         </AlertDialogDescription>
       </AlertDialogHeader>
+      <!-- Required for Cancelled; sent to the agency in their notification -->
+      <div v-if="isStatusRemarksRequired" class="space-y-2">
+        <Label for="activity-cancel-remarks">Remarks <span class="text-destructive">*</span></Label>
+        <Textarea
+          id="activity-cancel-remarks"
+          v-model="statusRemarks"
+          rows="3"
+          placeholder="Why the activity is cancelled"
+          :aria-invalid="!!statusRemarksError"
+          :disabled="isUpdatingActivity"
+        />
+        <p v-if="statusRemarksError" class="text-sm text-destructive">{{ statusRemarksError }}</p>
+      </div>
       <AlertDialogFooter>
         <AlertDialogCancel class="cursor-pointer" :disabled="isUpdatingActivity">Keep Current Status</AlertDialogCancel>
         <Button

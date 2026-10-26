@@ -28,6 +28,8 @@ export interface GipApplicantReviewPayload {
   applicantId: string | null
   status: EditableGipApplicantStatus
   documentsSubmitted: string[]
+  /** Saved to gip_applicants.status_remarks (migration 055); required when Rejected */
+  remarks: string | null
 }
 
 export interface ApplicantStatusDataPoint {

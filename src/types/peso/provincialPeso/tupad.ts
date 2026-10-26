@@ -1,10 +1,12 @@
 import type { Database } from '@/types/database.types'
 
-export type TupadApplicantRow = Database['esmdd']['Tables']['tupad_applicants']['Row']
+// status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
+export type TupadApplicantRow = Database['esmdd']['Tables']['tupad_applicants']['Row'] & { status_remarks?: string | null }
 export type TupadApplicantInsert = Database['esmdd']['Tables']['tupad_applicants']['Insert']
 export type TupadApplicantUpdate = Database['esmdd']['Tables']['tupad_applicants']['Update']
 
-export type TupadBatchRow = Database['esmdd']['Tables']['tupad_batch']['Row']
+// status_remarks (migration 055: why it was cancelled) is not in database.types.ts until `npm run types:gen`
+export type TupadBatchRow = Database['esmdd']['Tables']['tupad_batch']['Row'] & { status_remarks?: string | null }
 export type TupadBatchInsert = Database['esmdd']['Tables']['tupad_batch']['Insert']
 export type TupadBatchUpdate = Database['esmdd']['Tables']['tupad_batch']['Update']
 
@@ -49,11 +51,15 @@ export type TupadMember = TupadRow & {
 /** Batch form values (create / edit). */
 export type TupadBatchFormValues = Pick<TupadBatchRow, 'edl_number' | 'start_date' | 'end_date'> & {
   status: TupadBatchStatus
+  /** Required when Cancelled */
+  status_remarks: string | null
 }
 
 /** PESO review of a TUPAD applicant. */
 export type TupadApplicantReview = Pick<TupadApplicantRow, 'monthly_income' | 'dependent_name' | 'doc_submitted'> & {
   status: TupadApplicantStatus
+  /** Required when Rejected */
+  status_remarks: string | null
 }
 
 /** Editable fields of an engagement. */

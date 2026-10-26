@@ -87,11 +87,11 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     isEditStatusOpen.value = false
   }
 
-  const updateAccountStatus = async (profileId: string, newStatus: string) => {
+  const updateAccountStatus = async (profileId: string, newStatus: string, remarks?: string | null) => {
     isSubmitting.value = true
     errorMessage.value = null
     try {
-      const updated = await userAccountService.updateProfileStatus(profileId, newStatus)
+      const updated = await userAccountService.updateProfileStatus(profileId, newStatus, remarks)
       // Update local state reactive array with a fresh array reference so Vue & TanStack Table update instantly
       profiles.value = profiles.value.map((p) =>
         p.id === profileId ? { ...p, ...updated, status: updated.status } : p

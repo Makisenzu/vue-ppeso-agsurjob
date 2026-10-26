@@ -64,6 +64,7 @@ const {
   editingJobFairId,
   statusOptions,
   formStatusOptions,
+  isRemarksRequired,
   formValues,
   onFormDialogOpenChange,
   setMapLocation,
@@ -316,6 +317,17 @@ function onAttachmentDrop(event: DragEvent) {
               </SelectContent>
             </Select>
             <FormDescription>Set automatically from the dates. Choose Cancelled to call off the job fair.</FormDescription>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <!-- Required for Cancelled; sent to registered applicants in their notification -->
+        <FormField v-if="isRemarksRequired" v-slot="{ componentField }" name="remarks">
+          <FormItem>
+            <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
+            <FormControl>
+              <Textarea v-bind="componentField" rows="3" placeholder="Why the job fair is cancelled" :disabled="isSubmitting" />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>

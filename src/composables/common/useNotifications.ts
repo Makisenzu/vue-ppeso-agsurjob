@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useWindowFocus } from '@vueuse/core'
@@ -40,7 +40,10 @@ export function useNotifications() {
   }
 }
 
-/** Unread count for the bell badge; refreshes on login, navigation and tab focus. */
+/**
+ * Unread count for the bell badge. Live through Supabase Realtime (migration 054) while signed in;
+ * also re-counted on login, navigation and tab focus in case the connection dropped.
+ */
 export function useNotificationBadge() {
   const route = useRoute()
   const focused = useWindowFocus()
@@ -50,7 +53,16 @@ export function useNotificationBadge() {
 
   const refresh = () => store.fetchUnreadCount(user.value?.id)
 
-  watch(() => user.value?.id, refresh, { immediate: true })
+  watch(
+    () => user.value?.id,
+    userId => {
+      refresh()
+      store.startRealtime(userId)
+    },
+    { immediate: true },
+  )
+  // The badge lives in every layout's header, so leaving the layout (signing out) ends the subscription
+  onScopeDispose(() => store.stopRealtime())
   watch(() => route.fullPath, refresh)
   watch(focused, isFocused => {
     if (isFocused) refresh()

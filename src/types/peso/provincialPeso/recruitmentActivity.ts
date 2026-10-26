@@ -4,9 +4,10 @@ import type { JobVacancyDetailsFields, JobVacancyRow, JobVacancyStatus } from '@
 
 type EsmddTables = Database['esmdd']['Tables']
 
-export type RecruitmentActivityRow = EsmddTables['recruitment_activities']['Row']
+// status_remarks (migration 055: why it was cancelled) is not in database.types.ts until `npm run types:gen`
+export type RecruitmentActivityRow = EsmddTables['recruitment_activities']['Row'] & { status_remarks?: string | null }
 export type RecruitmentActivityInsert = EsmddTables['recruitment_activities']['Insert']
-export type RecruitmentActivityUpdate = EsmddTables['recruitment_activities']['Update']
+export type RecruitmentActivityUpdate = EsmddTables['recruitment_activities']['Update'] & { status_remarks?: string | null }
 
 export type RecruitmentActivityRequirementRow = EsmddTables['recruitment_activity_requirements']['Row']
 export type RecruitmentActivityAttachmentRow = EsmddTables['recruitment_activity_attachments']['Row']
