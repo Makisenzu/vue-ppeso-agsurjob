@@ -73,7 +73,7 @@ export type ProgramCardItem = ProgramCardRow & { image_url: string | null }
 /** Cards of the landing gallery in display order; the table only holds their photos. */
 export const LANDING_PROGRAMS: { key: LandingProgram; label: string; name: string }[] = [
   { key: 'tupad', label: 'TUPAD', name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers' },
-  { key: 'gip', label: 'GIP', name: 'Government Internship Program' },
+  { key: 'gip', label: 'Government Internship Program (GIP)', name: 'Government Internship Program' },
   { key: 'fly_now_pay_later', label: 'Fly Now Pay Later', name: 'OFW Fly Now Pay Later Plan' },
   { key: 'spes', label: 'SPES', name: 'Special Program for Employment of Students' },
   { key: 'skills_training', label: 'Skills Training', name: 'Skills Training' },
