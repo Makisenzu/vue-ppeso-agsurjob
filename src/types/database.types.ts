@@ -908,6 +908,7 @@ export type Database = {
           religion: string | null
           role: Database["core"]["Enums"]["user_role"] | null
           status: Database["core"]["Enums"]["status_type"] | null
+          status_remarks: string | null
           updated_at: string | null
           username: string | null
         }
@@ -932,6 +933,7 @@ export type Database = {
           religion?: string | null
           role?: Database["core"]["Enums"]["user_role"] | null
           status?: Database["core"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -956,6 +958,7 @@ export type Database = {
           religion?: string | null
           role?: Database["core"]["Enums"]["user_role"] | null
           status?: Database["core"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1377,6 +1380,7 @@ export type Database = {
           id: string
           remarks: string[] | null
           status: string | null
+          status_remarks: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1386,6 +1390,7 @@ export type Database = {
           id?: string
           remarks?: string[] | null
           status?: string | null
+          status_remarks?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1395,6 +1400,7 @@ export type Database = {
           id?: string
           remarks?: string[] | null
           status?: string | null
+          status_remarks?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1800,6 +1806,7 @@ export type Database = {
           registration_link: string | null
           start_date: string
           status: string
+          status_remarks: string | null
           title: string
           updated_at: string
         }
@@ -1814,6 +1821,7 @@ export type Database = {
           registration_link?: string | null
           start_date: string
           status?: string
+          status_remarks?: string | null
           title: string
           updated_at?: string
         }
@@ -1828,6 +1836,7 @@ export type Database = {
           registration_link?: string | null
           start_date?: string
           status?: string
+          status_remarks?: string | null
           title?: string
           updated_at?: string
         }
@@ -1945,6 +1954,7 @@ export type Database = {
           representatives: string[]
           start_date: string
           status: string
+          status_remarks: string | null
           terminal_report_due_date: string | null
           type: string
           updated_at: string
@@ -1968,6 +1978,7 @@ export type Database = {
           representatives?: string[]
           start_date: string
           status?: string
+          status_remarks?: string | null
           terminal_report_due_date?: string | null
           type: string
           updated_at?: string
@@ -1991,6 +2002,7 @@ export type Database = {
           representatives?: string[]
           start_date?: string
           status?: string
+          status_remarks?: string | null
           terminal_report_due_date?: string | null
           type?: string
           updated_at?: string
@@ -2405,6 +2417,7 @@ export type Database = {
           id: string
           monthly_income: number | null
           status: string
+          status_remarks: string | null
           updated_at: string
         }
         Insert: {
@@ -2415,6 +2428,7 @@ export type Database = {
           id?: string
           monthly_income?: number | null
           status?: string
+          status_remarks?: string | null
           updated_at?: string
         }
         Update: {
@@ -2425,6 +2439,7 @@ export type Database = {
           id?: string
           monthly_income?: number | null
           status?: string
+          status_remarks?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2486,6 +2501,7 @@ export type Database = {
           id: string
           start_date: string | null
           status: string
+          status_remarks: string | null
           updated_at: string
         }
         Insert: {
@@ -2495,6 +2511,7 @@ export type Database = {
           id?: string
           start_date?: string | null
           status?: string
+          status_remarks?: string | null
           updated_at?: string
         }
         Update: {
@@ -2504,6 +2521,7 @@ export type Database = {
           id?: string
           start_date?: string | null
           status?: string
+          status_remarks?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3495,8 +3513,10 @@ export type Database = {
           created_at: string
           id: number
           is_read: boolean | null
+          is_starred: boolean
           message: string | null
           recipient_id: string | null
+          remarks: string | null
           title: string | null
           type: string | null
         }
@@ -3504,8 +3524,10 @@ export type Database = {
           created_at?: string
           id?: never
           is_read?: boolean | null
+          is_starred?: boolean
           message?: string | null
           recipient_id?: string | null
+          remarks?: string | null
           title?: string | null
           type?: string | null
         }
@@ -3513,10 +3535,92 @@ export type Database = {
           created_at?: string
           id?: never
           is_read?: boolean | null
+          is_starred?: boolean
           message?: string | null
           recipient_id?: string | null
+          remarks?: string | null
           title?: string | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      org_chart_positions: {
+        Row: {
+          created_at: string
+          employment_status: Database["system"]["Enums"]["org_employment_status"]
+          holder_name: string | null
+          id: string
+          is_head: boolean
+          photo_path: string | null
+          sort_order: number
+          title: string
+          unit_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          employment_status?: Database["system"]["Enums"]["org_employment_status"]
+          holder_name?: string | null
+          id?: string
+          is_head?: boolean
+          photo_path?: string | null
+          sort_order?: number
+          title: string
+          unit_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          employment_status?: Database["system"]["Enums"]["org_employment_status"]
+          holder_name?: string | null
+          id?: string
+          is_head?: boolean
+          photo_path?: string | null
+          sort_order?: number
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_chart_positions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "org_chart_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_chart_units: {
+        Row: {
+          abbreviation: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -3671,9 +3775,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      applicant_profile_id: {
+        Args: { p_applicant_id: string }
+        Returns: string
+      }
+      company_profile_id: { Args: { p_company_id: string }; Returns: string }
       current_audience: {
         Args: never
         Returns: Database["system"]["Enums"]["announcement_audience"]
+      }
+      deployment_message: {
+        Args: {
+          p_detail: string
+          p_is_new: boolean
+          p_program: string
+          p_status: string
+        }
+        Returns: string
+      }
+      notify: {
+        Args: {
+          p_message: string
+          p_recipient: string
+          p_remarks?: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
+      program_status_message: {
+        Args: { p_program: string; p_status: string }
+        Returns: string
+      }
+      status_remarks: {
+        Args: { p_remarks: string; p_status: string }
+        Returns: string
       }
       unread_announcement_count: { Args: never; Returns: number }
     }
@@ -3710,6 +3846,7 @@ export type Database = {
         | "fly_now_pay_later"
         | "spes"
         | "skills_training"
+      org_employment_status: "elected" | "permanent" | "casual" | "job_order"
       public_page: "what_is_peso"
       site_content_media_type: "image" | "video"
       site_content_placement: "hero_carousel"
@@ -4022,6 +4159,7 @@ export const Constants = {
         "spes",
         "skills_training",
       ],
+      org_employment_status: ["elected", "permanent", "casual", "job_order"],
       public_page: ["what_is_peso"],
       site_content_media_type: ["image", "video"],
       site_content_placement: ["hero_carousel"],
