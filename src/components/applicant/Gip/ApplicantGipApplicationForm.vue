@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { ArrowLeft, CircleDashed, Eye, FileText, Landmark, Loader2, RefreshCw, Trash2, Upload } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, Check, FileText, Landmark, Loader2, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Stepper,
+  StepperIndicator,
+  StepperItem,
+  StepperSeparator,
+  StepperTitle,
+  StepperTrigger,
+} from '@/components/ui/stepper'
+import GipRequirementList from '@/components/applicant/Gip/GipRequirementList.vue'
 import { useGipApplicationForm } from '@/composables/applicant/useGipApplicationForm'
 
 const {
@@ -25,19 +34,22 @@ const {
   applicationDetails,
   applicantDetails,
   isGeneratingNsrp,
+  wizardSteps,
+  currentStep,
+  reachedStep,
+  currentStepMeta,
+  isLastStep,
+  attachedRequirements,
+  progressSteps,
+  goToStep,
+  nextStep,
+  previousStep,
   selectFile,
   removeFile,
   generateNsrp,
   submit,
   reload,
 } = useGipApplicationForm()
-
-const onFilePicked = (doc: string, event: Event) => {
-  const input = event.target as HTMLInputElement
-  selectFile(doc, input.files?.[0])
-  // Lets the same file be picked again after clearing it
-  input.value = ''
-}
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   Pending: 'bg-warning/10 text-warning border-warning/30',
@@ -51,6 +63,12 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
   'Expiring Soon': 'bg-warning/10 text-warning border-warning/30',
   Terminated: 'bg-destructive/10 text-destructive border-destructive/30',
 }
+
+// Same stepper look as the profile completion (ApplicantCompleteProfile.vue)
+const SEPARATOR_CLASS =
+  'absolute left-[calc(50%+14px)] right-[calc(-50%+14px)] top-4 h-0.5 rounded-full bg-border transition-colors duration-300 group-data-[state=completed]:bg-primary sm:left-[calc(50%+18px)] sm:right-[calc(-50%+18px)]'
+const INDICATOR_CLASS =
+  'size-7 border border-border bg-background text-xs font-semibold text-muted-foreground transition-colors duration-300 group-data-[state=active]:border-primary group-data-[state=active]:ring-4 group-data-[state=active]:ring-primary/15 group-data-[state=completed]:border-primary group-data-[state=completed]:bg-primary group-data-[state=completed]:text-primary-foreground sm:size-8'
 </script>
 
 <template>
@@ -68,10 +86,7 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
           <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">GIP Application</h1>
           <p class="text-sm text-pretty text-muted-foreground">
             <template v-if="hasApplied">Applied {{ appliedOn }}. {{ statusDescription }}</template>
-            <template v-else>
-              Your NSRP Form 1 is generated from your profile and attached for you. Upload a PDF copy of each of the
-              other requirements (up to {{ attachmentMaxMb }} MB each), then submit.
-            </template>
+            <template v-else>Apply in three steps. Every requirement is a PDF of up to {{ attachmentMaxMb }} MB.</template>
           </p>
         </div>
         <Badge v-if="hasApplied && !isLoading" variant="outline" class="self-start" :class="STATUS_BADGE_CLASS[status]">
@@ -86,7 +101,8 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
     </div>
 
     <div v-if="isLoading" class="flex flex-col gap-3" aria-busy="true">
-      <Skeleton v-for="i in 5" :key="i" class="h-14 w-full" />
+      <Skeleton class="h-10 w-full" />
+      <Skeleton v-for="i in 4" :key="i" class="h-14 w-full" />
     </div>
 
     <Alert v-else-if="errorMessage" variant="destructive">
@@ -97,152 +113,204 @@ const APPOINTMENT_BADGE_CLASS: Record<string, string> = {
       </AlertDescription>
     </Alert>
 
+    <!-- ═══ Applying: three-step wizard ═══ -->
+    <form v-else-if="!hasApplied" class="flex flex-col gap-8" @submit.prevent="submit">
+      <Stepper :model-value="currentStep + 1" class="flex w-full items-start gap-1 sm:gap-2">
+        <StepperItem
+          v-for="(step, index) in wizardSteps"
+          :key="step.key"
+          :step="index + 1"
+          :disabled="index > reachedStep || isSubmitting"
+          class="relative flex flex-1 flex-col items-center"
+        >
+          <StepperSeparator v-if="index !== wizardSteps.length - 1" :class="SEPARATOR_CLASS" />
+          <StepperTrigger type="button" class="z-10 gap-1.5" @click="goToStep(index)">
+            <StepperIndicator :class="INDICATOR_CLASS">
+              <Check v-if="index < currentStep" class="size-3.5 shrink-0" />
+              <span v-else>{{ index + 1 }}</span>
+            </StepperIndicator>
+            <StepperTitle class="hidden text-xs font-medium text-muted-foreground sm:block group-data-[state=active]:text-foreground">
+              {{ step.title }}
+            </StepperTitle>
+          </StepperTrigger>
+        </StepperItem>
+      </Stepper>
+
+      <div class="flex flex-col gap-1">
+        <h2 class="text-lg font-semibold text-foreground">
+          <span class="sm:hidden">{{ currentStep + 1 }}. </span>{{ currentStepMeta.title }}
+        </h2>
+        <p class="text-sm text-muted-foreground">{{ currentStepMeta.description }}</p>
+      </div>
+
+      <!-- Step 1: details from the NSRP record -->
+      <section v-if="currentStepMeta.key === 'details'" class="flex flex-col gap-3" aria-label="Your details">
+        <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
+          <div v-for="detail in applicantDetails" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
+            <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
+            <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
+          </div>
+        </dl>
+        <p class="text-xs text-muted-foreground">Something wrong? Update your profile first; your NSRP form is generated from it.</p>
+      </section>
+
+      <!-- Step 2: attach the PDFs -->
+      <section v-else-if="currentStepMeta.key === 'requirements'" aria-label="Requirements">
+        <GipRequirementList
+          :requirements="requirements"
+          :can-upload="canUpload"
+          :is-submitting="isSubmitting"
+          :is-generating-nsrp="isGeneratingNsrp"
+          :attachment-accept="attachmentAccept"
+          @pick="selectFile"
+          @remove="removeFile"
+          @generate-nsrp="generateNsrp"
+        />
+      </section>
+
+      <!-- Step 3: review -->
+      <section v-else class="flex flex-col gap-6" aria-label="Review and submit">
+        <div class="flex flex-col gap-2">
+          <h3 class="text-sm font-semibold text-foreground">Applicant</h3>
+          <p class="text-sm text-muted-foreground">
+            {{ applicantDetails.map((detail) => detail.value).slice(0, 2).join(' · ') }}
+          </p>
+        </div>
+        <div class="flex flex-col gap-2">
+          <h3 class="text-sm font-semibold text-foreground">Requirements</h3>
+          <ul class="flex flex-col">
+            <li
+              v-for="doc in requirements"
+              :key="doc.name"
+              class="flex items-center justify-between gap-3 border-t border-border py-3 text-sm last:border-b"
+            >
+              <span class="shrink-0 text-foreground">{{ doc.name }}</span>
+              <span v-if="doc.pendingFileName || doc.savedFileName" class="flex min-w-0 items-center gap-1 text-muted-foreground">
+                <FileText class="size-4 shrink-0" />
+                <span class="truncate">{{ doc.pendingFileName ?? doc.savedFileName }}</span>
+              </span>
+              <span v-else class="inline-flex items-center gap-1 text-muted-foreground">
+                <X class="size-4" /> Not attached
+              </span>
+            </li>
+          </ul>
+          <p class="text-xs text-muted-foreground">
+            {{ attachedRequirements.length }} of {{ requirements.length }} attached. PESO is notified when you submit, and
+            you can still replace a file until they review it.
+          </p>
+        </div>
+      </section>
+
+      <!-- Navigation -->
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+        <Button
+          v-if="currentStep > 0"
+          type="button"
+          variant="outline"
+          size="lg"
+          class="cursor-pointer"
+          :disabled="isSubmitting"
+          @click="previousStep"
+        >
+          <ArrowLeft class="size-4" /> Back
+        </Button>
+        <span v-else />
+        <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingNsrp" @click="nextStep">
+          Next <ArrowRight class="size-4" />
+        </Button>
+        <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting">
+          <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
+          {{ isSubmitting ? 'Submitting...' : 'Submit application' }}
+        </Button>
+      </div>
+    </form>
+
+    <!-- ═══ Applied: progress and details ═══ -->
     <form v-else class="flex flex-col gap-8" @submit.prevent="submit">
-      <!-- ─── Application details (once applied) ─── -->
-      <section v-if="applicationDetails.length" aria-labelledby="gip-form-details-title" class="flex flex-col gap-3">
+      <!-- Read-only progress; Not approved shows in the destructive color -->
+      <ol class="flex w-full items-start gap-1 sm:gap-2" aria-label="Application progress">
+        <li
+          v-for="(step, index) in progressSteps"
+          :key="step.title"
+          class="relative flex flex-1 flex-col items-center gap-1.5"
+          :aria-current="step.state === 'active' ? 'step' : undefined"
+        >
+          <span
+            v-if="index !== progressSteps.length - 1"
+            class="absolute top-4 right-[calc(-50%+14px)] left-[calc(50%+14px)] h-0.5 rounded-full sm:right-[calc(-50%+18px)] sm:left-[calc(50%+18px)]"
+            :class="step.state === 'completed' ? 'bg-primary' : 'bg-border'"
+            aria-hidden="true"
+          />
+          <span
+            class="z-10 flex size-7 items-center justify-center rounded-full border text-xs font-semibold sm:size-8"
+            :class="{
+              'border-primary bg-primary text-primary-foreground': step.state === 'completed',
+              'border-primary bg-background text-foreground ring-4 ring-primary/15': step.state === 'active',
+              'border-border bg-background text-muted-foreground': step.state === 'upcoming',
+              'border-destructive bg-destructive text-primary-foreground': step.state === 'rejected',
+            }"
+          >
+            <Check v-if="step.state === 'completed'" class="size-3.5" />
+            <X v-else-if="step.state === 'rejected'" class="size-3.5" />
+            <span v-else>{{ index + 1 }}</span>
+          </span>
+          <span
+            class="text-center text-[11px] font-medium sm:text-xs"
+            :class="{
+              'text-foreground': step.state === 'active' || step.state === 'completed',
+              'text-destructive': step.state === 'rejected',
+              'text-muted-foreground': step.state === 'upcoming',
+            }"
+          >
+            {{ step.title }}
+          </span>
+        </li>
+      </ol>
+
+      <section aria-labelledby="gip-form-details-title" class="flex flex-col gap-3">
         <h2 id="gip-form-details-title" class="text-lg font-semibold text-foreground">Application Details</h2>
         <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
-          <div
-            v-for="detail in applicationDetails"
-            :key="detail.label"
-            class="flex flex-col gap-0.5 border-b border-border py-3"
-          >
+          <div v-for="detail in applicationDetails" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
             <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
             <dd class="text-sm text-foreground">{{ detail.value }}</dd>
           </div>
         </dl>
       </section>
 
-      <!-- ─── Applicant: from the NSRP record PESO reviews ─── -->
       <section v-if="applicantDetails.length" aria-labelledby="gip-form-applicant-title" class="flex flex-col gap-3">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="gip-form-applicant-title" class="text-lg font-semibold text-foreground">Applicant</h2>
           <span class="text-xs text-muted-foreground">From your NSRP profile</span>
         </div>
         <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
-          <div
-            v-for="detail in applicantDetails"
-            :key="detail.label"
-            class="flex flex-col gap-0.5 border-b border-border py-3"
-          >
+          <div v-for="detail in applicantDetails" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
             <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
             <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
           </div>
         </dl>
       </section>
 
-      <!-- ─── Requirements ─── -->
       <section aria-labelledby="gip-form-requirements-title" class="flex flex-col gap-3">
         <h2 id="gip-form-requirements-title" class="text-lg font-semibold text-foreground">Requirements</h2>
-        <ol class="flex flex-col">
-          <li
-            v-for="(doc, index) in requirements"
-            :key="doc.name"
-            class="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-border py-4 last:border-b"
-          >
-            <span class="pt-0.5 text-sm font-semibold text-muted-foreground tabular-nums" aria-hidden="true">
-              {{ String(index + 1).padStart(2, '0') }}
-            </span>
-            <div class="flex min-w-0 flex-col gap-2">
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex min-w-0 flex-col">
-                  <span class="text-sm font-semibold text-foreground sm:text-base">
-                    {{ doc.name }}
-                    <span v-if="doc.isOptional" class="text-sm font-normal text-muted-foreground">(optional)</span>
-                  </span>
-                  <span v-if="doc.isNsrp" class="text-xs text-muted-foreground">Generated from your NSRP profile</span>
-                </div>
-
-                <!-- NSRP being generated -->
-                <span v-if="doc.isNsrp && isGeneratingNsrp" class="inline-flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 class="size-4 animate-spin" /> Generating NSRP form...
-                </span>
-
-                <!-- Attached file (picked / generated, or saved): view and remove -->
-                <div v-else-if="doc.pendingFileName || doc.savedFileName" class="flex min-w-0 items-center gap-1">
-                  <FileText class="size-4 shrink-0 text-muted-foreground" />
-                  <span class="truncate text-sm text-foreground" :title="doc.pendingFileName ?? doc.savedFileName ?? ''">
-                    {{ doc.pendingFileName ?? doc.savedFileName }}
-                  </span>
-                  <span v-if="doc.pendingFileName" class="shrink-0 text-xs text-muted-foreground">· uploads on submit</span>
-                  <span v-else-if="doc.uploadedAt" class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                    · {{ doc.uploadedAt }}
-                  </span>
-                  <Button
-                    v-if="doc.pendingFileUrl || doc.savedFileUrl"
-                    variant="ghost"
-                    size="icon-sm"
-                    as-child
-                    class="shrink-0"
-                    :aria-label="`View ${doc.name}`"
-                  >
-                    <a :href="(doc.pendingFileUrl ?? doc.savedFileUrl)!" target="_blank" rel="noopener noreferrer" title="View">
-                      <Eye class="size-4" />
-                    </a>
-                  </Button>
-                  <Button
-                    v-if="canUpload"
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    class="shrink-0 hover:text-destructive"
-                    title="Remove"
-                    :aria-label="`Remove ${doc.name}`"
-                    :disabled="isSubmitting || doc.isDeleting"
-                    @click="removeFile(doc.name)"
-                  >
-                    <Loader2 v-if="doc.isDeleting" class="size-4 animate-spin" />
-                    <Trash2 v-else class="size-4" />
-                  </Button>
-                </div>
-
-                <!-- Nothing attached yet -->
-                <div v-else class="flex shrink-0 flex-wrap items-center gap-2">
-                  <template v-if="canUpload">
-                    <Button
-                      v-if="doc.isNsrp"
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      class="cursor-pointer"
-                      :disabled="isSubmitting"
-                      @click="generateNsrp"
-                    >
-                      <RefreshCw class="size-4" /> Generate NSRP form
-                    </Button>
-                    <Button v-else type="button" variant="outline" size="sm" as-child :disabled="isSubmitting">
-                      <label class="cursor-pointer" :class="{ 'pointer-events-none opacity-50': isSubmitting }">
-                        <Upload class="size-4" /> Upload PDF
-                        <input
-                          type="file"
-                          class="sr-only"
-                          :accept="attachmentAccept"
-                          :disabled="isSubmitting"
-                          @change="onFilePicked(doc.name, $event)"
-                        />
-                      </label>
-                    </Button>
-                  </template>
-                  <span v-else-if="doc.isReceived" class="text-sm text-success">Received by PESO</span>
-                  <span v-else class="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                    <CircleDashed class="size-4" /> Not submitted
-                  </span>
-                </div>
-              </div>
-              <p v-if="doc.error" class="text-sm text-destructive">{{ doc.error }}</p>
-            </div>
-          </li>
-        </ol>
+        <GipRequirementList
+          :requirements="requirements"
+          :can-upload="canUpload"
+          :is-submitting="isSubmitting"
+          :is-generating-nsrp="isGeneratingNsrp"
+          :attachment-accept="attachmentAccept"
+          @pick="selectFile"
+          @remove="removeFile"
+          @generate-nsrp="generateNsrp"
+        />
         <p v-if="isLocked" class="text-sm text-muted-foreground">
           PESO has reviewed your application, so the files can no longer be changed.
         </p>
       </section>
 
-      <div v-if="canUpload && (!hasApplied || hasPendingFiles)" class="flex justify-end">
+      <div v-if="canUpload && hasPendingFiles" class="flex justify-end">
         <Button type="submit" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="isSubmitting">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
-          <template v-if="isSubmitting">Submitting...</template>
-          <template v-else>{{ hasApplied ? 'Save documents' : 'Submit application' }}</template>
+          {{ isSubmitting ? 'Saving...' : 'Save documents' }}
         </Button>
       </div>
 

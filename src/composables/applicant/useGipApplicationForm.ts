@@ -31,6 +31,19 @@ export const GIP_STATUS_DESCRIPTIONS: Record<string, string> = {
 const formatDate = (value?: string | null) =>
   value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
+/** Steps of applying; once applied, the page shows the progress tracker instead */
+export const GIP_WIZARD_STEPS = [
+  { key: 'details', title: 'Your details', description: 'Check the details PESO will review, from your NSRP profile.' },
+  { key: 'requirements', title: 'Requirements', description: 'Attach a PDF of each requirement.' },
+  { key: 'review', title: 'Review & submit', description: 'Check your files, then submit your application.' },
+] as const
+
+/** A step of the application's progress tracker */
+export interface GipProgressStep {
+  title: string
+  state: 'completed' | 'active' | 'upcoming' | 'rejected'
+}
+
 /** One requirement of the application form */
 export interface GipRequirementRow {
   name: string
@@ -221,9 +234,58 @@ export function useGipApplicationForm() {
     )
   )
 
+  // ─── Application wizard (before applying) ───
+  const currentStep = ref(0)
+  /** Furthest step opened so far; the stepper only jumps back to steps already reached */
+  const reachedStep = ref(0)
+  const currentStepMeta = computed(() => GIP_WIZARD_STEPS[currentStep.value]!)
+  const isLastStep = computed(() => currentStep.value === GIP_WIZARD_STEPS.length - 1)
+
+  const goToStep = (index: number) => {
+    if (index < 0 || index > reachedStep.value) return
+    currentStep.value = index
+  }
+
+  /** Moves on; leaving Requirements needs every required PDF attached */
+  const nextStep = () => {
+    if (currentStepMeta.value.key === 'requirements' && !validateFiles()) return
+    if (isLastStep.value) return
+    currentStep.value += 1
+    reachedStep.value = Math.max(reachedStep.value, currentStep.value)
+  }
+
+  const previousStep = () => goToStep(currentStep.value - 1)
+
+  /** Requirements with a file attached, for the review step */
+  const attachedRequirements = computed(() =>
+    requirements.value.filter((doc) => doc.pendingFileName || doc.savedFileName)
+  )
+
+  // ─── Progress tracker (after applying) ───
+  const progressSteps = computed<GipProgressStep[]>(() => {
+    const isRejected = status.value === 'Rejected'
+    const isDeployed = status.value === 'Hired' || appointments.value.length > 0
+    const isApproved = status.value === 'Approved' || isDeployed
+    // Index of the step in progress; every step before it is done
+    const current = isDeployed ? 4 : isApproved ? 3 : isRejected ? 2 : 1
+    const states = (index: number): GipProgressStep['state'] => {
+      if (isRejected && index === 2) return 'rejected'
+      if (index < current) return 'completed'
+      return index === current ? 'active' : 'upcoming'
+    }
+    return [
+      { title: 'Submitted', state: states(0) },
+      { title: 'Under review', state: states(1) },
+      { title: isRejected ? 'Not approved' : 'Approved', state: states(2) },
+      { title: 'Deployed', state: states(3) },
+    ]
+  })
+
   const reload = async () => {
     if (!applicantId.value) return
     resetPicks()
+    currentStep.value = 0
+    reachedStep.value = 0
     await store.fetchMyApplication(applicantId.value)
   }
 
@@ -260,6 +322,16 @@ export function useGipApplicationForm() {
     applicationDetails,
     applicantDetails,
     isGeneratingNsrp,
+    wizardSteps: GIP_WIZARD_STEPS,
+    currentStep,
+    reachedStep,
+    currentStepMeta,
+    isLastStep,
+    attachedRequirements,
+    progressSteps,
+    goToStep,
+    nextStep,
+    previousStep,
     selectFile,
     removeFile,
     generateNsrp,
