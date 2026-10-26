@@ -25,7 +25,6 @@ export const navLinks: LandingNavLink[] = [
     label: 'About',
     href: '#about',
     children: [
-      { label: 'History of Agusan del Sur', href: '#about-mission' },
       { label: 'What is PESO?', to: { name: 'what-is-peso' } },
     ],
   },

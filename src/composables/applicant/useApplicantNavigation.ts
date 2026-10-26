@@ -34,7 +34,6 @@ const navItems: ApplicantNavItem[] = [
   {
     title: 'About',
     children: [
-      { title: 'History of Agusan del Sur', to: { name: 'applicant-about' } },
       { title: 'What is PESO?', to: { name: 'applicant-what-is-peso' } },
     ],
   },
