@@ -387,6 +387,7 @@ export type Database = {
         Row: {
           age: number | null
           applicant_id: string | null
+          applied_at: string | null
           availment_1_establishment: string | null
           availment_1_spes_id: string | null
           availment_1_year: string | null
@@ -427,6 +428,8 @@ export type Database = {
           mother_maiden_name: string | null
           mother_occupation: string | null
           municipality: string | null
+          orientation_at: string | null
+          orientation_note: string | null
           other_dole_interventions: string | null
           parents_status: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address: string | null
@@ -459,6 +462,7 @@ export type Database = {
         Insert: {
           age?: number | null
           applicant_id?: string | null
+          applied_at?: string | null
           availment_1_establishment?: string | null
           availment_1_spes_id?: string | null
           availment_1_year?: string | null
@@ -499,6 +503,8 @@ export type Database = {
           mother_maiden_name?: string | null
           mother_occupation?: string | null
           municipality?: string | null
+          orientation_at?: string | null
+          orientation_note?: string | null
           other_dole_interventions?: string | null
           parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address?: string | null
@@ -531,6 +537,7 @@ export type Database = {
         Update: {
           age?: number | null
           applicant_id?: string | null
+          applied_at?: string | null
           availment_1_establishment?: string | null
           availment_1_spes_id?: string | null
           availment_1_year?: string | null
@@ -571,6 +578,8 @@ export type Database = {
           mother_maiden_name?: string | null
           mother_occupation?: string | null
           municipality?: string | null
+          orientation_at?: string | null
+          orientation_note?: string | null
           other_dole_interventions?: string | null
           parents_status?: Database["applicants"]["Enums"]["spes_parents_status_type"][]
           permanent_address?: string | null
@@ -642,6 +651,90 @@ export type Database = {
       }
       owns_applicant: { Args: { p_applicant_id: string }; Returns: boolean }
       owns_spes_form: { Args: { p_form_id: string }; Returns: boolean }
+      reapply_spes_form: {
+        Args: never
+        Returns: {
+          age: number | null
+          applicant_id: string | null
+          applied_at: string | null
+          availment_1_establishment: string | null
+          availment_1_spes_id: string | null
+          availment_1_year: string | null
+          availment_2_establishment: string | null
+          availment_2_spes_id: string | null
+          availment_2_year: string | null
+          availment_3_establishment: string | null
+          availment_3_spes_id: string | null
+          availment_3_year: string | null
+          availment_4_establishment: string | null
+          availment_4_spes_id: string | null
+          availment_4_year: string | null
+          citizenship: string | null
+          civil_status:
+            | Database["applicants"]["Enums"]["spes_civil_status_type"]
+            | null
+          contact_number: string | null
+          created_at: string
+          date_of_birth: string
+          elementary_date_of_attendance: string | null
+          elementary_degree_course: string | null
+          elementary_school_name: string | null
+          elementary_year_level: string | null
+          email_address: string | null
+          father_contact_no: string | null
+          father_name: string | null
+          father_occupation: string | null
+          first_name: string
+          gsis_beneficiary_relationship: string | null
+          has_birth_certificate: boolean
+          has_income_proof: boolean
+          has_osy_certification: boolean
+          has_passing_grade_proof: boolean
+          has_registrar_certification: boolean
+          id: string
+          middle_name: string | null
+          mother_contact_no: string | null
+          mother_maiden_name: string | null
+          mother_occupation: string | null
+          municipality: string | null
+          orientation_at: string | null
+          orientation_note: string | null
+          other_dole_interventions: string | null
+          parents_status: Database["applicants"]["Enums"]["spes_parents_status_type"][]
+          permanent_address: string | null
+          place_of_birth: string | null
+          present_address: string | null
+          profile_id: string | null
+          remarks: string | null
+          secondary_date_of_attendance: string | null
+          secondary_degree_course: string | null
+          secondary_school_name: string | null
+          secondary_year_level: string | null
+          sex: Database["applicants"]["Enums"]["spes_sex_type"] | null
+          social_media_account: string | null
+          special_skills: string[]
+          status: string
+          student_category:
+            | Database["applicants"]["Enums"]["spes_student_category_type"]
+            | null
+          surname: string
+          techvoc_date_of_attendance: string | null
+          techvoc_degree_course: string | null
+          techvoc_school_name: string | null
+          techvoc_year_level: string | null
+          tertiary_date_of_attendance: string | null
+          tertiary_degree_course: string | null
+          tertiary_school_name: string | null
+          tertiary_year_level: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "spes_form"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search_applicant_registry: {
         Args: {
           p_employment_status?: string
@@ -1002,6 +1095,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_account: {
+        Args: { p_profile_id: string }
+        Returns: undefined
+      }
       get_user_emails: {
         Args: never
         Returns: {
@@ -1010,6 +1107,11 @@ export type Database = {
         }[]
       }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
+      is_authorship_column: { Args: { p_column: string }; Returns: boolean }
+      purge_rows: {
+        Args: { p_depth?: number; p_table: unknown; p_where: string }
+        Returns: undefined
+      }
     }
     Enums: {
       gender_type:
@@ -1438,6 +1540,8 @@ export type Database = {
           created_at: string | null
           document_submitted: string[] | null
           id: string
+          orientation_at: string | null
+          orientation_note: string | null
           remarks: string[] | null
           status: string | null
           status_remarks: string | null
@@ -1448,6 +1552,8 @@ export type Database = {
           created_at?: string | null
           document_submitted?: string[] | null
           id?: string
+          orientation_at?: string | null
+          orientation_note?: string | null
           remarks?: string[] | null
           status?: string | null
           status_remarks?: string | null
@@ -1458,6 +1564,8 @@ export type Database = {
           created_at?: string | null
           document_submitted?: string[] | null
           id?: string
+          orientation_at?: string | null
+          orientation_note?: string | null
           remarks?: string[] | null
           status?: string | null
           status_remarks?: string | null
@@ -2710,6 +2818,8 @@ export type Database = {
           created_at: string | null
           document_submitted: string[] | null
           id: string
+          orientation_at: string | null
+          orientation_note: string | null
           remarks: string[] | null
           status: string | null
           status_remarks: string | null
@@ -3919,6 +4029,10 @@ export type Database = {
           p_title: string
           p_type: string
         }
+        Returns: undefined
+      }
+      notify_spes_staff_new_application: {
+        Args: { p_form: Database["applicants"]["Tables"]["spes_form"]["Row"] }
         Returns: undefined
       }
       program_status_message: {
