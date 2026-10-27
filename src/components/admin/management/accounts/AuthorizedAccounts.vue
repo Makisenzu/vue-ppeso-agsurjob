@@ -4,7 +4,8 @@ import {
   FlexRender,
 } from '@tanstack/vue-table'
 import { createReusableTemplate } from '@vueuse/core'
-import { ChevronDown, MoreHorizontal,RefreshCw,Plus, Loader2 } from '@lucide/vue'
+import { ChevronDown, MoreHorizontal,RefreshCw,Plus, Loader2, Trash2 } from '@lucide/vue'
+import HoldButton from '@/components/HoldButton.vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
 import type { CreateAccountPayload } from '@/types/admin/userAccounts'
@@ -33,6 +34,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Table,
   TableBody,
@@ -92,6 +102,14 @@ const {
   closeEditStatusModal,
   updateAccountStatus,
   createAccount,
+  accountToDelete,
+  accountToDeleteName,
+  isDeleting,
+  canDeleteAccount,
+  requestDeleteAccount,
+  onDeleteDialogOpenChange,
+  deleteAccount,
+  remindHoldToDelete,
   copyId,
 } = useUserAccounts(ReuseTemplate)
 
@@ -251,6 +269,12 @@ const handleCreateAccount = async () => {
         <DropdownMenuItem @select="(e: Event) => { e.preventDefault(); openProfileDetails(profile) }">
           View details
         </DropdownMenuItem>
+        <template v-if="canDeleteAccount(profile)">
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" @select="requestDeleteAccount(profile)">
+            Delete account
+          </DropdownMenuItem>
+        </template>
       </DropdownMenuContent>
     </DropdownMenu>
   </DefineTemplate>
@@ -835,5 +859,44 @@ const handleCreateAccount = async () => {
         </form>
       </SheetContent>
     </Sheet>
+
+    <!-- Delete Account Confirmation (core.admin_delete_account, migration 069) -->
+    <AlertDialog :open="accountToDelete !== null" @update:open="onDeleteDialogOpenChange">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this account?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <strong class="font-medium text-foreground">{{ accountToDeleteName }}</strong>'s login, profile, applications
+            and uploaded files will be permanently deleted.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel class="cursor-pointer" :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <!-- Holding is the confirmation (same as ProfileDocsUpload.vue); resetAfter lets it recover if the delete fails -->
+          <HoldButton
+            size="sm"
+            :radius="8"
+            :hold-time="2000"
+            :reset-after="2000"
+            :disabled="isDeleting"
+            done-label="Deleting..."
+            background-color="var(--muted)"
+            text-color="var(--foreground)"
+            fill-color="var(--destructive)"
+            fill-text-color="var(--background)"
+            @hold="deleteAccount"
+            @tap="remindHoldToDelete"
+          >
+            <template #icon>
+              <Trash2 class="size-4 shrink-0" />
+            </template>
+            <template #doneIcon>
+              <Loader2 class="size-4 shrink-0 animate-spin" />
+            </template>
+            Hold to delete
+          </HoldButton>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

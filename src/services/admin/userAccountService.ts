@@ -16,6 +16,26 @@ type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 // status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
 type ProfileStatusUpdate = Database['core']['Tables']['profiles']['Update'] & { status_remarks?: string | null }
 
+/** Buckets where a user's uploads sit in their own `<profile id>/` folder (034 admin_all_app_buckets). */
+const ACCOUNT_FILE_BUCKETS = ['documents', 'media', 'job-posting-attachments', 'job-fair-attachments'] as const
+const STORAGE_LIST_PAGE = 100
+
+/** Every file path under a folder of a bucket, subfolders included. */
+async function listFolderFiles(bucket: string, folder: string): Promise<string[]> {
+  const paths: string[] = []
+  for (let offset = 0; ; offset += STORAGE_LIST_PAGE) {
+    const { data, error } = await supabase.storage.from(bucket).list(folder, { limit: STORAGE_LIST_PAGE, offset })
+    if (error) throw error
+    for (const item of data ?? []) {
+      const path = `${folder}/${item.name}`
+      // Folders come back without an id
+      if (item.id === null) paths.push(...(await listFolderFiles(bucket, path)))
+      else paths.push(path)
+    }
+    if (!data || data.length < STORAGE_LIST_PAGE) return paths
+  }
+}
+
 function normalizeBarangayName(value?: string | null): string {
   const normalized = value?.trim().toLowerCase() ?? ''
   // Remove common barangay name suffixes/prefixes
@@ -337,6 +357,33 @@ export const userAccountService = {
     removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
 
     return data as ProfileRow
+  },
+
+  /**
+   * Permanently deletes an account and all its data (core.admin_delete_account, migration 069),
+   * then its uploaded files. The database part is all or nothing; the files are removed after it,
+   * so `filesLeft` is true when some could not be (the account is gone either way).
+   */
+  async deleteAccount(profileId: string): Promise<{ filesLeft: boolean }> {
+    // admin_delete_account is not in database.types.ts until `npm run types:gen` is re-run
+    const { error } = await (supabase.schema('core') as any).rpc('admin_delete_account', { p_profile_id: profileId })
+    if (error) throw new Error(error.message || 'Failed to delete the account.')
+    removePersistentCacheValue(USER_ACCOUNTS_CACHE_KEY)
+
+    let filesLeft = false
+    for (const bucket of ACCOUNT_FILE_BUCKETS) {
+      try {
+        const paths = await listFolderFiles(bucket, profileId)
+        for (let i = 0; i < paths.length; i += STORAGE_LIST_PAGE) {
+          const { error: removeErr } = await supabase.storage.from(bucket).remove(paths.slice(i, i + STORAGE_LIST_PAGE))
+          if (removeErr) throw removeErr
+        }
+      } catch (err) {
+        filesLeft = true
+        console.warn(`[userAccountService] Could not remove the deleted account's files in ${bucket}:`, err)
+      }
+    }
+    return { filesLeft }
   },
 }
 

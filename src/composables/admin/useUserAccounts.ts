@@ -1,4 +1,4 @@
-import { ref, onMounted, h, type Component } from 'vue'
+import { computed, ref, onMounted, h, type Component } from 'vue'
 import { storeToRefs } from 'pinia'
 import type {
   ColumnDef,
@@ -19,6 +19,7 @@ import { ArrowUpDown } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { useUserAccountsStore } from '@/stores/admin/userAccountsStore'
+import { useAuthStore } from '@/stores/common/auth'
 import type { ProfileRow } from '@/types/admin/userAccounts'
 import {
   formatDate,
@@ -43,6 +44,8 @@ export function useUserAccounts(actionTemplateRef?: Component) {
     isDetailsOpen,
     isAddAccountOpen,
     isEditStatusOpen,
+    accountToDelete,
+    isDeleting,
   } = storeToRefs(store)
   const {
     fetchProfiles,
@@ -55,8 +58,23 @@ export function useUserAccounts(actionTemplateRef?: Component) {
     closeEditStatusModal,
     updateAccountStatus,
     createAccount,
+    requestDeleteAccount,
+    cancelDeleteAccount,
+    deleteAccount,
+    remindHoldToDelete,
     copyId,
   } = store
+  const authStore = useAuthStore()
+
+  /** Admins can't delete their own account (also refused by admin_delete_account) */
+  const canDeleteAccount = (profile: ProfileRow) => profile.id !== authStore.user?.id
+  const accountToDeleteName = computed(() => {
+    const target = accountToDelete.value
+    return target ? [target.firstname, target.lastname].filter(Boolean).join(' ') || target.email || 'This account' : ''
+  })
+  const onDeleteDialogOpenChange = (open: boolean) => {
+    if (!open) cancelDeleteAccount()
+  }
 
   const sorting = ref<SortingState>([])
   const columnFilters = ref<ColumnFiltersState>([])
@@ -258,6 +276,14 @@ export function useUserAccounts(actionTemplateRef?: Component) {
     closeEditStatusModal,
     updateAccountStatus,
     createAccount,
+    accountToDelete,
+    accountToDeleteName,
+    isDeleting,
+    canDeleteAccount,
+    requestDeleteAccount,
+    onDeleteDialogOpenChange,
+    deleteAccount,
+    remindHoldToDelete,
     copyId,
   }
 }

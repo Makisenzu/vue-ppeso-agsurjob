@@ -137,6 +137,49 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     }
   }
 
+  // ─── Delete account ───
+  /** Account waiting for the admin to confirm its deletion */
+  const accountToDelete = ref<ProfileRow | null>(null)
+  const isDeleting = ref(false)
+
+  const requestDeleteAccount = (profile: ProfileRow) => {
+    accountToDelete.value = profile
+  }
+
+  const cancelDeleteAccount = () => {
+    if (!isDeleting.value) accountToDelete.value = null
+  }
+
+  /** A tap on the hold-to-delete button: say how to confirm */
+  const remindHoldToDelete = () => {
+    toastAlert.info('Keep holding', 'Press and hold the button to delete this account.')
+  }
+
+  const deleteAccount = async (): Promise<boolean> => {
+    const target = accountToDelete.value
+    if (!target) return false
+    isDeleting.value = true
+    try {
+      const { filesLeft } = await userAccountService.deleteAccount(target.id)
+      profiles.value = profiles.value.filter((p) => p.id !== target.id)
+      if (selectedProfile.value?.id === target.id) {
+        selectedProfile.value = null
+        isDetailsOpen.value = false
+        isEditStatusOpen.value = false
+      }
+      accountToDelete.value = null
+      const name = [target.firstname, target.lastname].filter(Boolean).join(' ') || target.email || 'The account'
+      toastAlert.success('Account Deleted', `${name} and all its data have been deleted.`)
+      if (filesLeft) toastAlert.info('Some files remain', 'A few uploaded files could not be removed from storage.')
+      return true
+    } catch (err: any) {
+      toastAlert.error('Delete Failed', err.message || 'Failed to delete the account.')
+      return false
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
   const copyId = (id: string) => {
     navigator.clipboard.writeText(id)
     toastAlert.info('Copied to Clipboard', 'User ID copied to clipboard.')
@@ -161,6 +204,12 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     closeEditStatusModal,
     updateAccountStatus,
     createAccount,
+    accountToDelete,
+    isDeleting,
+    requestDeleteAccount,
+    cancelDeleteAccount,
+    deleteAccount,
+    remindHoldToDelete,
     copyId,
   }
 })
