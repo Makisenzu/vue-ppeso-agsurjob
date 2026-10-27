@@ -256,6 +256,18 @@ export function useGipApplicationForm() {
   const status = computed(() => normalizeGipStatus(myApplication.value?.status))
   const statusDescription = computed(() => GIP_STATUS_DESCRIPTIONS[status.value] ?? '')
   const statusRemarks = computed(() => (status.value === 'Rejected' ? (myApplication.value?.status_remarks ?? null) : null))
+
+  /** When an approved applicant comes to the office for orientation, with PESO's note (migration 066) */
+  const orientation = computed(() => {
+    const at = status.value === 'Approved' ? myApplication.value?.orientation_at : null
+    const date = at ? new Date(at) : null
+    if (!date || Number.isNaN(date.getTime())) return null
+    return {
+      date: date.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      time: date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }),
+      note: myApplication.value?.orientation_note?.trim() || null,
+    }
+  })
   const appliedOn = computed(() => formatDate(myApplication.value?.created_at?.slice(0, 10)))
 
   /** Details of the application, label → value; empty values are left out */
@@ -386,6 +398,7 @@ export function useGipApplicationForm() {
     status,
     statusDescription,
     statusRemarks,
+    orientation,
     appliedOn,
     appointments,
     applicationDetails,

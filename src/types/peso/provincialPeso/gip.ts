@@ -30,6 +30,10 @@ export interface GipApplicantReviewPayload {
   documentsSubmitted: string[]
   /** Saved to gip_applicants.status_remarks (migration 055); required when Rejected */
   remarks: string | null
+  /** ISO date-time the applicant comes to the office for orientation (migration 066); required when Approved */
+  orientationAt: string | null
+  /** Saved to gip_applicants.orientation_note (migration 066) */
+  orientationNote: string | null
 }
 
 export interface ApplicantStatusDataPoint {

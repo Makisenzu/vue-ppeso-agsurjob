@@ -689,15 +689,26 @@ export const gipService = {
     }
 
     if (!isHired) assertStatusRemarks(payload.status, payload.remarks)
+    const isApproved = !isHired && payload.status === 'Approved'
+    if (isApproved && !payload.orientationAt) {
+      throw new Error('Set the orientation date and time when approving.')
+    }
 
     const documents = Array.from(new Set(payload.documentsSubmitted.map((d) => d.trim()).filter(Boolean)))
     const now = new Date().toISOString()
-    // status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
+    // status_remarks (055) and orientation_* (066) are not in database.types.ts until `npm run types:gen`
     const applicationUpdate = {
       status: isHired ? current.status : payload.status,
       document_submitted: documents.length > 0 ? documents : null,
       updated_at: now,
       ...(isHired ? {} : { status_remarks: normalizeStatusRemarks(payload.remarks) }),
+      // The schedule only belongs to an approval; any other status clears it
+      ...(isHired
+        ? {}
+        : {
+            orientation_at: isApproved ? payload.orientationAt : null,
+            orientation_note: isApproved ? normalizeStatusRemarks(payload.orientationNote) : null,
+          }),
     } as Database['esmdd']['Tables']['gip_applicants']['Update']
 
     const { data: updatedApp, error: appErr } = await supabase

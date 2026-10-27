@@ -1,6 +1,10 @@
 import type { Database } from '@/types/database.types'
 
-export type GipApplicationRow = Database['esmdd']['Tables']['gip_applicants']['Row']
+// orientation_* (migration 066) are declared here until `npm run types:gen` is re-run
+export type GipApplicationRow = Database['esmdd']['Tables']['gip_applicants']['Row'] & {
+  orientation_at?: string | null
+  orientation_note?: string | null
+}
 type GipRow = Database['esmdd']['Tables']['gips']['Row']
 type GipAppointmentRow = Database['esmdd']['Tables']['gip_appointments']['Row']
 

@@ -20,10 +20,35 @@ const editApplicantSchema = toTypedSchema(
         .array(z.string().trim().min(1))
         .refine((docs) => docs.includes(LOCKED_DOCUMENT), { message: 'NSRP must be included.' }),
       remarks: z.string().trim().optional(),
+      orientationDate: z.string().optional(),
+      orientationTime: z.string().optional(),
+      orientationNote: z.string().trim().max(500, 'Keep the note under 500 characters.').optional(),
     })
     // Rejecting needs remarks; the applicant reads them in their notification
     .superRefine(refineStatusRemarks)
+    // Approving tells the applicant when to come for orientation
+    .superRefine((values, ctx) => {
+      if (values.status !== 'Approved') return
+      if (!values.orientationDate) {
+        ctx.addIssue({ code: 'custom', path: ['orientationDate'], message: 'Set the orientation date.' })
+      }
+      if (!values.orientationTime) {
+        ctx.addIssue({ code: 'custom', path: ['orientationTime'], message: 'Set the orientation time.' })
+      }
+    })
 )
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** A saved orientation_at as the date and time inputs' values, in the staff's local time */
+function toOrientationInputs(value: unknown): { orientationDate: string; orientationTime: string } {
+  const date = typeof value === 'string' ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return { orientationDate: '', orientationTime: '' }
+  return {
+    orientationDate: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    orientationTime: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  }
+}
 
 // Older records use longer labels; map them onto the applicant-entry checklist names
 function normalizeDocumentName(doc: string): string {
@@ -47,10 +72,18 @@ export function useGipEditApplicant() {
 
   const { handleSubmit, resetForm, setFieldValue, values } = useForm({
     validationSchema: editApplicantSchema,
-    initialValues: { status: 'Pending' as EditableGipApplicantStatus, documentsSubmitted: [LOCKED_DOCUMENT], remarks: '' },
+    initialValues: {
+      status: 'Pending' as EditableGipApplicantStatus,
+      documentsSubmitted: [LOCKED_DOCUMENT],
+      remarks: '',
+      orientationDate: '',
+      orientationTime: '',
+      orientationNote: '',
+    },
   })
 
   const isRemarksRequired = computed(() => requiresStatusRemarks(values.status))
+  const isOrientationRequired = computed(() => values.status === 'Approved')
 
   const editDocuments = computed<string[]>(() => values.documentsSubmitted ?? [])
 
@@ -66,6 +99,13 @@ export function useGipEditApplicant() {
   })
 
   const isExtraDocument = (doc: string) => !DOCUMENT_OPTIONS.includes(doc)
+
+  /** The uploaded soft copy of a checklist document, opened from its row's view button */
+  const uploadedFileFor = (doc: string) => {
+    const entry = Object.entries(applicantToEditDocuments.value).find(([name]) => normalizeDocumentName(name) === doc)
+    const file = entry?.[1]
+    return file?.url ? { url: file.url, name: file.file_name } : null
+  }
 
   watch(
     applicantToEdit,
@@ -85,7 +125,12 @@ export function useGipEditApplicant() {
 
       // status_remarks (migration 055) comes with the raw gip_applicants row
       const remarks = typeof app.rawApplication?.status_remarks === 'string' ? app.rawApplication.status_remarks : ''
-      resetForm({ values: { status, documentsSubmitted: documents, remarks } })
+      // orientation_at / orientation_note (migration 066) too
+      const raw = app.rawApplication as { orientation_at?: unknown; orientation_note?: unknown } | null | undefined
+      const orientationNote = typeof raw?.orientation_note === 'string' ? raw.orientation_note : ''
+      resetForm({
+        values: { status, documentsSubmitted: documents, remarks, ...toOrientationInputs(raw?.orientation_at), orientationNote },
+      })
     },
     { immediate: true }
   )
@@ -115,12 +160,18 @@ export function useGipEditApplicant() {
     if (!app) return
     // Keep checklist order stable in the saved record
     const ordered = editDocumentOptions.value.filter((d) => formValues.documentsSubmitted.includes(d))
+    const isApproved = formValues.status === 'Approved'
     await updateApplicantReview({
       applicationId: app.id,
       applicantId: app.applicantId,
       status: formValues.status,
       documentsSubmitted: ordered,
       remarks: normalizeStatusRemarks(formValues.remarks),
+      // The date and time inputs are local time; saved as an instant
+      orientationAt: isApproved
+        ? new Date(`${formValues.orientationDate}T${formValues.orientationTime}:00`).toISOString()
+        : null,
+      orientationNote: isApproved ? normalizeStatusRemarks(formValues.orientationNote) : null,
     })
   })
 
@@ -130,7 +181,8 @@ export function useGipEditApplicant() {
     isSavingApplicantReview,
     isEditingHiredApplicant,
     isRemarksRequired,
-    uploadedDocuments: applicantToEditDocuments,
+    isOrientationRequired,
+    uploadedFileFor,
     isLoadingUploadedDocuments: isLoadingApplicantDocuments,
     editStatusOptions: GIP_EDITABLE_STATUSES,
     editDocuments,

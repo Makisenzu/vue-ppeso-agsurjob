@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Check, FileText, Landmark, Loader2, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Landmark, Loader2, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,6 +30,7 @@ const {
   status,
   statusDescription,
   statusRemarks,
+  orientation,
   appliedOn,
   appointments,
   applicationDetails,
@@ -101,6 +102,15 @@ const INDICATOR_CLASS =
         <p class="text-xs font-semibold text-destructive uppercase">Remarks</p>
         <p class="text-sm text-pretty text-foreground">{{ statusRemarks }}</p>
       </div>
+      <!-- Orientation set by PESO on approval: when to come to the office -->
+      <Alert v-if="orientation">
+        <CalendarClock class="size-4" />
+        <AlertTitle>Orientation at the PESO office</AlertTitle>
+        <AlertDescription class="flex flex-col gap-1">
+          <p class="font-medium text-foreground">{{ orientation.date }} · {{ orientation.time }}</p>
+          <p v-if="orientation.note" class="text-pretty whitespace-pre-line">{{ orientation.note }}</p>
+        </AlertDescription>
+      </Alert>
     </div>
 
     <div v-if="isLoading" class="flex flex-col gap-3" aria-busy="true">

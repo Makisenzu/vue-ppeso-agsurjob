@@ -19,7 +19,7 @@ import {
   UploadCloud,
   Users,
   X,
-  ExternalLink,
+  Eye,
 } from '@lucide/vue'
 import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipApplicants } from '@/composables/peso/provincialPeso/useGipApplicants'
@@ -238,7 +239,8 @@ const {
   isSavingApplicantReview,
   isEditingHiredApplicant,
   isRemarksRequired,
-  uploadedDocuments,
+  isOrientationRequired,
+  uploadedFileFor,
   isLoadingUploadedDocuments,
   editStatusOptions,
   editDocuments,
@@ -1304,17 +1306,18 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
     </DialogContent>
   </Dialog>
 
-  <!-- ─── EDIT APPLICANT STATUS & DOCUMENTS DIALOG ─── -->
-  <Dialog :open="isEditApplicantDialogOpen" @update:open="onEditDialogOpenChange">
-    <DialogContent class="sm:max-w-lg">
-      <form class="grid gap-5" @submit="saveApplicantReview">
-        <DialogHeader>
-          <DialogTitle>Edit GIP Applicant</DialogTitle>
-          <DialogDescription v-if="applicantToEdit" class="truncate">
-            {{ applicantToEdit.fullName }} · {{ applicantToEdit.code }}
-          </DialogDescription>
-        </DialogHeader>
+  <!-- ─── EDIT APPLICANT STATUS & DOCUMENTS SIDE SHEET (same layout as Add New Account, AuthorizedAccounts.vue) ─── -->
+  <Sheet :open="isEditApplicantDialogOpen" @update:open="onEditDialogOpenChange">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
+      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+        <SheetTitle>Edit GIP Applicant</SheetTitle>
+        <SheetDescription v-if="applicantToEdit" class="truncate">
+          {{ applicantToEdit.fullName }} · {{ applicantToEdit.code }}
+        </SheetDescription>
+      </SheetHeader>
 
+      <form class="contents" @submit="saveApplicantReview">
+        <div class="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-4">
         <Alert v-if="isEditingHiredApplicant">
           <Lock class="size-4 shrink-0" />
           <AlertTitle>Status locked</AlertTitle>
@@ -1358,70 +1361,110 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           </FormItem>
         </FormField>
 
+        <!-- Required for Approved: when the applicant comes to the office; sent in their notification -->
+        <fieldset v-if="isOrientationRequired && !isEditingHiredApplicant" class="grid gap-4 rounded-lg border p-4">
+          <legend class="px-1 text-sm font-medium">Orientation schedule</legend>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <FormField v-slot="{ componentField }" name="orientationDate">
+              <FormItem>
+                <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" type="date" :disabled="isSavingApplicantReview" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField v-slot="{ componentField }" name="orientationTime">
+              <FormItem>
+                <FormLabel>Time <span class="text-destructive">*</span></FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" type="time" :disabled="isSavingApplicantReview" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
+          <FormField v-slot="{ componentField }" name="orientationNote">
+            <FormItem>
+              <FormLabel>Note</FormLabel>
+              <FormControl>
+                <Textarea
+                  v-bind="componentField"
+                  rows="3"
+                  placeholder="e.g. Bring your documents and a ballpen. Proceed to the PESO office, Patin-ay."
+                  :disabled="isSavingApplicantReview"
+                />
+              </FormControl>
+              <FormDescription>Shown to the applicant.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </fieldset>
+
         <FormField name="documentsSubmitted">
           <FormItem>
             <FormLabel>Documents Submitted</FormLabel>
-            <FormDescription>
-              Same checklist as the applicant entry form. NSRP is always included, and changes also update the applicant's registry record.
-            </FormDescription>
+            <FormDescription>Also updates the applicant's registry record.</FormDescription>
             <FormControl>
-              <div role="group" class="grid gap-2 sm:grid-cols-2">
-                <Label
+              <div role="group" class="grid gap-2">
+                <!-- Checkbox row; the view button sits outside the label so it doesn't toggle the document -->
+                <div
                   v-for="doc in editDocumentOptions"
                   :key="doc"
                   :class="[
-                    'flex items-center gap-2.5 rounded-lg border p-3 font-normal transition-colors',
+                    'flex items-center gap-1 rounded-lg border pr-2 transition-colors',
                     editDocuments.includes(doc) ? 'border-primary/40 bg-primary/5' : 'hover:bg-muted/50',
-                    doc === lockedDocument ? 'cursor-default' : 'cursor-pointer',
                   ]"
                 >
-                  <Checkbox
-                    :model-value="editDocuments.includes(doc)"
-                    :disabled="doc === lockedDocument || isSavingApplicantReview"
-                    @update:model-value="toggleEditDocument(doc)"
-                  />
-                  <span class="min-w-0 flex-1 truncate" :title="doc">{{ doc }}</span>
-                  <Badge v-if="doc === lockedDocument" variant="secondary">Required</Badge>
-                  <Badge
-                    v-else-if="isExtraDocument(doc)"
-                    variant="outline"
-                    title="Not part of the standard checklist — uncheck to remove"
+                  <Label
+                    :class="[
+                      'flex min-w-0 flex-1 items-center gap-2.5 p-3 font-normal',
+                      doc === lockedDocument ? 'cursor-default' : 'cursor-pointer',
+                    ]"
                   >
-                    Other
-                  </Badge>
-                </Label>
+                    <Checkbox
+                      :model-value="editDocuments.includes(doc)"
+                      :disabled="doc === lockedDocument || isSavingApplicantReview"
+                      @update:model-value="toggleEditDocument(doc)"
+                    />
+                    <span class="min-w-0 flex-1 truncate" :title="doc">{{ doc }}</span>
+                    <Badge v-if="doc === lockedDocument" variant="secondary">Required</Badge>
+                    <Badge
+                      v-else-if="isExtraDocument(doc)"
+                      variant="outline"
+                      title="Not part of the standard checklist — uncheck to remove"
+                    >
+                      Other
+                    </Badge>
+                  </Label>
+                  <Loader2 v-if="isLoadingUploadedDocuments" class="mx-2 size-4 shrink-0 animate-spin text-muted-foreground" />
+                  <Button
+                    v-else-if="uploadedFileFor(doc)"
+                    as-child
+                    variant="ghost"
+                    size="icon-sm"
+                    class="shrink-0"
+                  >
+                    <a
+                      :href="uploadedFileFor(doc)!.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      :aria-label="`View ${doc}`"
+                      :title="uploadedFileFor(doc)!.name"
+                    >
+                      <Eye class="size-4" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
-
-        <!-- Soft copies the applicant uploaded from their GIP page (migration 060) -->
-        <div class="grid gap-2">
-          <p class="text-sm font-medium">Uploaded Soft Copies</p>
-          <p v-if="isLoadingUploadedDocuments" class="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 class="size-4 animate-spin" /> Loading files...
-          </p>
-          <ul v-else-if="Object.keys(uploadedDocuments).length" class="grid gap-1.5">
-            <li v-for="(file, name) in uploadedDocuments" :key="name" class="flex min-w-0 items-center justify-between gap-3 text-sm">
-              <span class="shrink-0 text-muted-foreground">{{ name }}</span>
-              <a
-                v-if="file?.url"
-                :href="file.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex min-w-0 items-center gap-1 text-primary hover:underline"
-              >
-                <span class="truncate" :title="file.file_name">{{ file.file_name }}</span>
-                <ExternalLink class="size-3.5 shrink-0" />
-              </a>
-              <span v-else class="truncate text-muted-foreground">{{ file?.file_name }}</span>
-            </li>
-          </ul>
-          <p v-else class="text-sm text-muted-foreground">The applicant hasn't uploaded any files.</p>
         </div>
 
-        <DialogFooter>
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
           <Button
             type="button"
             variant="outline"
@@ -1434,10 +1477,10 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             <Loader2 v-if="isSavingApplicantReview" class="size-4 shrink-0 animate-spin" />
             {{ isSavingApplicantReview ? 'Saving...' : 'Save Changes' }}
           </Button>
-        </DialogFooter>
+        </div>
       </form>
-    </DialogContent>
-  </Dialog>
+    </SheetContent>
+  </Sheet>
 
   <!-- ─── EDIT SCANNED CANDIDATE DIALOG ─── -->
   <Dialog v-model:open="isEditModalOpen">
