@@ -256,10 +256,13 @@ export function useGipApplicationForm() {
   const status = computed(() => normalizeGipStatus(myApplication.value?.status))
   const statusDescription = computed(() => GIP_STATUS_DESCRIPTIONS[status.value] ?? '')
   const statusRemarks = computed(() => (status.value === 'Rejected' ? (myApplication.value?.status_remarks ?? null) : null))
+  // Deploying sets the application back to Approved (gipService.deployGipIntern), so a deployment
+  // record (esmdd.gips) is what marks a deployed intern, not the status alone
+  const isDeployed = computed(() => status.value === 'Hired' || internships.value.length > 0)
 
-  /** When an approved applicant comes to the office for orientation, with PESO's note (migration 066) */
+  /** When an approved applicant comes to the office for orientation, with PESO's note (migration 066); gone once deployed */
   const orientation = computed(() => {
-    const at = status.value === 'Approved' ? myApplication.value?.orientation_at : null
+    const at = status.value === 'Approved' && !isDeployed.value ? myApplication.value?.orientation_at : null
     const date = at ? new Date(at) : null
     if (!date || Number.isNaN(date.getTime())) return null
     return {
@@ -327,10 +330,9 @@ export function useGipApplicationForm() {
   // ─── Progress tracker (after applying) ───
   const progressSteps = computed<GipProgressStep[]>(() => {
     const isRejected = status.value === 'Rejected'
-    const isDeployed = status.value === 'Hired' || appointments.value.length > 0
-    const isApproved = status.value === 'Approved' || isDeployed
+    const isApproved = status.value === 'Approved' || isDeployed.value
     // Index of the step in progress; every step before it is done
-    const current = isDeployed ? 4 : isApproved ? 3 : isRejected ? 2 : 1
+    const current = isDeployed.value ? 4 : isApproved ? 3 : isRejected ? 2 : 1
     const states = (index: number): GipProgressStep['state'] => {
       if (isRejected && index === 2) return 'rejected'
       if (index < current) return 'completed'
