@@ -1317,7 +1317,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
       </SheetHeader>
 
       <form class="contents" @submit="saveApplicantReview">
-        <div class="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-4">
+        <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
         <Alert v-if="isEditingHiredApplicant">
           <Lock class="size-4 shrink-0" />
           <AlertTitle>Status locked</AlertTitle>
@@ -1767,25 +1767,25 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
     </AlertDialogContent>
   </AlertDialog>
 
-  <!-- ─── BULK GIP DEPLOYMENT DIALOG ─── -->
-  <Dialog :open="isBulkDeployDialogOpen" @update:open="onBulkDeployOpenChange">
-    <DialogContent class="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+  <!-- ─── BULK GIP DEPLOYMENT SIDE SHEET (long form → Sheet, DESIGN.md §5.1) ─── -->
+  <Sheet :open="isBulkDeployDialogOpen" @update:open="onBulkDeployOpenChange">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-2xl">
       <Form
         v-slot="{ values, setFieldValue }"
         :validation-schema="bulkDeploySchema"
         :initial-values="bulkDeployInitialValues"
-        class="grid gap-5"
+        class="contents"
         @submit="submitBulkDeploy"
       >
-        <DialogHeader>
-          <DialogTitle class="flex items-center gap-2">
-            Bulk GIP Deployment
-          </DialogTitle>
-          <DialogDescription>
+        <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+          <SheetTitle>Bulk GIP Deployment</SheetTitle>
+          <SheetDescription>
             Deploy {{ deployableApplicants.length }} selected applicant{{ deployableApplicants.length === 1 ? '' : 's' }}
             with the same program, station, stipend, and period.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
+
+        <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
 
         <!-- Applicants to deploy -->
         <div class="grid gap-2">
@@ -2028,8 +2028,10 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </FormItem>
           </FormField>
         </div>
+        </div>
 
-        <DialogFooter>
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
           <Button
             type="button"
             variant="outline"
@@ -2042,8 +2044,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             <Loader2 v-if="isBulkDeploying" class="size-4 shrink-0 animate-spin" />
             {{ isBulkDeploying ? 'Deploying...' : `Deploy ${deployableApplicants.length} Intern${deployableApplicants.length === 1 ? '' : 's'}` }}
           </Button>
-        </DialogFooter>
+        </div>
       </Form>
-    </DialogContent>
-  </Dialog>
+    </SheetContent>
+  </Sheet>
 </template>

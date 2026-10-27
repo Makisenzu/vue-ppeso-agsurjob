@@ -55,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -1036,17 +1037,19 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
       </DialogContent>
     </Dialog>
 
-    <!-- ─── APPOINTMENT RENEWAL / CONCLUSION DIALOG ─── -->
-    <Dialog :open="isRenewalDialogOpen" @update:open="onRenewalOpenChange">
-      <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Renew or conclude appointment</DialogTitle>
-          <DialogDescription>
+    <!-- ─── APPOINTMENT RENEWAL / CONCLUSION SIDE SHEET (long form → Sheet, DESIGN.md §5.1) ─── -->
+    <Sheet :open="isRenewalDialogOpen" @update:open="onRenewalOpenChange">
+      <SheetContent class="flex h-full flex-col p-0 sm:max-w-2xl">
+        <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+          <SheetTitle>Renew or conclude appointment</SheetTitle>
+          <SheetDescription>
             {{ renewalIntern?.fullName }} · <span class="font-mono">{{ renewalIntern?.code }}</span> · {{ renewalIntern?.municipality }}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div v-if="renewalIntern" class="grid min-w-0 gap-6">
+        <!-- Scrolling body; each form's footer sticks to its bottom. grid-cols-1 (minmax(0,1fr)) keeps long
+             one-line rows (appointment history, office names) truncating instead of widening the sheet -->
+        <div v-if="renewalIntern" class="grid min-w-0 flex-1 grid-cols-1 content-start gap-6 overflow-x-hidden overflow-y-auto px-6 pt-4">
           <!-- ─── Current Appointment ─── -->
           <section class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1104,8 +1107,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                     :key="apt.id"
                     class="flex items-center justify-between gap-3 px-3 py-2"
                   >
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium">Term {{ apt.termNumber }} · {{ apt.assignedOffice }}</p>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-medium" :title="apt.assignedOffice">Term {{ apt.termNumber }} · {{ apt.assignedOffice }}</p>
                       <p class="text-xs text-muted-foreground">
                         {{ apt.startDate }} to {{ apt.endDate }} · {{ apt.dailyStipend }}
                       </p>
@@ -1126,7 +1129,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           <Separator />
 
           <!-- ─── Decision ─── -->
-          <section class="grid min-w-0 gap-4">
+          <section class="grid min-w-0 grid-cols-1 gap-4">
             <div class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
               <Button
                 type="button"
@@ -1171,7 +1174,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                 v-slot="{ values, setFieldValue }"
                 :validation-schema="renewSchema"
                 :initial-values="renewInitialValues"
-                class="grid min-w-0 gap-4"
+                class="grid min-w-0 grid-cols-1 gap-4"
                 @submit="submitRenewal"
               >
                 <!-- Funding program -->
@@ -1385,7 +1388,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                   </FormItem>
                 </FormField>
 
-                <DialogFooter>
+                <!-- Sticky footer -->
+                <div class="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-border bg-background px-6 py-4">
                   <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
                     Cancel
                   </Button>
@@ -1393,7 +1397,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                     <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
                     {{ isSubmittingRenewal ? 'Renewing...' : `Renew for Term ${nextTermNumber}` }}
                   </Button>
-                </DialogFooter>
+                </div>
               </Form>
             </template>
 
@@ -1403,7 +1407,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
               :key="`conclude-${renewalIntern.id}`"
               :validation-schema="concludeSchema"
               :initial-values="concludeInitialValues"
-              class="grid gap-4"
+              class="grid grid-cols-1 gap-4"
               @submit="submitConclusion"
             >
               <FormField v-slot="{ value, handleChange }" name="action">
@@ -1448,7 +1452,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                 </FormItem>
               </FormField>
 
-              <DialogFooter>
+              <!-- Sticky footer -->
+              <div class="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-border bg-background px-6 py-4">
                 <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
                   Cancel
                 </Button>
@@ -1456,12 +1461,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                   <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
                   {{ isSubmittingRenewal ? 'Concluding...' : 'Conclude Internship' }}
                 </Button>
-              </DialogFooter>
+              </div>
             </Form>
           </section>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
 
     <!-- ─── Single Delete Confirmation ─── -->
     <AlertDialog v-model:open="isSingleDeleteDialogOpen">

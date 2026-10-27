@@ -191,8 +191,8 @@ Every form sheet uses the layout of Add New Account (`AuthorizedAccounts.vue`): 
     </SheetHeader>
 
     <form class="contents" @submit="save">
-      <!-- Scrolling body -->
-      <div class="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-4">
+      <!-- Scrolling body; grid-cols-1 makes long one-line rows truncate instead of widening the sheet -->
+      <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
         <!-- fields -->
       </div>
 
