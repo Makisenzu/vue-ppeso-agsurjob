@@ -1,4 +1,5 @@
 import { Constants, type Database } from '@/types/database.types'
+import type { ReusableProfileDocument } from '@/helpers/applicant/applicantRequirementDocuments'
 
 type ApplicantsTables = Database['applicants']['Tables']
 type ApplicantsEnums = Database['applicants']['Enums']
@@ -9,7 +10,14 @@ type ApplicantsEnums = Database['applicants']['Enums']
  */
 type SpesFormMunicipality = { municipality?: string | null }
 
-export type SpesFormRow = ApplicantsTables['spes_form']['Row'] & SpesFormMunicipality
+/** applied_at / orientation_* (migration 067), declared until `npm run types:gen` is re-run. */
+type SpesFormApplication = {
+  applied_at?: string | null
+  orientation_at?: string | null
+  orientation_note?: string | null
+}
+
+export type SpesFormRow = ApplicantsTables['spes_form']['Row'] & SpesFormMunicipality & SpesFormApplication
 export type SpesFormInsert = ApplicantsTables['spes_form']['Insert'] & SpesFormMunicipality
 export type SpesFormUpdate = ApplicantsTables['spes_form']['Update'] & SpesFormMunicipality
 
@@ -73,6 +81,8 @@ export interface SpesDocumentAttachment {
 
 export type SpesDocumentAttachmentMap = Partial<Record<SpesDocumentKey, SpesDocumentAttachment>>
 export type SpesPendingAttachmentMap = Partial<Record<SpesDocumentKey, File>>
+/** Profile documents chosen for a requirement, copied into the form's attachments on save. */
+export type SpesReusedAttachmentMap = Partial<Record<SpesDocumentKey, ReusableProfileDocument>>
 
 // ─── Completion reports (esmdd.spes_completion_reports, migration 016) ───
 

@@ -75,8 +75,20 @@ export const applicantRoutes : RouteRecordRaw[] = [
       {
         path: 'spes-application',
         name: 'spes-application',
+        component: () => import('@/components/applicant/Spes/ApplicantSpesApplication.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application', fullWidth: true }
+      },
+      {
+        path: 'spes-application/form',
+        name: 'spes-application-form',
+        component: () => import('@/components/applicant/Spes/ApplicantSpesApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application Form' }
+      },
+      {
+        path: 'spes-application/details',
+        name: 'spes-details',
         component: () => import('@/components/applicant/Spes/ApplicantSpesForm.vue'),
-        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application' }
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My SPES Details' }
       },
       {
         path: 'tupad-application',

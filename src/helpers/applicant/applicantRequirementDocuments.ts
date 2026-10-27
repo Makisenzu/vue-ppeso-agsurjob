@@ -8,6 +8,8 @@ export interface RequirementRowLike {
   name?: string | null
   title?: string | null
   status?: string | null
+  /** Set on a SPES form's attachment (migration 014), which is not a profile document */
+  spes_form_id?: string | null
 }
 
 export interface RequirementMediaLike {
@@ -134,7 +136,9 @@ const isPdfMedia = (media: RequirementMediaLike) =>
 
 /**
  * The applicant's uploaded profile documents that can be reused, newest first. Rejected documents
- * are left out, and so is NSRP (programs generate it from the record instead).
+ * are left out, and so is NSRP (programs generate it from the record instead). So are a SPES form's
+ * own attachments: they share the account's media rows, but a replaced one is deleted from storage,
+ * so offering it would fail to copy ("Object not found").
  */
 export function listReusableProfileDocuments(
   requirementMedia: (RequirementMediaLike & { id?: string | number | null })[] = [],
@@ -146,7 +150,9 @@ export function listReusableProfileDocuments(
   for (const media of [...requirementMedia].reverse()) {
     if (!media.path || (options.pdfOnly && !isPdfMedia(media))) continue
     const row = rowsById.get(String(media.applicant_requirement_id ?? ''))
-    if (String(row?.status ?? '').toLowerCase() === 'rejected') continue
+    // A profile document always has its requirement row; program attachments are not profile documents
+    if (!row || row.spes_form_id) continue
+    if (String(row.status ?? '').toLowerCase() === 'rejected') continue
     const label = row ? getRequirementRowLabel(row) : String(media.description ?? media.alt_text ?? 'Document')
     if (normalizeRequirementLabel(label).includes('nsrp')) continue
     documents.push({

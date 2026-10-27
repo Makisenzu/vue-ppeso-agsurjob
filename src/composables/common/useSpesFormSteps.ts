@@ -43,10 +43,22 @@ export const SPES_FORM_STEPS = [
  * (`applicants.spes_form`). Used by the applicant self-service page and the
  * PESO staff entry page, which each add their own load/save logic.
  */
+/** Step 4 when the form leaves the documents to the application's own Requirements step. */
+const DETAILS_ONLY_STEP_4 = { step: 4, title: 'Skills & History', description: 'Skills & past SPES' } as const
+
 export function useSpesFormSteps(options: {
   /** Every checked documentary requirement needs an image / PDF (applicant self-service). */
   requireAttachments?: boolean
+  /**
+   * Shows the documentary requirements in step 4 (default). The applicant's saved SPES details turn it
+   * off: their files go through the GIP-style Requirements step instead (BACKEND.md §18).
+   */
+  withRequirements?: boolean
 } = {}) {
+  const hasRequirements = options.withRequirements ?? true
+  const steps = hasRequirements
+    ? SPES_FORM_STEPS
+    : SPES_FORM_STEPS.map((step) => (step.step === REQUIREMENTS_STEP ? DETAILS_ONLY_STEP_4 : step))
   const { handleSubmit, resetForm, setFieldValue, validateField, values, errors } = useForm({
     validationSchema: toTypedSchema(spesFormSchema),
     initialValues: createEmptySpesFormValues(),
@@ -58,7 +70,7 @@ export function useSpesFormSteps(options: {
   /** Files picked in this session, uploaded by the parent after the form is saved. */
   const pendingAttachments = ref<SpesPendingAttachmentMap>({})
   const attachmentErrors = reactive<Partial<Record<SpesDocumentKey, string>>>({})
-  const isAttachmentRequired = !!options.requireAttachments
+  const isAttachmentRequired = hasRequirements && !!options.requireAttachments
 
   const hasAttachment = (key: SpesDocumentKey) => !!pendingAttachments.value[key] || !!attachments.value[key]
 
@@ -228,7 +240,8 @@ export function useSpesFormSteps(options: {
     loadValues,
     createSubmitHandler,
     // steps
-    steps: SPES_FORM_STEPS,
+    steps,
+    hasRequirements,
     currentStep,
     nextStep,
     prevStep,

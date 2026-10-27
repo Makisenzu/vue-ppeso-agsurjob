@@ -28,6 +28,16 @@ export const loginRoutes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/spes',
+    name: 'spes',
+    component: () => import('@/views/landing/Spes.vue'),
+    // Signed-in applicants get the same page inside their layout, where they can apply
+    beforeEnter: () => {
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && authStore.userRole === 'applicant') return { name: 'spes-application' }
+    }
+  },
+  {
     path: '/',
     component: AuthLayout,
     children: [

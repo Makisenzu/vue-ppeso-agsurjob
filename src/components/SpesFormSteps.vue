@@ -63,6 +63,7 @@ const emit = defineEmits<{ (e: 'submit'): void }>()
 const {
   values,
   steps,
+  hasRequirements,
   currentStep,
   nextStep,
   prevStep,
@@ -558,13 +559,18 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
           <!-- ═══ STEP 4: Requirements & History ═══ -->
           <Card v-show="currentStep === 4">
             <CardHeader>
-              <CardTitle class="text-base">Documentary Requirements &amp; History</CardTitle>
-              <CardDescription>
-                Check the documents you can submit to PESO with this form<template v-if="isAttachmentRequired">
-                  and attach a photo or PDF of each one</template>.
-              </CardDescription>
+              <template v-if="hasRequirements">
+                <CardTitle class="text-base">Documentary Requirements &amp; History</CardTitle>
+                <CardDescription>
+                  Check the documents you can submit to PESO with this form<template v-if="isAttachmentRequired">
+                    and attach a photo or PDF of each one</template>.
+                </CardDescription>
+              </template>
+              <CardTitle v-else class="text-base">Skills &amp; History</CardTitle>
             </CardHeader>
             <CardContent class="space-y-6">
+              <!-- Left out when the documents have their own Requirements step (applicant's saved details) -->
+              <template v-if="hasRequirements">
               <div class="space-y-3">
                 <h2 class="text-sm font-semibold">Documentary Requirements</h2>
                 <input ref="replaceInput" type="file" class="hidden" :accept="attachmentAccept" @change="onReplacePicked" />
@@ -669,6 +675,7 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
               </div>
 
               <Separator />
+              </template>
 
               <div class="space-y-3">
                 <h2 class="text-sm font-semibold">Special Skills</h2>
@@ -791,7 +798,7 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
                     {{ educationLevels.filter((level) => values[`${level.key}_school_name`]).map((level) => level.label).join(', ') || 'None' }}
                   </p>
                 </div>
-                <div>
+                <div v-if="hasRequirements">
                   <span class="text-xs text-muted-foreground">Documents to Submit</span>
                   <p class="text-sm font-medium">
                     {{ documentRequirements.filter((doc) => values[doc.key]).length }} of {{ documentRequirements.length }}

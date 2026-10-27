@@ -10,32 +10,66 @@ import {
   type SpesApplicantStatus,
   type SpesFormRow,
 } from '@/types/peso/provincialPeso/spes'
-import { refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 
 const spesReviewSchema = toTypedSchema(
   z
     .object({
       status: z.enum(SPES_APPLICANT_STATUSES),
       remarks: z.string().trim().optional(),
+      orientationDate: z.string().optional(),
+      orientationTime: z.string().optional(),
+      orientationNote: z.string().trim().max(500, 'Keep the note under 500 characters.').optional(),
     })
     // Rejecting needs remarks; the applicant reads them in their notification
     .superRefine(refineStatusRemarks)
+    // Approving tells the applicant when to come for orientation (same as GIP)
+    .superRefine((values, ctx) => {
+      if (values.status !== 'Approved') return
+      if (!values.orientationDate) {
+        ctx.addIssue({ code: 'custom', path: ['orientationDate'], message: 'Set the orientation date.' })
+      }
+      if (!values.orientationTime) {
+        ctx.addIssue({ code: 'custom', path: ['orientationTime'], message: 'Set the orientation time.' })
+      }
+    })
 )
 
 const INITIAL_VALUES = {
   status: 'Pending' as SpesApplicantStatus,
   remarks: '',
+  orientationDate: '',
+  orientationTime: '',
+  orientationNote: '',
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** A saved orientation_at as the date and time inputs' values, in the staff's local time */
+function toOrientationInputs(value: string | null | undefined) {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return { orientationDate: '', orientationTime: '' }
+  return {
+    orientationDate: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    orientationTime: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  }
 }
 
 function toFormValues(row: SpesFormRow): typeof INITIAL_VALUES {
   const status =
     SPES_APPLICANT_STATUSES.find((s) => s.toLowerCase() === (row.status ?? '').toLowerCase()) ?? 'Pending'
-  return { status, remarks: row.remarks ?? '' }
+  return {
+    status,
+    remarks: row.remarks ?? '',
+    ...toOrientationInputs(row.orientation_at),
+    orientationNote: row.orientation_note ?? '',
+  }
 }
 
 /**
  * PESO edit card — sets the status / remarks on a SPES applicant's form after checking the
- * submitted documents, and links to the full form editor for the applicant's details.
+ * submitted documents (and the orientation schedule when approving), and links to the full form
+ * editor for the applicant's details.
  */
 export function useSpesApplicantForm() {
   const router = useRouter()
@@ -50,6 +84,7 @@ export function useSpesApplicantForm() {
 
   const isReviewDialogOpen = computed(() => reviewingForm.value !== null)
   const isRemarksRequired = computed(() => requiresStatusRemarks(values.status))
+  const isOrientationRequired = computed(() => values.status === 'Approved')
 
   // Load the selected applicant's current review each time the dialog opens.
   watch(reviewingForm, (row) => {
@@ -68,7 +103,16 @@ export function useSpesApplicantForm() {
   }
 
   const submitReview = handleSubmit(async (formValues) => {
-    await reviewSpesForm({ status: formValues.status, remarks: formValues.remarks || null })
+    const isApproved = formValues.status === 'Approved'
+    await reviewSpesForm({
+      status: formValues.status,
+      remarks: formValues.remarks || null,
+      // The date and time inputs are local time; saved as an instant
+      orientation_at: isApproved
+        ? new Date(`${formValues.orientationDate}T${formValues.orientationTime}:00`).toISOString()
+        : null,
+      orientation_note: isApproved ? normalizeStatusRemarks(formValues.orientationNote) : null,
+    })
   })
 
   return {
@@ -78,6 +122,7 @@ export function useSpesApplicantForm() {
     isSubmitting,
     reviewingForm,
     isRemarksRequired,
+    isOrientationRequired,
     statusOptions: SPES_APPLICANT_STATUSES,
     onReviewDialogOpenChange,
     openEditDetails,

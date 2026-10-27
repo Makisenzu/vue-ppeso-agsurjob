@@ -72,4 +72,13 @@ export const spesFormService = {
     if (error) throw new Error(error.message || 'Failed to update your SPES application.')
     return data
   },
+
+  /** Starts a new SPES round with the saved details: back to Pending, files back to review (migration 067). */
+  async reapply(): Promise<SpesFormRow> {
+    // reapply_spes_form is not in database.types.ts until `npm run types:gen` is re-run
+    const { data, error } = await (supabase.schema('applicants') as any).rpc('reapply_spes_form')
+
+    if (error) throw new Error(error.message || 'Failed to apply for SPES again.')
+    return data as SpesFormRow
+  },
 }

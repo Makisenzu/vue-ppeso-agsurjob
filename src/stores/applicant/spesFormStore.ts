@@ -15,6 +15,7 @@ import {
   type SpesFormRow,
   type SpesOwnAppointment,
   type SpesPendingAttachmentMap,
+  type SpesReusedAttachmentMap,
 } from '@/types/common/spesForm'
 
 export const useSpesFormStore = defineStore('applicantSpesForm', () => {
@@ -40,7 +41,7 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     return { id: form.id, status: form.status, remarks: form.remarks, created_at: form.created_at, updated_at: form.updated_at }
   })
 
-  /** PESO has finished reviewing the application, so the form can no longer be changed. */
+  /** PESO has finished reviewing the application, so its files can no longer be changed (details still can). */
   const isLocked = computed(() => {
     const status = (applicationRecord.value?.status ?? '').toLowerCase()
     return status === 'approved' || status === 'rejected'
@@ -77,38 +78,65 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     }
   }
 
-  async function saveForm(
-    profileId: string,
-    payload: Omit<SpesFormInsert, 'profile_id'>,
-    pendingAttachments: SpesPendingAttachmentMap = {}
-  ): Promise<boolean> {
-    if (isLocked.value) {
-      toastAlert.error('Application locked', 'Your SPES application has already been reviewed by PESO.')
+  /** Saved SPES details can change at any time; the review fields stay PESO's (guard, migration 067). */
+  async function saveDetails(payload: Omit<SpesFormInsert, 'profile_id'>): Promise<boolean> {
+    if (!myForm.value) return false
+    isSubmitting.value = true
+    try {
+      myForm.value = await spesFormService.updateForm(myForm.value.id, payload)
+      toastAlert.success('Details saved', 'Your SPES details are updated for this and future applications.')
+      return true
+    } catch (error: any) {
+      toastAlert.error('Error', error.message)
       return false
+    } finally {
+      isSubmitting.value = false
     }
+  }
 
+  /** Requirement files of the current round; ticks each document that has one. */
+  async function syncDocuments(
+    profileId: string,
+    checked: Record<SpesDocumentKey, boolean>,
+    pending: SpesPendingAttachmentMap,
+    reused: SpesReusedAttachmentMap
+  ): Promise<void> {
+    const form = myForm.value!
+    myForm.value = await spesFormService.updateForm(form.id, checked)
+    try {
+      await spesAttachmentService.syncAttachments({ formId: form.id, profileId, uploaderId: profileId, checked, pending, reused })
+    } finally {
+      attachments.value = await spesAttachmentService.fetchAttachments(form.id)
+    }
+  }
+
+  /**
+   * Submits an application: the first one saves the SPES details too, a later round reuses them
+   * (reapply_spes_form), and a Pending one only updates its files.
+   */
+  async function submitApplication(options: {
+    profileId: string
+    /** Details of a first application; null when they are already saved */
+    details: Omit<SpesFormInsert, 'profile_id'> | null
+    isReapplying: boolean
+    checked: Record<SpesDocumentKey, boolean>
+    pending: SpesPendingAttachmentMap
+    reused: SpesReusedAttachmentMap
+  }): Promise<boolean> {
+    const { profileId, details, isReapplying, checked, pending, reused } = options
     isSubmitting.value = true
     try {
       const isNew = !myForm.value
-      myForm.value = myForm.value
-        ? await spesFormService.updateForm(myForm.value.id, payload)
-        : await spesFormService.createForm({ ...payload, profile_id: profileId })
-
-      const checked: Partial<Record<SpesDocumentKey, boolean>> = payload
-      try {
-        await spesAttachmentService.syncAttachments({
-          formId: myForm.value.id,
-          profileId,
-          uploaderId: profileId,
-          checked,
-          pending: pendingAttachments,
-        })
-      } finally {
-        attachments.value = await spesAttachmentService.fetchAttachments(myForm.value.id)
+      if (!myForm.value) {
+        if (!details) throw new Error('Fill in your SPES details first.')
+        myForm.value = await spesFormService.createForm({ ...details, ...checked, profile_id: profileId })
+      } else if (isReapplying) {
+        myForm.value = await spesFormService.reapply()
       }
+      await syncDocuments(profileId, checked, pending, reused)
 
-      if (isNew) toastAlert.success('Application submitted', 'PESO will review your SPES application form.')
-      else toastAlert.success('Application updated', 'Your SPES application form has been updated.')
+      if (isNew || isReapplying) toastAlert.success('Application submitted', 'PESO will review your SPES application.')
+      else toastAlert.success('Documents saved', 'PESO will review your updated files.')
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -173,7 +201,8 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     completionReports,
     busyReportType,
     fetchMyForm,
-    saveForm,
+    saveDetails,
+    submitApplication,
     uploadCompletionReport,
     removeCompletionReport,
   }

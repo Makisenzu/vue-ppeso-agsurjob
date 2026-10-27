@@ -14,7 +14,11 @@ export type SpesLinkableJobseeker = Pick<
 > & { profile_id: string }
 
 /** PESO review of a submitted SPES form (`applicants.spes_form.status` / `remarks`). */
-export type SpesFormReview = Pick<SpesFormRow, 'status' | 'remarks'>
+/** PESO's decision; orientation_* (migration 067) are required when Approved, cleared otherwise */
+export type SpesFormReview = Pick<SpesFormRow, 'status' | 'remarks'> & {
+  orientation_at: string | null
+  orientation_note: string | null
+}
 
 /** SPES beneficiary row joined with the SPES form it was enrolled from (`application_id`). */
 export type SpesWithApplicant = SpesRow & {
@@ -121,7 +125,7 @@ export type SpesBeneficiaryType = (typeof SPES_BENEFICIARY_TYPES)[number]
 export const SPES_DURATION_OPTIONS = [10, 20] as const
 export type SpesDurationOption = (typeof SPES_DURATION_OPTIONS)[number]
 
-/** Pending applicant who submitted all 5 documentary requirements and can be drawn by the randomizer. */
+/** Pending applicant who submitted every required document and can be drawn by the randomizer. */
 export type SpesDrawCandidate = {
   form: SpesFormRow
   name: string

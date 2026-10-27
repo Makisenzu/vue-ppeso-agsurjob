@@ -21,8 +21,10 @@ withDefaults(
     attachmentAccept: string
     /** PDFs already on the applicant's profile, offered for any requirement */
     profileDocuments?: ReusableProfileDocument[]
+    /** SPES also takes images, so it says "Upload file" */
+    uploadLabel?: string
   }>(),
-  { profileDocuments: () => [] }
+  { profileDocuments: () => [], uploadLabel: 'Upload PDF' }
 )
 
 const emit = defineEmits<{
@@ -58,6 +60,7 @@ const onFilePicked = (doc: string, event: Event) => {
               <span v-if="doc.isOptional" class="text-sm font-normal text-muted-foreground">(optional)</span>
             </span>
             <span v-if="doc.isNsrp" class="text-xs text-muted-foreground">Generated from your NSRP profile</span>
+            <span v-else-if="doc.hint" class="text-xs text-muted-foreground">{{ doc.hint }}</span>
           </div>
 
           <!-- NSRP being generated -->
@@ -123,7 +126,7 @@ const onFilePicked = (doc: string, event: Event) => {
               </Button>
               <Button v-else type="button" variant="outline" size="sm" as-child :disabled="isSubmitting">
                 <label class="cursor-pointer" :class="{ 'pointer-events-none opacity-50': isSubmitting }">
-                  <Upload class="size-4" /> Upload PDF
+                  <Upload class="size-4" /> {{ uploadLabel }}
                   <input
                     type="file"
                     class="sr-only"

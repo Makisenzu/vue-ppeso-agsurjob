@@ -1,6 +1,8 @@
 import { differenceInYears, format, isValid, parseISO } from 'date-fns'
 import * as z from 'zod'
 import {
+  SPES_ATTACHMENT_MAX_BYTES,
+  SPES_ATTACHMENT_MIME_TYPES,
   SPES_CIVIL_STATUS_OPTIONS,
   SPES_PARENTS_STATUS_OPTIONS,
   SPES_SEX_OPTIONS,
@@ -233,4 +235,82 @@ export function formatSpesFormDate(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
   return isValid(date) ? format(date, 'MMM d, yyyy') : '—'
+}
+
+/** "SPES-APP-2026-1A2B": same shape as GIP's reference (gipApplicationCode); the year is the round's. */
+export function spesApplicationCode(id: string, appliedAt?: string | null): string {
+  const year = (appliedAt ? new Date(appliedAt).getFullYear() : NaN) || new Date().getFullYear()
+  return `SPES-APP-${year}-${id.slice(0, 4).toUpperCase()}`
+}
+
+/** Why a picked requirement file can't be used, or null when it can. */
+export function validateSpesAttachment(file: File): string | null {
+  if (!(SPES_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
+    return 'Upload an image (JPG, PNG, WEBP) or a PDF file.'
+  }
+  if (file.size > SPES_ATTACHMENT_MAX_BYTES) {
+    return `The file must be ${SPES_ATTACHMENT_MAX_BYTES / 1024 / 1024} MB or smaller.`
+  }
+  return null
+}
+
+/** The registry fields a first SPES form starts from. */
+export interface SpesPrefillSource {
+  sex?: string | null
+  civil_status?: string | null
+  surname?: string | null
+  first_name?: string | null
+  middle_name?: string | null
+  date_of_birth?: string | null
+  contact_numbers?: string[] | null
+  email?: string | null
+  address?: unknown
+}
+
+/** A blank SPES form filled in with what the applicant already gave in their jobseeker profile. */
+export function buildSpesPrefill(applicant: SpesPrefillSource | null | undefined, accountEmail?: string | null): SpesFormDraft {
+  const base = createEmptySpesFormValues()
+  if (!applicant) return { ...base, email_address: accountEmail ?? '' }
+
+  const sex = applicant.sex
+    ? SPES_SEX_OPTIONS.find((option) => option.toLowerCase() === applicant.sex!.toLowerCase())
+    : undefined
+  const civilStatus = applicant.civil_status
+    ? SPES_CIVIL_STATUS_OPTIONS.find((option) => option.toLowerCase() === applicant.civil_status!.toLowerCase())
+    : undefined
+
+  const address = (applicant.address && typeof applicant.address === 'object' ? applicant.address : {}) as Record<string, unknown>
+  const municipality = matchSpesMunicipality(String(address.city_municipality ?? address.municipality ?? address.city ?? ''))
+
+  return {
+    ...base,
+    municipality: municipality ?? undefined,
+    surname: applicant.surname ?? '',
+    first_name: applicant.first_name ?? '',
+    middle_name: applicant.middle_name ?? '',
+    date_of_birth: applicant.date_of_birth ?? '',
+    age: calculateSpesAge(applicant.date_of_birth),
+    sex,
+    civil_status: civilStatus,
+    contact_number: applicant.contact_numbers?.[0] ?? '',
+    email_address: applicant.email ?? accountEmail ?? '',
+  }
+}
+
+/** The saved details an applicant reviews before applying, label → value; empty values left out. */
+export function describeSpesApplicant(row: SpesFormRow): { label: string; value: string }[] {
+  const latestSchool =
+    [row.tertiary_school_name, row.techvoc_school_name, row.secondary_school_name, row.elementary_school_name].find(
+      (school) => !!school?.trim()
+    ) ?? null
+  return [
+    { label: 'Name', value: [row.first_name, row.middle_name, row.surname].filter(Boolean).join(' ') },
+    { label: 'Date of birth', value: row.date_of_birth ? `${formatSpesFormDate(row.date_of_birth)} (${calculateSpesAge(row.date_of_birth) ?? '—'})` : '' },
+    { label: 'Sex', value: row.sex ?? '' },
+    { label: 'Student category', value: row.student_category ?? '' },
+    { label: 'Municipality', value: row.municipality ?? '' },
+    { label: 'School', value: latestSchool ?? '' },
+    { label: 'Contact', value: [row.contact_number, row.email_address].filter(Boolean).join(' · ') },
+    { label: 'Parents / guardian', value: [row.father_name, row.mother_maiden_name].filter(Boolean).join(' · ') },
+  ].filter((detail) => detail.value)
 }

@@ -122,10 +122,19 @@ export const spesService = {
   /** PESO review decision (status / remarks) on a submitted form. */
   async reviewSpesForm(formId: string, review: SpesFormReview): Promise<SpesFormRow> {
     assertStatusRemarks(review.status, review.remarks)
+    const isApproved = review.status === 'Approved'
+    if (isApproved && !review.orientation_at) throw new Error('Set the orientation date and time when approving.')
+    // The schedule only belongs to an approval; any other status clears it
+    const update = {
+      ...review,
+      orientation_at: isApproved ? review.orientation_at : null,
+      orientation_note: isApproved ? review.orientation_note : null,
+    }
     const { data, error } = await supabase
       .schema('applicants')
       .from('spes_form')
-      .update(review)
+      // orientation_* (067) are not in database.types.ts until `npm run types:gen`
+      .update(update as SpesFormTableUpdate)
       .eq('id', formId)
       .select()
       .single()

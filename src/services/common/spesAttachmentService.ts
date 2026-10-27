@@ -8,6 +8,7 @@ import {
   type SpesDocumentAttachmentMap,
   type SpesDocumentKey,
   type SpesPendingAttachmentMap,
+  type SpesReusedAttachmentMap,
 } from '@/types/common/spesForm'
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60
@@ -197,8 +198,10 @@ export const spesAttachmentService = {
     uploaderId: string
     checked: Partial<Record<SpesDocumentKey, boolean>>
     pending: SpesPendingAttachmentMap
+    /** Profile documents picked for a requirement; copied, never linked (BACKEND.md §18) */
+    reused?: SpesReusedAttachmentMap
   }): Promise<void> {
-    const { formId, profileId, uploaderId, checked, pending } = options
+    const { formId, profileId, uploaderId, checked, pending, reused = {} } = options
     const templateIds = await fetchTemplateIds()
     const requirements = await fetchFormRequirements(formId)
 
@@ -212,16 +215,30 @@ export const spesAttachmentService = {
       }
 
       const file = pending[doc.key]
-      if (!file) continue
+      const profileDocument = file ? undefined : reused[doc.key]
+      if (!file && !profileDocument) continue
 
       const requirementId = existing?.id ?? (await upsertRequirement(formId, profileId, await requireTemplateId(doc.key), doc.label))
       const previousMedia = await fetchMediaRows([requirementId])
 
-      const path = fileHelpers.generateUniquePath(uploaderId, file.name)
-      const { error: uploadErr } = await supabase.storage
-        .from(DOCUMENT_UPLOAD_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false })
-      if (uploadErr) throw new Error(uploadErr.message || `Failed to upload the ${doc.label.toLowerCase()}.`)
+      const fileName = file?.name ?? profileDocument!.fileName
+      const path = fileHelpers.generateUniquePath(uploaderId, fileName)
+      if (file) {
+        const { error: uploadErr } = await supabase.storage
+          .from(DOCUMENT_UPLOAD_BUCKET)
+          .upload(path, file, { contentType: file.type, upsert: false })
+        if (uploadErr) throw new Error(uploadErr.message || `Failed to upload the ${doc.label.toLowerCase()}.`)
+      } else {
+        const { error: copyErr } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).copy(profileDocument!.path, path)
+        if (copyErr) {
+          // The profile file was removed since the page loaded
+          throw new Error(
+            /not found/i.test(copyErr.message ?? '')
+              ? `Your ${profileDocument!.label} is no longer in your documents. Upload the ${doc.label.toLowerCase()} instead.`
+              : copyErr.message || `Failed to attach your ${profileDocument!.label} to the ${doc.label.toLowerCase()}.`
+          )
+        }
+      }
 
       const { error: mediaErr } = await supabase
         .schema('applicants')
@@ -229,11 +246,11 @@ export const spesAttachmentService = {
         .insert({
           applicant_requirement_id: requirementId,
           profiles_id: profileId,
-          filename: file.name,
+          filename: fileName,
           path,
-          mime_type: file.type,
-          size: file.size,
-          alt_text: file.name,
+          mime_type: file?.type ?? profileDocument!.mimeType,
+          size: file?.size ?? profileDocument!.size,
+          alt_text: fileName,
           description: `SPES requirement: ${doc.label}`,
         })
 

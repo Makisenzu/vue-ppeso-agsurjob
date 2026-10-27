@@ -54,6 +54,8 @@ export interface GipProgressStep {
 /** One requirement of the application form */
 export interface GipRequirementRow {
   name: string
+  /** What the document is, under its name (SPES: "PSA / NSO copy", ...) */
+  hint?: string | null
   /** NSRP Form 1: generated from the registry record and attached, not picked from files */
   isNsrp: boolean
   isOptional: boolean

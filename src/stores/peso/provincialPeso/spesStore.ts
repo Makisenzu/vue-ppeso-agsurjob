@@ -120,7 +120,7 @@ export const useSpesStore = defineStore('pesoSpes', () => {
     spesBeneficiaries.value.filter((spes) => !spes.appointments.some((a) => a.spes_year === selectedYear.value))
   )
 
-  /** Pending applicants with all 5 documents attached, grouped by municipality. */
+  /** Pending applicants with their required documents attached (by student category), grouped by municipality. */
   const drawPool = computed(() => groupSpesDrawPool(spesForms.value, attachedDocKeysByForm.value))
 
   /** Appointment whose completion reports dialog is open. */
@@ -236,7 +236,7 @@ export const useSpesStore = defineStore('pesoSpes', () => {
 
   // ─── Actions: Randomizer draw ───
 
-  /** Reloads the applicants and which of the Pending ones have all 5 documents attached. */
+  /** Reloads the applicants and which documents each Pending one has attached. */
   async function fetchDrawPool(): Promise<void> {
     isLoadingDrawPool.value = true
     try {

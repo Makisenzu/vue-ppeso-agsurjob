@@ -37,7 +37,7 @@ function polar(radius: number, degrees: number) {
 /**
  * Provincial PESO randomizer: draws SPES applicants per municipality, by spinning the wheel one
  * name at a time or by drawing every remaining slot at once. Only Pending applicants who attached
- * all 5 documentary requirements are in the pool; the drawn ones are approved on confirmation and
+ * every document required from them (hasCompleteSpesDocuments) are in the pool; the drawn ones are approved on confirmation and
  * the appointment form opens for each of them, the others stay Pending.
  */
 export function useSpesDraw() {

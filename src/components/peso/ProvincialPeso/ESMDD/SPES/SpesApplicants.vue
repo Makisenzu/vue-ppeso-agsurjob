@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -92,6 +93,7 @@ const {
   isSubmitting,
   reviewingForm,
   isRemarksRequired,
+  isOrientationRequired,
   statusOptions: reviewStatusOptions,
   onReviewDialogOpenChange,
   openEditDetails,
@@ -349,17 +351,19 @@ const previousAvailments = computed(() => {
     </template>
   </div>
 
-  <!-- Edit Applicant Card: review decision + documents, links to the full form editor -->
-  <Dialog :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
-    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-      <form class="space-y-6" @submit="submitReview">
-        <DialogHeader>
-          <DialogTitle>{{ formatSpesFormName(reviewingForm) }}</DialogTitle>
-          <DialogDescription>
-            SPES application submitted {{ formatSpesDate(reviewingForm?.created_at) }}.
-          </DialogDescription>
-        </DialogHeader>
+  <!-- Edit Applicant side sheet (long form → Sheet, DESIGN.md §5.1): review decision + documents,
+       links to the full form editor -->
+  <Sheet :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-xl">
+      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+        <SheetTitle>{{ formatSpesFormName(reviewingForm) }}</SheetTitle>
+        <SheetDescription>
+          SPES application submitted {{ formatSpesDate(reviewingForm?.applied_at ?? reviewingForm?.created_at) }}.
+        </SheetDescription>
+      </SheetHeader>
 
+      <form class="contents" @submit="submitReview">
+        <div class="grid flex-1 grid-cols-1 content-start gap-6 overflow-y-auto px-6 py-4">
         <template v-if="reviewingForm">
           <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
             <div>
@@ -442,9 +446,51 @@ const previousAvailments = computed(() => {
               <FormMessage />
             </FormItem>
           </FormField>
-        </section>
 
-        <DialogFooter class="gap-2 sm:justify-between">
+          <!-- Required for Approved: when the applicant comes to the office; sent in their notification -->
+          <fieldset v-if="isOrientationRequired" class="grid gap-4 rounded-lg border p-4">
+            <legend class="px-1 text-sm font-medium">Orientation schedule</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <FormField v-slot="{ componentField }" name="orientationDate">
+                <FormItem>
+                  <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
+                  <FormControl>
+                    <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField v-slot="{ componentField }" name="orientationTime">
+                <FormItem>
+                  <FormLabel>Time <span class="text-destructive">*</span></FormLabel>
+                  <FormControl>
+                    <Input v-bind="componentField" type="time" :disabled="isSubmitting" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+            <FormField v-slot="{ componentField }" name="orientationNote">
+              <FormItem>
+                <FormLabel>Note</FormLabel>
+                <FormControl>
+                  <Textarea
+                    v-bind="componentField"
+                    rows="3"
+                    placeholder="e.g. Bring a valid ID and a ballpen. Proceed to the PESO office, 2nd floor."
+                    :disabled="isSubmitting"
+                  />
+                </FormControl>
+                <FormDescription>Shown to the applicant.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </fieldset>
+        </section>
+        </div>
+
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-between">
           <Button type="button" variant="outline" :disabled="isSubmitting" @click="openEditDetails">
             Edit Details
           </Button>
@@ -457,10 +503,10 @@ const previousAvailments = computed(() => {
               {{ isSubmitting ? 'Saving...' : 'Save Review' }}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </form>
-    </DialogContent>
-  </Dialog>
+    </SheetContent>
+  </Sheet>
 
   <!-- SPES Form Details -->
   <Dialog v-model:open="isDetailsDialogOpen">
@@ -602,8 +648,7 @@ const previousAvailments = computed(() => {
       <DialogHeader>
         <DialogTitle>SPES Randomizer Draw</DialogTitle>
         <DialogDescription>
-          Draw beneficiaries at random per municipality from Pending applicants with all 5 documentary requirements
-          attached. Drawn applicants are approved and appointed next; everyone else stays Pending.
+          Draws Pending applicants with their required documents, per municipality; winners are approved.
         </DialogDescription>
       </DialogHeader>
 
@@ -628,8 +673,7 @@ const previousAvailments = computed(() => {
           </EmptyMedia>
           <EmptyTitle>No applicants to draw</EmptyTitle>
           <EmptyDescription>
-            Applicants enter the draw once their form is Pending and all 5 documentary requirements have a file
-            attached.
+            Applicants enter once they are Pending with every required document attached.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

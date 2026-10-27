@@ -51,7 +51,8 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
       remarks: row.status === 'Rejected' ? row.remarks : null,
       appliedAt: row.created_at,
       updatedAt: row.updated_at ?? row.created_at,
-      to: { name: 'spes-application' },
+      // `from` points the form's back link here instead of the SPES page
+      to: { name: 'spes-application-form', query: { from: 'application' } },
     })),
     ...rows.tupad.map((row) => ({
       key: `tupad:${row.id}`,

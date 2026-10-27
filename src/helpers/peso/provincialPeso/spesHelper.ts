@@ -13,13 +13,13 @@ import type { ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 import {
   SPES_CIVIL_STATUS_OPTIONS,
   SPES_COMPLETION_REPORTS,
-  SPES_DOCUMENT_REQUIREMENTS,
   SPES_SEX_OPTIONS,
   type SpesCivilStatus,
   type SpesCompletionReportMap,
   type SpesDocumentKey,
 } from '@/types/common/spesForm'
 import { matchSpesMunicipality } from '@/helpers/common/spesFormHelper'
+import { spesRequirementsFor } from '@/types/common/spesProgram'
 import {
   formatAddressString,
   parseApplicantAddress,
@@ -192,11 +192,15 @@ export function computeSpesEndDate(startDate?: string | null, days?: number | nu
 // ─── Randomizer draw (per municipality) ───
 
 /**
- * A form is drawable once all 5 documentary requirements are checked and each has a file
- * attached (`attachedKeys` = requirements with an `applicant_requirement_media` row).
+ * A form is drawable once every document required from the applicant is checked and has a file
+ * attached (`attachedKeys` = requirements with an `applicant_requirement_media` row). What is required
+ * follows the student category, same as the applicant's form (spesRequirementsFor): out-of-school
+ * youth need no registrar certification, everyone else no OSY certification.
  */
 export function hasCompleteSpesDocuments(form: SpesFormRow, attachedKeys: readonly SpesDocumentKey[] = []): boolean {
-  return SPES_DOCUMENT_REQUIREMENTS.every((doc) => form[doc.key] && attachedKeys.includes(doc.key))
+  return spesRequirementsFor(form.student_category)
+    .filter((doc) => !doc.isOptional)
+    .every((doc) => form[doc.key] && attachedKeys.includes(doc.key))
 }
 
 /** Label used for forms whose municipality has not been filled in. */

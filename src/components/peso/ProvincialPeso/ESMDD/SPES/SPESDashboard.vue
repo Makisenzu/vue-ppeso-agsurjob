@@ -785,8 +785,7 @@ const {
       <DialogHeader>
         <DialogTitle>SPES Randomizer Draw</DialogTitle>
         <DialogDescription>
-          Draw beneficiaries at random per municipality from Pending applicants with all 5 documentary requirements
-          attached. Drawn applicants are approved and appointed next; everyone else stays Pending.
+          Draws Pending applicants with their required documents, per municipality; winners are approved.
         </DialogDescription>
       </DialogHeader>
 
@@ -811,8 +810,7 @@ const {
           </EmptyMedia>
           <EmptyTitle>No applicants to draw</EmptyTitle>
           <EmptyDescription>
-            Applicants enter the draw once their form is Pending and all 5 documentary requirements have a file
-            attached.
+            Applicants enter once they are Pending with every required document attached.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
