@@ -6,7 +6,7 @@ import {
   APPLICATION_STAGE_LABELS,
   applicationProgress,
 } from '@/helpers/applicant/applicationStatusHelper'
-import { formatGipDateTime } from '@/helpers/applicant/gipApplicationHelper'
+import { formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import type { ApplicationFilter } from '@/types/applicant/applicationStatus'
 
 const FILTERS: { value: ApplicationFilter; label: string }[] = [
@@ -39,8 +39,8 @@ export function useApplicationStatus() {
         ...item,
         stageLabel: APPLICATION_STAGE_LABELS[item.stage],
         progress: applicationProgress(item.stage),
-        appliedOn: formatGipDateTime(item.appliedAt),
-        updatedOn: formatGipDateTime(item.updatedAt),
+        appliedOn: formatGipDate(item.appliedAt),
+        updatedOn: formatGipDate(item.updatedAt),
       }))
   )
 

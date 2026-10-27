@@ -6,7 +6,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useAuthStore } from '@/stores/common/auth'
 import { useTupadApplicationStore } from '@/stores/applicant/tupadApplicationStore'
-import { describeGipApplicant, formatGipDateTime } from '@/helpers/applicant/gipApplicationHelper'
+import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { parseTupadIncome, tupadIncomeSchema, validateTupadAttachment } from '@/helpers/common/tupadFormHelper'
 import { formatTupadIncome } from '@/helpers/peso/provincialPeso/tupadHelper'
 import {
@@ -267,7 +267,7 @@ export function useTupadApplicationForm() {
         isReceived: received.value.has(name),
         savedFileName: saved?.file_name ?? null,
         savedFileUrl: saved?.url ?? null,
-        uploadedAt: saved ? formatGipDateTime(saved.updated_at) : null,
+        uploadedAt: saved ? formatGipDate(saved.updated_at) : null,
         pendingFileName: pendingFiles.value[name]?.name ?? reusedDocs.value[name]?.fileName ?? null,
         pendingFileUrl: previewUrls[name] ?? reusedDocs.value[name]?.url ?? null,
         isFromProfile: !pendingFiles.value[name] && !!reusedDocs.value[name],
@@ -355,8 +355,8 @@ export function useTupadApplicationForm() {
     return [
       { label: 'Reference no.', value: tupadApplicationCode(application.id, application.created_at) },
       { label: 'Program', value: 'TUPAD' },
-      { label: 'Date applied', value: formatGipDateTime(application.created_at) },
-      { label: 'Last updated', value: formatGipDateTime(application.updated_at ?? application.created_at) },
+      { label: 'Date applied', value: formatGipDate(application.created_at) },
+      { label: 'Last updated', value: formatGipDate(application.updated_at ?? application.created_at) },
       { label: 'Applied through', value: application.applied_online ? 'Online, through AGSURJOBS' : 'Referred by PESO' },
       { label: 'Requirements', value: `${submitted} of ${requirements.value.length} submitted` },
     ]

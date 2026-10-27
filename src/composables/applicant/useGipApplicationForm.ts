@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import {
-  formatGipDateTime,
+  formatGipDate,
   gipApplicationCode,
   gipApplicationSource,
   describeGipApplicant,
@@ -223,7 +223,7 @@ export function useGipApplicationForm() {
         isReceived: name === GIP_NSRP_DOCUMENT ? true : received.value.has(name),
         savedFileName: saved?.file_name ?? null,
         savedFileUrl: saved?.url ?? null,
-        uploadedAt: saved ? formatGipDateTime(saved.updated_at) : null,
+        uploadedAt: saved ? formatGipDate(saved.updated_at) : null,
         pendingFileName: pendingFiles.value[name]?.name ?? reusedDocs.value[name]?.fileName ?? null,
         pendingFileUrl: previewUrls[name] ?? reusedDocs.value[name]?.url ?? null,
         isFromProfile: !pendingFiles.value[name] && !!reusedDocs.value[name],
@@ -289,8 +289,8 @@ export function useGipApplicationForm() {
     return [
       { label: 'Reference no.', value: gipApplicationCode(application.id, application.created_at) },
       { label: 'Program', value: 'Government Internship Program (GIP)' },
-      { label: 'Date applied', value: formatGipDateTime(application.created_at) },
-      { label: 'Last updated', value: formatGipDateTime(application.updated_at ?? application.created_at) },
+      { label: 'Date applied', value: formatGipDate(application.created_at) },
+      { label: 'Last updated', value: formatGipDate(application.updated_at ?? application.created_at) },
       { label: 'Applied through', value: gipApplicationSource(application.remarks) },
       { label: 'Requirements', value: `${submitted} of ${requirements.value.length} submitted` },
     ]

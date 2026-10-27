@@ -57,13 +57,13 @@ export function latestGipCourse(educationalBackground: unknown): string {
   return ''
 }
 
-/** "Oct 26, 2026, 9:09 PM"; '—' when missing. */
-export function formatGipDateTime(value: string | null | undefined): string {
+/** "Oct 26, 2026"; '—' when missing. */
+export function formatGipDate(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
   return Number.isNaN(date.getTime())
     ? '—'
-    : date.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 /**
