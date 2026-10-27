@@ -47,11 +47,11 @@ export const GIP_APPLICATION_LETTER = {
     titlePattern: /^(?!.*vice).*governor/i,
     title: 'Provincial Governor',
     office: 'Province of Agusan del Sur',
-    address: 'Government Center, Patin-ay, Prosperidad, Agusan del Sur',
+    // address: 'Government Center, Patin-ay, Prosperidad, Agusan del Sur',
   },
   through: {
     titlePattern: /peso manager/i,
-    title: 'PESO Manager',
+    title: 'Provincial Government Department Head (PESO Manager)',
     /** Shown when the org chart has no PESO Manager yet */
     fallbackName: 'Pauline J. Ang',
   },

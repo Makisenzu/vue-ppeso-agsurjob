@@ -56,7 +56,7 @@ export function useLandingGip() {
         governor ? `${governor.toUpperCase()}` : `The ${addressee.title}`,
         ...(governor ? [addressee.title] : []),
         addressee.office,
-        addressee.address,
+        // addressee.address,
       ],
       // Name, then the title on the line below it
       through: { name: pesoManager.toUpperCase(), title: through.title },
