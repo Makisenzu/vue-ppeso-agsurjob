@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient"
 import type { TablesInsert, Tables } from "@/types/database.types"
+import { fetchAllInChunks } from '@/helpers/common/supabasePaging'
 
 const BUCKET_NAME = 'media'
 
@@ -58,5 +59,36 @@ export const mediaService = {
 
     if (error) throw error
     return (data ?? []) as ProfileMediaRow[]
-  }
+  },
+
+  /** Profile picture URL per account (latest profile_media row each), for avatars in lists. */
+  async fetchAvatarUrls(profileIds: string[]): Promise<Map<string, string>> {
+    const { data, error } = await fetchAllInChunks(profileIds, (chunk) =>
+      supabase
+        .schema('core')
+        .from('profile_media')
+        .select('*')
+        .in('profile_id', chunk)
+        .order('created_at', { ascending: false })
+        .order('id')
+    )
+    if (error) throw error
+
+    // Chunks arrive one after another, so keep the newest row per account across them
+    const latest = new Map<string, ProfileMediaRow>()
+    for (const row of data as ProfileMediaRow[]) {
+      const current = row.profile_id ? latest.get(row.profile_id) : undefined
+      if (row.profile_id && (!current || new Date(row.created_at) > new Date(current.created_at))) {
+        latest.set(row.profile_id, row)
+      }
+    }
+
+    const urls = new Map<string, string>()
+    for (const [profileId, row] of latest) {
+      const source = row as ProfileMediaRow & { public_url?: string | null }
+      const url = source.public_url || (row.path ? this.getPublicUrl(row.path) : null)
+      if (url) urls.set(profileId, url)
+    }
+    return urls
+  },
 }

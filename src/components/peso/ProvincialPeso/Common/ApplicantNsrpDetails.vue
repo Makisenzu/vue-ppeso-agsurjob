@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -62,6 +62,7 @@ const {
   formattedUpdatedDate,
   formattedAssessmentDate,
   getInitials,
+  avatarUrl,
   formatDateDisplay,
 
   // Edit mode state & controls
@@ -229,6 +230,7 @@ const {
           <!-- Avatar and Core Identity -->
           <div class="flex items-start sm:items-center gap-4">
             <Avatar class="h-16 w-16 sm:h-20 sm:w-20 border-2 border-primary/20 bg-muted shrink-0 shadow-xs">
+              <AvatarImage v-if="avatarUrl" :src="avatarUrl" :alt="applicant.fullName" class="object-cover" />
               <AvatarFallback class="font-bold text-xl sm:text-2xl text-primary">
                 {{ getInitials(applicant.fullName) }}
               </AvatarFallback>

@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Loader2, Printer } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import {
   Table,
@@ -43,6 +43,7 @@ const {
   getInitials,
   formatDateDisplay,
   LPII_CONFIG,
+  avatarUrl,
 } = useGipApplicantNsrpDetails({ props, emit })
 
 const isEmployed = computed(() => {
@@ -108,6 +109,7 @@ const languageSkills = ['read', 'write', 'speak', 'understand'] as const
       <CardContent class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div class="flex items-start gap-4">
           <Avatar class="size-16 shrink-0 border">
+            <AvatarImage v-if="avatarUrl" :src="avatarUrl" :alt="applicant.fullName" class="object-cover" />
             <AvatarFallback class="text-xl font-semibold">
               {{ getInitials(applicant.fullName) }}
             </AvatarFallback>

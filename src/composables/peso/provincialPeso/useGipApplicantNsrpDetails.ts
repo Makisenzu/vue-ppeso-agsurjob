@@ -12,6 +12,7 @@ import {
   printNsrpForm,
 } from '@/helpers/peso/provincialPeso/nsrpTemplateHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
 
 export interface UseGipApplicantNsrpDetailsProps {
   applicant: GipApplicantRecord
@@ -31,6 +32,11 @@ export function useGipApplicantNsrpDetails(options: UseGipApplicantNsrpDetailsOp
   const applicantRecord = computed<ApplicantEntryRecord>(() => {
     return convertGipApplicantToEntryRecord(options.props.applicant)
   })
+
+  // Their account's profile picture; applicants without an account keep the initials
+  const { avatarUrl } = useProfileAvatar(
+    () => applicantRecord.value.profileId ?? options.props.applicant.rawApplicant?.profile_id ?? null
+  )
 
   const handleBack = () => {
     options.emit?.('back')
@@ -111,5 +117,6 @@ export function useGipApplicantNsrpDetails(options: UseGipApplicantNsrpDetailsOp
     getInitials,
     formatDateDisplay,
     LPII_CONFIG,
+    avatarUrl,
   }
 }

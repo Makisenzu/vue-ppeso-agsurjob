@@ -5,6 +5,7 @@ import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEn
 import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
+import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
 import type { ApplicantEntryRecord, ApplicantUpdate } from '@/types/peso/provincialPeso/applicantEntry'
 import type {
   EducationalBackgroundItem,
@@ -65,6 +66,9 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     }
     return store.applicants.find((a) => a.id === id) ?? null
   })
+
+  // Their account's profile picture; walk-in applicants without an account keep the initials
+  const { avatarUrl } = useProfileAvatar(() => applicant.value?.profileId)
 
   onMounted(async () => {
     // The store only holds the current registry page, so load deep-linked records directly
@@ -763,6 +767,7 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     formattedAssessmentDate,
     getInitials,
     formatDateDisplay,
+    avatarUrl,
 
     // ─── Section Edit Mode State & Controls ───
     editingSection,

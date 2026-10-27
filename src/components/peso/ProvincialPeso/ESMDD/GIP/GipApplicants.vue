@@ -56,7 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
@@ -135,6 +135,7 @@ const {
   donutTooltipTriggers,
   statusDonutTooltipTriggers,
   getInitials,
+  getApplicantAvatar,
   formatDateDisplay,
   getApplicantDocuments,
   goBack,
@@ -570,6 +571,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         >
           <template #default="{ item: applicant, card }">
             <Avatar class="size-9 shrink-0 border">
+              <AvatarImage
+                v-if="getApplicantAvatar(applicant)"
+                :src="getApplicantAvatar(applicant)!"
+                :alt="applicant.fullName"
+                class="object-cover"
+              />
               <AvatarFallback class="text-xs font-semibold">{{ getInitials(applicant.fullName) }}</AvatarFallback>
             </Avatar>
             <div class="min-w-0 flex-1">
@@ -655,6 +662,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                   <TableCell>
                     <div class="flex items-center gap-2.5">
                       <Avatar class="size-8 border">
+                        <AvatarImage
+                          v-if="getApplicantAvatar(applicant)"
+                          :src="getApplicantAvatar(applicant)!"
+                          :alt="applicant.fullName"
+                          class="object-cover"
+                        />
                         <AvatarFallback class="text-xs font-semibold">
                           {{ getInitials(applicant.fullName) }}
                         </AvatarFallback>

@@ -14,6 +14,7 @@ import {
   statusDonutTooltipTriggers,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
+import { useProfileAvatars } from '@/composables/common/useProfileAvatar'
 
 export function useGipApplicants() {
   const route = useRoute()
@@ -248,6 +249,11 @@ export function useGipApplicants() {
     return []
   }
 
+  // ─── Profile pictures of the rows on this page (one query; walk-ins without an account keep initials) ───
+  const profileIdOf = (applicant: GipApplicantRecord): string | null => applicant.rawApplicant?.profile_id ?? null
+  const { avatarUrlFor } = useProfileAvatars(() => paginatedApplicants.value.map(profileIdOf))
+  const getApplicantAvatar = (applicant: GipApplicantRecord) => avatarUrlFor(profileIdOf(applicant))
+
   // ─── Multi-Select State ───
   const selectedApplicantIds = ref<string[]>([])
 
@@ -385,6 +391,7 @@ export function useGipApplicants() {
     donutTooltipTriggers,
     statusDonutTooltipTriggers,
     getInitials,
+    getApplicantAvatar,
     formatDateDisplay,
     getApplicantDocuments,
 
