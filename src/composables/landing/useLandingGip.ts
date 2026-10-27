@@ -5,6 +5,8 @@ import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import {
   GIP_ABOUT,
+  GIP_APPLICATION_LETTER,
+  GIP_APPLICATION_LETTER_DOCUMENT,
   GIP_FACTS,
   GIP_HERO,
   GIP_NSRP_DOCUMENT,
@@ -21,7 +23,7 @@ export function useLandingGip() {
   const authStore = useAuthStore()
   const { applicantProfile } = storeToRefs(authStore)
   const siteContentStore = useSiteContentStore()
-  const { programImages } = storeToRefs(siteContentStore)
+  const { programImages, orgChart } = storeToRefs(siteContentStore)
   const store = useGipApplicationStore()
   const { myApplication, isLoading } = storeToRefs(store)
 
@@ -37,7 +39,31 @@ export function useLandingGip() {
     name,
     note: name === GIP_NSRP_DOCUMENT ? 'Generated from your profile when you apply' : null,
     isOptional: GIP_OPTIONAL_DOCUMENTS.includes(name),
+    isLetter: name === GIP_APPLICATION_LETTER_DOCUMENT,
   }))
+
+  // Holder of a top org chart position; null while loading, vacant, or not on the chart (title only then)
+  const topHolder = (pattern: RegExp) =>
+    orgChart.value?.top.find((person) => pattern.test(person.position))?.name ?? null
+
+  /** Who the Application Letter goes to, named from the org chart when it has them */
+  const letterGuide = computed(() => {
+    const { addressee, through, salutation, tips } = GIP_APPLICATION_LETTER
+    const governor = topHolder(addressee.titlePattern)
+    const pesoManager = topHolder(through.titlePattern) ?? through.fallbackName
+    return {
+      addressLines: [
+        governor ? `${governor.toUpperCase()}` : `The ${addressee.title}`,
+        ...(governor ? [addressee.title] : []),
+        addressee.office,
+        addressee.address,
+      ],
+      // Name, then the title on the line below it
+      through: { name: pesoManager.toUpperCase(), title: through.title },
+      salutation,
+      tips,
+    }
+  })
 
   /** Which call to action the page shows under the requirements */
   const cta = computed<'login' | 'apply' | 'applied' | 'none'>(() => {
@@ -57,6 +83,7 @@ export function useLandingGip() {
 
   onMounted(() => {
     void siteContentStore.loadProgramCards()
+    void siteContentStore.loadOrgChart()
   })
 
   return {
@@ -64,6 +91,7 @@ export function useLandingGip() {
     about: GIP_ABOUT,
     facts: GIP_FACTS,
     requirements,
+    letterGuide,
     cta,
     isLoading,
   }

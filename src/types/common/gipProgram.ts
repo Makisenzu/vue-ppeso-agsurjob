@@ -17,7 +17,7 @@ export const GIP_ABOUT = {
   definition:
     'The Government Internship Program (GIP) gives young Agsurnons their first work experience in public service. Interns are assigned to a government office, learn on the job under a supervisor, and receive a daily stipend for each term.',
   purpose:
-    'PESO Agusan del Sur runs GIP with the Department of Labor and Employment (DOLE) and the Provincial Government of Agusan del Sur (PGAS), so interns may serve in national or provincial offices.',
+    'PESO Agusan del Sur runs GIP with the Department of Labor and Employment (DOLE) and the Provincial Government of Agusan del Sur (PGAS), so interns may serve in provincial offices.',
 }
 
 export const GIP_FACTS: readonly GipProgramFact[] = [
@@ -34,6 +34,34 @@ export const GIP_REQUIRED_DOCUMENTS: readonly string[] = [
   'TOR/Form 137/Form 138/Diploma',
   'Certificates',
 ]
+
+/** The requirement the letter guide shows under. */
+export const GIP_APPLICATION_LETTER_DOCUMENT = 'Application Letter'
+
+/**
+ * Where the Application Letter goes: the Governor, through the PESO Manager. Names come from the
+ * org chart's top positions (Site Contents, migration 052) so they follow office changes.
+ */
+export const GIP_APPLICATION_LETTER = {
+  addressee: {
+    titlePattern: /^(?!.*vice).*governor/i,
+    title: 'Provincial Governor',
+    office: 'Province of Agusan del Sur',
+    address: 'Government Center, Patin-ay, Prosperidad, Agusan del Sur',
+  },
+  through: {
+    titlePattern: /peso manager/i,
+    title: 'PESO Manager',
+    /** Shown when the org chart has no PESO Manager yet */
+    fallbackName: 'Pauline J. Ang',
+  },
+  salutation: 'Dear Governor:',
+  tips: [
+    'Say you are applying for the Government Internship Program.',
+    'Mention your schooling and your skills.',
+    'Sign it, then save it as a PDF.',
+  ],
+}
 
 /** NSRP Form 1: generated from the applicant's registry record and attached as a PDF, not picked from files. */
 export const GIP_NSRP_DOCUMENT = 'NSRP'

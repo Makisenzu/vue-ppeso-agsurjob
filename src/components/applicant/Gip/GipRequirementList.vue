@@ -67,11 +67,13 @@ const onFilePicked = (doc: string, event: Event) => {
 
           <!-- Attached file (picked / generated, or saved): view and remove -->
           <div v-else-if="doc.pendingFileName || doc.savedFileName" class="flex min-w-0 items-center gap-1">
-            <FileText class="size-4 shrink-0 self-start text-muted-foreground sm:mt-0.5" />
-            <!-- File name, with its status or upload date underneath -->
+            <!-- File name (icon kept right before it), with its status or upload date underneath -->
             <div class="flex min-w-0 flex-col sm:items-end">
-              <span class="max-w-full truncate text-sm text-foreground" :title="doc.pendingFileName ?? doc.savedFileName ?? ''">
-                {{ doc.pendingFileName ?? doc.savedFileName }}
+              <span class="flex max-w-full min-w-0 items-center gap-1">
+                <FileText class="size-4 shrink-0 text-muted-foreground" />
+                <span class="truncate text-sm text-foreground" :title="doc.pendingFileName ?? doc.savedFileName ?? ''">
+                  {{ doc.pendingFileName ?? doc.savedFileName }}
+                </span>
               </span>
               <span v-if="doc.isFromProfile" class="text-xs text-muted-foreground">From your documents</span>
               <span v-else-if="doc.pendingFileName" class="text-xs text-muted-foreground">Uploads on submit</span>
