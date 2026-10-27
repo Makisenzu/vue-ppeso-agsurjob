@@ -4,7 +4,14 @@ import { useAuthStore } from '@/stores/common/auth'
 import { useSiteContentStore } from '@/stores/common/siteContentStore'
 import { useSpesFormStore } from '@/stores/applicant/spesFormStore'
 import { SPES_DOCUMENT_REQUIREMENTS } from '@/types/common/spesForm'
-import { SPES_ABOUT, SPES_FACTS, SPES_HERO } from '@/types/common/spesProgram'
+import {
+  SPES_ABOUT,
+  SPES_APPLICATION_LETTER,
+  SPES_APPLICATION_LETTER_KEY,
+  SPES_FACTS,
+  SPES_HERO,
+} from '@/types/common/spesProgram'
+import { useApplicationLetterGuide } from '@/composables/landing/useApplicationLetterGuide'
 
 /**
  * SPES program page, shared by the public /spes page and the applicant's SPES page (like useLandingGip):
@@ -27,7 +34,14 @@ export function useLandingSpes() {
   // The hero uses the SPES photo of the landing PESO Programs gallery (Site Contents, migration 049)
   const hero = computed(() => ({ ...SPES_HERO, backgroundImage: programImages.value.spes ?? null }))
 
-  const requirements = SPES_DOCUMENT_REQUIREMENTS.map((doc) => ({ name: doc.label, note: doc.hint }))
+  const requirements = SPES_DOCUMENT_REQUIREMENTS.map((doc) => ({
+    name: doc.label,
+    note: doc.hint,
+    isLetter: doc.key === SPES_APPLICATION_LETTER_KEY,
+  }))
+
+  /** Who the Application Letter goes to, as on the GIP page */
+  const { letterGuide } = useApplicationLetterGuide(SPES_APPLICATION_LETTER)
 
   /** Which call to action the page shows under the requirements */
   const cta = computed<'login' | 'apply' | 'applied' | 'none'>(() => {
@@ -54,6 +68,7 @@ export function useLandingSpes() {
     about: SPES_ABOUT,
     facts: SPES_FACTS,
     requirements,
+    letterGuide,
     cta,
     isLoading,
   }

@@ -1,5 +1,6 @@
 // Content of the SPES program page (public /spes and the applicant's SPES page), like gipProgram.ts
 import type { SpesDocumentKey } from '@/types/common/spesForm'
+import { APPLICATION_LETTER_ROUTING, type ApplicationLetterConfig } from '@/types/common/applicationLetter'
 
 export const SPES_HERO = {
   eyebrow: 'Special Program for Employment of Students',
@@ -28,4 +29,17 @@ export const SPES_FACTS: readonly { label: string; value: string }[] = [
 export const SPES_PROFILE_DOCUMENT_MATCHES: Partial<Record<SpesDocumentKey, readonly string[]>> = {
   has_resume: ['Resume'],
   has_birth_certificate: ['Birth Certificate'],
+}
+
+/** The requirement the letter guide shows under */
+export const SPES_APPLICATION_LETTER_KEY = 'has_application_letter' satisfies SpesDocumentKey
+
+/** Where the Application Letter goes (same as GIP's), with the SPES writing tips */
+export const SPES_APPLICATION_LETTER: ApplicationLetterConfig = {
+  ...APPLICATION_LETTER_ROUTING,
+  tips: [
+    'Say you are applying for the Special Program for Employment of Students.',
+    'Mention your school, your year level and how SPES will help your studies.',
+    'Sign it, then attach a photo or PDF of it.',
+  ],
 }

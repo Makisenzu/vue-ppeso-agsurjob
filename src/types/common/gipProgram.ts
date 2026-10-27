@@ -1,5 +1,6 @@
 // Content of the GIP program page (public /gip and the applicant's GIP page)
 import type { ReusableProfileDocument } from '@/helpers/applicant/applicantRequirementDocuments'
+import { APPLICATION_LETTER_ROUTING, type ApplicationLetterConfig } from '@/types/common/applicationLetter'
 
 export interface GipProgramFact {
   label: string
@@ -38,24 +39,9 @@ export const GIP_REQUIRED_DOCUMENTS: readonly string[] = [
 /** The requirement the letter guide shows under. */
 export const GIP_APPLICATION_LETTER_DOCUMENT = 'Application Letter'
 
-/**
- * Where the Application Letter goes: the Governor, through the PESO Manager. Names come from the
- * org chart's top positions (Site Contents, migration 052) so they follow office changes.
- */
-export const GIP_APPLICATION_LETTER = {
-  addressee: {
-    titlePattern: /^(?!.*vice).*governor/i,
-    title: 'Provincial Governor',
-    office: 'Province of Agusan del Sur',
-    // address: 'Government Center, Patin-ay, Prosperidad, Agusan del Sur',
-  },
-  through: {
-    titlePattern: /peso manager/i,
-    title: 'Provincial Government Department Head (PESO Manager)',
-    /** Shown when the org chart has no PESO Manager yet */
-    fallbackName: 'Pauline J. Ang',
-  },
-  salutation: 'Dear Governor:',
+/** Where the Application Letter goes (shared with SPES), with GIP's writing tips */
+export const GIP_APPLICATION_LETTER: ApplicationLetterConfig = {
+  ...APPLICATION_LETTER_ROUTING,
   tips: [
     'Say you are applying for the Government Internship Program.',
     'Mention your schooling and your skills.',

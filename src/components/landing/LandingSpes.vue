@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import ApplicationLetterRequirement from '@/components/landing/ApplicationLetterRequirement.vue'
 import { useLandingSpes } from '@/composables/landing/useLandingSpes'
 
-const { hero, about, facts, requirements, cta, isLoading } = useLandingSpes()
+const { hero, about, facts, requirements, letterGuide, cta, isLoading } = useLandingSpes()
 </script>
 
 <template>
@@ -70,7 +71,8 @@ const { hero, about, facts, requirements, cta, isLoading } = useLandingSpes()
             <span class="pt-0.5 text-sm font-semibold text-muted-foreground tabular-nums" aria-hidden="true">
               {{ String(index + 1).padStart(2, '0') }}
             </span>
-            <div class="flex flex-col">
+            <ApplicationLetterRequirement v-if="doc.isLetter" :name="doc.name" :guide="letterGuide" />
+            <div v-else class="flex flex-col">
               <span class="text-base font-semibold text-foreground sm:text-lg">{{ doc.name }}</span>
               <span class="text-sm text-muted-foreground">{{ doc.note }}</span>
             </div>
