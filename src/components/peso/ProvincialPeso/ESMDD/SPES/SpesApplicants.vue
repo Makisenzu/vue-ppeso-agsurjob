@@ -4,7 +4,30 @@ import SwipeCardList from '@/components/SwipeCardList.vue'
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink } from 'vue-router'
-import { AlertTriangle, ChevronDown, ChevronLeft, Dices, Loader2, Plus, RefreshCw, Users } from '@lucide/vue'
+import {
+  AlertTriangle,
+  CheckIcon,
+  ChevronDown,
+  ChevronLeft,
+  ChevronsUpDownIcon,
+  Dices,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Users,
+} from '@lucide/vue'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/components/ui/combobox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -139,9 +162,6 @@ const {
   appointmentSchema,
   appointmentInitialValues,
   appointmentFormKey,
-  provinces,
-  municipalities,
-  barangays,
   isLoadingProvinces,
   isLoadingMunicipalities,
   isLoadingBarangays,
@@ -152,6 +172,13 @@ const {
   onAppointeeChange,
   onProvinceChange,
   onMunicipalityChange,
+  onBarangayChange,
+  provinceSearch,
+  municipalitySearch,
+  barangaySearch,
+  filteredProvinces,
+  filteredMunicipalities,
+  filteredBarangays,
   durationChoices,
   getEndDate,
   countSpesCalendarDays,
@@ -928,21 +955,21 @@ const previousAvailments = computed(() => {
     </DialogContent>
   </Dialog>
 
-  <!-- Appoint / Edit Appointment Dialog -->
-  <Dialog :open="isAppointmentFormOpen" @update:open="onAppointmentOpenChange">
-    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle>{{ isEditMode ? 'Edit SPES Appointment' : 'Appoint for SPES' }}</DialogTitle>
-        <DialogDescription>
+  <!-- Appoint / Edit Appointment side sheet (long form → Sheet, DESIGN.md §5.1) -->
+  <Sheet :open="isAppointmentFormOpen" @update:open="onAppointmentOpenChange">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
+      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+        <SheetTitle>{{ isEditMode ? 'Edit SPES Appointment' : 'Appoint for SPES' }}</SheetTitle>
+        <SheetDescription>
           {{
             isEditMode
-              ? 'Update the establishment and period of this appointment.'
+              ? 'Update the establishment and period.'
               : drawAppointProgress
-                ? `Drawn applicant ${drawAppointProgress.current} of ${drawAppointProgress.total}. Saving moves on to the next one; closing leaves the rest Approved to appoint later.`
-                : `Appoint an approved applicant, or a former beneficiary returning for SPES ${selectedYear}.`
+                ? `Drawn applicant ${drawAppointProgress.current} of ${drawAppointProgress.total}; closing leaves the rest Approved.`
+                : `An approved applicant or a returning beneficiary for SPES ${selectedYear}.`
           }}
-        </DialogDescription>
-      </DialogHeader>
+        </SheetDescription>
+      </SheetHeader>
 
       <Form
         v-if="isAppointmentFormOpen"
@@ -951,9 +978,11 @@ const previousAvailments = computed(() => {
         v-slot="{ values, setFieldValue }"
         :validation-schema="appointmentSchema"
         :initial-values="appointmentInitialValues"
-        class="grid gap-4"
+        class="contents"
         @submit="submitAppointment"
       >
+        <!-- Scrolling body; grid-cols-1 keeps long rows truncating instead of widening the sheet -->
+        <div class="grid flex-1 grid-cols-1 content-start gap-4 overflow-y-auto px-6 py-4">
         <div v-if="fixedAppointeeName">
           <span class="text-xs text-muted-foreground">Beneficiary</span>
           <p class="text-sm font-medium">{{ fixedAppointeeName }}</p>
@@ -1036,87 +1065,167 @@ const previousAvailments = computed(() => {
           </AlertDescription>
         </Alert>
 
+        <!-- Location pickers search as you type (Combobox, same as GIP's office picker) -->
         <FormField v-slot="{ value }" name="assignedProvince">
-          <FormItem>
+          <FormItem class="min-w-0">
             <FormLabel>Province</FormLabel>
-            <Select
+            <Combobox
+              v-model:search-term="provinceSearch"
               :model-value="value"
-              :disabled="isSubmitting || isLoadingProvinces"
+              :ignore-filter="true"
               @update:model-value="(name) => onProvinceChange(String(name ?? ''), setFieldValue)"
             >
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue :placeholder="isLoadingProvinces ? 'Loading provinces...' : 'Select province'" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="province in provinces" :key="province.code" :value="province.name">
-                  {{ province.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <FormControl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      class="w-full min-w-0 justify-between overflow-hidden font-normal"
+                      :disabled="isSubmitting || isLoadingProvinces"
+                    >
+                      <span v-if="value" class="truncate">{{ value }}</span>
+                      <span v-else class="truncate text-xs text-muted-foreground">
+                        {{ isLoadingProvinces ? 'Loading provinces...' : 'Select province' }}
+                      </span>
+                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxInput
+                  placeholder="Search provinces..."
+                  @input="provinceSearch = ($event.target as HTMLInputElement).value"
+                />
+                <ComboboxViewport>
+                  <ComboboxEmpty>No province found.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem v-for="province in filteredProvinces" :key="province.code" :value="province.name">
+                      <span class="min-w-0 flex-1 truncate">{{ province.name }}</span>
+                      <ComboboxItemIndicator>
+                        <CheckIcon class="size-4 shrink-0" />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
             <FormMessage />
           </FormItem>
         </FormField>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField v-slot="{ value }" name="assignedMunicipality">
-            <FormItem>
+            <FormItem class="min-w-0">
               <FormLabel>Municipality / City</FormLabel>
-              <Select
+              <Combobox
+                v-model:search-term="municipalitySearch"
                 :model-value="value"
-                :disabled="isSubmitting || !values.assignedProvince || isLoadingMunicipalities"
+                :ignore-filter="true"
                 @update:model-value="(name) => onMunicipalityChange(String(name ?? ''), setFieldValue)"
               >
-                <FormControl>
-                  <SelectTrigger class="w-full">
-                    <SelectValue
-                      :placeholder="
-                        !values.assignedProvince
-                          ? 'Select province first'
-                          : isLoadingMunicipalities
-                            ? 'Loading...'
-                            : 'Select municipality'
-                      "
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="municipality in municipalities" :key="municipality.code" :value="municipality.name">
-                    {{ municipality.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <ComboboxAnchor as-child>
+                  <ComboboxTrigger as-child>
+                    <FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        class="w-full min-w-0 justify-between overflow-hidden font-normal"
+                        :disabled="isSubmitting || !values.assignedProvince || isLoadingMunicipalities"
+                      >
+                        <span v-if="value" class="truncate">{{ value }}</span>
+                        <span v-else class="truncate text-xs text-muted-foreground">
+                          {{
+                            !values.assignedProvince
+                              ? 'Select province first'
+                              : isLoadingMunicipalities
+                                ? 'Loading...'
+                                : 'Select municipality'
+                          }}
+                        </span>
+                        <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </ComboboxTrigger>
+                </ComboboxAnchor>
+                <ComboboxList>
+                  <ComboboxInput
+                    placeholder="Search municipalities..."
+                    @input="municipalitySearch = ($event.target as HTMLInputElement).value"
+                  />
+                  <ComboboxViewport>
+                    <ComboboxEmpty>No municipality found.</ComboboxEmpty>
+                    <ComboboxGroup>
+                      <ComboboxItem
+                        v-for="municipality in filteredMunicipalities"
+                        :key="municipality.code"
+                        :value="municipality.name"
+                      >
+                        <span class="min-w-0 flex-1 truncate">{{ municipality.name }}</span>
+                        <ComboboxItemIndicator>
+                          <CheckIcon class="size-4 shrink-0" />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxGroup>
+                  </ComboboxViewport>
+                </ComboboxList>
+              </Combobox>
               <FormMessage />
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="assignedBarangay">
-            <FormItem>
+          <FormField v-slot="{ value }" name="assignedBarangay">
+            <FormItem class="min-w-0">
               <FormLabel>Barangay</FormLabel>
-              <Select
-                v-bind="componentField"
-                :disabled="isSubmitting || !values.assignedMunicipality || isLoadingBarangays"
+              <Combobox
+                v-model:search-term="barangaySearch"
+                :model-value="value"
+                :ignore-filter="true"
+                @update:model-value="(name) => onBarangayChange(String(name ?? ''), setFieldValue)"
               >
-                <FormControl>
-                  <SelectTrigger class="w-full">
-                    <SelectValue
-                      :placeholder="
-                        !values.assignedMunicipality
-                          ? 'Select municipality first'
-                          : isLoadingBarangays
-                            ? 'Loading...'
-                            : 'Select barangay'
-                      "
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="barangay in barangays" :key="barangay.code" :value="barangay.name">
-                    {{ barangay.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <ComboboxAnchor as-child>
+                  <ComboboxTrigger as-child>
+                    <FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        class="w-full min-w-0 justify-between overflow-hidden font-normal"
+                        :disabled="isSubmitting || !values.assignedMunicipality || isLoadingBarangays"
+                      >
+                        <span v-if="value" class="truncate">{{ value }}</span>
+                        <span v-else class="truncate text-xs text-muted-foreground">
+                          {{
+                            !values.assignedMunicipality
+                              ? 'Select municipality first'
+                              : isLoadingBarangays
+                                ? 'Loading...'
+                                : 'Select barangay'
+                          }}
+                        </span>
+                        <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </ComboboxTrigger>
+                </ComboboxAnchor>
+                <ComboboxList>
+                  <ComboboxInput
+                    placeholder="Search barangays..."
+                    @input="barangaySearch = ($event.target as HTMLInputElement).value"
+                  />
+                  <ComboboxViewport>
+                    <ComboboxEmpty>No barangay found.</ComboboxEmpty>
+                    <ComboboxGroup>
+                      <ComboboxItem v-for="barangay in filteredBarangays" :key="barangay.code" :value="barangay.name">
+                        <span class="min-w-0 flex-1 truncate">{{ barangay.name }}</span>
+                        <ComboboxItemIndicator>
+                          <CheckIcon class="size-4 shrink-0" />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxGroup>
+                  </ComboboxViewport>
+                </ComboboxList>
+              </Combobox>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -1195,8 +1304,10 @@ const previousAvailments = computed(() => {
             <FormMessage />
           </FormItem>
         </FormField>
+        </div>
 
-        <DialogFooter>
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
           <Button type="button" variant="outline" :disabled="isSubmitting" @click="onAppointmentOpenChange(false)">
             Cancel
           </Button>
@@ -1204,10 +1315,10 @@ const previousAvailments = computed(() => {
             <Loader2 v-if="isSubmitting" class="size-4 animate-spin" />
             {{ isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Appoint' }}
           </Button>
-        </DialogFooter>
+        </div>
       </Form>
-    </DialogContent>
-  </Dialog>
+    </SheetContent>
+  </Sheet>
 
   <!-- Delete Confirmation -->
   <AlertDialog v-model:open="isDeleteDialogOpen">

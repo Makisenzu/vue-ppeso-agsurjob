@@ -191,6 +191,18 @@ export function useSpesAppointmentForm() {
   const isLoadingBarangays = ref(false)
   const locationError = ref<string | null>(null)
 
+  // Search typed in each location picker (Combobox, like GIP's office picker), so long lists stay short
+  const provinceSearch = ref('')
+  const municipalitySearch = ref('')
+  const barangaySearch = ref('')
+  const filterByName = (list: PsgcLocation[], search: string) => {
+    const query = search.trim().toLowerCase()
+    return query ? list.filter((location) => location.name.toLowerCase().includes(query)) : list
+  }
+  const filteredProvinces = computed(() => filterByName(provinces.value, provinceSearch.value))
+  const filteredMunicipalities = computed(() => filterByName(municipalities.value, municipalitySearch.value))
+  const filteredBarangays = computed(() => filterByName(barangays.value, barangaySearch.value))
+
   const loadMunicipalities = async (provinceName: string | undefined) => {
     municipalities.value = []
     barangays.value = []
@@ -339,6 +351,7 @@ export function useSpesAppointmentForm() {
     setFieldValue('assignedProvince', name)
     setFieldValue('assignedMunicipality', '')
     setFieldValue('assignedBarangay', '')
+    provinceSearch.value = municipalitySearch.value = barangaySearch.value = ''
     void loadMunicipalities(name)
   }
 
@@ -346,7 +359,13 @@ export function useSpesAppointmentForm() {
   const onMunicipalityChange = (name: string, setFieldValue: (field: LocationField, value: string) => void) => {
     setFieldValue('assignedMunicipality', name)
     setFieldValue('assignedBarangay', '')
+    municipalitySearch.value = barangaySearch.value = ''
     void loadBarangays(name)
+  }
+
+  const onBarangayChange = (name: string, setFieldValue: (field: LocationField, value: string) => void) => {
+    setFieldValue('assignedBarangay', name)
+    barangaySearch.value = ''
   }
 
   /** End date = last working day (Mon–Fri) of the chosen 10 or 20 working days, counted from the start date. */
@@ -406,6 +425,13 @@ export function useSpesAppointmentForm() {
     onAppointeeChange,
     onProvinceChange,
     onMunicipalityChange,
+    onBarangayChange,
+    provinceSearch,
+    municipalitySearch,
+    barangaySearch,
+    filteredProvinces,
+    filteredMunicipalities,
+    filteredBarangays,
     durationChoices: SPES_DURATION_CHOICES,
     getEndDate,
     countSpesCalendarDays,

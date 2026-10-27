@@ -73,6 +73,9 @@ const {
   skillInput,
   addSkill,
   removeSkill,
+  toggleSkill,
+  customSkills,
+  skillOptions,
   hasCertified,
   certificationError,
   sexOptions,
@@ -679,19 +682,39 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
 
               <div class="space-y-3">
                 <h2 class="text-sm font-semibold">Special Skills</h2>
+                <!-- Same checklist as the NSRP's Skills section (NsrpExperienceFields.vue) -->
+                <div class="-mx-2 grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Special skills">
+                  <label
+                    v-for="skill in skillOptions"
+                    :key="skill"
+                    class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm transition-colors hover:bg-muted/60 has-disabled:cursor-not-allowed sm:min-h-9"
+                  >
+                    <Checkbox
+                      :model-value="values.special_skills?.includes(skill) ?? false"
+                      :disabled="isDisabled"
+                      @update:model-value="(checked) => toggleSkill(skill, checked)"
+                    />
+                    {{ skill }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <Label for="spes-other-skill">Other skills <span class="font-normal text-muted-foreground">(optional)</span></Label>
                 <div class="flex gap-2">
                   <Input
+                    id="spes-other-skill"
                     v-model="skillInput"
-                    placeholder="e.g. Encoding, Carpentry, Customer service"
+                    placeholder="e.g. Encoding, Customer service"
                     @keydown.enter.prevent="addSkill"
                   />
                   <Button type="button" variant="outline" :disabled="isDisabled || !skillInput.trim()" @click="addSkill">
                     Add
                   </Button>
                 </div>
-                <div v-if="values.special_skills?.length" class="flex flex-wrap gap-2">
+                <div v-if="customSkills.length" class="flex flex-wrap gap-2">
                   <span
-                    v-for="skill in values.special_skills"
+                    v-for="skill in customSkills"
                     :key="skill"
                     class="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-sm"
                   >

@@ -1,4 +1,4 @@
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import {
@@ -27,6 +27,7 @@ import {
   type SpesParentsStatus,
   type SpesPendingAttachmentMap,
 } from '@/types/common/spesForm'
+import { SKILL_OPTIONS } from '@/helpers/applicant/applicantCompletionHelper'
 
 const REQUIREMENTS_STEP = 4
 
@@ -190,6 +191,15 @@ export function useSpesFormSteps(options: {
   const removeSkill = (skill: string) => {
     setFieldValue('special_skills', (values.special_skills ?? []).filter((s) => s !== skill))
   }
+  /** Checkbox of a listed skill (same list as the NSRP's Skills section) */
+  const toggleSkill = (skill: string, checked: boolean | 'indeterminate') => {
+    const current = values.special_skills ?? []
+    setFieldValue('special_skills', checked === true ? [...new Set([...current, skill])] : current.filter((s) => s !== skill))
+  }
+  /** Skills typed under "Other skills": anything not on the NSRP list */
+  const customSkills = computed(() =>
+    (values.special_skills ?? []).filter((skill) => !(SKILL_OPTIONS as readonly string[]).includes(skill))
+  )
 
   // ─── Load ───
   /** Replaces the form values and returns to the first step. */
@@ -252,6 +262,9 @@ export function useSpesFormSteps(options: {
     skillInput,
     addSkill,
     removeSkill,
+    toggleSkill,
+    customSkills,
+    skillOptions: SKILL_OPTIONS,
     hasCertified,
     certificationError,
     // requirement attachments
