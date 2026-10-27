@@ -170,6 +170,42 @@ The project has **40 shadcn-vue primitives** already installed. When you need a 
 | Empty state                      | `Empty`                                              | `NoDataFound.vue`                    |
 | Progress indicator               | `Progress`                                           | `ProgressBar.vue`                    |
 
+#### Add / Edit Forms — Dialog or Sheet?
+
+A long add or edit form goes in a `Sheet` (side drawer), never a `Dialog`. A form is **long** when any of these is true:
+
+- It has **more than 5 fields**, or a checklist / repeated rows.
+- It has fields that **appear based on another field** (e.g. a schedule shown only for Approved).
+- It **scrolls** at a normal laptop height.
+
+Short forms (a few fields that always fit) and confirmations stay in a `Dialog` / `AlertDialog`.
+
+Every form sheet uses the layout of Add New Account (`AuthorizedAccounts.vue`): a fixed header, a body that scrolls on its own, and a footer with the actions that stays put.
+
+```vue
+<Sheet :open="isOpen" @update:open="onOpenChange">
+  <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
+    <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+      <SheetTitle>Edit GIP Applicant</SheetTitle>
+      <SheetDescription>Juan Dela Cruz · GIP-APP-2026-1A2B</SheetDescription>
+    </SheetHeader>
+
+    <form class="contents" @submit="save">
+      <!-- Scrolling body -->
+      <div class="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-4">
+        <!-- fields -->
+      </div>
+
+      <!-- Sticky footer -->
+      <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
+        <Button type="button" variant="outline" @click="close">Cancel</Button>
+        <Button type="submit">Save Changes</Button>
+      </div>
+    </form>
+  </SheetContent>
+</Sheet>
+```
+
 #### Correct Pattern — Inline Composition
 
 Compose shadcn-vue primitives **directly in the parent component's template**:
