@@ -1,5 +1,4 @@
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
-import { formatDateDisplay } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import type { jsPDF } from 'jspdf'
 import { renderHtmlPagesToPdf } from '@/helpers/common/htmlPdfHelper'
 
@@ -11,6 +10,20 @@ function escapeHtml(str: any): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+/**
+ * A date as the form asks for it, mm/dd/yyyy (e.g. 11/30/2003). Date-only values (yyyy-mm-dd) are read
+ * as written, so no time zone shifts the day; anything unreadable is shown as given.
+ */
+function formatNsrpDate(value: string | Date | null | undefined): string {
+  if (!value) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateOnly = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null
+  if (dateOnly) return `${dateOnly[2]}/${dateOnly[3]}/${dateOnly[1]}`
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()}`
 }
 
 function chk(condition: boolean): string {
@@ -27,7 +40,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
   const suffix = escapeHtml(a.suffix || '')
 
   // Demographics
-  const dob = a.dateOfBirth ? formatDateDisplay(a.dateOfBirth) : ''
+  const dob = escapeHtml(formatNsrpDate(a.dateOfBirth))
   const age = a.age !== null && a.age !== undefined ? escapeHtml(a.age) : ''
   const isMale = (a.sex || '').toLowerCase() === 'male'
   const isFemale = (a.sex || '').toLowerCase() === 'female'
@@ -217,9 +230,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
   )
 
   const assessor = escapeHtml(a.assessedByName || 'PESO OFFICER')
-  const assessDate = a.assessmentDate
-    ? formatDateDisplay(a.assessmentDate)
-    : (a.createdAt ? formatDateDisplay(a.createdAt) : formatDateDisplay(new Date().toISOString()))
+  const assessDate = escapeHtml(formatNsrpDate(a.assessmentDate || a.createdAt || new Date()))
   const signDate = assessDate
 
   return `<!DOCTYPE html>
@@ -239,22 +250,24 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       padding: 0;
     }
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      /* Calibri like the printed form (Carlito is its metric-compatible stand-in) */
+      font-family: Calibri, Carlito, 'Segoe UI', Arial, Helvetica, sans-serif;
       color: #000;
       background: #f1f5f9;
-      font-size: 8pt;
+      font-size: 9.2pt;
       line-height: 1.2;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .page-container {
       width: 195mm;
-      min-height: 277mm;
+      height: 277mm;
       margin: 15px auto;
       background: #fff;
-      border: 1.5px solid #000;
-      padding: 0;
+      padding: 5mm 4mm 3mm;
       position: relative;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       page-break-after: always;
       break-after: page;
@@ -265,10 +278,9 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       }
       .page-container {
         width: 100%;
-        min-height: auto;
+        height: 277mm;
         margin: 0;
         box-shadow: none;
-        border: 1.5px solid #000;
         page-break-after: always;
         break-after: page;
       }
@@ -281,30 +293,40 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       }
     }
 
+    /* The bordered form; the footer sits under it at the bottom of the sheet */
+    .form-box {
+      border: 1.5px solid #000;
+    }
+
+    #page-2 table.nsrp-table td {
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
     /* Section Banner */
     .section-banner {
       background-color: #d9e2ec;
       font-weight: bold;
-      font-size: 8.5pt;
-      padding: 3px 6px;
+      font-size: 9.8pt;
+      padding: 1.5px 6px;
       letter-spacing: 0.2px;
       border-bottom: 1.5px solid #000;
     }
 
     /* Sub Labels & Field Values */
     .sub-label {
-      font-size: 7pt;
+      font-size: 8pt;
       font-weight: bold;
       text-transform: uppercase;
       color: #000;
       line-height: 1.1;
     }
     .field-val {
-      font-size: 8.5pt;
+      font-size: 9.8pt;
       font-weight: 600;
       color: #0b192c;
-      min-height: 14px;
-      line-height: 1.2;
+      min-height: 16px;
+      line-height: 1.25;
     }
 
     /* Checkboxes */
@@ -312,8 +334,8 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 10px;
-      height: 10px;
+      width: 11px;
+      height: 11px;
       border: 1.2px solid #000;
       background: #fff;
       font-size: 9px;
@@ -326,13 +348,14 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     .chk.checked::after {
       content: "✔";
       display: block;
-      font-size: 9px;
+      font-size: 10px;
       color: #000;
     }
     .chk-label {
       display: inline-flex;
       align-items: center;
-      font-size: 7.5pt;
+      font-size: 8.6pt;
+      line-height: 1.15;
       cursor: default;
       user-select: none;
     }
@@ -341,13 +364,13 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     table.nsrp-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 7.5pt;
+      font-size: 8.6pt;
       table-layout: fixed;
     }
     table.nsrp-table th,
     table.nsrp-table td {
       border: 1px solid #000;
-      padding: 2.5px 4px;
+      padding: 3px 5px;
       vertical-align: middle;
       word-wrap: break-word;
       overflow-wrap: break-word;
@@ -384,19 +407,19 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       padding: 4px 8px;
     }
     .header-seal {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       object-fit: contain;
     }
 
     /* Footers */
     .page-footer {
-      border-top: 1.5px solid #000;
-      padding: 4px 8px;
+      margin-top: auto;
+      padding: 4px 8px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 7pt;
+      font-size: 8pt;
       line-height: 1.25;
     }
     .iso-seal {
@@ -405,22 +428,23 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       gap: 6px;
     }
     .iso-seal-img {
-      height: 34px;
+      height: 38px;
       width: auto;
       display: block;
       object-fit: contain;
     }
     .qf-box {
       border: 1px solid #000;
-      padding: 3px 6px;
+      padding: 4px 6px;
       text-align: center;
-      font-size: 7pt;
+      font-size: 8pt;
       line-height: 1.2;
     }
     .page-num {
-      text-align: center;
+      text-align: right;
+      padding-right: 6mm;
       font-weight: bold;
-      font-size: 8pt;
+      font-size: 9.2pt;
       margin-top: 2px;
       margin-bottom: 4px;
     }
@@ -442,14 +466,15 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
   <!-- PAGE 1 — FRONT PAGE                                                      -->
   <!-- ══════════════════════════════════════════════════════════════════════════ -->
   <div class="page-container" id="page-1">
+    <div class="form-box">
     
     <!-- Top Header -->
     <table class="header-table">
       <tr>
         <td class="header-box-left">
-          <div style="font-size: 11pt; font-weight: bold; line-height: 1.1;">NSRP Form 1</div>
-          <div style="font-size: 10pt; font-weight: bold; margin-top: 2px; line-height: 1.1;">September</div>
-          <div style="font-size: 10pt; font-weight: bold; line-height: 1.1;">2020</div>
+          <div style="font-size: 12.6pt; font-weight: bold; line-height: 1.1;">NSRP Form 1</div>
+          <div style="font-size: 11.5pt; font-weight: bold; margin-top: 2px; line-height: 1.1;">September</div>
+          <div style="font-size: 11.5pt; font-weight: bold; line-height: 1.1;">2020</div>
         </td>
         <td class="header-content">
           <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -458,10 +483,10 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
             
             <!-- Center Titles -->
             <div style="text-align: center; flex: 1; padding: 0 8px;">
-              <div style="font-size: 8.5pt; font-family: 'Times New Roman', Times, serif;">Republic of the Philippines</div>
-              <div style="font-size: 11pt; font-weight: bold; letter-spacing: 0.2px; line-height: 1.15;">DEPARTMENT OF LABOR AND EMPLOYMENT</div>
-              <div style="font-size: 10pt; font-weight: bold; letter-spacing: 0.2px; line-height: 1.15;">NATIONAL SKILLS REGISTRATION PROGRAM</div>
-              <div style="font-size: 10.5pt; font-weight: bold; letter-spacing: 0.5px; margin-top: 1px;">JOBSEEKER REGISTRATION FORM</div>
+              <div style="font-size: 9.8pt; font-family: Cambria, 'Times New Roman', Times, serif;\">Republic of the Philippines</div>
+              <div style="font-size: 12.6pt; font-weight: bold; letter-spacing: 0.2px; line-height: 1.15; font-family: Cambria, \'Times New Roman\', Times, serif;">DEPARTMENT OF LABOR AND EMPLOYMENT</div>
+              <div style="font-size: 11.5pt; font-weight: bold; letter-spacing: 0.2px; line-height: 1.15;">NATIONAL SKILLS REGISTRATION PROGRAM</div>
+              <div style="font-size: 12.1pt; font-weight: bold; letter-spacing: 0.5px; margin-top: 1px;">JOBSEEKER REGISTRATION FORM</div>
             </div>
 
             <!-- Bagong Pilipinas Logo -->
@@ -472,7 +497,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     </table>
 
     <!-- Instructions Banner -->
-    <div style="padding: 2.5px 6px; border-bottom: 1.5px solid #000; font-size: 7.2pt; line-height: 1.25; text-align: justify;">
+    <div style="padding: 3px 6px; border-bottom: 1.5px solid #000; font-size: 8.3pt; line-height: 1.25; text-align: justify;">
       <strong>INSTRUCTIONS:</strong> Please fill out the form legibly in block letters using a ballpoint pen. Check appropriate boxes. Please do not leave any items unanswered. Indicate &ldquo;NA&rdquo; if not applicable. You may use extra sheet if needed. Submit accomplished form to the Public Employment Service Office (PESO) Manager or Officer in your city/municipality.
     </div>
 
@@ -482,31 +507,31 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     <!-- Row: Surname / First Name / Middle Name / Suffix -->
     <div style="display: flex; border-bottom: 1px solid #000;">
       <div style="width: 27%; border-right: 1px dotted #000; display: flex; flex-direction: column; justify-content: flex-end;">
-        <div class="field-val" style="min-height: 18px; padding: 2px 4px; font-weight: bold; font-size: 8.5pt; text-align: center;">${surname}</div>
-        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 7pt; text-align: center;">SURNAME</div>
+        <div class="field-val" style="min-height: 30px; padding: 3px 4px; font-weight: bold; display: flex; align-items: flex-end; justify-content: center; font-size: 9.8pt; text-align: center;">${surname}</div>
+        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 8pt; text-align: center;">SURNAME</div>
       </div>
       <div style="width: 29%; border-right: 1px dotted #000; display: flex; flex-direction: column; justify-content: flex-end;">
-        <div class="field-val" style="min-height: 18px; padding: 2px 4px; font-weight: bold; font-size: 8.5pt; text-align: center;">${firstName}</div>
-        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 7pt; text-align: center;">FIRST NAME</div>
+        <div class="field-val" style="min-height: 30px; padding: 3px 4px; font-weight: bold; display: flex; align-items: flex-end; justify-content: center; font-size: 9.8pt; text-align: center;">${firstName}</div>
+        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 8pt; text-align: center;">FIRST NAME</div>
       </div>
       <div style="width: 24%; border-right: 1px dotted #000; display: flex; flex-direction: column; justify-content: flex-end;">
-        <div class="field-val" style="min-height: 18px; padding: 2px 4px; font-weight: bold; font-size: 8.5pt; text-align: center;">${middleName}</div>
-        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 7pt; text-align: center;">MIDDLE NAME</div>
+        <div class="field-val" style="min-height: 30px; padding: 3px 4px; font-weight: bold; display: flex; align-items: flex-end; justify-content: center; font-size: 9.8pt; text-align: center;">${middleName}</div>
+        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 8pt; text-align: center;">MIDDLE NAME</div>
       </div>
       <div style="width: 20%; display: flex; flex-direction: column; justify-content: flex-end;">
-        <div class="field-val" style="min-height: 18px; padding: 2px 4px; font-weight: bold; font-size: 8.5pt; text-align: center;">${suffix}</div>
-        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 6.8pt; text-align: center;">SUFFIX (Ex: Sr., Jr., III, etc.)</div>
+        <div class="field-val" style="min-height: 30px; padding: 3px 4px; font-weight: bold; display: flex; align-items: flex-end; justify-content: center; font-size: 9.8pt; text-align: center;">${suffix}</div>
+        <div style="border-top: 1px dotted #000; padding: 1.5px 2px; font-weight: bold; font-size: 7.8pt; text-align: center;">SUFFIX (Ex: Sr., Jr., III, etc.)</div>
       </div>
     </div>
 
     <!-- Row: Date of Birth & Age -->
     <div style="display: flex; border-bottom: 1px solid #000; align-items: stretch;">
-      <div style="width: 48%; padding: 2px 6px; display: flex; align-items: center; border-right: 1px solid #000;">
-        <span style="font-weight: bold; font-size: 7.5pt; width: 145px; flex-shrink: 0;">DATE OF BIRTH <span style="font-size: 6.8pt; font-weight: normal;">(mm/dd/yyyy)</span></span>
+      <div style="width: 48%; padding: 3px 6px; display: flex; align-items: center; border-right: 1px solid #000;">
+        <span style="font-weight: bold; font-size: 8.6pt; width: 145px; flex-shrink: 0;">DATE OF BIRTH <span style="font-size: 7.8pt; font-weight: normal;">(mm/dd/yyyy)</span></span>
         <span class="field-val" style="flex: 1; padding-left: 6px;">${dob}</span>
       </div>
-      <div style="width: 52%; padding: 2px 6px; display: flex; align-items: center;">
-        <span style="font-weight: bold; font-size: 7.5pt; width: 42px; flex-shrink: 0;">AGE:</span>
+      <div style="width: 52%; padding: 3px 6px; display: flex; align-items: center;">
+        <span style="font-weight: bold; font-size: 8.6pt; width: 42px; flex-shrink: 0;">AGE:</span>
         <span class="field-val" style="flex: 1; padding-left: 6px;">${age}</span>
       </div>
     </div>
@@ -516,20 +541,20 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       <!-- Left Column -->
       <div style="width: 38%; display: flex; flex-direction: column; border-right: 1px solid #000;">
         <!-- Sex -->
-        <div style="display: flex; align-items: center; padding: 2px 6px; border-bottom: 1px solid #000; gap: 12px;">
-          <span style="font-weight: bold; font-size: 7.5pt; width: 45px;">SEX</span>
+        <div style="display: flex; align-items: center; padding: 3px 6px; border-bottom: 1px solid #000; gap: 12px;">
+          <span style="font-weight: bold; font-size: 8.6pt; width: 45px;">SEX</span>
           <span class="chk-label"><span class="${chk(isMale)}"></span>Male</span>
           <span class="chk-label"><span class="${chk(isFemale)}"></span>Female</span>
         </div>
         <!-- Religion -->
-        <div style="display: flex; align-items: center; padding: 2px 6px; border-bottom: 1px solid #000; gap: 8px;">
-          <span style="font-weight: bold; font-size: 7.5pt; width: 65px;">RELIGION</span>
-          <span class="field-val" style="font-size: 8pt;">${religion}</span>
+        <div style="display: flex; align-items: center; padding: 3px 6px; border-bottom: 1px solid #000; gap: 8px;">
+          <span style="font-weight: bold; font-size: 8.6pt; width: 65px;">RELIGION</span>
+          <span class="field-val" style="font-size: 9.2pt;">${religion}</span>
         </div>
         <!-- Civil Status -->
-        <div style="display: flex; padding: 3px 6px; flex: 1;">
-          <div style="font-weight: bold; font-size: 7.5pt; width: 65px; line-height: 1.2;">CIVIL<br>STATUS</div>
-          <div style="display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; padding: 4px 6px; flex: 1;">
+          <div style="font-weight: bold; font-size: 8.6pt; width: 65px; line-height: 1.2;">CIVIL<br>STATUS</div>
+          <div style="display: flex; flex-direction: column; gap: 1px;">
             <span class="chk-label"><span class="${chk(isSingle)}"></span>Single</span>
             <span class="chk-label"><span class="${chk(isMarried)}"></span>Married</span>
             <span class="chk-label"><span class="${chk(isWidowed)}"></span>Widowed</span>
@@ -539,23 +564,23 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
       <!-- Right Column: Present Address -->
       <div style="width: 62%; display: flex; flex-direction: column;">
-        <div style="font-weight: bold; font-size: 7.5pt; padding: 2px 6px; border-bottom: 1px solid #000;">PRESENT ADDRESS</div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
+        <div style="font-weight: bold; font-size: 8.6pt; padding: 3px 6px; border-bottom: 1px solid #000;">PRESENT ADDRESS</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 8.6pt;">
           <tr>
-            <td style="width: 42%; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 2px 6px;">House No./ Street Village</td>
-            <td style="border-bottom: 1px solid #000; padding: 2px 6px;" class="field-val">${streetStr}</td>
+            <td style="width: 42%; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px 6px;">House No./ Street Village</td>
+            <td style="border-bottom: 1px solid #000; padding: 3px 6px;" class="field-val">${streetStr}</td>
           </tr>
           <tr>
-            <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 2px 6px;">Barangay</td>
-            <td style="border-bottom: 1px solid #000; padding: 2px 6px;" class="field-val">${brgyStr}</td>
+            <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px 6px;">Barangay</td>
+            <td style="border-bottom: 1px solid #000; padding: 3px 6px;" class="field-val">${brgyStr}</td>
           </tr>
           <tr>
-            <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 2px 6px;">Municipality/City</td>
-            <td style="border-bottom: 1px solid #000; padding: 2px 6px;" class="field-val">${muniStr}</td>
+            <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px 6px;">Municipality/City</td>
+            <td style="border-bottom: 1px solid #000; padding: 3px 6px;" class="field-val">${muniStr}</td>
           </tr>
           <tr>
-            <td style="border-right: 1px solid #000; padding: 2px 6px;">Province</td>
-            <td style="padding: 2px 6px;" class="field-val">${provStr}</td>
+            <td style="border-right: 1px solid #000; padding: 3px 6px;">Province</td>
+            <td style="padding: 3px 6px;" class="field-val">${provStr}</td>
           </tr>
         </table>
       </div>
@@ -565,12 +590,12 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     <div style="display: flex; border-bottom: 1px solid #000;">
       <!-- Left: TIN -->
       <div style="width: 70%; display: flex; border-right: 1px solid #000;">
-        <div style="width: 22%; padding: 2.5px 6px; font-weight: bold; font-size: 7.5pt; border-right: 1px solid #000; display: flex; align-items: center;">TIN</div>
-        <div style="width: 78%; padding: 2.5px 6px;" class="field-val">${tin}</div>
+        <div style="width: 22%; padding: 3px 6px; font-weight: bold; font-size: 8.6pt; border-right: 1px solid #000; display: flex; align-items: center;">TIN</div>
+        <div style="width: 78%; padding: 3px 6px;" class="field-val">${tin}</div>
       </div>
       <!-- Right: HEIGHT (FT.) -->
       <div style="width: 30%; display: flex;">
-        <div style="width: 50%; padding: 2.5px 4px; font-weight: bold; font-size: 7.2pt; border-right: 1px solid #000; display: flex; align-items: center;">HEIGHT (FT.)</div>
+        <div style="width: 50%; padding: 2.5px 4px; font-weight: bold; font-size: 8.3pt; border-right: 1px solid #000; display: flex; align-items: center;">HEIGHT (FT.)</div>
         <div style="width: 50%; padding: 2.5px 4px;" class="field-val">${height}</div>
       </div>
     </div>
@@ -578,9 +603,9 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     <!-- Row: Disability & Contact/Email (With Explicit Field Divider Border) -->
     <div style="display: flex; border-bottom: 1.5px solid #000;">
       <!-- Disability Column -->
-      <div style="width: 70%; padding: 3px 6px; border-right: 1px solid #000;">
+      <div style="width: 70%; padding: 4px 6px; border-right: 1px solid #000;">
         <div style="display: flex; align-items: flex-start; gap: 8px;">
-          <span style="font-weight: bold; font-size: 7.5pt; width: 68px; flex-shrink: 0;">DISABILITY</span>
+          <span style="font-weight: bold; font-size: 8.6pt; width: 68px; flex-shrink: 0;">DISABILITY</span>
           <div style="display: flex; flex-direction: column; gap: 3px; flex: 1;">
             <div style="display: flex; gap: 14px;">
               <span class="chk-label"><span class="${chk(hasVisual)}"></span>Visual</span>
@@ -601,30 +626,30 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       <!-- Contact / Email Column with Exact Dividers -->
       <div style="width: 30%; display: flex; flex-direction: column;">
         <div style="display: flex; border-bottom: 1px solid #000; flex: 1;">
-          <div style="width: 50%; font-weight: bold; font-size: 7pt; padding: 2px 4px; border-right: 1px solid #000; display: flex; align-items: center; line-height: 1.15;">
+          <div style="width: 50%; font-weight: bold; font-size: 8pt; padding: 3px 4px; border-right: 1px solid #000; display: flex; align-items: center; line-height: 1.15;">
             CONTACT<br>NUMBER/S
           </div>
-          <div style="width: 50%; padding: 2px 4px; display: flex; align-items: center;" class="field-val">${contact}</div>
+          <div style="width: 50%; padding: 3px 4px; display: flex; align-items: center;" class="field-val">${contact}</div>
         </div>
         <div style="display: flex; flex: 1;">
-          <div style="width: 50%; font-weight: bold; font-size: 7.2pt; padding: 2px 4px; border-right: 1px solid #000; display: flex; align-items: center;">
+          <div style="width: 50%; font-weight: bold; font-size: 8.3pt; padding: 3px 4px; border-right: 1px solid #000; display: flex; align-items: center;">
             E-MAIL
           </div>
-          <div style="width: 50%; padding: 2px 4px; word-break: break-all; font-size: 7pt; display: flex; align-items: center;" class="field-val">${email}</div>
+          <div style="width: 50%; padding: 3px 4px; word-break: break-all; font-size: 8pt; display: flex; align-items: center;" class="field-val">${email}</div>
         </div>
       </div>
     </div>
 
     <!-- ─── EMPLOYMENT STATUS / TYPE ─── -->
-    <div style="font-weight: bold; font-size: 8pt; padding: 2px 6px; border-bottom: 1px solid #000;">EMPLOYMENT STATUS / TYPE</div>
+    <div style="font-weight: bold; font-size: 9.2pt; padding: 3px 6px; border-bottom: 1px solid #000;">EMPLOYMENT STATUS / TYPE</div>
     <div style="display: flex; border-bottom: 1px solid #000;">
       <!-- Employed Column -->
-      <div style="width: 46%; padding: 4px 6px; border-right: 1px solid #000;">
+      <div style="width: 46%; padding: 5px 6px; border-right: 1px solid #000;">
         <span class="chk-label" style="font-weight: bold;"><span class="${chk(isEmployed)}"></span>Employed</span>
-        <div style="margin-left: 18px; margin-top: 3px; display: flex; flex-direction: column; gap: 2px;">
+        <div style="margin-left: 18px; margin-top: 1px; display: flex; flex-direction: column; gap: 0;">
           <span class="chk-label"><span class="${chk(isWageEmployed)}"></span>Wage employed</span>
           <span class="chk-label"><span class="${chk(isSelfEmployed)}"></span>Self-employed (Please specify)</span>
-          <div style="margin-left: 16px; display: flex; flex-direction: column; gap: 1.5px; font-size: 7pt;">
+          <div style="margin-left: 16px; display: flex; flex-direction: column; gap: 0; font-size: 8pt;">
             <span class="chk-label"><span class="${chk(isFisher)}"></span>Fisherman/Fisherfolk</span>
             <span class="chk-label"><span class="${chk(isVendor)}"></span>Vendor/Retailer</span>
             <span class="chk-label"><span class="${chk(isHomeBased)}"></span>Home-based worker</span>
@@ -641,26 +666,26 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       </div>
 
       <!-- Unemployed Column -->
-      <div style="width: 54%; padding: 4px 6px;">
+      <div style="width: 54%; padding: 5px 6px;">
         <span class="chk-label" style="font-weight: bold;"><span class="${chk(isUnemployed)}"></span>Unemployed</span>
-        <div style="margin-left: 18px; margin-top: 2px; font-size: 7.2pt; display: flex; align-items: center;">
+        <div style="margin-left: 18px; margin-top: 2px; font-size: 8.3pt; display: flex; align-items: center;">
           <span>How long have you been looking for work? (months)</span>
           <span class="field-val" style="border-bottom: 1px solid #000; min-width: 45px; text-align: center; margin-left: 4px;">${monthsLooking || '&nbsp;'}</span>
         </div>
 
         <div style="display: flex; margin-left: 18px; margin-top: 4px;">
-          <div style="width: 50%; display: flex; flex-direction: column; gap: 2px;">
+          <div style="width: 50%; display: flex; flex-direction: column; gap: 1px;">
             <span class="chk-label"><span class="${chk(isNewEntrant)}"></span>New Entrant/Fresh Graduate</span>
             <span class="chk-label"><span class="${chk(isFinishedContract)}"></span>Finished Contract</span>
             <span class="chk-label"><span class="${chk(isResigned)}"></span>Resigned</span>
             <span class="chk-label"><span class="${chk(isRetired)}"></span>Retired</span>
             <span class="chk-label" style="margin-top: 2px;"><span class="${chk(isCalamity)}"></span>Terminated/Laid off due to calamity</span>
           </div>
-          <div style="width: 50%; display: flex; flex-direction: column; gap: 2.5px;">
+          <div style="width: 50%; display: flex; flex-direction: column; gap: 1px;">
             <span class="chk-label"><span class="${chk(isTerminatedLocal)}"></span>Terminated/Laid off (local)</span>
             <div>
               <span class="chk-label"><span class="${chk(isTerminatedAbroad)}"></span>Terminated/Laid off (abroad)</span>
-              <div style="font-size: 6.8pt; margin-left: 16px; display: flex; align-items: center;">
+              <div style="font-size: 7.8pt; margin-left: 16px; display: flex; align-items: center;">
                 <span>specify country:</span>
                 <span class="field-val" style="border-bottom: 1px solid #000; flex: 1; margin-left: 3px;">&nbsp;</span>
               </div>
@@ -676,29 +701,29 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
     <!-- OFW & 4Ps Rows -->
     <div style="display: flex; border-bottom: 1px solid #000;">
-      <div style="width: 38%; padding: 3px 6px; border-right: 1px solid #000;">
+      <div style="width: 38%; padding: 4px 6px; border-right: 1px solid #000;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 7.5pt;">Are you an OFW?</span>
+          <span style="font-size: 8.6pt;">Are you an OFW?</span>
           <span class="chk-label"><span class="${chk(isOfw)}"></span>Yes</span>
           <span class="chk-label"><span class="${chk(!isOfw)}"></span>No</span>
         </div>
-        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 7.2pt;">
+        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 8.3pt;">
           <span>Specify country</span>
           <span class="field-val" style="border-bottom: 1px solid #000; flex: 1; margin-left: 4px;">${ofwCountry || '&nbsp;'}</span>
         </div>
       </div>
 
-      <div style="width: 62%; padding: 3px 6px;">
+      <div style="width: 62%; padding: 4px 6px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 7.5pt;">Are you a former OFW?</span>
+          <span style="font-size: 8.6pt;">Are you a former OFW?</span>
           <span class="chk-label"><span class="${chk(isFormerOfw)}"></span>Yes</span>
           <span class="chk-label"><span class="${chk(!isFormerOfw)}"></span>No</span>
         </div>
-        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 7.2pt;">
+        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 8.3pt;">
           <span>Latest country of deployment</span>
           <span class="field-val" style="border-bottom: 1px solid #000; flex: 1; margin-left: 4px;">${formerOfwCountry || '&nbsp;'}</span>
         </div>
-        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 7.2pt;">
+        <div style="display: flex; align-items: center; margin-top: 2px; font-size: 8.3pt;">
           <span>Month and year of return to Philippines</span>
           <span class="field-val" style="border-bottom: 1px solid #000; flex: 1; margin-left: 4px;">${formerOfwReturn || '&nbsp;'}</span>
         </div>
@@ -706,7 +731,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     </div>
 
     <!-- 4Ps Beneficiary Row -->
-    <div style="padding: 2.5px 6px; border-bottom: 1.5px solid #000; display: flex; align-items: center; gap: 10px; font-size: 7.5pt;">
+    <div style="padding: 3px 6px; border-bottom: 1.5px solid #000; display: flex; align-items: center; gap: 10px; font-size: 8.6pt;">
       <span>Are you a 4Ps beneficiary?</span>
       <span class="chk-label"><span class="${chk(is4ps)}"></span>Yes</span>
       <span class="chk-label"><span class="${chk(!is4ps)}"></span>No</span>
@@ -735,16 +760,16 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           </th>
         </tr>
         <tr>
-          <th colspan="2" style="border-left: none; border-bottom: 1px solid #000; padding: 2px 4px; font-weight: normal; text-align: center;">
+          <th colspan="2" style="border-left: none; border-bottom: 1px solid #000; padding: 3px 4px; font-weight: normal; text-align: center;">
             <div style="display: flex; justify-content: center; gap: 12px;">
               <span class="chk-label"><span class="${chk(isPartTime)}"></span>Part-time</span>
               <span class="chk-label"><span class="${chk(isFullTime)}"></span>Full-time</span>
             </div>
           </th>
-          <th colspan="2" style="border-bottom: 1px solid #000; padding: 2px 4px; font-weight: normal; text-align: left;">
+          <th colspan="2" style="border-bottom: 1px solid #000; padding: 3px 4px; font-weight: normal; text-align: left;">
             <span class="chk-label"><span class="${chk(hasLocalLoc || !hasOverseasLoc)}"></span>Local (specify cities/municipalities):</span>
           </th>
-          <th colspan="2" style="border-right: none; border-bottom: 1px solid #000; padding: 2px 4px; font-weight: normal; text-align: left;">
+          <th colspan="2" style="border-right: none; border-bottom: 1px solid #000; padding: 3px 4px; font-weight: normal; text-align: left;">
             <span class="chk-label"><span class="${chk(hasOverseasLoc)}"></span>Overseas, (specify countries):</span>
           </th>
         </tr>
@@ -778,7 +803,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
     </table>
 
     <!-- ─── III. LANGUAGE / DIALECT PROFICIENCY ─── -->
-    <div class="section-banner" style="border-top: 1.5px solid #000;">III. LANGUAGE / DIALECT PROFICIENCY <span style="font-weight: normal; font-size: 7.2pt;">(check if applicable)</span></div>
+    <div class="section-banner" style="border-top: 1.5px solid #000;">III. LANGUAGE / DIALECT PROFICIENCY <span style="font-weight: normal; font-size: 8.3pt;">(check if applicable)</span></div>
     <table class="nsrp-table" style="border: none;">
       <colgroup>
         <col style="width: 28%;">
@@ -830,6 +855,8 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       </tbody>
     </table>
 
+    </div>
+
     <!-- Footer Page 1 -->
     <div class="page-footer">
       <div class="iso-seal">
@@ -843,7 +870,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       </div>
 
       <div class="qf-box">
-        <div style="font-weight: bold; font-size: 7.5pt;">QF-NSRP-001</div>
+        <div style="font-weight: bold; font-size: 8.6pt;">QF-NSRP-001</div>
         <div>Revision No: 00</div>
         <div>Date Issued: 05/30/2022</div>
       </div>
@@ -858,11 +885,12 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
   <!-- PAGE 2 — BACK PAGE                                                       -->
   <!-- ══════════════════════════════════════════════════════════════════════════ -->
   <div class="page-container" id="page-2">
+    <div class="form-box">
 
     <!-- ─── IV. EDUCATIONAL BACKGROUND ─── -->
     <div class="section-banner">IV. EDUCATIONAL BACKGROUND</div>
     
-    <div style="padding: 2.5px 6px; border-bottom: 1px solid #000; display: flex; align-items: center; gap: 12px; font-size: 7.5pt;">
+    <div style="padding: 3px 6px; border-bottom: 1px solid #000; display: flex; align-items: center; gap: 12px; font-size: 8.6pt;">
       <span>Currently in school?</span>
       <span class="chk-label"><span class="${chk(inSchool)}"></span>Yes</span>
       <span class="chk-label"><span class="${chk(!inSchool)}"></span>No</span>
@@ -902,12 +930,12 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           </td>
           <td style="padding: 0;">
             <div style="display: flex; min-height: 20px;">
-              <div style="width: 44%; padding: 2px 4px; border-right: 1px solid #000; display: flex; align-items: center;">
+              <div style="width: 44%; padding: 3px 4px; border-right: 1px solid #000; display: flex; align-items: center;">
                 <span class="chk-label"><span class="${chk(isSecK12)}"></span>Secondary (K-12)</span>
               </div>
-              <div style="width: 56%; padding: 2px 4px; display: flex; align-items: center; gap: 4px;">
-                <span style="font-size: 7pt; font-weight: bold; flex-shrink: 0;">Senior High Strand:</span>
-                <span class="field-val" style="font-size: 7.5pt; flex: 1;">${escapeHtml(eduSec?.course || '')}</span>
+              <div style="width: 56%; padding: 3px 4px; display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 8pt; font-weight: bold; flex-shrink: 0;">Senior High Strand:</span>
+                <span class="field-val" style="font-size: 8.6pt; flex: 1;">${escapeHtml(eduSec?.course || '')}</span>
               </div>
             </div>
           </td>
@@ -934,7 +962,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
     <!-- ─── V. TECHNICAL/VOCATIONAL AND OTHER TRAINING ─── -->
     <div class="section-banner" style="border-top: 1.5px solid #000;">
-      V. TECHNICAL/VOCATIONAL AND OTHER TRAINING <span style="font-weight: normal; font-size: 7pt;">(Include courses taken as part of college education)</span>
+      V. TECHNICAL/VOCATIONAL AND OTHER TRAINING <span style="font-weight: normal; font-size: 8pt;">(Include courses taken as part of college education)</span>
     </div>
     <table class="nsrp-table" style="border: none;">
       <colgroup>
@@ -953,7 +981,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           <th style="width: 17%; border-top: none;">SKILLS ACQUIRED</th>
           <th style="width: 20%; border-top: none; border-right: none;">
             <div>CERTIFICATES RECEIVED</div>
-            <div style="font-size: 5.8pt; font-weight: normal;">(NC I, NC II, NC III, NC IV, etc.)</div>
+            <div style="font-size: 6.7pt; font-weight: normal;">(NC I, NC II, NC III, NC IV, etc.)</div>
           </th>
         </tr>
       </thead>
@@ -1026,7 +1054,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
     <!-- ─── VII. WORK EXPERIENCE ─── -->
     <div class="section-banner" style="border-top: 1.5px solid #000;">
-      VII. WORK EXPERIENCE <span style="font-weight: normal; font-size: 7pt;">(Limit to 10 year period, start with the most recent employment)</span>
+      VII. WORK EXPERIENCE <span style="font-weight: normal; font-size: 8pt;">(Limit to 10 year period, start with the most recent employment)</span>
     </div>
     <table class="nsrp-table" style="border: none;">
       <colgroup>
@@ -1044,7 +1072,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
           <th style="width: 10%; border-top: none;">NUMBER OF MONTHS</th>
           <th style="width: 18%; border-top: none; border-right: none;">
             <div>STATUS</div>
-            <div style="font-size: 5.8pt; font-weight: normal;">(Permanent, Contractual, Part-time, Probationary)</div>
+            <div style="font-size: 6.7pt; font-weight: normal;">(Permanent, Contractual, Part-time, Probationary)</div>
           </th>
         </tr>
       </thead>
@@ -1075,7 +1103,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
     <!-- ─── VIII. OTHER SKILLS ACQUIRED WITHOUT CERTIFICATE ─── -->
     <div class="section-banner" style="border-top: 1.5px solid #000;">VIII. OTHER SKILLS ACQUIRED WITHOUT CERTIFICATE</div>
-    <div style="display: flex; border-bottom: 1.5px solid #000; padding: 4px 6px;">
+    <div style="display: flex; border-bottom: 1.5px solid #000; padding: 5px 6px;">
       <div style="width: 33%; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid #000; padding-right: 6px;">
         <span class="chk-label"><span class="${chk(hasSkill('mechanic'))}"></span>AUTO MECHANIC</span>
         <span class="chk-label"><span class="${chk(hasSkill('beautician'))}"></span>BEAUTICIAN</span>
@@ -1107,31 +1135,31 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
     <!-- ─── CERTIFICATION/AUTHORIZATION ─── -->
     <div style="padding: 4px 8px; border-bottom: 1.5px solid #000;">
-      <div style="text-align: center; font-weight: bold; font-size: 8pt; margin-bottom: 3px;">CERTIFICATION/AUTHORIZATION</div>
-      <p style="font-size: 7.2pt; text-align: justify; line-height: 1.25;">
+      <div style="text-align: center; font-weight: bold; font-size: 9.2pt; margin-bottom: 3px;">CERTIFICATION/AUTHORIZATION</div>
+      <p style="font-size: 8.3pt; text-align: justify; line-height: 1.25;">
         This is to certify that all data/information that I have provided in this form are true to the best of my knowledge. This is also to authorize DOLE to include my profile in the PESO Employment Information System and use my personal information for employment facilitation. I am also aware that DOLE is not obliged to seek employment on my behalf.
       </p>
 
       <div style="display: flex; justify-content: space-between; margin-top: 18px; padding: 0 20px;">
         <div style="width: 50%; text-align: center;">
-          <div style="border-bottom: 1px solid #000; margin: 0 auto 3px auto; width: 85%; font-size: 8pt; font-weight: bold;">${firstName} ${middleName ? middleName[0] + '. ' : ''}${surname} ${suffix}</div>
-          <div style="font-size: 7.5pt;">Signature of Applicant</div>
+          <div style="border-bottom: 1px solid #000; margin: 0 auto 3px auto; width: 85%; font-size: 9.2pt; font-weight: bold;">${firstName} ${middleName ? middleName[0] + '. ' : ''}${surname} ${suffix}</div>
+          <div style="font-size: 8.6pt;">Signature of Applicant</div>
         </div>
         <div style="width: 35%; text-align: center;">
-          <div style="border-bottom: 1px solid #000; margin: 0 auto 3px auto; width: 85%; font-weight: bold; font-size: 8pt;">${signDate}</div>
-          <div style="font-size: 7.5pt;">Date</div>
+          <div style="border-bottom: 1px solid #000; margin: 0 auto 3px auto; width: 85%; font-weight: bold; font-size: 9.2pt;">${signDate}</div>
+          <div style="font-size: 8.6pt;">Date</div>
         </div>
       </div>
     </div>
 
     <!-- ─── FOR USE OF PESO ONLY ─── -->
-    <div style="text-align: center; font-weight: bold; font-size: 7.5pt; padding: 2px 6px; border-bottom: 1.5px solid #000; background: #fff;">
+    <div style="text-align: center; font-weight: bold; font-size: 8.6pt; padding: 3px 6px; border-bottom: 1.5px solid #000; background: #fff;">
       FOR USE OF PESO ONLY. PLEASE DO NOT WRITE BELOW THIS DOTTED LINE.
     </div>
     <div style="display: flex; border-bottom: 1.5px solid #000; padding: 4px 8px;">
       <!-- Referred To -->
       <div style="width: 48%; border-right: 1px solid #000; padding-right: 8px;">
-        <div style="font-weight: bold; font-size: 7.5pt; margin-bottom: 3px;">Referred to:</div>
+        <div style="font-weight: bold; font-size: 8.6pt; margin-bottom: 3px;">Referred to:</div>
         <div style="display: flex;">
           <div style="width: 50%; display: flex; flex-direction: column; gap: 2.5px;">
             <span class="chk-label"><span class="${chk(refSpes)}"></span>SPES</span>
@@ -1152,16 +1180,18 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
 
       <!-- Assessed By -->
       <div style="width: 52%; padding-left: 12px; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="font-weight: bold; font-size: 7.5pt;">Assessed by:</div>
+        <div style="font-weight: bold; font-size: 8.6pt;">Assessed by:</div>
         <div style="margin-top: 14px;">
-          <div style="border-bottom: 1px solid #000; text-align: center; font-size: 8pt; font-weight: bold;">${assessor}</div>
-          <div style="text-align: center; font-size: 7pt; margin-top: 2px;">Signature over Printed Name of Assessor</div>
+          <div style="border-bottom: 1px solid #000; text-align: center; font-size: 9.2pt; font-weight: bold;">${assessor}</div>
+          <div style="text-align: center; font-size: 8pt; margin-top: 2px;">Signature over Printed Name of Assessor</div>
         </div>
         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 6px;">
-          <span style="font-size: 7pt; font-weight: bold;">Date:</span>
-          <span class="field-val" style="border-bottom: 1px solid #000; min-width: 90px; text-align: center; font-size: 7.5pt;">${assessDate}</span>
+          <span style="font-size: 8pt; font-weight: bold;">Date:</span>
+          <span class="field-val" style="border-bottom: 1px solid #000; min-width: 90px; text-align: center; font-size: 8.6pt;">${assessDate}</span>
         </div>
       </div>
+    </div>
+
     </div>
 
     <!-- Footer Page 2 -->
@@ -1177,7 +1207,7 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
       </div>
 
       <div class="qf-box">
-        <div style="font-weight: bold; font-size: 7.5pt;">QF-NSRP-001</div>
+        <div style="font-weight: bold; font-size: 8.6pt;">QF-NSRP-001</div>
         <div>Revision No: 00</div>
         <div>Date Issued: 05/30/2022</div>
       </div>
