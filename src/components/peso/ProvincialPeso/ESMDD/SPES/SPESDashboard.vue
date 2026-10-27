@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import { RouterLink } from 'vue-router'
 import {
   AlertTriangle,
   CheckIcon,
@@ -221,7 +220,7 @@ const {
           </SelectContent>
         </Select>
         <Button variant="outline" as-child>
-          <RouterLink :to="{ name: 'provincial-peso-spes-applicants' }">View Applicants</RouterLink>
+          <AppLink :to="{ name: 'provincial-peso-spes-applicants' }">View Applicants</AppLink>
         </Button>
         <Button variant="outline" @click="openDrawDialog">Draw Applicants</Button>
         <Button @click="openAppointDialog">

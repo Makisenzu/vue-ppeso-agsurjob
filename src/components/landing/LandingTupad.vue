@@ -82,21 +82,21 @@ const { hero, about, facts, requirements, cta, isLoading } = useLandingTupad()
           <p class="text-sm text-muted-foreground">Log in to apply. New here? Sign up for free.</p>
           <div class="flex flex-wrap gap-3">
             <Button as-child size="lg">
-              <RouterLink :to="{ name: 'login' }">Log in to apply</RouterLink>
+              <AppLink :to="{ name: 'login' }">Log in to apply</AppLink>
             </Button>
             <Button as-child size="lg" variant="outline">
-              <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
+              <AppLink :to="{ name: 'signup' }">Sign up</AppLink>
             </Button>
           </div>
         </div>
         <div v-else-if="cta === 'apply' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" class="w-full sm:w-auto">
-            <RouterLink :to="{ name: 'tupad-application-form' }">Apply now</RouterLink>
+            <AppLink :to="{ name: 'tupad-application-form' }">Apply now</AppLink>
           </Button>
         </div>
         <div v-else-if="cta === 'applied' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" variant="outline" class="w-full sm:w-auto">
-            <RouterLink :to="{ name: 'tupad-application-form' }">View my application</RouterLink>
+            <AppLink :to="{ name: 'tupad-application-form' }">View my application</AppLink>
           </Button>
         </div>
       </section>

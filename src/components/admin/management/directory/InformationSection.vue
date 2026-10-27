@@ -368,15 +368,14 @@ const handleUpdateDocumentStatus = async () => {
           <div class="sm:col-span-2">
             <span class="text-muted-foreground">Website:</span>
             <span class="ml-2">
-              <a
+              <AppLink
                 v-if="selectedRecord.companyDetails.website"
                 :href="selectedRecord.companyDetails.website"
                 target="_blank"
-                rel="noopener noreferrer"
                 class="text-blue-600 hover:underline font-medium text-xs inline-flex items-center gap-1"
               >
                 <Globe class="h-3.5 w-3.5" /> {{ selectedRecord.companyDetails.website }}
-              </a>
+              </AppLink>
               <span v-else class="font-medium text-muted-foreground">N/A</span>
             </span>
           </div>

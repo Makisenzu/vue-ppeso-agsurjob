@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -46,7 +46,7 @@ const breadcrumbs = computed(() => {
           </BreadcrumbPage>
 
           <BreadcrumbLink v-else as-child>
-            <RouterLink :to="crumb.to">{{ crumb.title }}</RouterLink>
+            <AppLink :to="crumb.to">{{ crumb.title }}</AppLink>
           </BreadcrumbLink>
         </BreadcrumbItem>
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { ChevronDown, ExternalLink, Loader2, Pencil, Plus, RefreshCw, Trash2, UserRound } from '@lucide/vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -53,10 +52,10 @@ const {
     <!-- Toolbar -->
     <div class="flex flex-wrap justify-end gap-2">
       <Button variant="ghost" as-child>
-        <RouterLink to="/what-is-peso" target="_blank">
+        <AppLink to="/what-is-peso" target="_blank">
           View page
           <ExternalLink class="size-4" />
-        </RouterLink>
+        </AppLink>
       </Button>
       <Button variant="outline" :disabled="isLoading" @click="refreshChart">
         <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />

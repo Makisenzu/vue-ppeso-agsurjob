@@ -44,17 +44,16 @@ const attachedCount = computed(() => requirements.value.filter((doc) => doc.chec
       >
         <!-- Thumbnail opens the full file in a new tab -->
         <Skeleton v-if="doc.checked && isLoading" class="size-10 shrink-0 rounded-md" />
-        <a
+        <AppLink
           v-else-if="doc.attachment?.url"
           :href="doc.attachment.url"
           target="_blank"
-          rel="noopener noreferrer"
           class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted"
           :aria-label="`Open ${doc.label}`"
         >
           <img v-if="doc.isImage" :src="doc.attachment.url" :alt="doc.label" class="size-full object-cover" />
           <FileText v-else class="size-5 text-muted-foreground" />
-        </a>
+        </AppLink>
         <div v-else class="size-10 shrink-0 rounded-md border border-dashed" />
 
         <div class="min-w-0 flex-1">
@@ -62,16 +61,15 @@ const attachedCount = computed(() => requirements.value.filter((doc) => doc.chec
             {{ doc.label }}
           </p>
           <Skeleton v-if="doc.checked && isLoading" class="mt-1 h-3 w-32" />
-          <a
+          <AppLink
             v-else-if="doc.attachment?.url"
             :href="doc.attachment.url"
             target="_blank"
-            rel="noopener noreferrer"
             class="inline-flex max-w-full items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             <span class="truncate">{{ doc.attachment.filename }}</span>
             <ExternalLink class="size-3 shrink-0" />
-          </a>
+          </AppLink>
           <p v-else-if="doc.attachment" class="truncate text-xs text-muted-foreground">
             {{ doc.attachment.filename }} (preview unavailable)
           </p>

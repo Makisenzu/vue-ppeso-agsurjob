@@ -66,7 +66,7 @@ const STAGE_BADGE_CLASS: Record<string, string> = {
       </EmptyHeader>
       <EmptyContent v-if="filter !== 'vacancy'">
         <Button as-child variant="outline">
-          <RouterLink :to="{ name: 'gip-application' }">Browse PESO programs</RouterLink>
+          <AppLink :to="{ name: 'gip-application' }">Browse PESO programs</AppLink>
         </Button>
       </EmptyContent>
     </Empty>
@@ -88,9 +88,9 @@ const STAGE_BADGE_CLASS: Record<string, string> = {
           <div class="flex shrink-0 items-center gap-3">
             <Badge variant="outline" :class="STAGE_BADGE_CLASS[item.stage]">{{ item.status }}</Badge>
             <Button as-child variant="ghost" size="sm">
-              <RouterLink :to="item.to">
+              <AppLink :to="item.to">
                 View <ArrowRight class="size-4" />
-              </RouterLink>
+              </AppLink>
             </Button>
           </div>
         </div>

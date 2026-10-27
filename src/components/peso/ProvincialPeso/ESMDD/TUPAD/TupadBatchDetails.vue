@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import { RouterLink } from 'vue-router'
 import { ChevronLeft, ExternalLink, FileText, Loader2, Pencil, Plus, RefreshCw, UserPlus, Users } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -111,10 +110,10 @@ const {
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div class="space-y-1">
         <Button variant="ghost" size="sm" class="-ml-2 mb-1 text-muted-foreground" as-child>
-          <RouterLink :to="{ name: 'provincial-peso-tupad' }">
+          <AppLink :to="{ name: 'provincial-peso-tupad' }">
             <ChevronLeft class="size-4 shrink-0" />
             TUPAD Dashboard
-          </RouterLink>
+          </AppLink>
         </Button>
         <Skeleton v-if="isLoading && !currentBatch" class="h-8 w-56" />
         <div v-else-if="currentBatch" class="flex flex-wrap items-center gap-3">
@@ -297,9 +296,9 @@ const {
       <p v-if="!isDaysValid" class="text-sm text-destructive">Enter whole days from 1 to 365.</p>
       <p v-if="notReadyCount > 0" class="text-sm text-muted-foreground">
         {{ notReadyCount }} applicant(s) are incomplete. Complete their income and documents in
-        <RouterLink :to="{ name: 'provincial-peso-tupad-applicants' }" class="font-medium text-primary underline-offset-4 hover:underline">
+        <AppLink :to="{ name: 'provincial-peso-tupad-applicants' }" class="font-medium text-primary underline-offset-4 hover:underline">
           TUPAD Applicants
-        </RouterLink>
+        </AppLink>
         first.
       </p>
 
@@ -524,15 +523,14 @@ const {
                   class="flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-sm"
                 >
                   <FileText class="size-4 shrink-0 text-muted-foreground" />
-                  <a
+                  <AppLink
                     v-if="file.url"
                     :href="file.url"
                     target="_blank"
-                    rel="noopener noreferrer"
                     class="min-w-0 flex-1 truncate font-medium text-primary underline-offset-4 hover:underline"
                   >
                     {{ file.file_name }}
-                  </a>
+                  </AppLink>
                   <span v-else class="min-w-0 flex-1 truncate" title="File is no longer available">
                     {{ file.file_name }}
                   </span>
@@ -555,15 +553,14 @@ const {
                 class="flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-sm"
               >
                 <FileText class="size-4 shrink-0 text-muted-foreground" />
-                <a
+                <AppLink
                   v-if="file.url"
                   :href="file.url"
                   target="_blank"
-                  rel="noopener noreferrer"
                   class="min-w-0 flex-1 truncate font-medium text-primary underline-offset-4 hover:underline"
                 >
                   {{ file.file_name }}
-                </a>
+                </AppLink>
                 <span v-else class="min-w-0 flex-1 truncate">{{ file.file_name }}</span>
                 <span class="shrink-0 text-xs text-muted-foreground">{{ formatTupadDate(file.created_at) }}</span>
               </li>

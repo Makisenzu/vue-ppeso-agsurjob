@@ -87,7 +87,7 @@ const { open, preview, unreadCount, isLoading, hasLoaded, isMutating, markAllRea
 
       <div class="border-t border-border p-2">
         <Button variant="ghost" size="sm" class="w-full" as-child>
-          <RouterLink :to="to" @click="open = false">View all notifications</RouterLink>
+          <AppLink :to="to" @click="open = false">View all notifications</AppLink>
         </Button>
       </div>
     </PopoverContent>

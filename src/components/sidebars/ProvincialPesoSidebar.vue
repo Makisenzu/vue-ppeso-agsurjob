@@ -118,28 +118,28 @@ const {
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
               <SidebarMenuButton as-child :tooltip="'Home'">
-                  <RouterLink :to="{ name: 'login' }" @click="collapseSidebar">
+                  <AppLink :to="{ name: 'login' }" @click="collapseSidebar">
                     <Home />
                     <span>Home</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="isActive('provincial-peso-dashboard')">
-                  <RouterLink :to="{ name: 'provincial-peso-dashboard' }" @click="collapseSidebar">
+                  <AppLink :to="{ name: 'provincial-peso-dashboard' }" @click="collapseSidebar">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Entry of Applicants'" :is-active="isActive('provincial-peso-entry')">
-                  <RouterLink :to="{ name: 'provincial-peso-entry' }" @click="collapseSidebar">
+                  <AppLink :to="{ name: 'provincial-peso-entry' }" @click="collapseSidebar">
                     <BetweenHorizontalEnd />
                     <span>Entry of Applicants</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Skill Tagging'" :is-active="isActive('provincial-peso-skills-repository')">
-                  <RouterLink :to="{ name: 'provincial-peso-skills-repository' }" @click="collapseSidebar">
+                  <AppLink :to="{ name: 'provincial-peso-skills-repository' }" @click="collapseSidebar">
                     <Database />
                     <span>Skill Tagging</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
           
@@ -149,10 +149,10 @@ const {
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
-                  <RouterLink :to="item.to" @click="collapseSidebar">
+                  <AppLink :to="item.to" @click="collapseSidebar">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -161,10 +161,10 @@ const {
               <SidebarGroupLabel>ESMDD</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in employmentItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
-                  <RouterLink :to="item.to" @click="collapseSidebar">
+                  <AppLink :to="item.to" @click="collapseSidebar">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -174,10 +174,10 @@ const {
               <SidebarGroupLabel>Skill Development Division</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in sddItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title" :is-active="isActive(item.to.name)">
-                  <RouterLink :to="item.to" @click="collapseSidebar">
+                  <AppLink :to="item.to" @click="collapseSidebar">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -198,9 +198,9 @@ const {
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="" @click="collapseSidebar">
+                            <AppLink to="" @click="collapseSidebar">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -222,9 +222,9 @@ const {
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="" @click="collapseSidebar">
+                            <AppLink to="" @click="collapseSidebar">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

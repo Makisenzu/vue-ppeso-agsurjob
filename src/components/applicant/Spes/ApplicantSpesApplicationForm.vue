@@ -90,12 +90,12 @@ const INDICATOR_CLASS =
   <div class="mx-auto flex w-full flex-col gap-8 pb-16" :class="isFillingDetails ? 'max-w-6xl' : 'max-w-3xl'">
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-4">
-      <RouterLink
+      <AppLink
         :to="backLink.to"
         class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft class="size-4" /> {{ backLink.label }}
-      </RouterLink>
+      </AppLink>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex flex-col gap-1">
           <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">SPES Application</h1>
@@ -178,7 +178,7 @@ const INDICATOR_CLASS =
             </div>
           </dl>
           <Button as-child variant="outline" size="sm" class="w-fit">
-            <RouterLink :to="{ name: 'spes-details' }"><Pencil class="size-4" /> Edit details</RouterLink>
+            <AppLink :to="{ name: 'spes-details' }"><Pencil class="size-4" /> Edit details</AppLink>
           </Button>
         </template>
         <SpesFormSteps
@@ -333,7 +333,7 @@ const INDICATOR_CLASS =
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="spes-form-applicant-title" class="text-lg font-semibold text-foreground">Your SPES Details</h2>
           <Button as-child variant="outline" size="sm">
-            <RouterLink :to="{ name: 'spes-details' }"><Pencil class="size-4" /> Edit details</RouterLink>
+            <AppLink :to="{ name: 'spes-details' }"><Pencil class="size-4" /> Edit details</AppLink>
           </Button>
         </div>
         <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -120,10 +119,10 @@ const {
   <div class="w-full min-w-0 space-y-4">
     <div class="flex items-center justify-between gap-2">
       <Button variant="ghost" size="sm" class="-ml-2" as-child>
-        <RouterLink :to="{ name: 'provincial-peso-recruitment-activity' }">
+        <AppLink :to="{ name: 'provincial-peso-recruitment-activity' }">
           <ArrowLeft class="size-4" />
           Back to Recruitment Activities
-        </RouterLink>
+        </AppLink>
       </Button>
       <Button variant="outline" size="sm" :disabled="isLoading" @click="refreshActivity">
         <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />

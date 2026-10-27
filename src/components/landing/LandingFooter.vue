@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { Separator } from '@/components/ui/separator'
 import LandingLink from '@/components/landing/LandingLink.vue'
 import { useLandingFooter } from '@/composables/landing/useLandingFooter'
@@ -17,9 +16,9 @@ const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos
       <div class="flex flex-col gap-6">
         <!-- Logo on the left, office name and address beside it -->
         <div class="flex items-center gap-4">
-          <RouterLink to="/" class="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <AppLink to="/" class="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <img :src="agsurSeal" alt="AGSURJOBS" class="size-12 object-contain" />
-          </RouterLink>
+          </AppLink>
 
           <div class="flex min-w-0 flex-col gap-1">
             <p class="text-sm font-semibold text-foreground">{{ office }}</p>
@@ -32,15 +31,14 @@ const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos
           <div v-for="contact in contacts" :key="contact.type" class="min-w-0">
             <dt class="sr-only">{{ contact.type }}</dt>
             <dd class="min-w-0">
-              <a
+              <AppLink
                 :href="contact.href"
                 :target="contact.href.startsWith('http') ? '_blank' : undefined"
-                :rel="contact.href.startsWith('http') ? 'noopener noreferrer' : undefined"
                 class="inline-flex min-h-10 max-w-full items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary lg:min-h-8"
               >
                 <component :is="contact.icon" class="size-4 shrink-0 text-muted-foreground" />
                 <span class="break-all">{{ contact.label }}</span>
-              </a>
+              </AppLink>
             </dd>
           </div>
         </dl>
@@ -85,14 +83,14 @@ const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos
         <h3 id="footer-account" class="text-sm font-semibold text-foreground">Account</h3>
         <ul class="flex flex-col gap-1">
           <li>
-            <RouterLink :to="{ name: 'login' }" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
+            <AppLink :to="{ name: 'login' }" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
               Log in
-            </RouterLink>
+            </AppLink>
           </li>
           <li>
-            <RouterLink :to="{ name: 'signup' }" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
+            <AppLink :to="{ name: 'signup' }" class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground lg:min-h-8">
               Sign up
-            </RouterLink>
+            </AppLink>
           </li>
         </ul>
       </nav>
@@ -102,7 +100,7 @@ const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos
 
     <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
       <p>© {{ year }} Provincial Government of Agusan del Sur. All rights reserved.</p>
-      <a href="#main" class="w-fit transition-colors hover:text-foreground">Back to top</a>
+      <AppLink href="#main" class="w-fit transition-colors hover:text-foreground">Back to top</AppLink>
     </div>
   </footer>
 </template>

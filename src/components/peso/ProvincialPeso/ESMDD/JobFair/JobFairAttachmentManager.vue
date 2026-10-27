@@ -116,9 +116,9 @@ function onDrop(event: DragEvent) {
         </AttachmentContent>
         <AttachmentActions>
           <AttachmentAction as-child :aria-label="`Open ${attachment.filename}`">
-            <a :href="attachment.url" target="_blank" rel="noopener noreferrer">
+            <AppLink :href="attachment.url" target="_blank">
               <ExternalLink />
-            </a>
+            </AppLink>
           </AttachmentAction>
           <AttachmentAction
             type="button"

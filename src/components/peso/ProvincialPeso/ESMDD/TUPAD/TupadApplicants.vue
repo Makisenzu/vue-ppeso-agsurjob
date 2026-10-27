@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import { RouterLink } from 'vue-router'
 import { ChevronLeft, ExternalLink, FileText, Loader2, RefreshCw, Trash2, Users, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -76,10 +75,10 @@ const {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <Button variant="ghost" size="sm" class="-ml-2 mb-1 text-muted-foreground" as-child>
-          <RouterLink :to="{ name: 'provincial-peso-tupad' }">
+          <AppLink :to="{ name: 'provincial-peso-tupad' }">
             <ChevronLeft class="size-4 shrink-0" />
             TUPAD Dashboard
-          </RouterLink>
+          </AppLink>
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">TUPAD Applicants</h1>
         <p class="text-sm text-muted-foreground">
@@ -87,7 +86,7 @@ const {
         </p>
       </div>
       <Button variant="outline" as-child>
-        <RouterLink :to="{ name: 'provincial-peso-entry' }">Entry of Applicants</RouterLink>
+        <AppLink :to="{ name: 'provincial-peso-entry' }">Entry of Applicants</AppLink>
       </Button>
     </div>
 
@@ -201,7 +200,7 @@ const {
       </EmptyHeader>
       <EmptyContent>
         <Button variant="outline" as-child>
-          <RouterLink :to="{ name: 'provincial-peso-entry' }">Go to Entry of Applicants</RouterLink>
+          <AppLink :to="{ name: 'provincial-peso-entry' }">Go to Entry of Applicants</AppLink>
         </Button>
       </EmptyContent>
     </Empty>
@@ -435,17 +434,16 @@ const {
                     </label>
                     <!-- File the applicant attached to this document -->
                     <Skeleton v-if="isLoadingReviewDocuments" class="ml-6 h-5 w-48" />
-                    <a
+                    <AppLink
                       v-else-if="reviewDocuments[doc]?.url"
                       :href="reviewDocuments[doc]!.url!"
                       target="_blank"
-                      rel="noopener noreferrer"
                       class="ml-6 flex min-w-0 items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
                     >
                       <FileText class="size-3.5 shrink-0" />
                       <span class="truncate">{{ reviewDocuments[doc]!.file_name }}</span>
                       <ExternalLink class="size-3 shrink-0" />
-                    </a>
+                    </AppLink>
                     <p v-else-if="reviewDocuments[doc]" class="ml-6 truncate text-xs text-muted-foreground">
                       {{ reviewDocuments[doc]!.file_name }} (file unavailable)
                     </p>

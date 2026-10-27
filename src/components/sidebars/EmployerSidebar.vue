@@ -131,16 +131,16 @@ const companyItems = [
           <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarMenuItem>
               <SidebarMenuButton as-child :tooltip="'Home'">
-                  <RouterLink :to="{ name: 'login' }">
+                  <AppLink :to="{ name: 'login' }">
                     <Home />
                     <span>Home</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'employer-dashboard'">
-                  <RouterLink :to="{ name: 'employer-dashboard' }">
+                  <AppLink :to="{ name: 'employer-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
           
@@ -150,10 +150,10 @@ const companyItems = [
             <SidebarMenu>
               <SidebarMenuItem v-for="item in companyItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink :to="item.to">
+                  <AppLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -162,10 +162,10 @@ const companyItems = [
               <SidebarGroupLabel>Jobs</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in jobItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink :to="item.to">
+                  <AppLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -175,10 +175,10 @@ const companyItems = [
               <SidebarGroupLabel>Communication</SidebarGroupLabel>
               <SidebarMenuItem v-for="item in communicationItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink :to="item.to">
+                  <AppLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -199,9 +199,9 @@ const companyItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <AppLink to="">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -223,9 +223,9 @@ const companyItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in contactSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink to="">
+                            <AppLink to="">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

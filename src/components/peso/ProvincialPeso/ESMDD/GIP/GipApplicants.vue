@@ -1458,15 +1458,14 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                     size="icon-sm"
                     class="shrink-0"
                   >
-                    <a
+                    <AppLink
                       :href="uploadedFileFor(doc)!.url"
                       target="_blank"
-                      rel="noopener noreferrer"
                       :aria-label="`View ${doc}`"
                       :title="uploadedFileFor(doc)!.name"
                     >
                       <Eye class="size-4" />
-                    </a>
+                    </AppLink>
                   </Button>
                 </div>
               </div>

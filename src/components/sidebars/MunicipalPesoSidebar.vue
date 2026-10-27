@@ -130,16 +130,16 @@ const settingsSubItems = [
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenuItem>
               <SidebarMenuButton as-child :tooltip="'Home'">
-                  <RouterLink :to="{ name: 'login' }">
+                  <AppLink :to="{ name: 'login' }">
                     <Home />
                     <span>Home</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
               <SidebarMenuButton as-child :tooltip="'Dashboard'" :is-active="route.name === 'municipal-peso-dashboard'">
-                  <RouterLink :to="{ name: 'municipal-peso-dashboard' }">
+                  <AppLink :to="{ name: 'municipal-peso-dashboard' }">
                     <LayoutDashboard />
                     <span>Dashboard</span>
-                  </RouterLink>
+                  </AppLink>
               </SidebarMenuButton>
           </SidebarMenuItem>
           
@@ -149,10 +149,10 @@ const settingsSubItems = [
             <SidebarMenu>
               <SidebarMenuItem v-for="item in operationsItems" :key="item.title">
                 <SidebarMenuButton as-child :tooltip="item.title">
-                  <RouterLink :to="item.to">
+                  <AppLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
-                  </RouterLink>
+                  </AppLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -173,9 +173,9 @@ const settingsSubItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in analyticsItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
+                            <AppLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -198,9 +198,9 @@ const settingsSubItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in supportItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
+                            <AppLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -223,9 +223,9 @@ const settingsSubItems = [
                       <SidebarMenuSub>
                         <SidebarMenuSubItem v-for="subItem in settingsSubItems" :key="subItem.title">
                           <SidebarMenuSubButton as-child>
-                            <RouterLink :to="subItem.to">
+                            <AppLink :to="subItem.to">
                               <span>{{ subItem.title }}</span>
-                            </RouterLink>
+                            </AppLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

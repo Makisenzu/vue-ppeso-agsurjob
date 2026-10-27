@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { ExternalLink, ImageOff, ImagePlus, Loader2, Trash2 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,10 +34,10 @@ const {
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-sm font-semibold">{{ pageInfo.name }}</h3>
         <Button variant="ghost" size="sm" as-child>
-          <RouterLink :to="pageInfo.path" target="_blank">
+          <AppLink :to="pageInfo.path" target="_blank">
             View page
             <ExternalLink class="size-4" />
-          </RouterLink>
+          </AppLink>
         </Button>
       </div>
 

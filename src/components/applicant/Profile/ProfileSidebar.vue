@@ -225,16 +225,16 @@ const profileShareUrl = computed(() => {
       <li v-if="props.email" class="flex min-w-0 items-center gap-3">
         <Mail class="size-4 shrink-0" aria-hidden="true" />
         <span class="sr-only">Email:</span>
-        <a :href="`mailto:${props.email}`" class="min-w-0 truncate hover:text-foreground hover:underline" :title="props.email">
+        <AppLink :href="`mailto:${props.email}`" class="min-w-0 truncate hover:text-foreground hover:underline" :title="props.email">
           {{ props.email }}
-        </a>
+        </AppLink>
       </li>
       <li v-if="props.phone" class="flex min-w-0 items-center gap-3">
         <Phone class="size-4 shrink-0" aria-hidden="true" />
         <span class="sr-only">Phone:</span>
-        <a :href="`tel:${props.phone.replace(/[^\d+]/g, '')}`" class="min-w-0 truncate hover:text-foreground hover:underline">
+        <AppLink :href="`tel:${props.phone.replace(/[^\d+]/g, '')}`" class="min-w-0 truncate hover:text-foreground hover:underline">
           {{ props.phone }}
-        </a>
+        </AppLink>
       </li>
       <li v-if="props.joinedDate" class="flex min-w-0 items-center gap-3">
         <Calendar class="size-4 shrink-0" aria-hidden="true" />

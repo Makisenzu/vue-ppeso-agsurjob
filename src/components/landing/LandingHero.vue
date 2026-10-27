@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import SplitText from '@/components/SplitText.vue'
@@ -125,22 +124,20 @@ const {
               <p v-if="slide.description" class="max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">{{ slide.description }}</p>
               <div v-if="slide.primary || slide.secondary" class="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Button v-if="slide.primary" size="lg" class="w-full sm:w-auto" as-child>
-                  <RouterLink v-if="slide.primary.to" :to="slide.primary.to">{{ slide.primary.label }}</RouterLink>
-                  <a
+                  <AppLink v-if="slide.primary.to" :to="slide.primary.to">{{ slide.primary.label }}</AppLink>
+                  <AppLink
                     v-else
                     :href="slide.primary.href"
                     :target="slide.primary.external ? '_blank' : undefined"
-                    :rel="slide.primary.external ? 'noopener noreferrer' : undefined"
-                  >{{ slide.primary.label }}</a>
+                  >{{ slide.primary.label }}</AppLink>
                 </Button>
                 <Button v-if="slide.secondary" size="lg" variant="outline" class="w-full sm:w-auto" as-child>
-                  <RouterLink v-if="slide.secondary.to" :to="slide.secondary.to">{{ slide.secondary.label }}</RouterLink>
-                  <a
+                  <AppLink v-if="slide.secondary.to" :to="slide.secondary.to">{{ slide.secondary.label }}</AppLink>
+                  <AppLink
                     v-else
                     :href="slide.secondary.href"
                     :target="slide.secondary.external ? '_blank' : undefined"
-                    :rel="slide.secondary.external ? 'noopener noreferrer' : undefined"
-                  >{{ slide.secondary.label }}</a>
+                  >{{ slide.secondary.label }}</AppLink>
                 </Button>
               </div>
             </div>

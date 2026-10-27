@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import { RouterLink } from 'vue-router'
 import { ArrowLeft, Briefcase, Building2, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, UserRound } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -86,10 +85,10 @@ const qualificationFields = [
 <template>
   <div class="w-full min-w-0 space-y-4">
     <Button variant="ghost" size="sm" class="-ml-2" as-child>
-      <RouterLink :to="{ name: 'provincial-peso-job-fair-participants', params: { jobFairId } }">
+      <AppLink :to="{ name: 'provincial-peso-job-fair-participants', params: { jobFairId } }">
         <ArrowLeft class="size-4" />
         Back to {{ jobFair?.title ?? 'Employers' }}
-      </RouterLink>
+      </AppLink>
     </Button>
 
     <!-- Participant Overview -->

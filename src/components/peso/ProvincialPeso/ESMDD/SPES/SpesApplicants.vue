@@ -3,7 +3,6 @@ import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { RouterLink } from 'vue-router'
 import {
   AlertTriangle,
   CheckIcon,
@@ -215,10 +214,10 @@ const previousAvailments = computed(() => {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <Button variant="ghost" size="sm" class="-ml-2 mb-1 text-muted-foreground" as-child>
-          <RouterLink :to="{ name: 'provincial-peso-spes' }">
+          <AppLink :to="{ name: 'provincial-peso-spes' }">
             <ChevronLeft class="size-4 shrink-0" />
             SPES Dashboard
-          </RouterLink>
+          </AppLink>
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">SPES Applicants</h1>
         <p class="text-sm text-muted-foreground">

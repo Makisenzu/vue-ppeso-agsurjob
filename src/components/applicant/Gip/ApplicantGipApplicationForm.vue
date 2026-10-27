@@ -79,12 +79,12 @@ const INDICATOR_CLASS =
   <div class="mx-auto flex w-full max-w-3xl flex-col gap-8 pb-16">
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-4">
-      <RouterLink
+      <AppLink
         :to="backLink.to"
         class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft class="size-4" /> {{ backLink.label }}
-      </RouterLink>
+      </AppLink>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex flex-col gap-1">
           <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">GIP Application</h1>

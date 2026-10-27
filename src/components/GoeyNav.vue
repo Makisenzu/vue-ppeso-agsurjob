@@ -23,12 +23,12 @@
               <DropdownMenuContent align="start" class="w-56">
                 <template v-for="child in item.children" :key="child.label">
                   <DropdownMenuItem v-if="child.to" as-child @select="markChildSelected">
-                    <RouterLink :to="child.to" exact-active-class="bg-accent text-accent-foreground">
+                    <AppLink :to="child.to" exact-active-class="bg-accent text-accent-foreground">
                       {{ child.label }}
-                    </RouterLink>
+                    </AppLink>
                   </DropdownMenuItem>
                   <DropdownMenuItem v-else-if="child.href" as-child @select="markChildSelected">
-                    <a :href="child.href">{{ child.label }}</a>
+                    <AppLink :href="child.href">{{ child.label }}</AppLink>
                   </DropdownMenuItem>
                   <DropdownMenuItem v-else disabled>
                     {{ child.label }}
@@ -37,19 +37,18 @@
                 </template>
               </DropdownMenuContent>
             </DropdownMenu>
-            <RouterLink v-else-if="item.to" :to="item.to" :class="linkClass" @click="activate(index)">
+            <AppLink v-else-if="item.to" :to="item.to" :class="linkClass" @click="activate(index)">
               <span>{{ item.label }}</span>
-            </RouterLink>
-            <a
+            </AppLink>
+            <AppLink
               v-else
               :href="item.href || undefined"
-              :tabindex="item.href ? undefined : 0"
               :class="linkClass"
               @click="activate(index)"
-              @keydown="e => handleKeyDown(e, item, index)"
+              @keydown="(e: KeyboardEvent) => handleKeyDown(e, item, index)"
             >
               <span>{{ item.label }}</span>
-            </a>
+            </AppLink>
           </li>
         </ul>
       </nav>
@@ -63,7 +62,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, useTemplateRef } from 'vue';
-import { RouterLink } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { ChevronDown } from '@lucide/vue';
 import {

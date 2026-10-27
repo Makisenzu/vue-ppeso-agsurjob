@@ -55,14 +55,13 @@ const props = defineProps<{
         <!-- Website -->
         <div v-if="hasWebsite" class="flex items-center gap-3 text-sm">
           <GlobeIcon class="h-4 w-4 shrink-0 text-muted-foreground" />
-          <a
+          <AppLink
             :href="website.startsWith('http') ? website : `https://${website}`"
             target="_blank"
-            rel="noopener noreferrer"
             class="truncate text-primary hover:underline"
           >
             {{ website }}
-          </a>
+          </AppLink>
         </div>
       </template>
     </CardContent>

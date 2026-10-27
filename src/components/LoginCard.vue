@@ -68,9 +68,9 @@ const { agsurlogo,
           <div class="flex flex-col space-y-1.5">
             <div class="flex items-center">
               <Label for="password">Password</Label>
-              <a href="#" class="ml-auto inline-block text-sm underline">
+              <AppLink href="#" class="ml-auto inline-block text-sm underline">
                 Forgot your password?
-              </a>
+              </AppLink>
             </div>
             <Input
               id="password"

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import { RouterLink } from 'vue-router'
 import { ArrowLeft, Building2, CalendarDays, ExternalLink, Loader2, MapPin, Plus, RefreshCw, Search } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -110,10 +109,10 @@ const textFields = {
 <template>
   <div class="w-full min-w-0 space-y-4">
     <Button variant="ghost" size="sm" class="-ml-2" as-child>
-      <RouterLink :to="{ name: 'provincial-peso-job-fair' }">
+      <AppLink :to="{ name: 'provincial-peso-job-fair' }">
         <ArrowLeft class="size-4" />
         Back to Job Fairs
-      </RouterLink>
+      </AppLink>
     </Button>
 
     <!-- Job Fair Overview -->
@@ -163,14 +162,13 @@ const textFields = {
               <div class="min-w-0">
                 <dt class="text-xs text-muted-foreground">Registration</dt>
                 <dd>
-                  <a
+                  <AppLink
                     :href="jobFair.registration_link"
                     target="_blank"
-                    rel="noopener noreferrer"
                     class="font-medium text-primary hover:underline"
                   >
                     Open registration link
-                  </a>
+                  </AppLink>
                 </dd>
               </div>
             </div>

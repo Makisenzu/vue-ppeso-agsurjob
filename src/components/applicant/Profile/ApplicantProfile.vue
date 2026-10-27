@@ -47,7 +47,7 @@ const {
       </EmptyHeader>
       <EmptyContent v-if="ownUsername">
         <Button as-child>
-          <RouterLink :to="{ name: 'profile', params: { username: ownUsername } }">Go to my profile</RouterLink>
+          <AppLink :to="{ name: 'profile', params: { username: ownUsername } }">Go to my profile</AppLink>
         </Button>
       </EmptyContent>
     </Empty>

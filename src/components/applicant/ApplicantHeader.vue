@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { ChevronDown, LifeBuoy, LogOut, Menu, Moon, Settings2, Sun, UserRound } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -59,10 +58,10 @@ const {
   <header class="sticky top-0 z-50 w-full overflow-hidden border-b border-border bg-background">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
       <!-- Brand -->
-      <RouterLink :to="{ name: 'home' }" class="flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <AppLink :to="{ name: 'home' }" class="flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <img :src="agsurLogo" alt="AGSURJOBS" class="h-9 w-auto object-contain dark:hidden" />
         <img :src="agsurSeal" alt="AGSURJOBS" class="hidden size-9 object-contain dark:block" />
-      </RouterLink>
+      </AppLink>
 
       <!-- Desktop navigation -->
       <div class="ml-auto hidden items-center md:flex">
@@ -115,10 +114,10 @@ const {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem as-child>
-              <RouterLink :to="accountRoute">
+              <AppLink :to="accountRoute">
                 <UserRound class="size-4" />
                 Account
-              </RouterLink>
+              </AppLink>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -126,10 +125,10 @@ const {
                 <LifeBuoy class="size-3.5" /> Support
               </DropdownMenuLabel>
               <DropdownMenuItem v-for="item in supportItems" :key="item.title" as-child>
-                <RouterLink :to="item.to">
+                <AppLink :to="item.to">
                   <component :is="item.icon" class="size-4" />
                   {{ item.title }}
-                </RouterLink>
+                </AppLink>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -138,10 +137,10 @@ const {
                 <Settings2 class="size-3.5" /> Settings
               </DropdownMenuLabel>
               <DropdownMenuItem v-for="item in settingsItems" :key="item.title" as-child>
-                <RouterLink :to="item.to">
+                <AppLink :to="item.to">
                   <component :is="item.icon" class="size-4" />
                   {{ item.title }}
-                </RouterLink>
+                </AppLink>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -175,7 +174,7 @@ const {
                   </CollapsibleTrigger>
                   <CollapsibleContent class="ml-3 flex flex-col gap-1 border-l border-border pl-2">
                     <template v-for="child in item.children" :key="child.title">
-                      <RouterLink
+                      <AppLink
                         v-if="child.to"
                         :to="child.to"
                         class="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
@@ -183,7 +182,7 @@ const {
                         @click="closeMobileMenu"
                       >
                         {{ child.title }}
-                      </RouterLink>
+                      </AppLink>
                       <span
                         v-else
                         class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground opacity-50"
@@ -195,7 +194,7 @@ const {
                     </template>
                   </CollapsibleContent>
                 </Collapsible>
-                <RouterLink
+                <AppLink
                   v-else-if="item.to"
                   :to="item.to"
                   class="rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
@@ -203,7 +202,7 @@ const {
                   @click="closeMobileMenu"
                 >
                   {{ item.title }}
-                </RouterLink>
+                </AppLink>
               </template>
             </nav>
           </SheetContent>

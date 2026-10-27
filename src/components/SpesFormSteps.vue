@@ -615,9 +615,9 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
                           as-child
                           :aria-label="`Open ${doc.label}`"
                         >
-                          <a :href="shownAttachment(doc.key)!.openUrl!" target="_blank" rel="noopener noreferrer">
+                          <AppLink :href="shownAttachment(doc.key)!.openUrl!" target="_blank">
                             <ExternalLink />
-                          </a>
+                          </AppLink>
                         </AttachmentAction>
                         <template v-if="!readonly">
                           <AttachmentAction

@@ -95,9 +95,9 @@ const onFilePicked = (doc: string, event: Event) => {
               class="shrink-0"
               :aria-label="`View ${doc.name}`"
             >
-              <a :href="(doc.pendingFileUrl ?? doc.savedFileUrl)!" target="_blank" rel="noopener noreferrer" title="View">
+              <AppLink :href="(doc.pendingFileUrl ?? doc.savedFileUrl)!" target="_blank" title="View">
                 <Eye class="size-4" />
-              </a>
+              </AppLink>
             </Button>
             <Button
               v-if="canUpload"

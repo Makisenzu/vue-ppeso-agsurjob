@@ -86,10 +86,10 @@ const isBusy = (type: SpesCompletionReportType) => props.busyType === type
 
       <div class="flex shrink-0 flex-wrap gap-2">
         <Button v-if="reports[doc.key]?.url" variant="outline" size="sm" as-child>
-          <a :href="reports[doc.key]!.url!" target="_blank" rel="noopener noreferrer">
+          <AppLink :href="reports[doc.key]!.url!" target="_blank">
             View
             <ExternalLink class="size-3.5 shrink-0" />
-          </a>
+          </AppLink>
         </Button>
         <template v-if="!readonly">
           <Button

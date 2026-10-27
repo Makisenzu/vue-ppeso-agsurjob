@@ -80,10 +80,9 @@ const Modal = computed(() => ({
 
     <ul v-else-if="displaySocials.length" class="-mx-2 space-y-0.5">
       <li v-for="social in displaySocials" :key="social.id">
-        <a
+        <AppLink
           :href="social.href"
           target="_blank"
-          rel="noopener noreferrer"
           class="group flex min-h-9 min-w-0 items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/60"
         >
           <span class="flex shrink-0 items-center gap-2 font-medium text-foreground">
@@ -91,7 +90,7 @@ const Modal = computed(() => ({
             {{ social.name }}
           </span>
           <span class="truncate text-muted-foreground group-hover:text-foreground">{{ social.handle }}</span>
-        </a>
+        </AppLink>
       </li>
     </ul>
 

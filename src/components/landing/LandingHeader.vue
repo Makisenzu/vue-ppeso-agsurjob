@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import { ChevronDown, Menu, Moon, Sun } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,11 +28,11 @@ const { navLinks, activeNavIndex, mobileOpen, isDark, isSignedIn, toggleTheme, c
   <header class="sticky top-0 z-40 w-full overflow-hidden border-b border-border bg-background">
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
       <!-- Brand -->
-      <RouterLink to="/" class="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <AppLink to="/" class="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <!-- The wordmark has a light background, so dark mode shows the seal instead (same as ApplicantHeader) -->
         <img :src="agsurLogo" alt="AGSURJOBS" class="h-9 w-auto shrink-0 object-contain dark:hidden" />
         <img :src="agsurSeal" alt="AGSURJOBS" class="hidden size-9 shrink-0 object-contain dark:block" />
-      </RouterLink>
+      </AppLink>
 
       <!-- Desktop navigation -->
       <div class="ml-auto hidden items-center gap-2 md:flex">
@@ -60,14 +59,14 @@ const { navLinks, activeNavIndex, mobileOpen, isDark, isSignedIn, toggleTheme, c
 
         <!-- "/" redirects a signed-in user to their role's dashboard (router guard) -->
         <Button v-if="isSignedIn" size="sm" class="hidden sm:inline-flex" as-child>
-          <RouterLink to="/">Dashboard</RouterLink>
+          <AppLink to="/">Dashboard</AppLink>
         </Button>
         <div v-else class="hidden items-center gap-2 sm:flex">
           <Button variant="outline" size="sm" as-child>
-            <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
+            <AppLink :to="{ name: 'login' }">Log in</AppLink>
           </Button>
           <Button size="sm" as-child>
-            <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
+            <AppLink :to="{ name: 'signup' }">Sign up</AppLink>
           </Button>
         </div>
 
@@ -116,14 +115,14 @@ const { navLinks, activeNavIndex, mobileOpen, isDark, isSignedIn, toggleTheme, c
             </nav>
             <div class="mt-auto flex flex-col gap-2 p-4">
               <Button v-if="isSignedIn" as-child>
-                <RouterLink to="/" @click="closeMobileMenu">Dashboard</RouterLink>
+                <AppLink to="/" @click="closeMobileMenu">Dashboard</AppLink>
               </Button>
               <template v-else>
                 <Button variant="outline" as-child>
-                  <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
+                  <AppLink :to="{ name: 'login' }">Log in</AppLink>
                 </Button>
                 <Button as-child>
-                  <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
+                  <AppLink :to="{ name: 'signup' }">Sign up</AppLink>
                 </Button>
               </template>
             </div>
