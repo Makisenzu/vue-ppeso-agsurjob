@@ -50,6 +50,8 @@ const {
   selectFile,
   removeFile,
   attachProfileDocument,
+  isGeneratingSpesForm,
+  generateDocument,
   submit,
   statusLabel,
   statusDescription,
@@ -201,6 +203,7 @@ const INDICATOR_CLASS =
           @use-profile="attachProfileDocument"
           @pick="selectFile"
           @remove="removeFile"
+          @generate="generateDocument"
         />
       </section>
 
@@ -256,10 +259,10 @@ const INDICATOR_CLASS =
           Cancel
         </Button>
         <span v-else />
-        <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" @click="nextStep">
+        <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingSpesForm" @click="nextStep">
           Next <ArrowRight class="size-4" />
         </Button>
-        <Button v-else type="button" size="lg" class="cursor-pointer" :disabled="isSubmitting" @click="submit">
+        <Button v-else type="button" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingSpesForm" @click="submit">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Submitting...' : 'Submit application' }}
         </Button>
@@ -354,6 +357,7 @@ const INDICATOR_CLASS =
           @use-profile="attachProfileDocument"
           @pick="selectFile"
           @remove="removeFile"
+          @generate="generateDocument"
         />
         <p v-if="!canUpload" class="text-sm text-muted-foreground">
           PESO has reviewed your application, so the files can no longer be changed.
@@ -361,7 +365,7 @@ const INDICATOR_CLASS =
       </section>
 
       <div v-if="canUpload && hasPendingChanges" class="flex justify-end">
-        <Button type="button" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="isSubmitting" @click="submit">
+        <Button type="button" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="isSubmitting || isGeneratingSpesForm" @click="submit">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Saving...' : 'Save documents' }}
         </Button>

@@ -62,6 +62,8 @@ export interface GipRequirementRow {
   generateLabel?: string | null
   /** That generated document is being built */
   isGenerating?: boolean
+  /** Only generated, never uploaded or picked from "My documents" (the SPES form) */
+  isGeneratedOnly?: boolean
   isOptional: boolean
   /** Ticked in PESO's checklist (uploaded here, or handed in on paper) */
   isReceived: boolean

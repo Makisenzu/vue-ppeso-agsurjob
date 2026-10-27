@@ -13,13 +13,14 @@ import type { ApplicantRow } from '@/types/peso/provincialPeso/applicantEntry'
 import {
   SPES_CIVIL_STATUS_OPTIONS,
   SPES_COMPLETION_REPORTS,
+  SPES_DOCUMENT_REQUIREMENTS,
+  SPES_FORM_DOCUMENT_KEY,
   SPES_SEX_OPTIONS,
   type SpesCivilStatus,
   type SpesCompletionReportMap,
   type SpesDocumentKey,
 } from '@/types/common/spesForm'
 import { matchSpesMunicipality } from '@/helpers/common/spesFormHelper'
-import { spesRequirementsFor } from '@/types/common/spesProgram'
 import {
   formatAddressString,
   parseApplicantAddress,
@@ -171,13 +172,7 @@ export function countSpesCalendarDays(startDate?: string | null, endDate?: strin
 
 /** Documentary requirements checklist from the SPES form, in display order. */
 export function getSpesDocumentChecklist(form: SpesFormRow): { label: string; submitted: boolean }[] {
-  return [
-    { label: 'Birth certificate', submitted: form.has_birth_certificate },
-    { label: 'Proof of income', submitted: form.has_income_proof },
-    { label: 'Proof of passing grades', submitted: form.has_passing_grade_proof },
-    { label: 'Registrar certification', submitted: form.has_registrar_certification },
-    { label: 'OSY certification', submitted: form.has_osy_certification },
-  ]
+  return SPES_DOCUMENT_REQUIREMENTS.map((doc) => ({ label: doc.label, submitted: !!form[doc.key] }))
 }
 
 /** Last working day (Mon–Fri) of an appointment of `days` working days starting on `startDate`. */
@@ -192,15 +187,13 @@ export function computeSpesEndDate(startDate?: string | null, days?: number | nu
 // ─── Randomizer draw (per municipality) ───
 
 /**
- * A form is drawable once every document required from the applicant is checked and has a file
- * attached (`attachedKeys` = requirements with an `applicant_requirement_media` row). What is required
- * follows the student category, same as the applicant's form (spesRequirementsFor): out-of-school
- * youth need no registrar certification, everyone else no OSY certification.
+ * Every requirement ticked and attached — what the draw takes from Pending applicants. The SPES form
+ * is left out: it is the form's own details, which PESO already has.
  */
 export function hasCompleteSpesDocuments(form: SpesFormRow, attachedKeys: readonly SpesDocumentKey[] = []): boolean {
-  return spesRequirementsFor(form.student_category)
-    .filter((doc) => !doc.isOptional)
-    .every((doc) => form[doc.key] && attachedKeys.includes(doc.key))
+  return SPES_DOCUMENT_REQUIREMENTS.filter((doc) => doc.key !== SPES_FORM_DOCUMENT_KEY).every(
+    (doc) => form[doc.key] && attachedKeys.includes(doc.key)
+  )
 }
 
 /** Label used for forms whose municipality has not been filled in. */

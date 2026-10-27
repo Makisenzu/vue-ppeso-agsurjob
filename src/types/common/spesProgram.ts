@@ -1,9 +1,5 @@
 // Content of the SPES program page (public /spes and the applicant's SPES page), like gipProgram.ts
-import {
-  SPES_DOCUMENT_REQUIREMENTS,
-  type SpesDocumentKey,
-  type SpesStudentCategory,
-} from '@/types/common/spesForm'
+import type { SpesDocumentKey } from '@/types/common/spesForm'
 
 export const SPES_HERO = {
   eyebrow: 'Special Program for Employment of Students',
@@ -25,30 +21,11 @@ export const SPES_FACTS: readonly { label: string; value: string }[] = [
   { label: 'Work period', value: '10 or 20 days' },
 ]
 
-const OSY_CATEGORY: SpesStudentCategory = 'out-of-school (OSY)'
-
-/** Required only from out-of-school youth; anyone else may still attach one. */
-const OSY_ONLY: readonly SpesDocumentKey[] = ['has_osy_certification']
-/** Required only from enrolled applicants (students, ALS students); out-of-school youth may skip it. */
-const ENROLLED_ONLY: readonly SpesDocumentKey[] = ['has_registrar_certification']
-
-/**
- * Every SPES requirement, listed for every applicant. Out-of-school youth send the OSY certification
- * instead of the registrar certification; proof of passing grades (their last school record) and the
- * rest are required from everyone.
- */
-export function spesRequirementsFor(category: SpesStudentCategory | null | undefined) {
-  const isOsy = category === OSY_CATEGORY
-  return SPES_DOCUMENT_REQUIREMENTS.map((doc) => ({
-    ...doc,
-    isOptional: isOsy ? ENROLLED_ONLY.includes(doc.key) : OSY_ONLY.includes(doc.key),
-  }))
-}
-
 /**
  * Profile document types attached automatically to the SPES requirement that means the same thing
  * (BACKEND.md §18). Exact types only; anything else can still be picked from "My documents".
  */
 export const SPES_PROFILE_DOCUMENT_MATCHES: Partial<Record<SpesDocumentKey, readonly string[]>> = {
+  has_resume: ['Resume'],
   has_birth_certificate: ['Birth Certificate'],
 }

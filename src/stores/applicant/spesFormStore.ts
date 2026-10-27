@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { spesFormService } from '@/services/applicant/spesFormService'
 import { spesAttachmentService } from '@/services/common/spesAttachmentService'
 import { spesCompletionReportService } from '@/services/common/spesCompletionReportService'
+import { mediaService } from '@/services/common/mediaService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import {
   SPES_COMPLETION_REPORTS,
@@ -17,6 +18,7 @@ import {
   type SpesPendingAttachmentMap,
   type SpesReusedAttachmentMap,
 } from '@/types/common/spesForm'
+import type { SpesProfilingOptions, SpesProfilingSource } from '@/helpers/common/spesProfilingFormHelper'
 
 export const useSpesFormStore = defineStore('applicantSpesForm', () => {
   const toastAlert = useToastAlert()
@@ -32,6 +34,7 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
   /** DTR / Accomplishment Report of the current appointment. */
   const completionReports = ref<SpesCompletionReportMap>({})
   const busyReportType = ref<SpesCompletionReportType | null>(null)
+  const isGeneratingSpesForm = ref(false)
 
   // ─── Getters ───
   /** PESO's review of the form — status / remarks live on the form itself. */
@@ -169,6 +172,16 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     }
   }
 
+  /** The applicant's profile picture as a file, to attach as their passport size ID picture; null without one */
+  async function fetchProfilePictureFile(profileId: string): Promise<File | null> {
+    try {
+      return await mediaService.fetchProfilePictureFile(profileId)
+    } catch (error: unknown) {
+      toastAlert.error('Profile picture not attached', (error instanceof Error && error.message) || 'Please upload a picture instead.')
+      return null
+    }
+  }
+
   async function removeCompletionReport(type: SpesCompletionReportType): Promise<boolean> {
     const appointment = currentAppointment.value
     const report = completionReports.value[type]
@@ -188,6 +201,24 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     }
   }
 
+  /**
+   * Builds the SPES form PDF from the applicant's SPES details (saved, or entered in this application).
+   * The PDF libraries load only when asked. Returns null on failure.
+   */
+  async function generateSpesFormPdf(source: SpesProfilingSource, options: SpesProfilingOptions = {}): Promise<File | null> {
+    isGeneratingSpesForm.value = true
+    try {
+      const { generateSpesProfilingFormPdfFile } = await import('@/helpers/common/spesProfilingFormHelper')
+      return await generateSpesProfilingFormPdfFile(source, options)
+    } catch (error: unknown) {
+      console.error('Failed to generate SPES form PDF:', error)
+      toastAlert.error('SPES form not generated', (error instanceof Error && error.message) || 'Please try again.')
+      return null
+    } finally {
+      isGeneratingSpesForm.value = false
+    }
+  }
+
   return {
     myForm,
     attachments,
@@ -200,7 +231,10 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     currentAppointment,
     completionReports,
     busyReportType,
+    isGeneratingSpesForm,
     fetchMyForm,
+    generateSpesFormPdf,
+    fetchProfilePictureFile,
     saveDetails,
     submitApplication,
     uploadCompletionReport,

@@ -17,9 +17,17 @@ type SpesFormApplication = {
   orientation_note?: string | null
 }
 
-export type SpesFormRow = ApplicantsTables['spes_form']['Row'] & SpesFormMunicipality & SpesFormApplication
-export type SpesFormInsert = ApplicantsTables['spes_form']['Insert'] & SpesFormMunicipality
-export type SpesFormUpdate = ApplicantsTables['spes_form']['Update'] & SpesFormMunicipality
+/** has_spes_form (071) and has_application_letter / has_resume / has_passport_photo (072), declared until `npm run types:gen` is re-run. */
+type SpesFormDocument = {
+  has_spes_form?: boolean
+  has_application_letter?: boolean
+  has_resume?: boolean
+  has_passport_photo?: boolean
+}
+
+export type SpesFormRow = ApplicantsTables['spes_form']['Row'] & SpesFormMunicipality & SpesFormApplication & SpesFormDocument
+export type SpesFormInsert = ApplicantsTables['spes_form']['Insert'] & SpesFormMunicipality & SpesFormDocument
+export type SpesFormUpdate = ApplicantsTables['spes_form']['Update'] & SpesFormMunicipality & SpesFormDocument
 
 /**
  * The generated table payloads. The typed client rejects keys it does not know yet, so services cast
@@ -50,13 +58,35 @@ export const SPES_EDUCATION_LEVELS = [
 
 export const SPES_AVAILMENT_SLOTS = [1, 2, 3, 4] as const
 
+/**
+ * The SPES requirements, in the order of PESO's SPES form checklist (spesProfilingFormHelper.ts). Labels
+ * match the requirement templates (migrations 014 / 071 / 072). The registrar and out-of-school youth
+ * certifications (has_registrar_certification / has_osy_certification) are no longer asked for.
+ */
 export const SPES_DOCUMENT_REQUIREMENTS = [
-  { key: 'has_birth_certificate', label: 'Birth certificate', hint: 'PSA / NSO copy' },
-  { key: 'has_income_proof', label: 'Proof of family income', hint: 'ITR, certificate of tax exemption, or indigency from the barangay' },
-  { key: 'has_passing_grade_proof', label: 'Proof of passing grades', hint: 'Report card or transcript for the last school term' },
-  { key: 'has_registrar_certification', label: 'Registrar certification', hint: 'Certificate of enrollment / attendance from the school registrar' },
-  { key: 'has_osy_certification', label: 'Out-of-school youth certification', hint: 'From the barangay or DSWD — out-of-school youth only' },
+  { key: 'has_application_letter', label: 'Application letter', hint: 'Addressed to the Provincial Governor' },
+  { key: 'has_resume', label: 'Resume', hint: 'Your latest resume' },
+  // Generated from the saved SPES details once the others are attached, like the NSRP / TUPAD forms
+  { key: 'has_spes_form', label: 'SPES form', hint: 'Generated from your SPES details' },
+  { key: 'has_passport_photo', label: 'Passport size ID picture', hint: 'Upload one, or use your profile picture' },
+  { key: 'has_birth_certificate', label: 'Clear copy of birth certificate', hint: 'PSA / NSO copy' },
+  {
+    key: 'has_income_proof',
+    label: 'Proof of family income',
+    hint: "Wage earners: last year's income tax return. Non-wage earners: certificate of low income or indigence with the barangay seal",
+  },
+  {
+    key: 'has_passing_grade_proof',
+    label: 'First semester grades',
+    hint: 'Certificate of passing grades, report card or Form 138 with the general average',
+  },
 ] as const
+
+/** The requirement applicants generate instead of uploading */
+export const SPES_FORM_DOCUMENT_KEY = 'has_spes_form' satisfies SpesDocumentKey
+
+/** The requirement the applicant's profile picture can fill */
+export const SPES_PASSPORT_PHOTO_KEY = 'has_passport_photo' satisfies SpesDocumentKey
 
 export type SpesDocumentKey = (typeof SPES_DOCUMENT_REQUIREMENTS)[number]['key']
 

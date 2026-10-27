@@ -107,6 +107,10 @@ export const spesFormSchema = z.object({
   has_passing_grade_proof: z.boolean(),
   has_registrar_certification: z.boolean(),
   has_osy_certification: z.boolean(),
+  has_spes_form: z.boolean(),
+  has_application_letter: z.boolean(),
+  has_resume: z.boolean(),
+  has_passport_photo: z.boolean(),
 
   // 6. Additional Skills & History
   special_skills: z.array(z.string().trim().min(1)),
@@ -152,6 +156,10 @@ export function createEmptySpesFormValues(): SpesFormDraft {
     has_passing_grade_proof: false,
     has_registrar_certification: false,
     has_osy_certification: false,
+    has_spes_form: false,
+    has_application_letter: false,
+    has_resume: false,
+    has_passport_photo: false,
   } as unknown as SpesFormDraft
 }
 

@@ -91,4 +91,18 @@ export const mediaService = {
     }
     return urls
   },
+
+  /** An account's latest profile picture, downloaded as a File (e.g. to attach to an application); null without one. */
+  async fetchProfilePictureFile(profileId: string): Promise<File | null> {
+    const [latest] = await this.fetchMediaByProfileId(profileId)
+    const source = latest as (ProfileMediaRow & { public_url?: string | null }) | undefined
+    const url = source?.public_url || (latest?.path ? this.getPublicUrl(latest.path) : null)
+    if (!url) return null
+
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Your profile picture could not be loaded.')
+    const blob = await response.blob()
+    const extension = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
+    return new File([blob], `Profile_Picture.${extension}`, { type: blob.type || 'image/jpeg' })
+  },
 }

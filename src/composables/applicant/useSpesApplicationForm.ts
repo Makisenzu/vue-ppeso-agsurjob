@@ -19,14 +19,16 @@ import {
   SPES_ATTACHMENT_ACCEPT,
   SPES_ATTACHMENT_MIME_TYPES,
   SPES_DOCUMENT_REQUIREMENTS,
+  SPES_FORM_DOCUMENT_KEY,
+  SPES_PASSPORT_PHOTO_KEY,
   type SpesCompletionReportType,
   type SpesDocumentKey,
   type SpesFormInsert,
   type SpesPendingAttachmentMap,
   type SpesReusedAttachmentMap,
-  type SpesStudentCategory,
 } from '@/types/common/spesForm'
-import { SPES_PROFILE_DOCUMENT_MATCHES, spesRequirementsFor } from '@/types/common/spesProgram'
+import { SPES_PROFILE_DOCUMENT_MATCHES } from '@/types/common/spesProgram'
+import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
 
 /** Steps of applying; once applied, the page shows the progress tracker instead (same as GIP_WIZARD_STEPS) */
 export const SPES_WIZARD_STEPS = [
@@ -66,6 +68,7 @@ export function useSpesApplicationForm() {
     busyReportType,
     isLoading,
     isSubmitting,
+    isGeneratingSpesForm,
     errorMessage,
   } = storeToRefs(store)
 
@@ -96,9 +99,6 @@ export function useSpesApplicationForm() {
   const detailsDraft = ref<Omit<SpesFormInsert, 'profile_id'> | null>(null)
   const hasSavedDetails = computed(() => !!myForm.value)
   const savedDetails = computed(() => (myForm.value ? describeSpesApplicant(myForm.value) : []))
-  const studentCategory = computed(
-    () => (myForm.value?.student_category ?? detailsDraft.value?.student_category ?? null) as SpesStudentCategory | null
-  )
 
   // ─── Wizard ───
   const currentStep = ref(0)
@@ -151,6 +151,7 @@ export function useSpesApplicationForm() {
   }
 
   const clearPick = (key: SpesDocumentKey) => {
+    if (key === SPES_FORM_DOCUMENT_KEY) generatedSpesFormFor.value = null
     const { [key]: _file, ...files } = pendingFiles.value
     pendingFiles.value = files
     const { [key]: _reused, ...reused } = reusedDocs.value
@@ -163,6 +164,7 @@ export function useSpesApplicationForm() {
     for (const doc of SPES_DOCUMENT_REQUIREMENTS) clearPick(doc.key)
     removedSaved.clear()
     dismissedMatches.clear()
+    isSpesFormDismissed.value = false
   }
 
   onScopeDispose(resetPicks)
@@ -185,10 +187,77 @@ export function useSpesApplicationForm() {
     pendingFiles.value = { ...pendingFiles.value, [key]: file }
   }
 
+  // ─── SPES form (generated, like the NSRP / TUPAD forms) ───
+  /** Set once the applicant removes the generated form, so it isn't silently attached again */
+  const isSpesFormDismissed = ref(false)
+  /** What the picked SPES form was generated from (details and attached requirements); null when uploaded by hand */
+  const generatedSpesFormFor = ref<string | null>(null)
+  /** The details the form shows: those entered in this application, else the saved ones */
+  const spesFormSource = () => detailsDraft.value ?? myForm.value ?? null
+  /** The requirements the SPES form comes after, and ticks in its checklist */
+  const spesFormInputs = SPES_DOCUMENT_REQUIREMENTS.filter((doc) => doc.key !== SPES_FORM_DOCUMENT_KEY).map((doc) => doc.key)
+  /** The form is generated once every other requirement has a file */
+  const isSpesFormReady = computed(() => !!spesFormSource() && spesFormInputs.every(hasFile))
+  const spesFormSnapshot = computed(() =>
+    JSON.stringify({ details: spesFormSource(), submitted: spesFormInputs.filter(hasFile) })
+  )
+
+  const generateSpesForm = async () => {
+    const source = spesFormSource()
+    const key = SPES_FORM_DOCUMENT_KEY
+    if (!source || !isSpesFormReady.value) {
+      fileErrors[key] = 'Attach the other requirements first; your SPES form is generated from them.'
+      return
+    }
+    delete fileErrors[key]
+    const snapshot = spesFormSnapshot.value
+    const file = await store.generateSpesFormPdf(source, { submitted: spesFormInputs.filter(hasFile) })
+    if (!file) return
+    isSpesFormDismissed.value = false
+    clearPick(key)
+    removedSaved.delete(key)
+    previewUrls[key] = URL.createObjectURL(file)
+    pendingFiles.value = { ...pendingFiles.value, [key]: file }
+    generatedSpesFormFor.value = snapshot
+  }
+
+  /**
+   * Generates the SPES form once the other requirements are attached, or again when the picked one was
+   * generated from details or files that have changed since. A saved one is left alone.
+   */
+  const refreshSpesForm = async () => {
+    if (!isSpesFormReady.value || isGeneratingSpesForm.value) return
+    const isStale = generatedSpesFormFor.value !== null && generatedSpesFormFor.value !== spesFormSnapshot.value
+    if (isStale || (!hasFile(SPES_FORM_DOCUMENT_KEY) && !isSpesFormDismissed.value)) await generateSpesForm()
+  }
+
+  // ─── Passport size ID picture from the profile picture ───
+  const { avatarUrl: profilePictureUrl } = useProfileAvatar(profileId)
+
+  const useProfilePicture = async () => {
+    const key = SPES_PASSPORT_PHOTO_KEY
+    const label = SPES_DOCUMENT_REQUIREMENTS.find((doc) => doc.key === key)!.label
+    if (!profileId.value) return
+    const file = await store.fetchProfilePictureFile(profileId.value)
+    if (!file) {
+      fileErrors[key] = 'You have no profile picture yet. Upload a picture instead.'
+      return
+    }
+    selectFile(label, file)
+  }
+
+  /** "Generate" / "Use profile picture" from the requirement list */
+  const generateDocument = async (name: string) => {
+    const key = keyOf(name)
+    if (key === SPES_FORM_DOCUMENT_KEY) await generateSpesForm()
+    else if (key === SPES_PASSPORT_PHOTO_KEY) await useProfilePicture()
+  }
+
   /** Removes a picked file, or the saved one when there's nothing picked */
   const removeFile = (name: string) => {
     const key = keyOf(name)
     if (!key) return
+    if (key === SPES_FORM_DOCUMENT_KEY) isSpesFormDismissed.value = true
     if (reusedDocs.value[key]) dismissedMatches.add(key)
     if (pendingFiles.value[key] || reusedDocs.value[key]) {
       clearPick(key)
@@ -223,8 +292,8 @@ export function useSpesApplicationForm() {
   }
 
   // ─── Requirements ───
-  /** Every SPES document; the OSY certification is optional unless the applicant is out of school */
-  const requiredDocuments = computed(() => spesRequirementsFor(studentCategory.value))
+  /** Every SPES requirement is required (migration 072) */
+  const requiredDocuments = computed(() => SPES_DOCUMENT_REQUIREMENTS.map((doc) => ({ ...doc, isOptional: false })))
 
   const requirements = computed<GipRequirementRow[]>(() =>
     requiredDocuments.value.map((doc) => {
@@ -233,8 +302,21 @@ export function useSpesApplicationForm() {
       const reused = reusedDocs.value[doc.key]
       return {
         name: doc.label,
-        hint: doc.hint,
+        hint:
+          doc.key === SPES_FORM_DOCUMENT_KEY && !isSpesFormReady.value
+            ? 'Generated once the other requirements are attached'
+            : doc.hint,
         isNsrp: false,
+        generateLabel:
+          doc.key === SPES_FORM_DOCUMENT_KEY
+            ? isSpesFormReady.value
+              ? 'Generate SPES form'
+              : null
+            : doc.key === SPES_PASSPORT_PHOTO_KEY && profilePictureUrl.value
+              ? 'Use profile picture'
+              : null,
+        isGenerating: doc.key === SPES_FORM_DOCUMENT_KEY && isGeneratingSpesForm.value,
+        isGeneratedOnly: doc.key === SPES_FORM_DOCUMENT_KEY,
         isOptional: doc.isOptional,
         isReceived: !!saved,
         savedFileName: saved?.filename ?? null,
@@ -261,7 +343,12 @@ export function useSpesApplicationForm() {
     let valid = true
     for (const doc of requiredDocuments.value) {
       if (!doc.isOptional && !hasFile(doc.key)) {
-        fileErrors[doc.key] = 'Attach an image or PDF of this document.'
+        fileErrors[doc.key] =
+          doc.key === SPES_FORM_DOCUMENT_KEY
+            ? isSpesFormReady.value
+              ? 'Generate your SPES form to attach it.'
+              : 'Attach the other requirements first; your SPES form is generated from them.'
+            : 'Attach an image or PDF of this document.'
         valid = false
       }
     }
@@ -279,9 +366,23 @@ export function useSpesApplicationForm() {
     { immediate: true }
   )
 
+  // The SPES form follows the other requirements: generated once they are all attached, generated
+  // again when they or the details change, and dropped when one of them is removed
+  watch(
+    [isSpesFormReady, spesFormSnapshot, canUpload],
+    ([ready, , can]) => {
+      if (!can) return
+      if (ready) void refreshSpesForm()
+      else if (generatedSpesFormFor.value !== null) clearPick(SPES_FORM_DOCUMENT_KEY)
+    },
+    { immediate: true }
+  )
+
   // ─── Submit ───
   const submit = async () => {
-    if (!profileId.value || !validateFiles()) return
+    if (!profileId.value) return
+    await refreshSpesForm()
+    if (!validateFiles()) return
     if (hasApplied.value && !hasPendingChanges.value) return
     const details = myForm.value ? null : detailsDraft.value
     if (!myForm.value && !details) {
@@ -439,6 +540,8 @@ export function useSpesApplicationForm() {
     selectFile,
     removeFile,
     attachProfileDocument,
+    isGeneratingSpesForm,
+    generateDocument,
     submit,
     // status
     statusLabel,

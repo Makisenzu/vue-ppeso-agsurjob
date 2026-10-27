@@ -129,7 +129,7 @@ const onFilePicked = (doc: string, event: Event) => {
               >
                 <RefreshCw class="size-4" /> Generate NSRP form
               </Button>
-              <!-- A generated form can still be uploaded instead, e.g. one filled in on paper -->
+              <!-- Generated (SPES form) or filled in another way (passport picture from the profile picture) -->
               <Button
                 v-if="!doc.isNsrp && doc.generateLabel"
                 type="button"
@@ -141,7 +141,15 @@ const onFilePicked = (doc: string, event: Event) => {
               >
                 <RefreshCw class="size-4" /> {{ doc.generateLabel }}
               </Button>
-              <Button v-if="!doc.isNsrp" type="button" variant="outline" size="sm" as-child :disabled="isSubmitting">
+              <span v-if="doc.isGeneratedOnly && !doc.generateLabel" class="text-sm text-muted-foreground">Not ready yet</span>
+              <Button
+                v-if="!doc.isNsrp && !doc.isGeneratedOnly"
+                type="button"
+                variant="outline"
+                size="sm"
+                as-child
+                :disabled="isSubmitting"
+              >
                 <label class="cursor-pointer" :class="{ 'pointer-events-none opacity-50': isSubmitting }">
                   <Upload class="size-4" /> {{ uploadLabel }}
                   <input
@@ -154,7 +162,7 @@ const onFilePicked = (doc: string, event: Event) => {
                 </label>
               </Button>
               <!-- Reuse a PDF already uploaded on the profile -->
-              <DropdownMenu v-if="!doc.isNsrp && profileDocuments.length">
+              <DropdownMenu v-if="!doc.isNsrp && !doc.isGeneratedOnly && profileDocuments.length">
                 <DropdownMenuTrigger as-child>
                   <Button type="button" variant="outline" size="sm" class="cursor-pointer" :disabled="isSubmitting">
                     <FolderOpen class="size-4" /> My documents
