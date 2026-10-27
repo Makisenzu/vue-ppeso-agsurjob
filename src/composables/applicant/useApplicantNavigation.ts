@@ -39,9 +39,10 @@ const navItems: ApplicantNavItem[] = [
   },
   { title: 'Announcements', to: { name: 'home' } },
   {
-    title: 'Vacancies',
+    title: 'Opportunities',
     children: [
       { title: 'Vacancies', to: { name: 'vacancies' } },
+      { title: 'Job Fairs', to: { name: 'vacancies' }},
       { title: 'Companies', to: { name: 'company' } },
     ],
   },
