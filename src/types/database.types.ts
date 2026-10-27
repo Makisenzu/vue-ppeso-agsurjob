@@ -103,6 +103,7 @@ export type Database = {
           requirement_id: number | null
           spes_form_id: string | null
           status: Database["core"]["Enums"]["status_type"] | null
+          status_remarks: string | null
           updated_at: string | null
         }
         Insert: {
@@ -113,6 +114,7 @@ export type Database = {
           requirement_id?: number | null
           spes_form_id?: string | null
           status?: Database["core"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -123,6 +125,7 @@ export type Database = {
           requirement_id?: number | null
           spes_form_id?: string | null
           status?: Database["core"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1199,6 +1202,7 @@ export type Database = {
           remarks: string | null
           requirement_id: number | null
           status: Database["public"]["Enums"]["status_type"] | null
+          status_remarks: string | null
           submitted_at: string | null
         }
         Insert: {
@@ -1207,6 +1211,7 @@ export type Database = {
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           submitted_at?: string | null
         }
         Update: {
@@ -1215,6 +1220,7 @@ export type Database = {
           remarks?: string | null
           requirement_id?: number | null
           status?: Database["public"]["Enums"]["status_type"] | null
+          status_remarks?: string | null
           submitted_at?: string | null
         }
         Relationships: [
@@ -1372,6 +1378,60 @@ export type Database = {
   }
   esmdd: {
     Tables: {
+      gip_applicant_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          file_name: string
+          gip_applicant_id: string
+          id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          file_name: string
+          gip_applicant_id: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          file_name?: string
+          gip_applicant_id?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gip_applicant_documents_gip_applicant_id_fkey"
+            columns: ["gip_applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["gip_applicant_id"]
+          },
+          {
+            foreignKeyName: "gip_applicant_documents_gip_applicant_id_fkey"
+            columns: ["gip_applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gip_applicants: {
         Row: {
           applicant_id: string | null
@@ -2643,6 +2703,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      apply_to_gip: {
+        Args: never
+        Returns: {
+          applicant_id: string | null
+          created_at: string | null
+          document_submitted: string[] | null
+          id: string
+          remarks: string[] | null
+          status: string | null
+          status_remarks: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "gip_applicants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      can_edit_own_gip_application: {
+        Args: { p_gip_applicant_id: string }
+        Returns: boolean
+      }
       can_edit_own_tupad_application: {
         Args: { p_tupad_applicant_id: string }
         Returns: boolean
@@ -3624,6 +3707,36 @@ export type Database = {
         }
         Relationships: []
       }
+      peso_achievements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          height: number | null
+          id: string
+          image_path: string
+          title: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          height?: number | null
+          id?: string
+          image_path: string
+          title?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          height?: number | null
+          id?: string
+          image_path?: string
+          title?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
       public_page_heroes: {
         Row: {
           description: string | null
@@ -3792,6 +3905,11 @@ export type Database = {
           p_status: string
         }
         Returns: string
+      }
+      is_gip_staff_only_status: { Args: { p_status: string }; Returns: boolean }
+      is_staff_only_program_status: {
+        Args: { p_status: string }
+        Returns: boolean
       }
       notify: {
         Args: {
