@@ -608,3 +608,43 @@ should only ever upload a document once.
 > 8. **List it on Application Status.** Every program or vacancy application appears on the applicant's
 >    Application Status page (route `application`): read its rows in `applicationStatusService` and map them in
 >    `toApplicationSummaries` (`applicationStatusHelper.ts`) with a reference no., dates, stage and link.
+
+---
+
+## 19. Province-Wide Scale — Build Every Screen for the Whole Province
+
+AGSURJOBS serves all of Agusan del Sur (≈740,000 residents). Size every query for the province, not for test data:
+
+| Data | Plan for |
+| ---- | -------- |
+| Accounts (`core.profiles`), registry applicants (`applicants.applicants`) | 150,000+ |
+| Requirement files / media rows, skills, notifications | 1,000,000+ |
+| GIP / SPES / TUPAD applications | tens of thousands per year, thousands at once in an application season |
+
+The Applicant Master Registry is the model to copy: `applicants.search_applicant_registry` (migration 035) filters, searches
+and sorts in SQL, the service pages it with `.range()` and `{ count: 'exact' }`, and `applicant_registry_stats` returns the
+totals — the browser never holds more than one page.
+
+> [!CAUTION]
+> 1. **Unbounded tables are paged on the server.** A list of accounts, registry applicants, files, skills, notifications,
+>    job applications or audit logs searches, filters and sorts in SQL (an RPC or view) and loads one page with `.range()`.
+>    `fetchAllPages` / `fetchAllInChunks` are only for **bounded** sets: one program round or year, one batch, one
+>    applicant's own rows, or reference data — and only while the set stays under ~5,000 rows.
+> 2. **Counts, totals, charts and maps come from SQL** (`count(*)`, `GROUP BY` in an RPC like `applicant_registry_stats`),
+>    never from loading rows and counting them in the browser. Use `{ count: 'estimated' }` past ~100,000 rows.
+> 3. **Select only the columns the screen shows.** No `select('*')` on lists; leave JSON columns (education, work history)
+>    and long text out of list queries and load them in the detail view.
+> 4. **Index what you filter, sort and join on.** Every column in a list query's `WHERE` / `ORDER BY` and every foreign key
+>    gets an index in the same migration; text search uses a `pg_trgm` GIN index. RLS helpers wrap `auth.uid()` as
+>    `(SELECT auth.uid())` so Postgres evaluates it once per query, not once per row.
+> 5. **No request per row.** Bulk changes go through one RPC or one bulk `insert` / `upsert`; `.in()` lookups go through
+>    `fetchAllInChunks`. Sign storage URLs in one `createSignedUrls` call, only for the rows on screen.
+> 6. **Search waits for typing to stop** (debounce ~300 ms) and cancels stale requests; never query on every keystroke.
+> 7. **Heavy client work loads on demand.** PDF / OCR / map / chart libraries are `import()`-ed when used (like the NSRP
+>    template); routes stay lazy-loaded. No polling faster than every 30 s — prefer filtered Realtime subscriptions.
+> 8. **Uploads stay small.** Keep the per-file limits (10 MB) and file-type checks; images can be resized before upload.
+>
+> **Known full-table loads to migrate** to the registry pattern before the data grows: the admin user accounts list
+> (`userAccountService.fetchAllProfiles`: every profile and profile picture), the system directory
+> (`systemDirectoryService`), the skill repository (`skillRepositoryService`: every `applicant_skills` row), the admin
+> geographic map (`useGeographicMap`), and the GIP priority score list (`gipService`, `gip_applicant_priority_scores`).

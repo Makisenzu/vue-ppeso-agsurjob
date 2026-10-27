@@ -498,6 +498,14 @@ These use sidebar-specific semantic tokens, not hardcoded colors.
 > 7. **Dialogs fit the screen**: `max-h-[90vh] overflow-y-auto`, and multi-column form grids collapse to one column (`grid gap-4 sm:grid-cols-2`).
 > 8. **Media scales, never crops content away**: images and videos use `w-full h-auto` with a height cap per breakpoint instead of a fixed height.
 > 9. **Check every screen at 360px wide** before calling it done — no horizontal page scroll, no clipped text.
+> 10. **Sheets go full width on phones** (`SheetContent` with `sm:max-w-*` only) and keep the sticky footer of §5.1, so the
+>     Save button is always reachable above the keyboard.
+> 11. **Form inputs stay at 16px text on phones** (`text-base md:text-sm`, as the shadcn `Input` does) — smaller text makes
+>     iOS zoom in on focus. Use `type="tel"` / `inputmode="numeric"` / `type="email"` so phones show the right keyboard.
+> 12. **Long lists page on the server** (BACKEND.md §19) — a phone on mobile data must never download a whole table.
+>     Show a skeleton while a page loads and keep pagination controls at least 40px tall.
+> 13. **Multi-step forms show the step title on phones** when the stepper hides its labels (`sm:hidden` "2. Requirements"),
+>     as the GIP application form does.
 
 ---
 

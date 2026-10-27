@@ -210,3 +210,10 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 >     job vacancies) generates the NSRP from the registry record, auto-fills each requirement that matches a
 >     profile document type, offers the rest through "My documents", and uses the GIP application layout.
 >     See [`BACKEND.md`](.agents/BACKEND.md) §18.
+> 17. **DO NOT ship a screen that only works at test-data size, on a desktop, or with trusted users.** Every change must be:
+>     - **Scalable to the whole province** (150,000+ applicants): unbounded lists page, search and count on the server;
+>       stats come from SQL; queries select only shown columns and are indexed. See [`BACKEND.md`](.agents/BACKEND.md) §19.
+>     - **Mobile-first**: works at 360px wide with no sideways scroll, tables become swipe cards, long forms are full-width
+>       sheets. See [`DESIGN.md`](.agents/DESIGN.md) §11 and §13.2.
+>     - **Secure by default**: RLS on every table, private keys only in Edge Function secrets (never `VITE_`), no personal data
+>       in logs, storage or DevTools, generic error messages. See [`SECURITY.md`](.agents/SECURITY.md) §5.2, §12 and §13.
