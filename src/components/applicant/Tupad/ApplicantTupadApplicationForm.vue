@@ -40,6 +40,7 @@ const {
   householdDetails,
   applicantDetails,
   isGeneratingNsrp,
+  isGeneratingTupadForm,
   wizardSteps,
   currentStep,
   reachedStep,
@@ -55,6 +56,7 @@ const {
   attachProfileDocument,
   removeFile,
   generateNsrp,
+  generateDocument,
   submit,
   reload,
 } = useTupadApplicationForm()
@@ -207,6 +209,7 @@ const INDICATOR_CLASS =
           @pick="selectFile"
           @remove="removeFile"
           @generate-nsrp="generateNsrp"
+          @generate="generateDocument"
         />
       </section>
 
@@ -264,10 +267,10 @@ const INDICATOR_CLASS =
           <ArrowLeft class="size-4" /> Back
         </Button>
         <span v-else />
-        <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingNsrp" @click="nextStep">
+        <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingNsrp || isGeneratingTupadForm" @click="nextStep">
           Next <ArrowRight class="size-4" />
         </Button>
-        <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting">
+        <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingTupadForm">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Submitting...' : 'Submit application' }}
         </Button>
@@ -384,6 +387,7 @@ const INDICATOR_CLASS =
           @pick="selectFile"
           @remove="removeFile"
           @generate-nsrp="generateNsrp"
+          @generate="generateDocument"
         />
         <p v-if="isLocked" class="text-sm text-muted-foreground">
           PESO has reviewed your application, so it can no longer be changed.
@@ -391,7 +395,7 @@ const INDICATOR_CLASS =
       </section>
 
       <div v-if="canUpload && hasChanges" class="flex justify-end">
-        <Button type="submit" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="isSubmitting">
+        <Button type="submit" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="isSubmitting || isGeneratingTupadForm">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Saving...' : 'Save changes' }}
         </Button>

@@ -22,6 +22,7 @@ import {
 import {
   TUPAD_NSRP_DOCUMENT,
   TUPAD_PROFILE_DOCUMENT_MATCHES,
+  TUPAD_PROFILING_FORM_DOCUMENT,
   TUPAD_REQUIREMENTS,
   type TupadReusedDocumentMap,
 } from '@/types/common/tupadProgram'
@@ -75,6 +76,7 @@ export function useTupadApplicationForm() {
     isSubmitting,
     isLocked,
     isGeneratingNsrp,
+    isGeneratingTupadForm,
     deletingDocument,
   } = storeToRefs(store)
 
@@ -125,6 +127,7 @@ export function useTupadApplicationForm() {
     }
     const { [doc]: _reused, ...otherReused } = reusedDocs.value
     reusedDocs.value = otherReused
+    if (doc === TUPAD_PROFILING_FORM_DOCUMENT) generatedTupadFormFor.value = null
     setPendingFile(doc, file)
   }
 
@@ -135,12 +138,14 @@ export function useTupadApplicationForm() {
     reusedDocs.value = otherReused
     revokePreview(doc)
     delete fileErrors[doc]
+    if (doc === TUPAD_PROFILING_FORM_DOCUMENT) generatedTupadFormFor.value = null
   }
 
   const resetPicks = () => {
     pendingFiles.value = {}
     reusedDocs.value = {}
     dismissedProfileMatches.clear()
+    generatedTupadFormFor.value = null
     for (const key of Object.keys(previewUrls)) revokePreview(key)
     for (const key of Object.keys(fileErrors)) delete fileErrors[key]
   }
@@ -192,9 +197,52 @@ export function useTupadApplicationForm() {
     }
   }
 
+  // ─── TUPAD Profiling Form ───
+  /** Set once the applicant removes the generated form, so it isn't silently attached again */
+  const isTupadFormDismissed = ref(false)
+  /** Household details the picked TUPAD form was generated from; null when it was uploaded by hand */
+  const generatedTupadFormFor = ref<string | null>(null)
+
+  const profilingDetails = () => ({
+    monthlyIncome: parseTupadIncome(values.monthly_income),
+    dependentName: values.dependent_name?.trim() || null,
+  })
+
+  const generateTupadForm = async () => {
+    const profileId = user.value?.id
+    if (!profileId) return
+    delete fileErrors[TUPAD_PROFILING_FORM_DOCUMENT]
+    const details = profilingDetails()
+    const file = await store.generateTupadFormPdf(profileId, details)
+    if (file) {
+      isTupadFormDismissed.value = false
+      clearPendingFile(TUPAD_PROFILING_FORM_DOCUMENT)
+      setPendingFile(TUPAD_PROFILING_FORM_DOCUMENT, file)
+      generatedTupadFormFor.value = JSON.stringify(details)
+    }
+  }
+
+  /**
+   * Generates the TUPAD form when nothing is attached yet, or again when the picked one was generated
+   * from household details that have changed since. A saved or hand-picked file is left alone.
+   */
+  const refreshTupadForm = async () => {
+    const doc = TUPAD_PROFILING_FORM_DOCUMENT
+    const isStale =
+      generatedTupadFormFor.value !== null && generatedTupadFormFor.value !== JSON.stringify(profilingDetails())
+    const isMissing = !documents.value[doc] && !pendingFiles.value[doc] && !reusedDocs.value[doc]
+    if (isStale || (isMissing && !isTupadFormDismissed.value)) await generateTupadForm()
+  }
+
+  /** "Generate" from the requirement list (the NSRP has its own event) */
+  const generateDocument = async (doc: string) => {
+    if (doc === TUPAD_PROFILING_FORM_DOCUMENT) await generateTupadForm()
+  }
+
   /** Removes a picked file, or the saved one when there's nothing picked */
   const removeFile = async (doc: string) => {
     if (doc === TUPAD_NSRP_DOCUMENT) isNsrpDismissed.value = true
+    if (doc === TUPAD_PROFILING_FORM_DOCUMENT) isTupadFormDismissed.value = true
     if (reusedDocs.value[doc]) dismissedProfileMatches.add(doc)
     if (pendingFiles.value[doc] || reusedDocs.value[doc]) {
       clearPendingFile(doc)
@@ -213,6 +261,8 @@ export function useTupadApplicationForm() {
         name,
         hint,
         isNsrp: name === TUPAD_NSRP_DOCUMENT,
+        generateLabel: name === TUPAD_PROFILING_FORM_DOCUMENT ? 'Generate TUPAD form' : null,
+        isGenerating: name === TUPAD_PROFILING_FORM_DOCUMENT && isGeneratingTupadForm.value,
         isOptional: false,
         isReceived: received.value.has(name),
         savedFileName: saved?.file_name ?? null,
@@ -240,7 +290,11 @@ export function useTupadApplicationForm() {
     for (const doc of TUPAD_DOCUMENT_OPTIONS) {
       if (!pendingFiles.value[doc] && !reusedDocs.value[doc] && !documents.value[doc]) {
         fileErrors[doc] =
-          doc === TUPAD_NSRP_DOCUMENT ? 'Generate your NSRP form to attach it.' : 'Attach a photo or PDF of this document.'
+          doc === TUPAD_NSRP_DOCUMENT
+            ? 'Generate your NSRP form to attach it.'
+            : doc === TUPAD_PROFILING_FORM_DOCUMENT
+              ? 'Generate your TUPAD form, or attach a copy of it.'
+              : 'Attach a photo or PDF of this document.'
         valid = false
       }
     }
@@ -250,7 +304,10 @@ export function useTupadApplicationForm() {
   const submit = async () => {
     const uploaderId = user.value?.id
     if (!uploaderId || !applicantId.value) return
-    if (!(await validate()).valid || !validateFiles()) return
+    if (!(await validate()).valid) return
+    // A generated TUPAD form shows the income and dependents being submitted
+    await refreshTupadForm()
+    if (!validateFiles()) return
     if (myApplication.value && !hasChanges.value) return
     const saved = await store.submitApplication({
       applicantId: applicantId.value,
@@ -343,6 +400,8 @@ export function useTupadApplicationForm() {
     if (isLastStep.value) return
     currentStep.value += 1
     reachedStep.value = Math.max(reachedStep.value, currentStep.value)
+    // The TUPAD form is filled in from the details just entered
+    if (currentStepMeta.value.key === 'requirements') void refreshTupadForm()
   }
 
   const previousStep = () => goToStep(currentStep.value - 1)
@@ -373,6 +432,7 @@ export function useTupadApplicationForm() {
   const reload = async () => {
     if (!applicantId.value) return
     resetPicks()
+    isTupadFormDismissed.value = false
     currentStep.value = 0
     reachedStep.value = 0
     await store.fetchMyApplication(applicantId.value)
@@ -432,6 +492,7 @@ export function useTupadApplicationForm() {
     householdDetails,
     applicantDetails,
     isGeneratingNsrp,
+    isGeneratingTupadForm,
     wizardSteps: TUPAD_WIZARD_STEPS,
     currentStep,
     reachedStep,
@@ -447,6 +508,7 @@ export function useTupadApplicationForm() {
     attachProfileDocument,
     removeFile,
     generateNsrp,
+    generateDocument,
     submit,
     reload,
   }

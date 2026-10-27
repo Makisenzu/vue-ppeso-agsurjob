@@ -11,6 +11,7 @@ import type {
 } from '@/types/applicant/tupadApplication'
 import type { TupadApplicantDocumentMap, TupadPendingDocumentMap } from '@/types/common/tupad'
 import type { TupadReusedDocumentMap } from '@/types/common/tupadProgram'
+import type { TupadProfilingDetails } from '@/helpers/common/tupadProfilingFormHelper'
 
 const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
 
@@ -26,6 +27,7 @@ export const useTupadApplicationStore = defineStore('applicantTupadApplication',
   const isLoading = ref(false)
   const isSubmitting = ref(false)
   const isGeneratingNsrp = ref(false)
+  const isGeneratingTupadForm = ref(false)
   /** Document whose saved file is being removed */
   const deletingDocument = ref<string | null>(null)
   const errorMessage = ref<string | null>(null)
@@ -116,13 +118,11 @@ export const useTupadApplicationStore = defineStore('applicantTupadApplication',
   async function generateNsrpPdf(profileId: string): Promise<File | null> {
     isGeneratingNsrp.value = true
     try {
-      const [record, { mapToApplicantEntryRecord }, pdf] = await Promise.all([
-        applicantCompletionService.fetchMyRecord(profileId),
-        import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
+      const [record, pdf] = await Promise.all([
+        fetchMyEntryRecord(profileId),
         import('@/helpers/peso/provincialPeso/nsrpTemplateHelper'),
       ])
-      if (!record) throw new Error('Your NSRP record could not be loaded.')
-      return await pdf.generateNsrpFormPdfFile(mapToApplicantEntryRecord(record))
+      return await pdf.generateNsrpFormPdfFile(record)
     } catch (error: unknown) {
       console.error('Failed to generate NSRP PDF:', error)
       toastAlert.error('NSRP form not generated', errorMessageOf(error, 'Please try again.'))
@@ -130,6 +130,34 @@ export const useTupadApplicationStore = defineStore('applicantTupadApplication',
     } finally {
       isGeneratingNsrp.value = false
     }
+  }
+
+  /** Builds the TUPAD Profiling Form PDF from the registry record and the household details entered. */
+  async function generateTupadFormPdf(profileId: string, details: TupadProfilingDetails): Promise<File | null> {
+    isGeneratingTupadForm.value = true
+    try {
+      const [record, pdf] = await Promise.all([
+        fetchMyEntryRecord(profileId),
+        import('@/helpers/common/tupadProfilingFormHelper'),
+      ])
+      return await pdf.generateTupadProfilingFormPdfFile(record, details)
+    } catch (error: unknown) {
+      console.error('Failed to generate TUPAD form PDF:', error)
+      toastAlert.error('TUPAD form not generated', errorMessageOf(error, 'Please try again.'))
+      return null
+    } finally {
+      isGeneratingTupadForm.value = false
+    }
+  }
+
+  /** A fresh copy of the applicant's registry record, in the shape the form templates take */
+  async function fetchMyEntryRecord(profileId: string) {
+    const [record, { mapToApplicantEntryRecord }] = await Promise.all([
+      applicantCompletionService.fetchMyRecord(profileId),
+      import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
+    ])
+    if (!record) throw new Error('Your NSRP record could not be loaded.')
+    return mapToApplicantEntryRecord(record)
   }
 
   /** Removes a saved file while the application is still editable; returns true on success. */
@@ -157,12 +185,14 @@ export const useTupadApplicationStore = defineStore('applicantTupadApplication',
     isLoading,
     isSubmitting,
     isGeneratingNsrp,
+    isGeneratingTupadForm,
     deletingDocument,
     errorMessage,
     isLocked,
     fetchMyApplication,
     submitApplication,
     generateNsrpPdf,
+    generateTupadFormPdf,
     deleteDocument,
   }
 })

@@ -58,6 +58,10 @@ export interface GipRequirementRow {
   hint?: string | null
   /** NSRP Form 1: generated from the registry record and attached, not picked from files */
   isNsrp: boolean
+  /** Button text when the program can generate this document too, e.g. "Generate TUPAD form" */
+  generateLabel?: string | null
+  /** That generated document is being built */
+  isGenerating?: boolean
   isOptional: boolean
   /** Ticked in PESO's checklist (uploaded here, or handed in on paper) */
   isReceived: boolean

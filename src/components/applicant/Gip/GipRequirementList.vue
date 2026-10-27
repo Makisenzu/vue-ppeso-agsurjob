@@ -32,6 +32,8 @@ const emit = defineEmits<{
   useProfile: [doc: string, profileDocumentId: string]
   remove: [doc: string]
   generateNsrp: []
+  /** A generated form other than NSRP (row.generateLabel), e.g. the TUPAD profiling form */
+  generate: [doc: string]
 }>()
 
 const onFilePicked = (doc: string, event: Event) => {
@@ -63,9 +65,12 @@ const onFilePicked = (doc: string, event: Event) => {
             <span v-else-if="doc.hint" class="text-xs text-muted-foreground">{{ doc.hint }}</span>
           </div>
 
-          <!-- NSRP being generated -->
-          <span v-if="doc.isNsrp && isGeneratingNsrp" class="inline-flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 class="size-4 animate-spin" /> Generating NSRP form...
+          <!-- NSRP (or another generated form) being generated -->
+          <span
+            v-if="(doc.isNsrp && isGeneratingNsrp) || doc.isGenerating"
+            class="inline-flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
+          >
+            <Loader2 class="size-4 animate-spin" /> Generating {{ doc.isNsrp ? 'NSRP form' : doc.name }}...
           </span>
 
           <!-- Attached file (picked / generated, or saved): view and remove -->
@@ -124,7 +129,19 @@ const onFilePicked = (doc: string, event: Event) => {
               >
                 <RefreshCw class="size-4" /> Generate NSRP form
               </Button>
-              <Button v-else type="button" variant="outline" size="sm" as-child :disabled="isSubmitting">
+              <!-- A generated form can still be uploaded instead, e.g. one filled in on paper -->
+              <Button
+                v-if="!doc.isNsrp && doc.generateLabel"
+                type="button"
+                variant="outline"
+                size="sm"
+                class="cursor-pointer"
+                :disabled="isSubmitting"
+                @click="emit('generate', doc.name)"
+              >
+                <RefreshCw class="size-4" /> {{ doc.generateLabel }}
+              </Button>
+              <Button v-if="!doc.isNsrp" type="button" variant="outline" size="sm" as-child :disabled="isSubmitting">
                 <label class="cursor-pointer" :class="{ 'pointer-events-none opacity-50': isSubmitting }">
                   <Upload class="size-4" /> {{ uploadLabel }}
                   <input

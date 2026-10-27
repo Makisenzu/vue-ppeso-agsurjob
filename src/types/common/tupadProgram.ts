@@ -25,6 +25,9 @@ export const TUPAD_FACTS: readonly { label: string; value: string }[] = [
 /** Generated from the registry record, never uploaded by hand (BACKEND.md §18) */
 export const TUPAD_NSRP_DOCUMENT = TUPAD_LOCKED_DOCUMENT
 
+/** Generated like NSRP (tupadProfilingFormHelper.ts), from the registry record and the household details */
+export const TUPAD_PROFILING_FORM_DOCUMENT = 'TUPAD Form'
+
 /** Every TUPAD requirement with what it is; names follow TUPAD_DOCUMENT_OPTIONS (migrations 022 / 023) */
 export const TUPAD_REQUIREMENTS: readonly { name: string; hint: string }[] = TUPAD_DOCUMENT_OPTIONS.map((name) => ({
   name,
@@ -32,14 +35,14 @@ export const TUPAD_REQUIREMENTS: readonly { name: string; hint: string }[] = TUP
     {
       'NSRP Form': 'Generated from your profile when you apply',
       'Valid ID': 'Any government-issued ID with your photo',
-      'TUPAD Form': 'The TUPAD profiling form from your PESO office',
+      'TUPAD Form': 'Generated from your profile and household details',
     }[name] ?? '',
 }))
 
 /**
  * Profile document types attached automatically to the TUPAD requirement that means the same thing
- * (BACKEND.md §18). No profile document type is a valid ID or the TUPAD form yet, so both are picked
- * by hand ("My documents" or Upload).
+ * (BACKEND.md §18). No profile document type is a valid ID yet, so it is picked by hand ("My documents"
+ * or Upload); the TUPAD form is generated.
  */
 export const TUPAD_PROFILE_DOCUMENT_MATCHES: Partial<Record<string, readonly string[]>> = {}
 
