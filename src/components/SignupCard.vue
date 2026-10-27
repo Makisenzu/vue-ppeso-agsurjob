@@ -35,6 +35,10 @@ import {
   StepperTitle,
 } from '@/components/ui/stepper'
 
+// Kept out of the template: the Vue (Official) editor extension (3.3.13) loses slot props like
+// componentField on a tag whose attributes contain "//"
+const WEBSITE_PLACEHOLDER = 'https://company.com'
+
 const {
   roles,
   selectedRole,
@@ -575,7 +579,7 @@ const {
                 <FormItem>
                   <FormLabel>Website <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
                   <FormControl>
-                    <Input v-bind="componentField" type="url" inputmode="url" autocapitalize="off" placeholder="https://company.com" />
+                    <Input v-bind="componentField" type="url" inputmode="url" autocapitalize="off" :placeholder="WEBSITE_PLACEHOLDER" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
