@@ -36,7 +36,8 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
         remarks: status === 'Rejected' ? row.status_remarks : null,
         appliedAt: row.created_at,
         updatedAt: row.updated_at ?? row.created_at,
-        to: { name: 'gip-application-form' },
+        // `from` points the form's back link here instead of the GIP page
+        to: { name: 'gip-application-form', query: { from: 'application' } },
       }
     }),
     ...rows.spes.map((row) => ({

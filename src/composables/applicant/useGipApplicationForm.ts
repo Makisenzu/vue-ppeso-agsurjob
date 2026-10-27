@@ -1,5 +1,6 @@
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import {
@@ -362,7 +363,16 @@ export function useGipApplicationForm() {
     { immediate: true }
   )
 
+  // Opened from Application Status (?from=application): go back there, otherwise to the GIP page
+  const route = useRoute()
+  const backLink = computed(() =>
+    route.query.from === 'application'
+      ? { to: { name: 'application' }, label: 'Application Status' }
+      : { to: { name: 'gip-application' }, label: 'Government Internship Program' }
+  )
+
   return {
+    backLink,
     requirements,
     attachmentAccept: GIP_ATTACHMENT_ACCEPT,
     attachmentMaxMb: GIP_ATTACHMENT_MAX_BYTES / 1024 / 1024,

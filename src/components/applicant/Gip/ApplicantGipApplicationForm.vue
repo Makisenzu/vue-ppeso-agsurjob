@@ -16,6 +16,7 @@ import GipRequirementList from '@/components/applicant/Gip/GipRequirementList.vu
 import { useGipApplicationForm } from '@/composables/applicant/useGipApplicationForm'
 
 const {
+  backLink,
   requirements,
   attachmentAccept,
   attachmentMaxMb,
@@ -78,10 +79,10 @@ const INDICATOR_CLASS =
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-4">
       <RouterLink
-        :to="{ name: 'gip-application' }"
+        :to="backLink.to"
         class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft class="size-4" /> Government Internship Program
+        <ArrowLeft class="size-4" /> {{ backLink.label }}
       </RouterLink>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex flex-col gap-1">
