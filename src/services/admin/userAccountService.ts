@@ -123,8 +123,6 @@ export const userAccountService = {
 
         if (barangayData && Array.isArray(barangayData)) {
           barangayRecords = barangayData
-          console.log('Fetched barangays count:', barangayData.length)
-          console.log('Sample barangays:', barangayData.slice(0, 5))
         }
       } catch (error) {
         console.error('Error fetching barangay terrain data:', error)
@@ -193,12 +191,7 @@ export const userAccountService = {
               barangayLpiiTag: lpiiTag,
             }
           })
-          
-          // Log sample profiles
-          const profilesWithTags = result.filter(r => r.barangayLpiiTag)
-          console.log('Profiles with terrain tags:', profilesWithTags.length, 'out of', result.length)
-          console.log('Sample profiles with tags:', profilesWithTags.slice(0, 3))
-          
+
           return result as ProfileRow[]
         }
       } catch (error) {
@@ -216,12 +209,7 @@ export const userAccountService = {
           barangayLpiiTag: lpiiTag,
         }
       })
-      
-      // Log sample profiles
-      const profilesWithTags = result.filter(r => r.barangayLpiiTag)
-      console.log('Profiles with terrain tags (fallback):', profilesWithTags.length, 'out of', result.length)
-      console.log('Sample profiles with tags (fallback):', profilesWithTags.slice(0, 3))
-      
+
       return result as ProfileRow[]
     })
   },

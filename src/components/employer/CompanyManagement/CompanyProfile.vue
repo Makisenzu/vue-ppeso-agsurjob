@@ -35,7 +35,6 @@ const {
  */
 function handleEditProfile() {
   // TODO: Navigate to company edit page or open edit modal
-  console.log('Edit profile clicked')
   // router.push({ name: 'company-edit' })
 }
 

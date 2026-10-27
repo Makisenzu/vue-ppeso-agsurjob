@@ -279,11 +279,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 			}
 		}
 
-		// Debug: check how many records have barangayLpiiTag
-		const recordsWithTags = records.value.filter((r) => r.barangayLpiiTag !== null && r.barangayLpiiTag !== undefined)
-		console.log('Records with barangayLpiiTag:', recordsWithTags.length, 'out of', records.value.length)
-		console.log('Sample records:', records.value.slice(0, 3))
-
 		const result = [...municipalityNames.values()]
 			.sort((left, right) => left.localeCompare(right))
 			.map((name) => {
@@ -291,10 +286,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 				const lowlandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'LOWLAND').length
 				const uplandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'UPLAND').length
 				const wetlandUsers = municipalityRecords.filter((record) => record.barangayLpiiTag === 'WETLAND').length
-
-				if (lowlandUsers > 0 || uplandUsers > 0 || wetlandUsers > 0) {
-					console.log(`Municipality "${name}": lowland=${lowlandUsers}, upland=${uplandUsers}, wetland=${wetlandUsers}`)
-				}
 
 				return {
 					name,
@@ -306,7 +297,6 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 				}
 			})
 
-		console.log('Municipality rows result:', result.slice(0, 2))
 		return result
 	})
 

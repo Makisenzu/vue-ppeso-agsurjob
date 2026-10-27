@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { toSafeErrorMessage } from '@/helpers/common/safeErrorMessage'
 
 export interface ToastAlertItem {
   id: number
@@ -31,7 +32,8 @@ export function useToastAlert() {
       addAlert({ variant: 'default', title, description, type: 'success' })
     },
     error(title: string, description?: string) {
-      addAlert({ variant: 'destructive', title, description, type: 'error' })
+      // Raw database errors would show table / column names (safeErrorMessage.ts)
+      addAlert({ variant: 'destructive', title, description: toSafeErrorMessage(description), type: 'error' })
     },
     info(title: string, description?: string) {
       addAlert({ variant: 'default', title, description, type: 'info' })

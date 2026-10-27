@@ -1,104 +1,13 @@
 // ==============================================================================
 // Service: ocrVisionService.ts
-// Description: Handles storage uploads and calls Gemini Vision API
-//              (direct client-side API or Supabase Edge Function).
+// Description: Handles storage uploads and calls Gemini Vision API through the
+//              Supabase Edge Function 'process-ocr' (supabase/functions/process-ocr).
+//              The Gemini key and the prompts live only there: anything the browser
+//              holds can be read in DevTools.
 // ==============================================================================
 
 import { supabase } from '@/lib/supabaseClient'
 import type { ApplicantFormOcrData, OcrProcessResponse } from '@/types/common/ocrVision'
-
-const SYSTEM_PROMPT = `You are an expert OCR AI specializing in reading scanned Philippine DOLE NSRP Form 1 (National Skills Registration Program Jobseeker Registration Form).
-You are analyzing images belonging to ONE single applicant's application.
-The images provided represent Page 1 (Front - Personal Information & Educational Background) and Page 2 (Back - Work Experience, Other Skills, and Signatures) of this applicant.
-
-CRITICAL EXTRACTION RULES:
-1. ABSOLUTE PROHIBITION AGAINST TEMPLATE LABELS:
-   - You MUST NOT output pre-printed form guide labels, section titles, column headers, or instruction notes (such as "SURNAME", "FIRST NAME", "MIDDLE NAME", "1.1 SURNAME", "1.2 FIRST NAME", "OFMONTHS, ORES POSITION", "Date, of Assessor", "Signature over Printed Name", "JOBSEEKER REGISTRATION FORM", "NSRP Form 1").
-   - Extract ONLY the HANDWRITTEN ink or typed responses filled in by the applicant or PESO officer.
-   - If a field box is empty or has no handwritten response, you MUST return null. Never use the field label as the value.
-
-2. FIELD-BY-FIELD INSTRUCTIONS (Page 1):
-   - "surname": The applicant's handwritten last/family name written in the SURNAME box. (e.g., "DELA CRUZ", "RIVERA", "VILLAMOR").
-   - "firstName": The applicant's handwritten given name written in the FIRST NAME box. (e.g., "JUAN", "DENMARK", "MARIA").
-   - "middleName": The handwritten middle name or initial. (e.g., "SANTOS", "B.").
-   - "suffix": Name suffix like "JR", "SR", "III", or null if blank.
-   - "sex": "Male" or "Female" based on the checked box or written text.
-   - "dateOfBirth": Date written in DATE OF BIRTH field formatted as YYYY-MM-DD (e.g., "1998-05-14").
-   - "age": The handwritten integer age (e.g., 24).
-   - "civilStatus": "Single", "Married", "Widowed", or "Separated".
-   - "religion": Handwritten religion (e.g., "Roman Catholic", "Islam", "Christian").
-   - "tin", "sss", "philhealth": ID numbers if written, else null.
-   - "contactNumber": Mobile/cellphone number.
-   - "email": Email address if written, else null.
-   - "address.houseStreet": House No., Street, Purok.
-   - "address.barangay": Barangay name (e.g., "Poblacion", "Patin-ay", "San Teodoro", "Bajuoan").
-   - "address.municipality": Agusan del Sur municipality (e.g., "Prosperidad", "Bayugan", "San Francisco", "Trento", "Bunawan", "Rosario", "Talacogon", "Esperanza", "Loreto", "La Paz", "San Luis", "Veruela", "Santa Josefa", "Sibagat").
-   - "address.province": "Agusan del Sur".
-   - "educationalLevel": Highest educational level (e.g., "College Graduate", "High School Graduate", "Senior High School", "Vocational").
-   - "course": Degree/course studied (e.g., "Bachelor of Science in Information Technology", "BS Criminology", "BS Business Administration", "BS Agriculture").
-   - "school": School or university name.
-   - "yearGraduated": Year graduated (e.g., "2023").
-
-3. FIELD-BY-FIELD INSTRUCTIONS (Page 2):
-   - "workExperience": Array of handwritten work experience rows [{ jobTitle, company, duration, description }].
-   - "skills": Array of handwritten skills (e.g., ["Computer Literacy", "Driving"]).
-   - "is4ps": true if 4Ps box is checked, false otherwise.
-   - "hasDisability": true if PWD box is checked, false otherwise.
-   - "employmentStatus": "Unemployed", "Employed", "Self-employed", etc.
-   - "preferredOccupations": Array of handwritten preferred occupations.
-
-4. Output strictly valid JSON matching the schema provided.`
-
-const PROMPT_TEXT = `Extract all filled-in applicant information from this NSRP Form 1 document into this exact JSON schema:
-{
-  "personalInfo": {
-    "surname": string | null,
-    "firstName": string | null,
-    "middleName": string | null,
-    "suffix": string | null,
-    "sex": "Male" | "Female" | null,
-    "dateOfBirth": string | null,
-    "age": number | null,
-    "civilStatus": string | null,
-    "religion": string | null,
-    "tin": string | null,
-    "sss": string | null,
-    "philhealth": string | null,
-    "contactNumber": string | null,
-    "email": string | null,
-    "address": {
-      "houseStreet": string | null,
-      "barangay": string | null,
-      "municipality": string | null,
-      "province": string | null
-    }
-  },
-  "education": {
-    "educationalLevel": string | null,
-    "course": string | null,
-    "school": string | null,
-    "yearGraduated": string | null
-  },
-  "workExperience": [
-    {
-      "jobTitle": string,
-      "company": string,
-      "duration": string,
-      "description": string
-    }
-  ],
-  "skills": string[],
-  "otherDetails": {
-    "is4ps": boolean | null,
-    "hasDisability": boolean | null,
-    "employmentStatus": string | null,
-    "preferredOccupations": string[]
-  },
-  "confidenceScore": number,
-  "extractedNotes": string | null
-}
-
-REMEMBER: Extract ONLY handwritten or filled-in values. NEVER output printed form labels as values.`
 
 export const ocrVisionService = {
   /**
@@ -161,99 +70,8 @@ export const ocrVisionService = {
   },
 
   /**
-   * Direct client-side Gemini Vision API call
-   */
-  async callDirectGeminiApi(
-    imageParts: Array<{ data: string; mime_type: string }>,
-    apiKey: string
-  ): Promise<OcrProcessResponse> {
-    const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-flash-latest']
-    let lastError: Error | null = null
-
-    for (const model of modelsToTry) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-
-        const contentParts: Array<Record<string, any>> = [
-          { text: `${SYSTEM_PROMPT}\n\n${PROMPT_TEXT}` },
-        ]
-        for (const img of imageParts) {
-          let b64 = img.data
-          let mt = img.mime_type || 'image/jpeg'
-          if (b64.includes(';base64,')) {
-            const parts = b64.split(';base64,')
-            const match = parts[0].match(/data:(.*?)$/)
-            if (match) mt = match[1]
-            b64 = parts[1]
-          }
-          contentParts.push({
-            inline_data: {
-              mime_type: mt,
-              data: b64,
-            },
-          })
-        }
-
-        const requestPayload = {
-          contents: [
-            {
-              role: 'user',
-              parts: contentParts,
-            },
-          ],
-          generationConfig: {
-            response_mime_type: 'application/json',
-            temperature: 0.1,
-            max_output_tokens: 4096,
-          },
-        }
-
-        const res = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestPayload),
-        })
-
-        if (!res.ok) {
-          const errText = await res.text()
-          throw new Error(`Gemini API (${model}) error ${res.status}: ${errText}`)
-        }
-
-        const geminiData = await res.json()
-        const rawContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
-        if (!rawContent) {
-          throw new Error(`Gemini API (${model}) returned empty response.`)
-        }
-
-        let parsed: any = {}
-        try {
-          parsed = JSON.parse(rawContent)
-        } catch {
-          const cleaned = rawContent.replace(/```json\n?|\n?```/g, '').trim()
-          parsed = JSON.parse(cleaned)
-        }
-
-        return {
-          success: true,
-          data: parsed,
-          metadata: {
-            model,
-            processed_at: new Date().toISOString(),
-          },
-        }
-      } catch (err: any) {
-        lastError = err
-        console.warn(`Model ${model} failed, trying next fallback:`, err.message)
-      }
-    }
-
-    throw lastError || new Error('Failed to call Gemini API across all model options.')
-  },
-
-  /**
-   * Invokes Gemini Vision API:
-   * Uses client-side direct API call when VITE_GEMINI_API_KEY is available (fast & reliable),
-   * or delegates to Supabase Edge Function 'process-ocr'.
+   * Reads an NSRP form image with Gemini Vision through the 'process-ocr' Edge Function, which checks
+   * the caller's session and role (Provincial PESO / admin) and keeps the Gemini key server-side.
    */
   async processOcrWithGemini(params: {
     imagePath?: string
@@ -262,8 +80,6 @@ export const ocrVisionService = {
     mimeType?: string
     applicantId?: string
   }): Promise<OcrProcessResponse> {
-    const clientApiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY
-
     // Collect image parts
     let imageParts: Array<{ data: string; mime_type: string }> = []
     if (params.imageBase64List && params.imageBase64List.length > 0) {
@@ -272,16 +88,6 @@ export const ocrVisionService = {
       imageParts = [{ data: params.imageBase64, mime_type: params.mimeType || 'image/jpeg' }]
     }
 
-    // Direct Gemini Vision API path (instant, works everywhere with VITE_GEMINI_API_KEY)
-    if (clientApiKey && imageParts.length > 0) {
-      try {
-        return await this.callDirectGeminiApi(imageParts, clientApiKey)
-      } catch (directErr: any) {
-        console.warn('Direct Gemini API call error, falling back to Supabase function:', directErr.message)
-      }
-    }
-
-    // Supabase Edge Function path
     const payload = {
       image_path: params.imagePath,
       image_base64: params.imageBase64 || (imageParts[0]?.data),

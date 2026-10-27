@@ -249,7 +249,7 @@ export function useFormOCR() {
       console.error('Vision OCR Error:', err)
       ocrState.stage = 'error'
       ocrState.errorMessage = err.message || 'Failed to extract form data with Gemini OCR.'
-      toast.error('OCR Processing Failed', ocrState.errorMessage || 'Please check your GEMINI_API_KEY and try again.')
+      toast.error('OCR Processing Failed', ocrState.errorMessage || 'Please try again.')
     } finally {
       ocrState.isExtracting = false
       ocrState.isUploading = false

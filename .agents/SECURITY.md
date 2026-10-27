@@ -237,6 +237,12 @@ All secrets are stored in `.env` and loaded via Vite's `import.meta.env`:
 > 4. **NEVER hardcode API keys, URLs, or secrets** in source code.
 > 5. **NEVER store passwords, tokens, or secrets in Pinia state** or `localStorage`.
 > 6. The `VITE_SUPABASE_PUBLISHABLE_KEY` is the **anon key** — it is safe for client-side use because RLS restricts what it can access.
+> 7. **Every `VITE_` variable the code reads is public**: Vite writes its value into the JavaScript every visitor downloads.
+>    Only the Supabase URL / anon key and the Mapbox public token (restricted to the site's URLs in the Mapbox
+>    dashboard) may be `VITE_`. Paid or private keys (Gemini, Google Vision, OpenAI, OpenRouter, ...) live only in
+>    Supabase Edge Function secrets (`supabase secrets set NAME=...`) and are called through a function that checks
+>    the caller's JWT and role — see `supabase/functions/process-ocr`. Never read them with `import.meta.env`,
+>    not even through an `as any` cast.
 
 ---
 
@@ -406,7 +412,25 @@ Notification types: `application_status`, `interview_alert`, `referral_update`, 
 
 ---
 
-## 12. Security Checklist for New Features
+## 12. What DevTools Can Show
+
+Anyone can open DevTools on the site. What each tab may contain:
+
+| Tab                | Rule                                                                                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Console**        | Production builds drop every `console.*` and `debugger` (`build.rolldownOptions.output.minify.compress` in `vite.config.ts`). Still **never log records, responses, profiles or IDs** — `npm run dev` keeps the logs. |
+| **Sources**        | `build.sourcemap: false` — only the minified bundle, never the original code. Prompts, business rules and keys that must stay private belong in Edge Functions or the database.                          |
+| **Application**    | `localStorage` holds only public reference data (PSGC, geocodes) — personal data stays in the in-memory cache (`persistentCache.ts`). The Supabase session token is the signed-in user's own and is required by the client. |
+| **Network**        | Every response shows each selected column. RLS limits the rows; **select only the columns the screen needs** when reading other people's data, and keep private columns out of views / RPCs other roles call. |
+| **Elements**       | Links render through `AppLink` (no `href`, so no URL preview). Never put IDs or personal data in `data-*` attributes or hidden inputs.                                                                  |
+
+Error toasts go through `toSafeErrorMessage` (`src/helpers/common/safeErrorMessage.ts`): raw database errors that name tables, columns,
+schemas or policies become plain wording. Messages written for users on purpose (`RAISE EXCEPTION 'You can''t ...'`) pass through, so
+keep RPC errors readable.
+
+---
+
+## 13. Security Checklist for New Features
 
 When implementing a new feature, verify:
 
@@ -420,3 +444,6 @@ When implementing a new feature, verify:
 - [ ] Form inputs are validated with zod schemas
 - [ ] Toast messages are generic for error cases (no stack traces shown to users)
 - [ ] Admin operations that bypass RLS use SECURITY DEFINER functions via `.rpc()`
+- [ ] No new `VITE_` variable holds a private or paid key (§5.2) — third-party APIs go through an Edge Function
+- [ ] Nothing logs records, responses or personal data, even in development (§12)
+- [ ] Queries reading other users' data select only the columns the screen shows (§12)
