@@ -38,6 +38,16 @@ export const loginRoutes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/tupad',
+    name: 'tupad',
+    component: () => import('@/views/landing/Tupad.vue'),
+    // Signed-in applicants get the same page inside their layout, where they can apply
+    beforeEnter: () => {
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && authStore.userRole === 'applicant') return { name: 'tupad-application' }
+    }
+  },
+  {
     path: '/',
     component: AuthLayout,
     children: [

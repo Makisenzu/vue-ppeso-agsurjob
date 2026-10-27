@@ -1,7 +1,11 @@
 import type { Database } from '@/types/database.types'
 
-// status_remarks (migration 055) is not in database.types.ts until `npm run types:gen`
-export type TupadApplicantRow = Database['esmdd']['Tables']['tupad_applicants']['Row'] & { status_remarks?: string | null }
+// applied_online / orientation_* (migration 070) are not in database.types.ts until `npm run types:gen`
+export type TupadApplicantRow = Database['esmdd']['Tables']['tupad_applicants']['Row'] & {
+  applied_online?: boolean
+  orientation_at?: string | null
+  orientation_note?: string | null
+}
 export type TupadApplicantInsert = Database['esmdd']['Tables']['tupad_applicants']['Insert']
 export type TupadApplicantUpdate = Database['esmdd']['Tables']['tupad_applicants']['Update']
 
@@ -60,6 +64,9 @@ export type TupadApplicantReview = Pick<TupadApplicantRow, 'monthly_income' | 'd
   status: TupadApplicantStatus
   /** Required when Rejected */
   status_remarks: string | null
+  /** When the applicant comes to the office for orientation (ISO); required when Approved */
+  orientation_at: string | null
+  orientation_note: string | null
 }
 
 /** Editable fields of an engagement. */

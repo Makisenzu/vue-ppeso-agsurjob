@@ -36,7 +36,7 @@ export const navLinks: LandingNavLink[] = [
     children: [
       { label: 'Fly Now Pay Later Program', href: '#program-fly-now-pay-later' },
       { label: 'Skills Training', href: '#program-skills-training' },
-      { label: 'TUPAD', href: '#program-tupad' },
+      { label: 'TUPAD', to: { name: 'tupad' } },
       { label: 'SPES', to: { name: 'spes' } },
       { label: 'GIP', to: { name: 'gip' } },
     ],

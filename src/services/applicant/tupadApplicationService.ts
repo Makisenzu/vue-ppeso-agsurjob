@@ -46,4 +46,13 @@ export const tupadApplicationService = {
     if (error) throw new Error(error.message || 'Failed to load your TUPAD batches')
     return (data ?? []).map(({ tupad_batch, ...row }) => ({ ...row, batch: tupad_batch }))
   },
+
+  /** Creates the application (or returns the existing one) and notifies Provincial PESO (migration 070). */
+  async applyToTupad(): Promise<TupadApplicationRow> {
+    // apply_to_tupad is not in database.types.ts until `npm run types:gen` is re-run
+    const { data, error } = await (supabase.schema('esmdd') as any).rpc('apply_to_tupad')
+
+    if (error) throw new Error(error.message || 'Failed to submit your TUPAD application')
+    return data as TupadApplicationRow
+  },
 }

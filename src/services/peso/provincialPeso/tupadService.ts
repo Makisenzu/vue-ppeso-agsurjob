@@ -127,11 +127,18 @@ export const tupadService = {
 
   async updateTupadApplicant(id: string, review: TupadApplicantReview): Promise<TupadApplicantRow> {
     assertStatusRemarks(review.status, review.status_remarks)
+    const isApproved = review.status === 'Approved'
+    if (isApproved && !review.orientation_at) throw new Error('Set the orientation date and time when approving.')
     const { data, error } = await supabase
       .schema('esmdd')
       .from('tupad_applicants')
-      // status_remarks (migration 055) is not in the generated Update type yet
-      .update({ ...review, status_remarks: normalizeStatusRemarks(review.status_remarks) } as TupadApplicantUpdate)
+      // orientation_* (migration 070) are not in the generated Update type yet
+      .update({
+        ...review,
+        status_remarks: normalizeStatusRemarks(review.status_remarks),
+        orientation_at: isApproved ? review.orientation_at : null,
+        orientation_note: isApproved ? review.orientation_note : null,
+      } as TupadApplicantUpdate)
       .eq('id', id)
       .select()
       .single()

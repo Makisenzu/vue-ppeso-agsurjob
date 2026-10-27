@@ -12,14 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -29,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { useTupadApplicants } from '@/composables/peso/provincialPeso/useTupadApplicants'
 import {
@@ -55,6 +48,7 @@ const {
   isLoadingReviewDocuments,
   isReviewDialogOpen,
   isReviewRemarksRequired,
+  isOrientationRequired,
   isSubmitting,
   onReviewDialogOpenChange,
   toggleDocument,
@@ -89,7 +83,7 @@ const {
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">TUPAD Applicants</h1>
         <p class="text-sm text-muted-foreground">
-          Applicants referred to TUPAD in Entry of Applicants. Review their details here, then add them to a batch.
+          Applicants who applied online or were referred in Entry of Applicants. Review them, then add them to a batch.
         </p>
       </div>
       <Button variant="outline" as-child>
@@ -287,145 +281,189 @@ const {
     </template>
   </div>
 
-  <!-- Review TUPAD applicant -->
-  <Dialog :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
-    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-      <form class="space-y-6" @submit="submitReview">
-        <DialogHeader>
-          <DialogTitle>{{ formatTupadApplicantName(reviewingApplicant) }}</DialogTitle>
-          <DialogDescription>
-            Referred to TUPAD {{ formatTupadDate(reviewingApplicant?.created_at) }}.
-          </DialogDescription>
-        </DialogHeader>
+  <!-- Review TUPAD applicant: a sheet, the form is long (DESIGN.md §5.1) -->
+  <Sheet :open="isReviewDialogOpen" @update:open="onReviewDialogOpenChange">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-xl">
+      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
+        <SheetTitle>{{ formatTupadApplicantName(reviewingApplicant) }}</SheetTitle>
+        <SheetDescription>
+          {{ reviewingApplicant?.applied_online ? 'Applied online' : 'Referred to TUPAD' }}
+          {{ formatTupadDate(reviewingApplicant?.created_at) }}.
+        </SheetDescription>
+      </SheetHeader>
 
-        <div v-if="reviewingApplicant" class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <div>
-            <span class="text-xs text-muted-foreground">Current Status</span>
-            <div class="mt-0.5">
-              <Badge variant="outline" :class="getTupadStatusBadgeClass(reviewingApplicant.status)">
-                {{ reviewingApplicant.status }}
-              </Badge>
+      <form class="contents" @submit="submitReview">
+        <div class="grid flex-1 grid-cols-1 content-start gap-6 overflow-y-auto px-6 py-4">
+          <div v-if="reviewingApplicant" class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <span class="text-xs text-muted-foreground">Current Status</span>
+              <div class="mt-0.5">
+                <Badge variant="outline" :class="getTupadStatusBadgeClass(reviewingApplicant.status)">
+                  {{ reviewingApplicant.status }}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Municipality</span>
+              <p class="text-sm font-medium">{{ getTupadMunicipality(reviewingApplicant.applicant) }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Sex</span>
+              <p class="text-sm font-medium">{{ reviewingApplicant.applicant?.sex || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Date of Birth</span>
+              <p class="text-sm font-medium">{{ formatTupadDate(reviewingApplicant.applicant?.date_of_birth) }}</p>
             </div>
           </div>
-          <div>
-            <span class="text-xs text-muted-foreground">Municipality</span>
-            <p class="text-sm font-medium">{{ getTupadMunicipality(reviewingApplicant.applicant) }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground">Sex</span>
-            <p class="text-sm font-medium">{{ reviewingApplicant.applicant?.sex || '—' }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground">Date of Birth</span>
-            <p class="text-sm font-medium">{{ formatTupadDate(reviewingApplicant.applicant?.date_of_birth) }}</p>
-          </div>
-        </div>
 
-        <Separator />
+          <Separator />
 
-        <section class="space-y-4">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField v-slot="{ componentField }" name="monthly_income">
+          <section class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField v-slot="{ componentField }" name="monthly_income">
+                <FormItem>
+                  <FormLabel>Monthly Income (₱)</FormLabel>
+                  <FormControl>
+                    <Input v-bind="componentField" type="number" min="0" step="0.01" placeholder="0.00" :disabled="isSubmitting" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="status">
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select v-bind="componentField" :disabled="isSubmitting">
+                    <FormControl>
+                      <SelectTrigger class="w-full">
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+                        {{ status }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+
+            <!-- Required for Rejected; sent to the applicant in their notification -->
+            <FormField v-if="isReviewRemarksRequired" v-slot="{ componentField }" name="remarks">
               <FormItem>
-                <FormLabel>Monthly Income (₱)</FormLabel>
+                <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Input v-bind="componentField" type="number" min="0" step="0.01" placeholder="0.00" :disabled="isSubmitting" />
+                  <Textarea
+                    v-bind="componentField"
+                    rows="3"
+                    placeholder="Why the application is rejected; the applicant will see this"
+                    :disabled="isSubmitting"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>
 
-            <FormField v-slot="{ componentField }" name="status">
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
+            <!-- Required for Approved: when the applicant comes to the office; sent in their notification -->
+            <fieldset v-if="isOrientationRequired" class="grid gap-4 rounded-lg border p-4">
+              <legend class="px-1 text-sm font-medium">Orientation schedule</legend>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <FormField v-slot="{ componentField }" name="orientationDate">
+                  <FormItem>
+                    <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
+                    <FormControl>
+                      <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+                <FormField v-slot="{ componentField }" name="orientationTime">
+                  <FormItem>
+                    <FormLabel>Time <span class="text-destructive">*</span></FormLabel>
+                    <FormControl>
+                      <Input v-bind="componentField" type="time" :disabled="isSubmitting" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+              </div>
+              <FormField v-slot="{ componentField }" name="orientationNote">
+                <FormItem>
+                  <FormLabel>Note</FormLabel>
                   <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
+                    <Textarea
+                      v-bind="componentField"
+                      rows="3"
+                      placeholder="e.g. Bring a valid ID and a ballpen. Proceed to the PESO office, 2nd floor."
+                      :disabled="isSubmitting"
+                    />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-                      {{ status }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  <FormDescription>Shown to the applicant.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </fieldset>
+
+            <FormField v-slot="{ componentField }" name="dependent_name">
+              <FormItem>
+                <FormLabel>Dependent Name <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
+                <FormControl>
+                  <Textarea v-bind="componentField" rows="2" placeholder="Name of dependent(s)" :disabled="isSubmitting" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>
-          </div>
 
-          <!-- Required for Rejected; sent to the applicant in their notification -->
-          <FormField v-if="isReviewRemarksRequired" v-slot="{ componentField }" name="remarks">
-            <FormItem>
-              <FormLabel>Remarks <span class="text-destructive">*</span></FormLabel>
-              <FormControl>
-                <Textarea
-                  v-bind="componentField"
-                  rows="3"
-                  placeholder="Why the application is rejected; the applicant will see this"
-                  :disabled="isSubmitting"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <FormField v-slot="{ componentField }" name="dependent_name">
-            <FormItem>
-              <FormLabel>Dependent Name <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-              <FormControl>
-                <Textarea v-bind="componentField" rows="2" placeholder="Name of dependent(s)" :disabled="isSubmitting" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <FormField v-slot="{ value, handleChange }" name="doc_submitted">
-            <FormItem>
-              <FormLabel>Required Documents</FormLabel>
-              <div class="space-y-2">
-                <div v-for="doc in documentOptions" :key="doc" class="space-y-1.5 rounded-md border p-2">
-                  <label
-                    class="flex items-center gap-2 text-sm"
-                    :class="doc === lockedDocument ? 'cursor-not-allowed' : 'cursor-pointer'"
-                  >
-                    <Checkbox
-                      :model-value="doc === lockedDocument || (value ?? []).includes(doc)"
-                      :disabled="isSubmitting || doc === lockedDocument"
-                      @update:model-value="(checked) => handleChange(toggleDocument(value, doc, checked))"
-                    />
-                    <span class="font-medium">{{ doc }}</span>
-                  </label>
-                  <!-- File the applicant attached to this document -->
-                  <Skeleton v-if="isLoadingReviewDocuments" class="ml-6 h-5 w-48" />
-                  <a
-                    v-else-if="reviewDocuments[doc]?.url"
-                    :href="reviewDocuments[doc]!.url!"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="ml-6 flex min-w-0 items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    <FileText class="size-3.5 shrink-0" />
-                    <span class="truncate">{{ reviewDocuments[doc]!.file_name }}</span>
-                    <ExternalLink class="size-3 shrink-0" />
-                  </a>
-                  <p v-else-if="reviewDocuments[doc]" class="ml-6 truncate text-xs text-muted-foreground">
-                    {{ reviewDocuments[doc]!.file_name }} (file unavailable)
-                  </p>
-                  <p v-else class="ml-6 text-xs text-muted-foreground">No file uploaded by the applicant</p>
+            <FormField v-slot="{ value, handleChange }" name="doc_submitted">
+              <FormItem>
+                <FormLabel>Required Documents</FormLabel>
+                <div class="space-y-2">
+                  <div v-for="doc in documentOptions" :key="doc" class="space-y-1.5 rounded-md border p-2">
+                    <label
+                      class="flex items-center gap-2 text-sm"
+                      :class="doc === lockedDocument ? 'cursor-not-allowed' : 'cursor-pointer'"
+                    >
+                      <Checkbox
+                        :model-value="doc === lockedDocument || (value ?? []).includes(doc)"
+                        :disabled="isSubmitting || doc === lockedDocument"
+                        @update:model-value="(checked) => handleChange(toggleDocument(value, doc, checked))"
+                      />
+                      <span class="font-medium">{{ doc }}</span>
+                    </label>
+                    <!-- File the applicant attached to this document -->
+                    <Skeleton v-if="isLoadingReviewDocuments" class="ml-6 h-5 w-48" />
+                    <a
+                      v-else-if="reviewDocuments[doc]?.url"
+                      :href="reviewDocuments[doc]!.url!"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="ml-6 flex min-w-0 items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      <FileText class="size-3.5 shrink-0" />
+                      <span class="truncate">{{ reviewDocuments[doc]!.file_name }}</span>
+                      <ExternalLink class="size-3 shrink-0" />
+                    </a>
+                    <p v-else-if="reviewDocuments[doc]" class="ml-6 truncate text-xs text-muted-foreground">
+                      {{ reviewDocuments[doc]!.file_name }} (file unavailable)
+                    </p>
+                    <p v-else class="ml-6 text-xs text-muted-foreground">No file uploaded by the applicant</p>
+                  </div>
                 </div>
-              </div>
-              <p class="text-xs text-muted-foreground">
-                The monthly income and all {{ documentOptions.length }} documents are needed before this applicant can
-                be added to a batch.
-              </p>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-        </section>
+                <p class="text-xs text-muted-foreground">
+                  The monthly income and all {{ documentOptions.length }} documents are needed before this applicant can
+                  be added to a batch.
+                </p>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </section>
+        </div>
 
-        <DialogFooter class="gap-2">
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
           <Button type="button" variant="outline" :disabled="isSubmitting" @click="onReviewDialogOpenChange(false)">
             Cancel
           </Button>
@@ -433,10 +471,10 @@ const {
             <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
             {{ isSubmitting ? 'Saving...' : 'Save Review' }}
           </Button>
-        </DialogFooter>
+        </div>
       </form>
-    </DialogContent>
-  </Dialog>
+    </SheetContent>
+  </Sheet>
 
   <AlertDialog v-model:open="isDeleteDialogOpen">
     <AlertDialogContent>

@@ -8,6 +8,7 @@ import {
   type TupadApplicantDocumentRow,
   type TupadPendingDocumentMap,
 } from '@/types/common/tupad'
+import type { TupadReusedDocumentMap } from '@/types/common/tupadProgram'
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60
 
@@ -80,47 +81,32 @@ export const tupadDocumentService = {
   },
 
   /**
-   * Brings an application's files in line with its checklist: uploads the newly picked files
-   * (replacing the previous one) and removes the files of unticked documents.
+   * Uploads the picked files and copies the chosen profile documents, each replacing that document's
+   * previous file. Profile documents are copied, not linked, so removing one never breaks the other.
+   * Each saved file ticks its document in tupad_applicants.doc_submitted (trigger in migration 070).
    */
-  async syncDocuments(options: {
+  async uploadDocuments(options: {
     tupadApplicantId: string
     /** Signed-in user; files go into their own folder of the documents bucket. */
     uploaderId: string
-    checked: readonly string[]
     pending: TupadPendingDocumentMap
+    reused?: TupadReusedDocumentMap
   }): Promise<void> {
-    const { tupadApplicantId, uploaderId, checked, pending } = options
+    const { tupadApplicantId, uploaderId, pending, reused = {} } = options
     const existing = await fetchRows(tupadApplicantId)
 
-    for (const documentName of TUPAD_DOCUMENT_OPTIONS) {
+    const saveRow = async (
+      documentName: string,
+      file: { path: string; fileName: string; mimeType: string | null; size: number | null }
+    ) => {
       const current = existing.find((row) => row.document_name === documentName)
-
-      if (!checked.includes(documentName)) {
-        if (current) {
-          const { error } = await documentsTable().delete().eq('id', current.id)
-          if (error) throw new Error(error.message || `Failed to remove the ${documentName}.`)
-          await removeStorageFiles([current.path])
-        }
-        continue
-      }
-
-      const file = pending[documentName]
-      if (!file) continue
-
-      const path = fileHelpers.generateUniquePath(uploaderId, file.name)
-      const { error: uploadErr } = await supabase.storage
-        .from(DOCUMENT_UPLOAD_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false })
-      if (uploadErr) throw new Error(uploadErr.message || `Failed to upload the ${documentName}.`)
-
       const { error: rowErr } = await documentsTable().upsert(
         {
           tupad_applicant_id: tupadApplicantId,
           document_name: documentName,
-          file_name: file.name,
-          path,
-          mime_type: file.type,
+          file_name: file.fileName,
+          path: file.path,
+          mime_type: file.mimeType,
           size: file.size,
           uploaded_by: uploaderId,
         },
@@ -128,12 +114,48 @@ export const tupadDocumentService = {
       )
 
       if (rowErr) {
-        await removeStorageFiles([path])
+        await removeStorageFiles([file.path])
         throw new Error(rowErr.message || `Failed to save the ${documentName}.`)
       }
 
       // Only the latest file is kept per document
       if (current) await removeStorageFiles([current.path])
     }
+
+    for (const [documentName, file] of Object.entries(pending)) {
+      if (!file || !TUPAD_DOCUMENT_OPTIONS.includes(documentName)) continue
+      const path = fileHelpers.generateUniquePath(uploaderId, file.name)
+      const { error: uploadErr } = await supabase.storage
+        .from(DOCUMENT_UPLOAD_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false })
+      if (uploadErr) throw new Error(uploadErr.message || `Failed to upload the ${documentName}.`)
+      await saveRow(documentName, { path, fileName: file.name, mimeType: file.type, size: file.size })
+    }
+
+    for (const [documentName, document] of Object.entries(reused)) {
+      if (!document || pending[documentName] || !TUPAD_DOCUMENT_OPTIONS.includes(documentName)) continue
+      const path = fileHelpers.generateUniquePath(uploaderId, document.fileName)
+      const { error: copyErr } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).copy(document.path, path)
+      if (copyErr) {
+        throw new Error(
+          /not found/i.test(copyErr.message)
+            ? `Your ${document.label} is no longer in your documents. Upload the ${documentName} instead.`
+            : copyErr.message || `Failed to attach your ${document.label} to the ${documentName}.`
+        )
+      }
+      await saveRow(documentName, {
+        path,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+        size: document.size,
+      })
+    }
+  },
+
+  /** Removes one attached file (row first, then the stored file). */
+  async deleteDocument(document: Pick<TupadApplicantDocumentRow, 'id' | 'path' | 'document_name'>): Promise<void> {
+    const { error } = await documentsTable().delete().eq('id', document.id)
+    if (error) throw new Error(error.message || `Failed to remove the ${document.document_name}.`)
+    await removeStorageFiles([document.path])
   },
 }

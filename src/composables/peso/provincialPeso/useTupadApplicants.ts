@@ -54,9 +54,22 @@ const reviewSchema = toTypedSchema(
       dependent_name: z.string().trim().optional(),
       doc_submitted: tupadDocumentsSchema,
       remarks: z.string().trim().optional(),
+      orientationDate: z.string().optional(),
+      orientationTime: z.string().optional(),
+      orientationNote: z.string().trim().max(500, 'Keep the note under 500 characters.').optional(),
     })
     // Rejecting needs remarks; the applicant reads them in their notification
     .superRefine(refineStatusRemarks)
+    // Approving tells the applicant when to come for orientation (same as GIP and SPES)
+    .superRefine((values, ctx) => {
+      if (values.status !== 'Approved') return
+      if (!values.orientationDate) {
+        ctx.addIssue({ code: 'custom', path: ['orientationDate'], message: 'Set the orientation date.' })
+      }
+      if (!values.orientationTime) {
+        ctx.addIssue({ code: 'custom', path: ['orientationTime'], message: 'Set the orientation time.' })
+      }
+    })
 )
 
 const INITIAL_VALUES = {
@@ -65,6 +78,21 @@ const INITIAL_VALUES = {
   dependent_name: '',
   doc_submitted: [TUPAD_LOCKED_DOCUMENT] as string[],
   remarks: '',
+  orientationDate: '',
+  orientationTime: '',
+  orientationNote: '',
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** A saved orientation_at as the date and time inputs' values, in the staff's local time */
+function toOrientationInputs(value: string | null | undefined) {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return { orientationDate: '', orientationTime: '' }
+  return {
+    orientationDate: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    orientationTime: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  }
 }
 
 function toFormValues(row: TupadApplicantWithRegistry): typeof INITIAL_VALUES {
@@ -74,12 +102,15 @@ function toFormValues(row: TupadApplicantWithRegistry): typeof INITIAL_VALUES {
     dependent_name: row.dependent_name ?? '',
     doc_submitted: withLockedTupadDocument(row.doc_submitted),
     remarks: row.status_remarks ?? '',
+    ...toOrientationInputs(row.orientation_at),
+    orientationNote: row.orientation_note ?? '',
   }
 }
 
 /**
  * TUPAD applicants — registry applicants whose referred_programs include TUPAD
- * (added automatically by applicantEntryService), with the PESO review dialog.
+ * (added by applicantEntryService, or by the applicant applying online — migration 070), with the PESO
+ * review sheet.
  */
 export function useTupadApplicants() {
   const store = useTupadStore()
@@ -189,7 +220,7 @@ export function useTupadApplicants() {
     },
     {
       accessorKey: 'created_at',
-      header: sortableHeader('Date Referred'),
+      header: sortableHeader('Date Applied'),
       cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-sm' }, formatTupadDate(row.original.created_at)),
     },
     {
@@ -321,6 +352,7 @@ export function useTupadApplicants() {
 
   const isReviewDialogOpen = computed(() => reviewingApplicant.value !== null)
   const isReviewRemarksRequired = computed(() => requiresStatusRemarks(reviewValues.status))
+  const isOrientationRequired = computed(() => reviewValues.status === 'Approved')
 
   watch(reviewingApplicant, (row) => {
     if (row) resetForm({ values: toFormValues(row) })
@@ -334,7 +366,12 @@ export function useTupadApplicants() {
   const toggleDocument = toggleTupadDocument
 
   const submitReview = handleSubmit(async (values) => {
+    const isApproved = values.status === 'Approved'
     await saveApplicantReview({
+      orientation_at: isApproved
+        ? new Date(`${values.orientationDate}T${values.orientationTime}:00`).toISOString()
+        : null,
+      orientation_note: isApproved ? normalizeStatusRemarks(values.orientationNote) : null,
       status: values.status,
       monthly_income: parseTupadIncome(values.monthly_income),
       dependent_name: values.dependent_name || null,
@@ -365,6 +402,7 @@ export function useTupadApplicants() {
     isLoadingReviewDocuments,
     isReviewDialogOpen,
     isReviewRemarksRequired,
+    isOrientationRequired,
     // bulk actions & delete
     selectedApplicants,
     bulkStatus,

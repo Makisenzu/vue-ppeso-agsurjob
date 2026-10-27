@@ -94,7 +94,13 @@ export const applicantRoutes : RouteRecordRaw[] = [
         path: 'tupad-application',
         name: 'tupad-application',
         component: () => import('@/components/applicant/Tupad/ApplicantTupadApplication.vue'),
-        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application' }
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application', fullWidth: true }
+      },
+      {
+        path: 'tupad-application/form',
+        name: 'tupad-application-form',
+        component: () => import('@/components/applicant/Tupad/ApplicantTupadApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application Form' }
       },
       {
         path: 'gip-application',
