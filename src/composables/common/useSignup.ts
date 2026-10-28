@@ -12,7 +12,6 @@ import {
   SEX_OPTIONS,
   CIVIL_STATUS_OPTIONS,
   SUFFIX_OPTIONS,
-  BUSINESS_TYPE_OPTIONS,
   MIN_PASSWORD_LENGTH,
   calculateAge,
   createInitialSignupValues,
@@ -46,6 +45,11 @@ export function useSignup() {
   /** Steps shown in the progress indicator (everything after role selection). */
   const progressSteps = computed(() => steps.value.slice(1).map((meta, index) => ({ ...meta, step: index + 1 })))
   const isLastStep = computed(() => currentStep.value === steps.value.length - 1)
+  /** Company owners give only their own details; the NSRP applicant fields are for applicants */
+  const isApplicant = computed(() => selectedRole.value === 'applicant')
+  /** Step holding the name and birth fields, and the one holding the email (review Edit buttons) */
+  const personalStepKey = computed<SignupStepKey>(() => (isApplicant.value ? 'personal' : 'representative'))
+  const contactStepKey = computed<SignupStepKey>(() => (isApplicant.value ? 'address' : 'representative'))
 
   // ─── Form (values stay here — never in Pinia) ───
   const validationSchema = computed(() => toTypedSchema(getSignupStepSchema(currentStepKey.value)))
@@ -62,6 +66,18 @@ export function useSignup() {
   const fullName = computed(() => formatSignupFullName(values.value))
   const fullAddress = computed(() => formatSignupAddress(values.value))
   const passwordStrength = computed(() => getPasswordStrength(values.value.password))
+
+  // One line per review row, so the review screen fits without scrolling
+  const personalSummary = computed(() => {
+    const v = values.value
+    const applicantDetails = isApplicant.value
+      ? [v.civil_status, v.religion, v.height_ft ? `${v.height_ft} ft` : '', v.tin && `TIN ${v.tin}`]
+      : []
+    return [v.date_of_birth, age.value !== null ? `${age.value} yrs` : '', v.sex, ...applicantDetails]
+      .filter(Boolean)
+      .join(' · ')
+  })
+  const contactSummary = computed(() => [values.value.contact_number, values.value.email].filter(Boolean).join(' · '))
 
   // ─── PSGC cascading address ───
   const {
@@ -124,7 +140,7 @@ export function useSignup() {
     const { valid } = await validate()
     if (!valid) return
 
-    if (currentStepKey.value === 'address' && (await signupStore.isEmailTaken(values.value.email))) {
+    if (currentStepKey.value === contactStepKey.value && (await signupStore.isEmailTaken(values.value.email))) {
       setFieldError('email', 'An account with this email already exists. Sign in instead.')
       return
     }
@@ -193,6 +209,9 @@ export function useSignup() {
     currentStepKey,
     currentStepMeta,
     progressSteps,
+    isApplicant,
+    personalStepKey,
+    contactStepKey,
     isLastStep,
     nextStep,
     prevStep,
@@ -204,6 +223,8 @@ export function useSignup() {
     fullName,
     fullAddress,
     passwordStrength,
+    personalSummary,
+    contactSummary,
     maxBirthDate: todayIsoDate(),
     minPasswordLength: MIN_PASSWORD_LENGTH,
     // Submit
@@ -233,6 +254,5 @@ export function useSignup() {
     SEX_OPTIONS,
     CIVIL_STATUS_OPTIONS,
     SUFFIX_OPTIONS,
-    BUSINESS_TYPE_OPTIONS,
   }
 }

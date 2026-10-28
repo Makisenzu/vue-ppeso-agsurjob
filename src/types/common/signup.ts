@@ -9,9 +9,6 @@ export type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
 export type ApplicantRow = Database['applicants']['Tables']['applicants']['Row']
 export type ApplicantInsert = Database['applicants']['Tables']['applicants']['Insert']
 
-export type CompanyRow = Database['employers']['Tables']['companies']['Row']
-export type CompanyInsert = Database['employers']['Tables']['companies']['Insert']
-
 export type UserRole = Database['core']['Enums']['user_role']
 export type GenderType = Database['core']['Enums']['gender_type']
 export type StatusType = Database['core']['Enums']['status_type']
@@ -32,7 +29,7 @@ export type ApplicantSex = 'Male' | 'Female'
 
 // ─── Signup Steps ───
 
-export type SignupStepKey = 'role' | 'personal' | 'address' | 'account' | 'company' | 'review'
+export type SignupStepKey = 'role' | 'personal' | 'representative' | 'address' | 'account' | 'review'
 
 export interface SignupStepMeta {
   key: SignupStepKey
@@ -69,16 +66,6 @@ export interface SignupFormValues {
   username: string
   password: string
   confirm_password: string
-  // Company owner only
-  company_name: string
-  company_email: string
-  company_contact: string
-  business_type: string
-  industry: string
-  company_address: string
-  company_description: string
-  website: string
-  registration_number: string
 }
 
 /** Shape stored in `applicants.applicants.address` (same keys as the PESO applicant entry form). */

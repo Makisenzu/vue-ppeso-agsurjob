@@ -8,6 +8,12 @@ export const employerRoutes: RouteRecordRaw[] = [
     meta: { breadcrumb: false, requiresAuth: true, role: 'company_owner' },
     children: [
       {
+        path: 'complete-profile',
+        name: 'employer-complete-profile',
+        component: () => import('@/components/employer/CompleteProfile/EmployerCompleteProfile.vue'),
+        meta: { breadcrumb: 'Complete Profile' },
+      },
+      {
         path: 'notifications',
         name: 'employer-notifications',
         component: () => import('@/components/NotificationCenter.vue'),

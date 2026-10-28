@@ -5,8 +5,6 @@ import type {
   ProfileRow,
   ApplicantInsert,
   ApplicantRow,
-  CompanyInsert,
-  CompanyRow,
 } from '@/types/common/signup'
 
 export const signupService = {
@@ -37,18 +35,6 @@ export const signupService = {
       .single()
 
     if (error) throw new Error(error.message || 'Failed to insert applicant data')
-    return data
-  },
-
-  async insertCompany(companyData: CompanyInsert): Promise<CompanyRow> {
-    const { data, error } = await supabase
-      .schema('employers')
-      .from('companies')
-      .insert(companyData)
-      .select()
-      .single()
-
-    if (error) throw new Error(error.message || 'Failed to insert company data')
     return data
   },
 

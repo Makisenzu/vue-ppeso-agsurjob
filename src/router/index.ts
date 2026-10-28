@@ -78,6 +78,13 @@ router.beforeEach(async (to, _from, next) => {
       ) {
         // Applicants must finish their NSRP record (applicants.applicants) before using the portal
         next({ name: 'complete-profile' })
+      } else if (
+        userRole === 'company_owner' &&
+        to.name !== 'employer-complete-profile' &&
+        !authStore.isEmployerProfileComplete
+      ) {
+        // Company owners must register their establishment (NSRP Form 2) before using the portal
+        next({ name: 'employer-complete-profile' })
       } else {
         next()
       }

@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabaseClient"
 import type { SignInWithPasswordCredentials } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
+import { establishmentService } from '@/services/common/establishmentService'
+import type { CompanyEstablishmentSummary } from '@/types/employer/employerCompletion'
 
 export type ProfileRow = Database['core']['Tables']['profiles']['Row']
 export type ProfileInsert = Database['core']['Tables']['profiles']['Insert']
@@ -40,6 +42,8 @@ export interface UserBundleData {
   profile: ProfileSummary | null
   applicant: ApplicantRow | null
   employer: EmployerRow | null
+  /** The owner's NSRP Form 2; null until registered (company owners only) */
+  establishment: CompanyEstablishmentSummary | null
   experiences: ApplicantExperienceRow[]
   skills: ApplicantSkillRow[]
   requirements: ApplicantRequirementRow[]
@@ -140,6 +144,7 @@ export const authService = {
         profile: null,
         applicant: null,
         employer: null,
+        establishment: null,
         experiences: [],
         skills: [],
         requirements: [],
@@ -158,6 +163,11 @@ export const authService = {
         supabase.schema('applicants').from('applicant_requirement_media').select('*').eq('profiles_id', userId),
         supabase.schema('core').from('profile_media').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
       ])
+
+    const establishment =
+      profile.role === 'company_owner' && employerResult
+        ? await establishmentService.fetchCompanyEstablishment(employerResult.id)
+        : null
 
     if (experiencesResult.error) {
       throw new Error(experiencesResult.error.message || 'Failed to fetch applicant experiences')
@@ -183,6 +193,7 @@ export const authService = {
       profile,
       applicant: applicantResult,
       employer: employerResult,
+      establishment,
       experiences: experiencesResult.data ?? [],
       skills: skillsResult.data ?? [],
       requirements: requirementsResult.data ?? [],

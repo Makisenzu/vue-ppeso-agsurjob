@@ -64,3 +64,9 @@ export type EstablishmentSearchResult = Pick<
   EstablishmentRow,
   'id' | 'business_name' | 'trade_name' | 'acronym' | 'tin' | 'city_municipality' | 'province' | 'status'
 >
+
+/** A PESO-encoded Form 2 with no account yet, offered at company signup (employers.find_unclaimed_establishments) */
+export type UnclaimedEstablishmentMatch = Pick<
+  EstablishmentRow,
+  'id' | 'business_name' | 'trade_name' | 'city_municipality' | 'province'
+>

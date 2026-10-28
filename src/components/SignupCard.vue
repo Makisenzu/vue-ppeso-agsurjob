@@ -36,10 +36,6 @@ import {
   StepperTitle,
 } from '@/components/ui/stepper'
 
-// Kept out of the template: the Vue (Official) editor extension (3.3.13) loses slot props like
-// componentField on a tag whose attributes contain "//"
-const WEBSITE_PLACEHOLDER = 'https://company.com'
-
 const {
   roles,
   selectedRole,
@@ -49,6 +45,9 @@ const {
   currentStepKey,
   currentStepMeta,
   progressSteps,
+  isApplicant,
+  personalStepKey,
+  contactStepKey,
   isLastStep,
   nextStep,
   prevStep,
@@ -59,6 +58,8 @@ const {
   fullName,
   fullAddress,
   passwordStrength,
+  personalSummary,
+  contactSummary,
   maxBirthDate,
   minPasswordLength,
   isSubmitting,
@@ -84,7 +85,6 @@ const {
   SEX_OPTIONS,
   CIVIL_STATUS_OPTIONS,
   SUFFIX_OPTIONS,
-  BUSINESS_TYPE_OPTIONS,
 } = useSignup()
 </script>
 
@@ -203,8 +203,8 @@ const {
         </div>
 
         <form v-else class="space-y-6" @submit.prevent="isLastStep ? handleSubmit() : nextStep()">
-          <!-- ─── Personal information (NSRP) ─── -->
-          <template v-if="currentStepKey === 'personal'">
+          <!-- ─── Personal information (NSRP for applicants; the representative's own details for company owners) ─── -->
+          <template v-if="currentStepKey === 'personal' || currentStepKey === 'representative'">
             <section class="space-y-4">
               <h2 class="text-sm font-semibold text-foreground">Full name</h2>
               <div class="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
@@ -255,7 +255,7 @@ const {
             <Separator />
 
             <section class="space-y-4">
-              <h2 class="text-sm font-semibold text-foreground">Birth & background</h2>
+              <h2 class="text-sm font-semibold text-foreground">{{ isApplicant ? 'Birth & background' : 'Birth & sex' }}</h2>
               <div class="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 sm:gap-x-4">
                 <FormField v-slot="{ componentField }" name="date_of_birth">
                   <FormItem>
@@ -291,7 +291,7 @@ const {
                     <FormMessage />
                   </FormItem>
                 </FormField>
-                <FormField v-slot="{ componentField }" name="civil_status">
+                <FormField v-if="isApplicant" v-slot="{ componentField }" name="civil_status">
                   <FormItem>
                     <FormLabel>Civil status</FormLabel>
                     <FormControl>
@@ -305,7 +305,7 @@ const {
                     <FormMessage />
                   </FormItem>
                 </FormField>
-                <FormField v-slot="{ componentField }" name="religion">
+                <FormField v-if="isApplicant" v-slot="{ componentField }" name="religion">
                   <FormItem>
                     <FormLabel>Religion <span class="font-normal text-muted-foreground">(opt.)</span></FormLabel>
                     <FormControl>
@@ -314,7 +314,7 @@ const {
                     <FormMessage />
                   </FormItem>
                 </FormField>
-                <FormField v-slot="{ componentField }" name="height_ft">
+                <FormField v-if="isApplicant" v-slot="{ componentField }" name="height_ft">
                   <FormItem>
                     <FormLabel>Height (ft) <span class="font-normal text-muted-foreground">(opt.)</span></FormLabel>
                     <FormControl>
@@ -323,7 +323,7 @@ const {
                     <FormMessage />
                   </FormItem>
                 </FormField>
-                <FormField v-slot="{ componentField }" name="tin">
+                <FormField v-if="isApplicant" v-slot="{ componentField }" name="tin">
                   <FormItem class="col-span-2 sm:col-span-1">
                     <FormLabel>TIN <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
                     <FormControl>
@@ -446,6 +446,10 @@ const {
               </div>
             </section>
 
+          </template>
+
+          <!-- ─── Contact (applicants: after the address; company owners: after their name) ─── -->
+          <template v-if="currentStepKey === contactStepKey">
             <Separator />
 
             <section class="space-y-4">
@@ -527,210 +531,43 @@ const {
             </div>
           </template>
 
-          <!-- ─── Company details (company owner) ─── -->
-          <template v-if="currentStepKey === 'company'">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField v-slot="{ componentField }" name="company_name">
-                <FormItem>
-                  <FormLabel>Company name</FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" placeholder="Acme Corp" autocomplete="organization" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="company_email">
-                <FormItem>
-                  <FormLabel>Company email</FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" type="email" inputmode="email" autocapitalize="off" placeholder="hr@company.com" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="business_type">
-                <FormItem>
-                  <FormLabel>Business type</FormLabel>
-                  <FormControl>
-                    <NativeSelect v-bind="componentField" class="w-full">
-                      <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
-                      <NativeSelectOption v-for="opt in BUSINESS_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-                        {{ opt.label }}
-                      </NativeSelectOption>
-                    </NativeSelect>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="company_contact">
-                <FormItem>
-                  <FormLabel>Company contact <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" type="tel" inputmode="tel" placeholder="09XXXXXXXXX" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="industry">
-                <FormItem>
-                  <FormLabel>Industry <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" placeholder="Information Technology" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="website">
-                <FormItem>
-                  <FormLabel>Website <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" type="url" inputmode="url" autocapitalize="off" :placeholder="WEBSITE_PLACEHOLDER" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="registration_number">
-                <FormItem>
-                  <FormLabel>Registration number <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" placeholder="DTI / SEC number" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="company_address">
-                <FormItem>
-                  <FormLabel>Company address <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" placeholder="Full address" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <FormField v-slot="{ componentField }" name="company_description">
-                <FormItem class="sm:col-span-2">
-                  <FormLabel>Company description <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input v-bind="componentField" placeholder="Brief description" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-            </div>
-          </template>
-
           <!-- ─── Review ─── -->
           <template v-if="currentStepKey === 'review'">
-            <div class="space-y-3">
-              <!-- Personal -->
-              <section class="rounded-xl border p-4">
-                <div class="mb-3 flex items-center justify-between">
-                  <h2 class="text-sm font-semibold text-foreground">Personal information</h2>
-                  <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 text-primary" @click="goToStep('personal')">Edit</Button>
+            <!-- One row per step, each with its Edit link -->
+            <dl class="divide-y rounded-xl border">
+              <div class="flex items-start justify-between gap-3 px-4 py-3">
+                <div class="min-w-0">
+                  <dt class="text-xs text-muted-foreground">Personal information</dt>
+                  <dd class="text-sm font-medium">{{ fullName }}</dd>
+                  <dd class="text-sm text-muted-foreground">{{ personalSummary }}</dd>
                 </div>
-                <dl class="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div class="col-span-2">
-                    <dt class="text-xs text-muted-foreground">Full name</dt>
-                    <dd class="text-sm font-medium">{{ fullName }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Date of birth</dt>
-                    <dd class="text-sm font-medium">{{ values.date_of_birth }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Age</dt>
-                    <dd class="text-sm font-medium">{{ age }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Sex</dt>
-                    <dd class="text-sm font-medium">{{ values.sex }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Civil status</dt>
-                    <dd class="text-sm font-medium">{{ values.civil_status }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Religion</dt>
-                    <dd class="text-sm font-medium">{{ values.religion || '—' }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Height</dt>
-                    <dd class="text-sm font-medium">{{ values.height_ft ? `${values.height_ft} ft` : '—' }}</dd>
-                  </div>
-                  <div class="col-span-2 sm:col-span-1">
-                    <dt class="text-xs text-muted-foreground">TIN</dt>
-                    <dd class="text-sm font-medium">{{ values.tin || '—' }}</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <!-- Address & contact -->
-              <section class="rounded-xl border p-4">
-                <div class="mb-3 flex items-center justify-between">
-                  <h2 class="text-sm font-semibold text-foreground">Address & contact</h2>
-                  <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 text-primary" @click="goToStep('address')">Edit</Button>
+                <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 shrink-0 text-primary" @click="goToStep(personalStepKey)">Edit</Button>
+              </div>
+              <div class="flex items-start justify-between gap-3 px-4 py-3">
+                <div class="min-w-0">
+                  <dt class="text-xs text-muted-foreground">{{ isApplicant ? 'Address & contact' : 'Contact' }}</dt>
+                  <dd v-if="isApplicant" class="text-sm font-medium">{{ fullAddress }}</dd>
+                  <dd class="text-sm break-all" :class="isApplicant ? 'text-muted-foreground' : 'font-medium'">{{ contactSummary }}</dd>
                 </div>
-                <dl class="grid grid-cols-1 gap-y-3 sm:grid-cols-2 sm:gap-x-4">
-                  <div class="sm:col-span-2">
-                    <dt class="text-xs text-muted-foreground">Address</dt>
-                    <dd class="text-sm font-medium">{{ fullAddress }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Mobile number</dt>
-                    <dd class="text-sm font-medium">{{ values.contact_number }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Email</dt>
-                    <dd class="text-sm font-medium break-all">{{ values.email }}</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <!-- Account -->
-              <section class="rounded-xl border p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="min-w-0">
-                    <h2 class="text-sm font-semibold text-foreground">Account</h2>
-                    <p class="truncate text-sm text-muted-foreground">@{{ values.username }}</p>
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 text-primary" @click="goToStep('account')">Edit</Button>
+                <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 shrink-0 text-primary" @click="goToStep(contactStepKey)">Edit</Button>
+              </div>
+              <div class="flex items-start justify-between gap-3 px-4 py-3">
+                <div class="min-w-0">
+                  <dt class="text-xs text-muted-foreground">Account</dt>
+                  <dd class="truncate text-sm font-medium">@{{ values.username }}</dd>
                 </div>
-              </section>
+                <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 shrink-0 text-primary" @click="goToStep('account')">Edit</Button>
+              </div>
+            </dl>
 
-              <!-- Company -->
-              <section v-if="selectedRole === 'company_owner'" class="rounded-xl border p-4">
-                <div class="mb-3 flex items-center justify-between">
-                  <h2 class="text-sm font-semibold text-foreground">Company</h2>
-                  <Button type="button" variant="ghost" size="sm" class="-mr-2 h-8 text-primary" @click="goToStep('company')">Edit</Button>
-                </div>
-                <dl class="grid grid-cols-1 gap-y-3 sm:grid-cols-2 sm:gap-x-4">
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Company name</dt>
-                    <dd class="text-sm font-medium">{{ values.company_name }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Company email</dt>
-                    <dd class="text-sm font-medium break-all">{{ values.company_email }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Business type</dt>
-                    <dd class="text-sm font-medium">{{ values.business_type }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-muted-foreground">Industry</dt>
-                    <dd class="text-sm font-medium">{{ values.industry || '—' }}</dd>
-                  </div>
-                </dl>
-              </section>
-            </div>
-
-            <p v-if="selectedRole === 'applicant'" class="text-xs text-muted-foreground">
+            <p v-if="isApplicant" class="text-xs text-muted-foreground">
               After signing in, you'll be asked to complete the rest of your NSRP profile (employment status,
               education, and job preferences) before using the portal.
             </p>
+            <p v-else class="text-xs text-muted-foreground">Next, you'll register your establishment for PESO review.</p>
 
             <!-- Privacy consent (RA 10173): a separate, unticked box per purpose -->
-            <section class="space-y-3" aria-labelledby="signup-privacy">
+            <section class="space-y-2" aria-labelledby="signup-privacy">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="signup-privacy" class="text-sm font-semibold text-foreground">Data privacy</h2>
                 <AppLink :to="{ name: 'privacy-notice' }" target="_blank" class="text-sm font-medium text-primary hover:underline">
@@ -774,7 +611,12 @@ const {
       class="sticky bottom-0 z-20 grid grid-cols-[auto_1fr] gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:border-t max-sm:bg-card/95 max-sm:backdrop-blur max-sm:supports-backdrop-filter:bg-card/80 sm:static sm:flex sm:justify-between sm:px-6 sm:py-0"
     >
       <Button variant="outline" class="h-11 px-5 sm:h-9 sm:px-4" :disabled="isSubmitting" @click="prevStep">Back</Button>
-      <Button v-if="!isLastStep" class="h-11 text-base sm:h-9 sm:text-sm" :disabled="isCheckingEmail" @click="nextStep">
+      <Button
+        v-if="!isLastStep"
+        class="h-11 text-base sm:h-9 sm:text-sm"
+        :disabled="isCheckingEmail"
+        @click="nextStep"
+      >
         <Loader2 v-if="isCheckingEmail" class="size-4 shrink-0 animate-spin" />
         {{ isCheckingEmail ? 'Checking...' : 'Continue' }}
         <ChevronRight v-if="!isCheckingEmail" class="size-4 shrink-0" />

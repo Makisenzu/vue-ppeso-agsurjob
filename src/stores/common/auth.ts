@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { authService, isInactiveProfile, type UserBundleData } from '@/services/common/authService'
 import type { User, Session } from '@supabase/supabase-js'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
+import { isEmployerRecordComplete } from '@/helpers/employer/employerCompletionHelper'
+import type { CompanyEstablishmentSummary } from '@/types/employer/employerCompletion'
 import { clearUserScopedCache } from '@/helpers/common/persistentCache'
 import { privacyService } from '@/services/common/privacyService'
 import { hasAcceptedPrivacyNotice as hasAcceptedNotice } from '@/helpers/common/privacyHelper'
@@ -28,6 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<ProfileSummary | null>(null)
   const applicantProfile = ref<ApplicantRow | null>(null)
   const employerProfile = ref<EmployerRow | null>(null)
+  const employerEstablishment = ref<CompanyEstablishmentSummary | null>(null)
   const applicantExperiences = ref<ApplicantExperienceRow[]>([])
   const applicantSkills = ref<ApplicantSkillRow[]>([])
   const applicantRequirements = ref<ApplicantRequirementRow[]>([])
@@ -67,6 +70,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Applicants must finish their NSRP record before using the portal (enforced by the router guard). */
   const isApplicantProfileComplete = computed(() => isApplicantRecordComplete(applicantProfile.value))
+
+  /** Company owners must register their establishment (NSRP Form 2) before using the portal (router guard). */
+  const isEmployerProfileComplete = computed(() =>
+    isEmployerRecordComplete(employerProfile.value, employerEstablishment.value)
+  )
 
   /** Every account accepts the current Privacy Notice before using the portal (enforced by the router guard). */
   const hasAcceptedPrivacyNotice = computed(() => hasAcceptedNotice(privacyStatus.value))
@@ -110,6 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
       profile.value = data.profile
       applicantProfile.value = data.applicant
       employerProfile.value = data.employer
+      employerEstablishment.value = data.establishment
       applicantExperiences.value = data.experiences
       applicantSkills.value = data.skills
       applicantRequirements.value = data.requirements
@@ -120,6 +129,7 @@ export const useAuthStore = defineStore('auth', () => {
       profile.value = null
       applicantProfile.value = null
       employerProfile.value = null
+      employerEstablishment.value = null
       applicantExperiences.value = []
       applicantSkills.value = []
       applicantRequirements.value = []
@@ -136,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
     applicantProfile.value = null
     employerProfile.value = null
+    employerEstablishment.value = null
     applicantExperiences.value = []
     applicantSkills.value = []
     applicantRequirements.value = []
@@ -212,6 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     applicantProfile,
     employerProfile,
+    employerEstablishment,
     applicantExperiences,
     applicantSkills,
     applicantRequirements,
@@ -231,6 +243,7 @@ export const useAuthStore = defineStore('auth', () => {
     userInitials,
     isVerified,
     isApplicantProfileComplete,
+    isEmployerProfileComplete,
     hasAcceptedPrivacyNotice,
     // Actions
     init,

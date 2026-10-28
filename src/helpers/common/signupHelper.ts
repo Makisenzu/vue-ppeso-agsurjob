@@ -4,7 +4,6 @@ import type {
   ApplicantAddressJson,
   ApplicantInsert,
   ApplicantSex,
-  CompanyInsert,
   GenderType,
   ProfileInsert,
   RoleOption,
@@ -28,16 +27,17 @@ export const MIN_PASSWORD_LENGTH = 15
 
 const STEP_META: Record<SignupStepKey, SignupStepMeta> = {
   role: { key: 'role', title: 'Create an account', description: 'Choose the account type that describes you.' },
+  representative: { key: 'representative', title: 'Your Details', description: 'You represent the company on AGSURJOBS. Your company details come after you sign in.' },
   personal: { key: 'personal', title: 'Personal Information', description: 'Enter your details exactly as they appear on a valid ID.' },
   address: { key: 'address', title: 'Address & Contact', description: 'Where you live and how PESO can reach you.' },
   account: { key: 'account', title: 'Account Credentials', description: 'Choose a username and password for signing in.' },
-  company: { key: 'company', title: 'Company Details', description: 'Tell us about the company you represent.' },
   review: { key: 'review', title: 'Review & Submit', description: 'Check your information before creating your account.' },
 }
 
 const ROLE_STEPS: Record<SignupRole, SignupStepKey[]> = {
   applicant: ['role', 'personal', 'address', 'account', 'review'],
-  company_owner: ['role', 'personal', 'address', 'account', 'company', 'review'],
+  // The company's NSRP Form 2 is filled after signing in (employer complete-profile page)
+  company_owner: ['role', 'representative', 'account', 'review'],
 }
 
 /** Ordered steps for a role (step 0 is always role selection). */
@@ -79,15 +79,6 @@ export const CIVIL_STATUS_OPTIONS = [
 ] as const
 
 export const SUFFIX_OPTIONS = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'] as const
-
-export const BUSINESS_TYPE_OPTIONS = [
-  { value: 'Sole Proprietorship', label: 'Sole Proprietorship' },
-  { value: 'Partnership', label: 'Partnership' },
-  { value: 'Corporation', label: 'Corporation' },
-  { value: 'Cooperative', label: 'Cooperative' },
-  { value: 'Government', label: 'Government' },
-  { value: 'NGO', label: 'NGO' },
-] as const
 
 // ─── Date / Age ───
 
@@ -186,21 +177,10 @@ const accountSchema = z
     path: ['confirm_password'],
   })
 
-const companySchema = z.object({
-  company_name: requiredText('Company name is required.').max(200),
-  company_email: z.string().trim().min(1, 'Company email is required.').email('Enter a valid email address.'),
-  company_contact: optionalText(30).optional(),
-  business_type: requiredText('Select a business type.'),
-  industry: optionalText(100).optional(),
-  website: z
-    .string()
-    .trim()
-    .refine((value) => value === '' || z.string().url().safeParse(value).success, 'Enter a full URL, e.g. https://company.com.')
-    .optional(),
-  registration_number: optionalText(50).optional(),
-  company_address: optionalText(300).optional(),
-  company_description: optionalText(1000).optional(),
-})
+/** Company owner's own details: name, birth date and sex (core.profiles) plus how to reach them */
+const representativeSchema = personalSchema
+  .pick({ surname: true, first_name: true, middle_name: true, suffix: true, date_of_birth: true, sex: true })
+  .merge(addressSchema.pick({ contact_number: true, email: true }))
 
 const emptySchema = z.object({})
 
@@ -213,8 +193,8 @@ export function getSignupStepSchema(step: SignupStepKey) {
       return addressSchema
     case 'account':
       return accountSchema
-    case 'company':
-      return companySchema
+    case 'representative':
+      return representativeSchema
     default:
       return emptySchema
   }
@@ -245,15 +225,6 @@ export function createInitialSignupValues(): SignupFormValues {
     username: '',
     password: '',
     confirm_password: '',
-    company_name: '',
-    company_email: '',
-    company_contact: '',
-    business_type: '',
-    industry: '',
-    company_address: '',
-    company_description: '',
-    website: '',
-    registration_number: '',
   }
 }
 
@@ -344,20 +315,5 @@ export function buildApplicantInsert(values: SignupFormValues, userId: string): 
     address: { ...address },
     contact_numbers: values.contact_number.trim() ? [values.contact_number.trim()] : null,
     email: textOrNull(values.email),
-  }
-}
-
-export function buildCompanyInsert(values: SignupFormValues, userId: string): CompanyInsert {
-  return {
-    profile_id: userId,
-    company_name: values.company_name.trim(),
-    company_email: textOrNull(values.company_email),
-    company_contact: textOrNull(values.company_contact),
-    business_type: textOrNull(values.business_type),
-    industry: textOrNull(values.industry),
-    company_address: textOrNull(values.company_address),
-    company_description: textOrNull(values.company_description),
-    website: textOrNull(values.website),
-    registration_number: textOrNull(values.registration_number),
   }
 }

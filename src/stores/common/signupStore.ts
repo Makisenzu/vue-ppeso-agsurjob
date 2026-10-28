@@ -5,11 +5,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { useAuthStore } from '@/stores/common/auth'
 import type { SignupFormValues, SignupRole } from '@/types/common/signup'
 import { PRIVACY_NOTICE_VERSION, type PrivacyPurpose, type SignupPrivacyConsent } from '@/types/common/privacy'
-import {
-  buildProfileInsert,
-  buildApplicantInsert,
-  buildCompanyInsert,
-} from '@/helpers/common/signupHelper'
+import { buildProfileInsert, buildApplicantInsert } from '@/helpers/common/signupHelper'
 
 const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
 
@@ -76,15 +72,14 @@ export const useSignupStore = defineStore('signup', () => {
       // 2. core.profiles
       await signupService.insertProfile(buildProfileInsert(values, userId, role))
 
-      // 3. Role-specific record
+      // 3. Role-specific record. A company owner's company and NSRP Form 2 are filled after signing
+      // in (employer complete-profile page), so signup only creates their profile.
       if (role === 'applicant') {
         await signupService.insertApplicant(buildApplicantInsert(values, userId))
-      } else if (role === 'company_owner') {
-        await signupService.insertCompany(buildCompanyInsert(values, userId))
       }
 
       // signUp() fires SIGNED_IN before the rows above exist, so the auth store hydrated an empty
-      // profile. Reload it now so the role (and the applicant complete-profile gate) applies.
+      // profile. Reload it now so the role (and the complete-profile gates) apply.
       // No-op when email confirmation is on: there is no session yet.
       if (result.session) await authStore.init(true)
 
@@ -92,7 +87,7 @@ export const useSignupStore = defineStore('signup', () => {
         'Account created',
         role === 'applicant'
           ? 'Next, complete your NSRP profile to start using AGSURJOBS.'
-          : 'Your employer account is ready.',
+          : 'Next, register your establishment (NSRP Form 2) to start using AGSURJOBS.',
       )
     } catch (error: unknown) {
       submitError.value = errorMessageOf(error, 'Signup failed. Please try again.')

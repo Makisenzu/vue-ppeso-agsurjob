@@ -10,15 +10,26 @@ import { Constants } from '@/types/database.types'
 /**
  * NSRP Form 2 (Establishment Registration) fields. Renders inside a parent vee-validate form whose
  * values follow `EstablishmentFormValues` (see establishmentHelper for the schema and payload).
+ * `namePrefix` nests them, e.g. 'establishment.' in the signup form, whose own street / barangay /
+ * province / tin belong to the person. `sections` renders part of the form, e.g. one signup step.
  */
-defineProps<{ disabled?: boolean }>()
+type Form2Section = 'employer' | 'contact' | 'address'
+
+const props = withDefaults(defineProps<{ disabled?: boolean; namePrefix?: string; sections?: Form2Section[] }>(), {
+  namePrefix: '',
+  sections: () => ['employer', 'contact', 'address'],
+})
+
+const shows = (section: Form2Section) => props.sections.includes(section)
+
+const fieldName = (name: string) => `${props.namePrefix}${name}`
 
 const categoryOptions = Constants.esmdd.Enums.employer_category_enum
 const publicTypeOptions = Constants.esmdd.Enums.public_employer_type_enum
 const privateTypeOptions = Constants.esmdd.Enums.private_employer_type_enum
 const workforceOptions = Constants.esmdd.Enums.total_workforce_enum
 
-const employerCategory = useFieldValue<string>('employerCategory')
+const employerCategory = useFieldValue<string>(fieldName('employerCategory'))
 const isPublicEmployer = computed(() => employerCategory.value === 'Public')
 
 const textFields = {
@@ -49,10 +60,10 @@ const textFields = {
 <template>
   <div class="grid gap-5">
     <!-- Employer -->
-    <section class="grid gap-4">
+    <section v-if="shows('employer')" class="grid gap-4">
       <h4 class="text-sm font-medium text-muted-foreground">Employer Information</h4>
 
-      <FormField v-slot="{ componentField }" name="businessName">
+      <FormField v-slot="{ componentField }" :name="fieldName('businessName')">
         <FormItem>
           <FormLabel>Business Name</FormLabel>
           <FormControl>
@@ -63,7 +74,7 @@ const textFields = {
       </FormField>
 
       <div class="grid gap-4 sm:grid-cols-2">
-        <FormField v-slot="{ componentField }" name="employerCategory">
+        <FormField v-slot="{ componentField }" :name="fieldName('employerCategory')">
           <FormItem>
             <FormLabel>Employer Category</FormLabel>
             <Select v-bind="componentField" :disabled="disabled">
@@ -80,7 +91,7 @@ const textFields = {
           </FormItem>
         </FormField>
 
-        <FormField v-if="isPublicEmployer" v-slot="{ componentField }" name="publicEmployerType">
+        <FormField v-if="isPublicEmployer" v-slot="{ componentField }" :name="fieldName('publicEmployerType')">
           <FormItem>
             <FormLabel>Public Employer Type</FormLabel>
             <Select v-bind="componentField" :disabled="disabled">
@@ -97,7 +108,7 @@ const textFields = {
           </FormItem>
         </FormField>
 
-        <FormField v-else v-slot="{ componentField }" name="privateEmployerType">
+        <FormField v-else v-slot="{ componentField }" :name="fieldName('privateEmployerType')">
           <FormItem>
             <FormLabel>Private Employer Type</FormLabel>
             <Select v-bind="componentField" :disabled="disabled">
@@ -114,7 +125,7 @@ const textFields = {
           </FormItem>
         </FormField>
 
-        <FormField v-for="field in textFields.employer" :key="field.name" v-slot="{ componentField }" :name="field.name">
+        <FormField v-for="field in textFields.employer" :key="field.name" v-slot="{ componentField }" :name="fieldName(field.name)">
           <FormItem>
             <FormLabel>
               {{ field.label }}
@@ -127,7 +138,7 @@ const textFields = {
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="totalWorkforce">
+        <FormField v-slot="{ componentField }" :name="fieldName('totalWorkforce')">
           <FormItem>
             <FormLabel>Total Workforce</FormLabel>
             <Select v-bind="componentField" :disabled="disabled">
@@ -147,10 +158,10 @@ const textFields = {
     </section>
 
     <!-- Contact -->
-    <section class="grid gap-4">
+    <section v-if="shows('contact')" class="grid gap-4">
       <h4 class="text-sm font-medium text-muted-foreground">Contact</h4>
       <div class="grid gap-4 sm:grid-cols-2">
-        <FormField v-for="field in textFields.contact" :key="field.name" v-slot="{ componentField }" :name="field.name">
+        <FormField v-for="field in textFields.contact" :key="field.name" v-slot="{ componentField }" :name="fieldName(field.name)">
           <FormItem>
             <FormLabel>
               {{ field.label }}
@@ -167,10 +178,10 @@ const textFields = {
     </section>
 
     <!-- Address -->
-    <section class="grid gap-4">
+    <section v-if="shows('address')" class="grid gap-4">
       <h4 class="text-sm font-medium text-muted-foreground">Address</h4>
       <div class="grid gap-4 sm:grid-cols-2">
-        <FormField v-for="field in textFields.address" :key="field.name" v-slot="{ componentField }" :name="field.name">
+        <FormField v-for="field in textFields.address" :key="field.name" v-slot="{ componentField }" :name="fieldName(field.name)">
           <FormItem>
             <FormLabel>
               {{ field.label }}
@@ -184,7 +195,7 @@ const textFields = {
         </FormField>
       </div>
 
-      <FormField v-slot="{ value, handleChange }" name="isMainOffice">
+      <FormField v-slot="{ value, handleChange }" :name="fieldName('isMainOffice')">
         <FormItem class="flex flex-row items-center justify-between gap-4 rounded-md border p-3">
           <div class="space-y-0.5">
             <FormLabel>Main Office</FormLabel>
