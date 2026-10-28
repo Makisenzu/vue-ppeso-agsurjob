@@ -100,7 +100,10 @@ const { office, address, contacts, exploreLinks, programLinks, isSignedIn, logos
 
     <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
       <p>© {{ year }} Provincial Government of Agusan del Sur. All rights reserved.</p>
-      <AppLink href="#main" class="w-fit transition-colors hover:text-foreground">Back to top</AppLink>
+      <div class="flex items-center gap-4">
+        <AppLink :to="{ name: 'privacy-notice' }" class="w-fit transition-colors hover:text-foreground">Privacy Notice</AppLink>
+        <AppLink href="#main" class="w-fit transition-colors hover:text-foreground">Back to top</AppLink>
+      </div>
     </div>
   </footer>
 </template>

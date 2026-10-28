@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UsersRound, File, FolderSearch2, Newspaper, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, MessageCircle, Star, UserRoundCog} from '@lucide/vue'
+import { UsersRound, File, FolderSearch2, Newspaper, Mail, Home, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard,  UserRound, MessageCircle, Star, UserRoundCog, ShieldCheck} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -48,6 +48,7 @@ const contactSubItems = [
 ]
 const settingsSubItems = [
   { title: 'Company Settings', to: {name: 'employer-dashboard'}, icon:  UserRoundCog },
+  { title: 'Privacy & My Data', to: {name: 'employer-privacy-center'}, icon: ShieldCheck },
 ]
 
 const jobItems = [

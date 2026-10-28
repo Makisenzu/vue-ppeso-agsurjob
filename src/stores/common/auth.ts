@@ -5,6 +5,9 @@ import { authService, isInactiveProfile, type UserBundleData } from '@/services/
 import type { User, Session } from '@supabase/supabase-js'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
 import { clearUserScopedCache } from '@/helpers/common/persistentCache'
+import { privacyService } from '@/services/common/privacyService'
+import { hasAcceptedPrivacyNotice as hasAcceptedNotice } from '@/helpers/common/privacyHelper'
+import type { PrivacyStatus } from '@/types/common/privacy'
 
 import type {
   ProfileSummary,
@@ -31,6 +34,8 @@ export const useAuthStore = defineStore('auth', () => {
   const applicantRequirementMedia = ref<ApplicantRequirementMediaRow[]>([])
   const profileMedia = ref<ProfileMediaRow[]>([])
   const userBundle = ref<UserBundleData | null>(null)
+  /** Consent to the current Privacy Notice (migration 073); null when it couldn't be loaded */
+  const privacyStatus = ref<PrivacyStatus | null>(null)
   const isHydrating = ref(false)
   const isInitialized = ref(false)
   const isAuthListenerBound = ref(false)
@@ -63,6 +68,13 @@ export const useAuthStore = defineStore('auth', () => {
   /** Applicants must finish their NSRP record before using the portal (enforced by the router guard). */
   const isApplicantProfileComplete = computed(() => isApplicantRecordComplete(applicantProfile.value))
 
+  /** Every account accepts the current Privacy Notice before using the portal (enforced by the router guard). */
+  const hasAcceptedPrivacyNotice = computed(() => hasAcceptedNotice(privacyStatus.value))
+
+  function setPrivacyStatus(status: PrivacyStatus | null) {
+    privacyStatus.value = status
+  }
+
   function setApplicantProfile(row: ApplicantRow | null) {
     applicantProfile.value = row
     if (userBundle.value) userBundle.value = { ...userBundle.value, applicant: row }
@@ -85,7 +97,15 @@ export const useAuthStore = defineStore('auth', () => {
     isHydrating.value = true
 
     try {
-      const data = await authService.fetchUserBundle(userId)
+      // A failed consent lookup must not sign the user out: it leaves the status unknown (never blocks)
+      const [data, privacy] = await Promise.all([
+        authService.fetchUserBundle(userId),
+        privacyService.fetchMyPrivacyStatus().catch((error) => {
+          console.error('Privacy status error:', error)
+          return null
+        }),
+      ])
+      privacyStatus.value = privacy
       userBundle.value = data
       profile.value = data.profile
       applicantProfile.value = data.applicant
@@ -106,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
       applicantRequirementMedia.value = []
       profileMedia.value = []
       userBundle.value = null
+      privacyStatus.value = null
     } finally {
       isHydrating.value = false
     }
@@ -121,6 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
     applicantRequirementMedia.value = []
     profileMedia.value = []
     userBundle.value = null
+    privacyStatus.value = null
     clearUserScopedCache()
   }
 
@@ -196,6 +218,7 @@ export const useAuthStore = defineStore('auth', () => {
     applicantRequirementMedia,
     profileMedia,
     userBundle,
+    privacyStatus,
     isHydrating,
     isInitialized,
     isAccountInactive,
@@ -208,9 +231,11 @@ export const useAuthStore = defineStore('auth', () => {
     userInitials,
     isVerified,
     isApplicantProfileComplete,
+    hasAcceptedPrivacyNotice,
     // Actions
     init,
     setApplicantProfile,
+    setPrivacyStatus,
     fetchProfile,
     hydrateUserData,
     clearSessionData,

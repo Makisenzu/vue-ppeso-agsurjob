@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { applicantEntryService } from '@/services/peso/provincialPeso/applicantEntryService'
+import { privacyService } from '@/services/common/privacyService'
 import { mapToApplicantEntryRecord } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import type { ApplicantEntryRecord, ApplicantInsert, ApplicantUpdate, ApplicantRegistryFilters, ApplicantStatsSummary, ExistingApplicantMatch } from '@/types/peso/provincialPeso/applicantEntry'
@@ -113,6 +114,8 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
    */
   const fetchAllFilteredApplicants = async (): Promise<ApplicantEntryRecord[]> => {
     const rows = await applicantEntryService.fetchAllFilteredApplicants(currentFilters())
+    // A bulk export of personal data is always audited (PRIVACY.md §5)
+    void privacyService.logPersonalDataAccess('EXPORT', 'applicants.applicants', null, { rows: rows.length })
     return rows.map(mapToApplicantEntryRecord)
   }
 
@@ -125,6 +128,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
       const row = await applicantEntryService.fetchApplicantById(id)
       const record = row ? mapToApplicantEntryRecord(row) : null
       selectedApplicant.value = record
+      if (record) void privacyService.logPersonalDataAccess('VIEW', 'applicants.applicants', record.id)
       return record
     } catch (error: any) {
       console.error('[applicantEntryStore] Failed to fetch applicant:', error)
@@ -142,6 +146,7 @@ export const useApplicantEntryStore = defineStore('applicantEntry', () => {
   const openDetails = (applicant: ApplicantEntryRecord) => {
     selectedApplicant.value = applicant
     isAddApplicantOpen.value = false
+    void privacyService.logPersonalDataAccess('VIEW', 'applicants.applicants', applicant.id)
   }
 
   const closeDetails = () => {

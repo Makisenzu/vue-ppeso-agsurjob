@@ -16,6 +16,7 @@ export type NotificationType =
   | 'establishment_status'
   | 'recruitment_activity'
   | 'job_fair'
+  | 'privacy_request'
 
 /** Tabs of the notification list */
 export type NotificationFilter = 'all' | 'unread' | 'starred'

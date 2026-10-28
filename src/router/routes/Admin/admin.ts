@@ -43,6 +43,12 @@ export const adminRoutes: RouteRecordRaw[] = [
         ],
       },
       {
+        path: 'privacy-requests',
+        name: 'privacy-requests',
+        component: () => import('@/components/admin/management/privacy/PrivacyRequests.vue'),
+        meta: { breadcrumb: 'Privacy Requests' },
+      },
+      {
         path: 'document-templates',
         name: 'document-templates',
         component: () => import('@/components/admin/management/document/DocumentTemplates.vue'),

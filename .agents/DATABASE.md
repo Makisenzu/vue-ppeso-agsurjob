@@ -803,9 +803,28 @@ The Provincial PESO's achievements (awards, recognitions, milestones) as a photo
 | `action`     | `text` | CRUD operation      |
 | `table_name` | `text` | affected table      |
 | `record_id`  | `text` | affected record     |
-| `old_values` | `jsonb`| previous state      |
-| `new_values` | `jsonb`| new state           |
+| `old_values` | `jsonb`| previous state — left NULL by 073's triggers (no personal data values in the log) |
+| `new_values` | `jsonb`| new state — 073 uses it only for export details (`{"rows": n}`) |
 | `ip_address` | `text` | client IP           |
+| `subject_profile_id` | `uuid` | whose data (073) |
+| `actor_role` | `text` | role of `user_id` at the time (073) |
+| `changed_columns` | `text[]` | fields an UPDATE changed (073) |
+
+Written by `trg_audit_personal_data` (every table naming a person) and `system.log_personal_data_access(action, table, record_id, details)`
+(staff VIEW / EXPORT). Append-only for clients; admins read it. See `PRIVACY.md` §5.
+
+#### Data Privacy Act tables (migration 073) — see `PRIVACY.md`
+
+- `core.privacy_consents`: `profile_id`, `purpose` (`privacy_notice` / `sensitive_personal_information` / `biometrics`),
+  `notice_version`, `source` (`signup` / `web` / `peso_office`), `granted_at`, `withdrawn_at`. Owner + admin read; written
+  only by `core.accept_privacy_notice`, `core.withdraw_privacy_consent` and the signup trigger. `core.my_privacy_status()`
+  returns the current version, required and missing purposes, and the history.
+- `core.data_subject_requests`: `profile_id` (SET NULL on erasure), `request_type`, `details`, `status`
+  (`Pending` / `In progress` / `Completed` / `Rejected`, rejection needs `resolution_note`), `resolved_by`, `resolved_at`.
+  RPCs: `submit_data_subject_request`, `admin_list_data_subject_requests` (paged), `admin_update_data_subject_request`.
+  Notified events: new request → every admin; status change → requester (`privacy_request`).
+- `core.export_my_data()`: the signed-in applicant's / employer's data as JSON, plus their access log.
+- `system.retention_policies` + `system.apply_retention_policies()` (pg_cron `personal-data-retention`, 03:00 PHT).
 
 ---
 

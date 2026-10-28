@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
-import { mediaService } from '@/services/common/mediaService'
 import type {
   ApplicantRequirementUploadExecutorOptions,
   ApplicantRequirementUploadResult,
@@ -398,7 +397,6 @@ async function uploadApplicantRequirementDocument(
   const previousMedia = await findLatestRequirementMedia(applicantRequirement.id)
 
   const mediaRecord = await saveApplicantRequirementMedia(applicantRequirement.id, profileId, file, storagePath)
-  const publicUrl = mediaService.getPublicUrl(storagePath, DOCUMENT_UPLOAD_BUCKET)
 
   await removePreviousRequirementMedia(previousMedia)
 
@@ -408,7 +406,6 @@ async function uploadApplicantRequirementDocument(
     applicantRequirementId: applicantRequirement.id,
     mediaId: mediaRecord.id,
     storagePath,
-    publicUrl,
     metadata: {
       requirementTemplateId,
       applicantRequirementId: applicantRequirement.id,

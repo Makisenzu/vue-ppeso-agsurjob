@@ -49,8 +49,8 @@ export interface ApplicantRequirementUploadExecutorOptions extends UploadExecuti
 export interface ApplicantRequirementUploadResult extends UploadExecutionResult {
   applicantRequirementId: number
   mediaId: number
+  /** Path in the private documents bucket (no public URL: open it through a signed URL) */
   storagePath: string
-  publicUrl: string
 }
 
 export interface UploadDocumentOptions {

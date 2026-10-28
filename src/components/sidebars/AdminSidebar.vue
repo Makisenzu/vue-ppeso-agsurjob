@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map} from '@lucide/vue'
+import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map, ShieldCheck} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -51,6 +51,7 @@ const platformSettingItems = [
 ]
 const managementItems = [
   { title: 'Accounts', to: {name: 'accounts'}, icon: ShieldUser },
+  { title: 'Privacy Requests', to: {name: 'privacy-requests'}, icon: ShieldCheck },
   { title: 'Directory', to: {name: 'directory'}, icon: BookOpenCheck },
   { title: 'Geographic Data', to: {name: 'geographic-data'}, icon: Map },
   { title: 'Document Templates', to: {name: 'document-templates'}, icon: FileText },

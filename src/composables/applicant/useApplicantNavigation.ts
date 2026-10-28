@@ -3,7 +3,7 @@ import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
-import { Bell, Mail, Phone, Search, Settings, Star, UserRoundCog } from '@lucide/vue'
+import { Bell, Mail, Phone, Search, Settings, ShieldCheck, Star, UserRoundCog } from '@lucide/vue'
 import { useAuth } from '@/composables/common/useAuth'
 import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 
@@ -83,6 +83,7 @@ const settingsItems: ApplicantMenuLink[] = [
   { title: 'Profile Settings', to: { name: 'home' }, icon: UserRoundCog },
   { title: 'Account Security', to: { name: 'home' }, icon: Settings },
   { title: 'Notification Preferences', to: { name: 'home' }, icon: Bell },
+  { title: 'Privacy & My Data', to: { name: 'privacy-center' }, icon: ShieldCheck },
 ]
 
 /** State and actions for the applicant top navigation (ApplicantHeader.vue). */

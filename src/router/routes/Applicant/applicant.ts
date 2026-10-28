@@ -38,6 +38,12 @@ export const applicantRoutes : RouteRecordRaw[] = [
         meta: { breadcrumb: 'Notifications' }
       },
       {
+        path: 'privacy',
+        name: 'privacy-center',
+        component: () => import('@/components/PrivacyCenter.vue'),
+        meta: { breadcrumb: 'Privacy & My Data' }
+      },
+      {
         path: 'vacancies',
         name: 'vacancies',
         component: () => import('@/components/applicant/ApplicantVacancies.vue')

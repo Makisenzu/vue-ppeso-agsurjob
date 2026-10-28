@@ -349,7 +349,9 @@ src/services/common/      ← Shared across 2+ roles
 - **Public buckets** (landing page loads them without a token): `announcement-media` (migration 036) and `site-content-media` (migrations 046/048: JPG/PNG/WebP photos and MP4/WebM videos, 50MB bucket limit; the app caps photos at 5MB). Only `provincial_peso` / `admin` write to them, and new files must sit under an existing row id. Files of a draft are reachable by anyone with the exact URL, so never upload anything confidential there.
 - **anon table access**: 034 gives `anon` none, with two deliberate exceptions limited to live rows: `system.announcements` (+ media, `public` audience only) and `system.site_contents`.
 - **Upload method**: `upsert: true` (overwrites existing files at same path)
-- **Public URLs**: Generated via `supabase.storage.from(bucket).getPublicUrl(path)`
+- **Public URLs**: Generated via `supabase.storage.from(bucket).getPublicUrl(path)` — **public content only**.
+  `documents`, `applicant-forms` and `recruitment-activity-documents` are private (073); their files open through signed
+  URLs (`usePrivateDocuments`, `createSignedUrls`). See [`PRIVACY.md`](PRIVACY.md) §4.
 
 ### 9.2 File Path Normalization
 
@@ -389,7 +391,10 @@ system.system_audit_logs
 └── created_at (timestamp)
 ```
 
-This table is designed for database-trigger-based logging of sensitive operations.
+Migration 073 adds `subject_profile_id`, `actor_role` and `changed_columns`, and writes it:
+`trg_audit_personal_data` logs every change someone makes to another person's data (field names, never values), and
+`system.log_personal_data_access` logs staff views and exports. The table is append-only for every client.
+Rules: [`PRIVACY.md`](PRIVACY.md) §5.
 
 ---
 
@@ -447,3 +452,5 @@ When implementing a new feature, verify:
 - [ ] No new `VITE_` variable holds a private or paid key (§5.2) — third-party APIs go through an Edge Function
 - [ ] Nothing logs records, responses or personal data, even in development (§12)
 - [ ] Queries reading other users' data select only the columns the screen shows (§12)
+- [ ] Personal data follows the Data Privacy Act checklist ([`PRIVACY.md`](PRIVACY.md) §9): purpose in the notice, consent,
+      private files via signed URLs, audit trigger / access log, export and erasure coverage, retention

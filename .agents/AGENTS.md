@@ -18,7 +18,7 @@
 > **Purpose**: This is the **authoritative primary entry point** for all AI coding agents working on the AGSURJOBS codebase.
 > Every AI model — regardless of provider (Claude, Gemini, GPT, Copilot, Cursor, etc.) — **MUST read this file first**
 > before executing ANY coding request. This document defines the project structure, global constraints,
-> and delegates domain-specific execution rules to the 4 specialized agent documents.
+> and delegates domain-specific execution rules to the 5 specialized agent documents.
 
 ---
 
@@ -39,12 +39,14 @@
 | [`DATABASE.md`](.agents/DATABASE.md) | **Database & Schema**     | Multi-schema architecture (`public`, `core`, `applicants`, `employers`, `jobs`, `system`, `esmdd`), typed queries, RPCs, migrations | Writing queries, defining/deriving types, referencing tables/schemas   |
 | [`DESIGN.md`](.agents/DESIGN.md)     | **UI & Design System**    | `oklch` tokens, Tailwind CSS v4, shadcn-vue (`reka-vega`), Lucide icons, Dark mode, Layouts, Motion                                 | Creating/modifying `.vue` components, layouts, styling, or animations  |
 | [`SECURITY.md`](.agents/SECURITY.md) | **Auth & Access Control** | Client route guards, Supabase Auth/JWT, RLS policies, SECURITY DEFINER functions, Password validation                               | Touching auth, role permissions, route guards, or sensitive operations |
+| [`PRIVACY.md`](.agents/PRIVACY.md)   | **Data Privacy Act (RA 10173)** | Consent, Privacy Notice, private files, audit trail, data subject rights, retention, breaches                                 | Collecting, showing, storing, sharing, exporting, logging or deleting personal data |
 
 ### Task-to-Agent Mapping
 
 | Task                                  | Required Agents                                                                                                                                     |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New Full-Stack Feature**            | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) + [`DESIGN.md`](.agents/DESIGN.md) + [`SECURITY.md`](.agents/SECURITY.md) |
+| **New Full-Stack Feature**            | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md) + [`DESIGN.md`](.agents/DESIGN.md) + [`SECURITY.md`](.agents/SECURITY.md) + [`PRIVACY.md`](.agents/PRIVACY.md) |
+| **Anything touching personal data** (new field, table, form, upload, export, report, third-party API) | [`PRIVACY.md`](.agents/PRIVACY.md) + [`SECURITY.md`](.agents/SECURITY.md) |
 | **New / Modify Vue Component**        | [`DESIGN.md`](.agents/DESIGN.md) (+ [`BACKEND.md`](.agents/BACKEND.md) if connecting to stores/composables)                                         |
 | **New / Modify Supabase Query**       | [`DATABASE.md`](.agents/DATABASE.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md)                                    |
 | **New / Modify Pinia Store**          | [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                                                           |
@@ -52,7 +54,7 @@
 | **Auth / Login / Registration Flow**  | [`SECURITY.md`](.agents/SECURITY.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                    |
 | **Route / Navigation / Guard Change** | [`SECURITY.md`](.agents/SECURITY.md) + [`DESIGN.md`](.agents/DESIGN.md)                                                                             |
 | **Type Definition / Schema Update**   | [`DATABASE.md`](.agents/DATABASE.md)                                                                                                                |
-| **File Upload / Media Storage**       | [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md)                                                                           |
+| **File Upload / Media Storage**       | [`BACKEND.md`](.agents/BACKEND.md) + [`SECURITY.md`](.agents/SECURITY.md) + [`PRIVACY.md`](.agents/PRIVACY.md)                                      |
 | **Data Tables / Data Visualizations** | [`DESIGN.md`](.agents/DESIGN.md) + [`BACKEND.md`](.agents/BACKEND.md) + [`DATABASE.md`](.agents/DATABASE.md)                                        |
 
 ---
@@ -217,3 +219,7 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 >       sheets. See [`DESIGN.md`](.agents/DESIGN.md) §11 and §13.2.
 >     - **Secure by default**: RLS on every table, private keys only in Edge Function secrets (never `VITE_`), no personal data
 >       in logs, storage or DevTools, generic error messages. See [`SECURITY.md`](.agents/SECURITY.md) §5.2, §12 and §13.
+> 18. **DO NOT ship anything that breaks the Data Privacy Act (RA 10173).** Personal data is collected only for a purpose
+>     in the Privacy Notice and under recorded consent; applicant files stay in private buckets behind signed URLs;
+>     changes and staff views of personal data are audited; people can download, correct and delete their data; nothing
+>     is kept longer than its retention period or sent to a new third party unannounced. See [`PRIVACY.md`](.agents/PRIVACY.md) §0.

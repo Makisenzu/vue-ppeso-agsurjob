@@ -1,5 +1,4 @@
-import { DOCUMENT_UPLOAD_BUCKET, formatFileSize } from '@/helpers/common/uploadHelpers'
-import { mediaService } from '@/services/common/mediaService'
+import { formatFileSize } from '@/helpers/common/uploadHelpers'
 
 export interface RequirementRowLike {
   id?: string | number | null
@@ -26,8 +25,8 @@ export interface RequirementFileMeta {
   filename: string
   typeLabel: string
   sizeLabel: string | null
+  /** Path in the private documents bucket; open it with usePrivateDocuments (signed URL) */
   path: string | null
-  publicUrl: string | null
   status: string | null
 }
 
@@ -111,7 +110,6 @@ export function getRequirementMediaMeta(
     typeLabel,
     sizeLabel: size ? formatFileSize(Number(size)) : null,
     path,
-    publicUrl: path ? mediaService.getPublicUrl(path, DOCUMENT_UPLOAD_BUCKET) : null,
     status: resolvedRequirement?.status ?? null,
   }
 }
@@ -127,7 +125,6 @@ export interface ReusableProfileDocument {
   path: string
   mimeType: string | null
   size: number | null
-  url: string | null
 }
 
 const isPdfMedia = (media: RequirementMediaLike) =>
@@ -162,7 +159,6 @@ export function listReusableProfileDocuments(
       path: media.path,
       mimeType: media.mime_type ?? null,
       size: media.size ?? null,
-      url: mediaService.getPublicUrl(media.path, DOCUMENT_UPLOAD_BUCKET),
     })
   }
   return documents

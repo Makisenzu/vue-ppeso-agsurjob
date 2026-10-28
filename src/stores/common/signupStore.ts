@@ -4,6 +4,7 @@ import { signupService } from '@/services/common/signupService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { useAuthStore } from '@/stores/common/auth'
 import type { SignupFormValues, SignupRole } from '@/types/common/signup'
+import { PRIVACY_NOTICE_VERSION, type PrivacyPurpose, type SignupPrivacyConsent } from '@/types/common/privacy'
 import {
   buildProfileInsert,
   buildApplicantInsert,
@@ -39,7 +40,12 @@ export const useSignupStore = defineStore('signup', () => {
     }
   }
 
-  async function submitSignup(role: SignupRole, values: SignupFormValues): Promise<void> {
+  /**
+   * `consentPurposes` are the Privacy Notice purposes the user ticked. They travel in the auth
+   * metadata and the database stores them with the server's time when the profile is created
+   * (core.record_signup_privacy_consent, migration 073).
+   */
+  async function submitSignup(role: SignupRole, values: SignupFormValues, consentPurposes: PrivacyPurpose[]): Promise<void> {
     isSubmitting.value = true
     submitError.value = ''
 
@@ -57,6 +63,7 @@ export const useSignupStore = defineStore('signup', () => {
             birthdate: values.date_of_birth,
             contact_number: values.contact_number.trim(),
             username: values.username.trim(),
+            privacy_consent: { version: PRIVACY_NOTICE_VERSION, purposes: consentPurposes } satisfies SignupPrivacyConsent,
           },
         },
       })

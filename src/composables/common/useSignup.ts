@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useForm } from 'vee-validate'
@@ -23,6 +23,8 @@ import {
   getSignupSteps,
   todayIsoDate,
 } from '@/helpers/common/signupHelper'
+import { getPrivacyConsentStatement, getRequiredPrivacyPurposes } from '@/helpers/common/privacyHelper'
+import type { PrivacyPurpose } from '@/types/common/privacy'
 
 interface PsgcOption {
   code: string
@@ -150,11 +152,29 @@ export function useSignup() {
     router.push('/login')
   }
 
+  // ─── Privacy consent (RA 10173): one box per purpose, none ticked in advance ───
+  const consentPurposes = computed(() =>
+    getRequiredPrivacyPurposes(selectedRole.value).map((purpose) => ({
+      purpose,
+      statement: getPrivacyConsentStatement(purpose),
+    }))
+  )
+  const consentTicked = reactive<Partial<Record<PrivacyPurpose, boolean>>>({})
+  const hasGivenConsent = computed(() => consentPurposes.value.every(({ purpose }) => consentTicked[purpose]))
+
+  function setConsentTicked(purpose: PrivacyPurpose, value: boolean | 'indeterminate') {
+    consentTicked[purpose] = value === true
+  }
+
   // ─── Submission ───
   async function handleSubmit() {
-    if (!selectedRole.value) return
+    if (!selectedRole.value || !hasGivenConsent.value) return
     try {
-      await signupStore.submitSignup(selectedRole.value, values.value)
+      await signupStore.submitSignup(
+        selectedRole.value,
+        values.value,
+        consentPurposes.value.map(({ purpose }) => purpose)
+      )
       // Navigating away unmounts the card, which discards the form (and the password) with it
       router.push('/login')
     } catch {
@@ -191,6 +211,11 @@ export function useSignup() {
     isCheckingEmail,
     submitError,
     handleSubmit,
+    // Privacy consent
+    consentPurposes,
+    consentTicked,
+    hasGivenConsent,
+    setConsentTicked,
     // PSGC
     psgcRegions,
     psgcProvinces,

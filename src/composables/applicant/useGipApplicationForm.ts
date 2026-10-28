@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
+import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import {
   formatGipDate,
   gipApplicationCode,
@@ -163,6 +164,15 @@ export function useGipApplicationForm() {
     })
   )
 
+  /** Signed preview links of the attached profile documents (the documents bucket is private) */
+  const reusedUrls = useSignedDocumentUrls(() =>
+    Object.values(reusedDocs.value).flatMap((document) => (document ? [document.path] : []))
+  )
+  const reusedUrlFor = (doc: string) => {
+    const path = reusedDocs.value[doc]?.path
+    return path ? (reusedUrls[path] ?? null) : null
+  }
+
   const attachProfileDocument = (doc: string, profileDocumentId: string) => {
     const document = profileDocuments.value.find((item) => item.id === profileDocumentId)
     if (!document) return
@@ -225,7 +235,7 @@ export function useGipApplicationForm() {
         savedFileUrl: saved?.url ?? null,
         uploadedAt: saved ? formatGipDate(saved.updated_at) : null,
         pendingFileName: pendingFiles.value[name]?.name ?? reusedDocs.value[name]?.fileName ?? null,
-        pendingFileUrl: previewUrls[name] ?? reusedDocs.value[name]?.url ?? null,
+        pendingFileUrl: previewUrls[name] ?? reusedUrlFor(name),
         isFromProfile: !pendingFiles.value[name] && !!reusedDocs.value[name],
         isDeleting: deletingDocument.value === name,
         error: fileErrors[name] ?? null,

@@ -18,6 +18,21 @@ export const supportingDocumentService = {
     return data.signedUrl
   },
 
+  /** Signs several files in one request (BACKEND.md §19.5); path → URL, files that fail are left out. */
+  async createSignedUrls(paths: string[]): Promise<Record<string, string>> {
+    if (!paths.length) return {}
+    const { data, error } = await supabase.storage
+      .from(DOCUMENT_UPLOAD_BUCKET)
+      .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
+
+    if (error) throw new Error(error.message || 'Failed to open the documents')
+    const urls: Record<string, string> = {}
+    for (const item of data ?? []) {
+      if (item.path && item.signedUrl) urls[item.path] = item.signedUrl
+    }
+    return urls
+  },
+
   /** Opens the document in a new tab. Call it straight from a click handler so popup blockers allow it. */
   async openInNewTab(path: string): Promise<void> {
     // The tab is opened before the await (still inside the click), then pointed at the signed URL

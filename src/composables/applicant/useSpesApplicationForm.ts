@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { useSpesFormStore } from '@/stores/applicant/spesFormStore'
 import { useSpesFormSteps } from '@/composables/common/useSpesFormSteps'
+import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import type { GipProgressStep, GipRequirementRow } from '@/composables/applicant/useGipApplicationForm'
 import {
   buildSpesFormPayload,
@@ -273,6 +274,11 @@ export function useSpesApplicationForm() {
     )
   )
 
+  /** Signed preview links of the attached profile documents (the documents bucket is private) */
+  const reusedUrls = useSignedDocumentUrls(() =>
+    Object.values(reusedDocs.value).flatMap((document) => (document ? [document.path] : []))
+  )
+
   const attachProfileDocument = (name: string, profileDocumentId: string) => {
     const key = keyOf(name)
     const document = profileDocuments.value.find((item) => item.id === profileDocumentId)
@@ -323,7 +329,7 @@ export function useSpesApplicationForm() {
         savedFileUrl: saved?.url ?? null,
         uploadedAt: null,
         pendingFileName: pending?.name ?? reused?.fileName ?? null,
-        pendingFileUrl: previewUrls[doc.key] ?? reused?.url ?? null,
+        pendingFileUrl: previewUrls[doc.key] ?? (reused ? (reusedUrls[reused.path] ?? null) : null),
         isFromProfile: !pending && !!reused,
         isDeleting: false,
         error: fileErrors[doc.key] ?? null,

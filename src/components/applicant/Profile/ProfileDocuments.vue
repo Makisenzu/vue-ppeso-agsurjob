@@ -2,6 +2,7 @@
 import { h } from 'vue'
 import { Check, X, FolderUp, Download, Eye, FileText } from '@lucide/vue'
 import { useAuthStore } from '@/stores/common/auth'
+import { usePrivateDocuments } from '@/composables/common/usePrivateDocuments'
 import { getRequirementAttachmentState, getRequirementMediaMeta } from '@/helpers/applicant/applicantRequirementDocuments'
 import SwipeRow, { type SwipeAction } from '@/components/SwipeRow.vue'
 
@@ -103,32 +104,16 @@ function getSwipeActions(requirement: string): SwipeAction[] {
   ]
 }
 
+// Private documents open through signed URLs only (PRIVACY.md §4)
+const { openDocument, downloadDocument } = usePrivateDocuments()
+
 function viewFile(requirement: string) {
-  const meta = getFileMeta(requirement)
-  if (meta?.publicUrl) {
-    window.open(meta.publicUrl, '_blank', 'noopener')
-  }
+  void openDocument(getFileMeta(requirement)?.path)
 }
 
 async function downloadFile(requirement: string) {
   const meta = getFileMeta(requirement)
-  if (!meta?.publicUrl) return
-
-  try {
-    const res = await fetch(meta.publicUrl)
-    if (!res.ok) throw new Error('Failed to fetch file')
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = meta.filename ?? ''
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 5000)
-  } catch (err) {
-    if (meta.publicUrl) window.open(meta.publicUrl, '_blank', 'noopener')
-  }
+  await downloadDocument(meta?.path, meta?.filename ?? '')
 }
 </script>
 

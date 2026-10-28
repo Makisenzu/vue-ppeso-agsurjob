@@ -23,6 +23,9 @@ const router = createRouter({
   },
 })
 
+/** Open to signed-in users who haven't accepted the current Privacy Notice yet */
+const PRIVACY_ROUTE_NAMES = new Set(['privacy-consent', 'privacy-notice'])
+
 export function getDashboardRouteForRole(role: string | null) {
   switch (role) {
     case 'admin':
@@ -65,6 +68,9 @@ router.beforeEach(async (to, _from, next) => {
       
       if (routeRole && routeRole !== userRole && to.name !== fallbackRoute) {
         next(getDashboardRouteForRole(userRole))
+      } else if (!authStore.hasAcceptedPrivacyNotice && !PRIVACY_ROUTE_NAMES.has(String(to.name))) {
+        // Every account accepts the current Privacy Notice before using the portal (RA 10173, PRIVACY.md §3)
+        next({ name: 'privacy-consent', query: { redirect: to.fullPath } })
       } else if (
         userRole === 'applicant' &&
         to.name !== 'complete-profile' &&

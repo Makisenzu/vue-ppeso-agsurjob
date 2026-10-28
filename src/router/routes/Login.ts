@@ -48,6 +48,11 @@ export const loginRoutes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/privacy',
+    name: 'privacy-notice',
+    component: () => import('@/views/landing/PrivacyNotice.vue')
+  },
+  {
     path: '/',
     component: AuthLayout,
     children: [
@@ -60,6 +65,13 @@ export const loginRoutes: RouteRecordRaw[] = [
         path: 'signup',
         name: 'signup',
         component: SignupView
+      },
+      {
+        // Signed-in accounts that haven't accepted the current Privacy Notice are sent here by the router guard
+        path: 'privacy/consent',
+        name: 'privacy-consent',
+        component: () => import('@/components/PrivacyConsent.vue'),
+        meta: { requiresAuth: true }
       },
     ]
   },

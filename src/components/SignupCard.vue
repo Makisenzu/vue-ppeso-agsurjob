@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
@@ -64,6 +65,10 @@ const {
   isCheckingEmail,
   submitError,
   handleSubmit,
+  consentPurposes,
+  consentTicked,
+  hasGivenConsent,
+  setConsentTicked,
   psgcRegions,
   psgcProvinces,
   psgcCities,
@@ -724,6 +729,28 @@ const {
               education, and job preferences) before using the portal.
             </p>
 
+            <!-- Privacy consent (RA 10173): a separate, unticked box per purpose -->
+            <section class="space-y-3" aria-labelledby="signup-privacy">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="signup-privacy" class="text-sm font-semibold text-foreground">Data privacy</h2>
+                <AppLink :to="{ name: 'privacy-notice' }" target="_blank" class="text-sm font-medium text-primary hover:underline">
+                  Read the Privacy Notice
+                </AppLink>
+              </div>
+              <label
+                v-for="item in consentPurposes"
+                :key="item.purpose"
+                class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm leading-snug has-[[data-state=checked]]:border-primary"
+              >
+                <Checkbox
+                  :model-value="!!consentTicked[item.purpose]"
+                  class="mt-0.5"
+                  @update:model-value="setConsentTicked(item.purpose, $event)"
+                />
+                <span>{{ item.statement }}</span>
+              </label>
+            </section>
+
             <p v-if="submitError" class="text-sm text-destructive" role="alert">{{ submitError }}</p>
           </template>
         </form>
@@ -752,7 +779,7 @@ const {
         {{ isCheckingEmail ? 'Checking...' : 'Continue' }}
         <ChevronRight v-if="!isCheckingEmail" class="size-4 shrink-0" />
       </Button>
-      <Button v-else class="h-11 text-base sm:h-9 sm:text-sm" :disabled="isSubmitting" @click="handleSubmit">
+      <Button v-else class="h-11 text-base sm:h-9 sm:text-sm" :disabled="isSubmitting || !hasGivenConsent" @click="handleSubmit">
         <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
         {{ isSubmitting ? 'Creating account...' : 'Create account' }}
       </Button>

@@ -5,6 +5,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useFileUpload } from '@/composables/common/useFileUpload'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { usePrivateDocuments } from '@/composables/common/usePrivateDocuments'
 import { applicantRequirementUploadService } from '@/services/applicant/applicantRequirementUploadService'
 import {
   getRequirementAttachmentState,
@@ -111,9 +112,11 @@ function getExistingRequirementAttachmentState(documentLabel: string) {
   return getRequirementAttachmentState(existingRequirement?.status, existingRequirement ? 'done' : 'idle')
 }
 
-function viewFile(publicUrl?: string | null) {
-  if (!publicUrl) return
-  window.open(publicUrl, '_blank', 'noopener')
+// Private documents open through signed URLs only (PRIVACY.md §4)
+const { openDocument } = usePrivateDocuments()
+
+function viewFile(path?: string | null) {
+  void openDocument(path)
 }
 
 const requirementStatus: Record<string, { label: string; textClass: string }> = {
@@ -137,7 +140,7 @@ function getSwipeActions(doc: UploadDocumentDefinition): SwipeAction[] {
       label: 'View',
       icon: ViewIcon,
       dismiss: false,
-      onSelect: () => viewFile(getExistingRequirementMedia(doc.label)?.publicUrl),
+      onSelect: () => viewFile(getExistingRequirementMedia(doc.label)?.path),
     },
   ]
 }

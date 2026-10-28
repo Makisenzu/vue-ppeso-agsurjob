@@ -6,6 +6,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useAuthStore } from '@/stores/common/auth'
 import { useTupadApplicationStore } from '@/stores/applicant/tupadApplicationStore'
+import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { parseTupadIncome, tupadIncomeSchema, validateTupadAttachment } from '@/helpers/common/tupadFormHelper'
 import { formatTupadIncome } from '@/helpers/peso/provincialPeso/tupadHelper'
@@ -161,6 +162,15 @@ export function useTupadApplicationForm() {
     listReusableProfileDocuments(authStore.applicantRequirementMedia ?? [], authStore.applicantRequirements ?? [])
   )
 
+  /** Signed preview links of the attached profile documents (the documents bucket is private) */
+  const reusedUrls = useSignedDocumentUrls(() =>
+    Object.values(reusedDocs.value).flatMap((document) => (document ? [document.path] : []))
+  )
+  const reusedUrlFor = (doc: string) => {
+    const path = reusedDocs.value[doc]?.path
+    return path ? (reusedUrls[path] ?? null) : null
+  }
+
   const attachProfileDocument = (doc: string, profileDocumentId: string) => {
     const document = profileDocuments.value.find((item) => item.id === profileDocumentId)
     if (!document) return
@@ -269,7 +279,7 @@ export function useTupadApplicationForm() {
         savedFileUrl: saved?.url ?? null,
         uploadedAt: saved ? formatGipDate(saved.updated_at) : null,
         pendingFileName: pendingFiles.value[name]?.name ?? reusedDocs.value[name]?.fileName ?? null,
-        pendingFileUrl: previewUrls[name] ?? reusedDocs.value[name]?.url ?? null,
+        pendingFileUrl: previewUrls[name] ?? reusedUrlFor(name),
         isFromProfile: !pendingFiles.value[name] && !!reusedDocs.value[name],
         isDeleting: deletingDocument.value === name,
         error: fileErrors[name] ?? null,

@@ -14,6 +14,12 @@ export const employerRoutes: RouteRecordRaw[] = [
         meta: { breadcrumb: 'Notifications' },
       },
       {
+        path: 'privacy',
+        name: 'employer-privacy-center',
+        component: () => import('@/components/PrivacyCenter.vue'),
+        meta: { breadcrumb: 'Privacy & My Data' },
+      },
+      {
         path: 'dashboard',
         name: 'employer-dashboard',
         component: () => import('@/components/employer/EmployerHome.vue')

@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import { format, formatDistanceToNowStrict, isThisYear, isToday } from 'date-fns'
-import { Bell, Building2, BriefcaseBusiness, CalendarClock, CalendarX, FileCheck, Megaphone, ShieldAlert, Share2, UserRoundCheck, UsersRound, Workflow } from '@lucide/vue'
+import { Bell, Building2, BriefcaseBusiness, CalendarClock, CalendarX, FileCheck, Megaphone, ShieldAlert, ShieldCheck, Share2, UserRoundCheck, UsersRound, Workflow } from '@lucide/vue'
 import type { NotificationRow, NotificationType } from '@/types/common/notification'
 
 const TYPE_META: Record<NotificationType, { label: string; icon: Component }> = {
@@ -15,6 +15,7 @@ const TYPE_META: Record<NotificationType, { label: string; icon: Component }> = 
   establishment_status: { label: 'Establishment', icon: Building2 },
   recruitment_activity: { label: 'Recruitment Activity', icon: UsersRound },
   job_fair: { label: 'Job Fair', icon: CalendarX },
+  privacy_request: { label: 'Data Privacy', icon: ShieldCheck },
 }
 
 /** Label and icon for a notification's type; `type` is free text in the table, so unknown ones get a plain bell. */
