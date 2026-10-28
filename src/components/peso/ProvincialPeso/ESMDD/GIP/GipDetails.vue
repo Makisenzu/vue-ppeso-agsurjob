@@ -492,6 +492,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
               <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Hired">Hired</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Resigned">Resigned</SelectItem>
             </SelectContent>
           </Select>
@@ -1006,7 +1007,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                 <SelectContent>
                   <SelectItem value="Active">Active (Ongoing Deployment)</SelectItem>
                   <SelectItem value="Hired">Hired (Absorbed / Employed)</SelectItem>
-                  <SelectItem value="Resigned">Resigned (Completed / Resigned)</SelectItem>
+                  <SelectItem value="Completed">Completed (Finished Term)</SelectItem>
+                  <SelectItem value="Resigned">Resigned (Left Early)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
