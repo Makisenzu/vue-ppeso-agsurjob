@@ -4,7 +4,6 @@ import { useEmployerCompletion } from '@/composables/employer/useEmployerComplet
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import {
   Stepper,
@@ -15,6 +14,7 @@ import {
   StepperTrigger,
 } from '@/components/ui/stepper'
 import NsrpForm2Fields from '@/components/NsrpForm2Fields.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 // Kept out of the template: the Vue (Official) editor extension (3.3.13) loses slot props like
 // componentField on a tag whose attributes contain "//"
@@ -150,12 +150,12 @@ const {
                 <FormItem>
                   <FormLabel>Business type</FormLabel>
                   <FormControl>
-                    <NativeSelect v-bind="componentField" class="w-full">
-                      <NativeSelectOption value="" disabled>Select business type</NativeSelectOption>
-                      <NativeSelectOption v-for="opt in BUSINESS_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-                        {{ opt.label }}
-                      </NativeSelectOption>
-                    </NativeSelect>
+                    <SearchSelect
+                      v-bind="componentField"
+                      class="w-full"
+                      :options="BUSINESS_TYPE_OPTIONS"
+                      placeholder="Select business type"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

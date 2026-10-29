@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
@@ -34,6 +33,7 @@ import { useJobFairs } from '@/composables/peso/provincialPeso/useJobFairs'
 import { useJobFairForm } from '@/composables/peso/provincialPeso/useJobFairForm'
 import JobFairLocationPicker from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairLocationPicker.vue'
 import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const {
   table,
@@ -112,20 +112,13 @@ function onAttachmentDrop(event: DragEvent) {
           :model-value="(table.getColumn('title')?.getFilterValue() as string) ?? ''"
           @update:model-value="table.getColumn('title')?.setFilterValue($event)"
         />
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-              {{ status }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+          placeholder="Status"
+          class="w-full sm:w-40"
+        />
       </div>
 
       <div class="flex gap-2">
@@ -304,18 +297,15 @@ function onAttachmentDrop(event: DragEvent) {
           <FormField v-slot="{ componentField }" name="status">
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select v-bind="componentField" :disabled="isSubmitting">
-                <FormControl>
-                  <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="status in formStatusOptions" :key="status" :value="status">
-                    {{ status }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchSelect
+                  v-bind="componentField"
+                  :disabled="isSubmitting"
+                  :options="formStatusOptions"
+                  placeholder="Select a status"
+                  class="w-full"
+                />
+              </FormControl>
               <FormDescription>Set automatically from the dates. Choose Cancelled to call off the job fair.</FormDescription>
               <FormMessage />
             </FormItem>

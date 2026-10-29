@@ -3,11 +3,11 @@ import { Trash2 } from '@lucide/vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import NsrpFieldGroup from '@/components/applicant/Profile/Nsrp/NsrpFieldGroup.vue'
 import NsrpSupportingDocField from '@/components/applicant/Profile/Nsrp/NsrpSupportingDocField.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 defineProps<{
   /** Groups render flat inside a parent card (profile editor) instead of as separate cards (wizard). */
@@ -63,10 +63,12 @@ const optional = '(optional)'
             <FormItem>
               <FormLabel>Level</FormLabel>
               <FormControl>
-                <NativeSelect v-bind="componentField" class="w-full">
-                  <NativeSelectOption value="" disabled>Select level</NativeSelectOption>
-                  <NativeSelectOption v-for="opt in educationLevelOptions" :key="opt" :value="opt">{{ opt }}</NativeSelectOption>
-                </NativeSelect>
+                <SearchSelect
+                  v-bind="componentField"
+                  class="w-full"
+                  :options="educationLevelOptions"
+                  placeholder="Select level"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

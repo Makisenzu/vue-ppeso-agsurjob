@@ -18,7 +18,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import {
   Attachment,
@@ -29,6 +28,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
 } from '@/components/ui/attachment'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { formatFileSize } from '@/helpers/common/uploadHelpers'
 import type { SpesFormSteps } from '@/composables/common/useSpesFormSteps'
 import type { SpesDocumentKey } from '@/types/common/spesForm'
@@ -293,28 +293,30 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
                 <FormField v-slot="{ componentField }" name="sex">
                   <FormItem>
                     <FormLabel>Sex <span class="text-destructive">*</span></FormLabel>
-                    <Select v-bind="componentField" :disabled="isDisabled">
-                      <FormControl>
-                        <SelectTrigger class="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem v-for="option in sexOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchSelect
+                        v-bind="componentField"
+                        :disabled="isDisabled"
+                        :options="sexOptions"
+                        placeholder="Select"
+                        class="w-full"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 </FormField>
                 <FormField v-slot="{ componentField }" name="civil_status">
                   <FormItem>
                     <FormLabel>Civil Status</FormLabel>
-                    <Select v-bind="componentField" :disabled="isDisabled">
-                      <FormControl>
-                        <SelectTrigger class="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem v-for="option in civilStatusOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchSelect
+                        v-bind="componentField"
+                        :disabled="isDisabled"
+                        :options="civilStatusOptions"
+                        placeholder="Select"
+                        class="w-full"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 </FormField>
@@ -365,14 +367,15 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
               <FormField v-slot="{ componentField }" name="student_category">
                 <FormItem>
                   <FormLabel>Student Category <span class="text-destructive">*</span></FormLabel>
-                  <Select v-bind="componentField" :disabled="isDisabled">
-                    <FormControl>
-                      <SelectTrigger class="w-full sm:w-72"><SelectValue placeholder="Select a category" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in studentCategoryOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isDisabled"
+                      :options="studentCategoryOptions"
+                      placeholder="Select a category"
+                      class="w-full sm:w-72"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -404,14 +407,15 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
               <FormField v-slot="{ componentField }" name="municipality">
                 <FormItem>
                   <FormLabel>Municipality / City <span class="text-destructive">*</span></FormLabel>
-                  <Select v-bind="componentField" :disabled="isDisabled">
-                    <FormControl>
-                      <SelectTrigger class="w-full sm:w-72"><SelectValue placeholder="Select a municipality" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in municipalityOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isDisabled"
+                      :options="municipalityOptions"
+                      placeholder="Select a municipality"
+                      class="w-full sm:w-72"
+                    />
+                  </FormControl>
                   <FormDescription>SPES slots are filled per municipality in Agusan del Sur.</FormDescription>
                   <FormMessage />
                 </FormItem>

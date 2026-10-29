@@ -12,7 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AlertDialog,
@@ -33,6 +32,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useParticipantVacancies } from '@/composables/peso/provincialPeso/useParticipantVacancies'
 import { useJobVacancyForm } from '@/composables/peso/provincialPeso/useJobVacancyForm'
 
@@ -218,20 +218,13 @@ const qualificationFields = [
             :model-value="(table.getColumn('position_title')?.getFilterValue() as string) ?? ''"
             @update:model-value="table.getColumn('position_title')?.setFilterValue($event)"
           />
-          <Select
+          <SearchSelect
             :model-value="(table.getColumn('nature_of_work')?.getFilterValue() as string) ?? 'all'"
             @update:model-value="(val) => table.getColumn('nature_of_work')?.setFilterValue(val === 'all' ? undefined : val)"
-          >
-            <SelectTrigger class="w-full sm:w-56">
-              <SelectValue placeholder="Nature of work" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types of Work</SelectItem>
-              <SelectItem v-for="option in natureOfWorkOptions" :key="option" :value="option">
-                {{ option }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            :options="[{ value: 'all', label: 'All Types of Work' }, ...natureOfWorkOptions]"
+            placeholder="Nature of work"
+            class="w-full sm:w-56"
+          />
         </div>
 
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
@@ -334,16 +327,15 @@ const qualificationFields = [
               <FormField v-slot="{ componentField }" name="natureOfWork">
                 <FormItem>
                   <FormLabel>Nature of Work</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select nature of work" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in natureOfWorkOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="natureOfWorkOptions"
+                      placeholder="Select nature of work"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -524,18 +516,16 @@ const qualificationFields = [
             <FormField v-slot="{ componentField }" name="status">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full capitalize">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="option in statusOptions" :key="option" :value="option" class="capitalize">
-                      {{ option }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :disabled="isSubmitting"
+                    :options="statusOptions"
+                    placeholder="Select status"
+                    class="w-full capitalize"
+                    content-class="capitalize"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>

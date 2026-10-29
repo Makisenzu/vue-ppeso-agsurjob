@@ -3,7 +3,6 @@ import { Loader2 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useTupadBatchForm } from '@/composables/peso/provincialPeso/useTupadBatchForm'
 
 const { isBatchDialogOpen, isEditMode, isSubmitting, isRemarksRequired, batchStatusOptions, onBatchDialogOpenChange, submitBatch } =
@@ -65,18 +65,15 @@ const { isBatchDialogOpen, isEditMode, isSubmitting, isRemarksRequired, batchSta
           <FormField v-slot="{ componentField }" name="status">
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select v-bind="componentField" :disabled="isSubmitting">
-                <FormControl>
-                  <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="status in batchStatusOptions" :key="status" :value="status">
-                    {{ status }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchSelect
+                  v-bind="componentField"
+                  :disabled="isSubmitting"
+                  :options="batchStatusOptions"
+                  placeholder="Select a status"
+                  class="w-full"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>

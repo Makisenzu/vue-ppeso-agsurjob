@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useOrgPositionForm } from '@/composables/peso/provincialPeso/useOrgPositionForm'
 
 const {
@@ -128,18 +128,15 @@ const {
             <FormField v-slot="{ componentField }" name="status">
               <FormItem class="min-w-0">
                 <FormLabel>Employment status</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="option in statusOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :disabled="isSubmitting"
+                    :options="statusOptions"
+                    placeholder="Select a status"
+                    class="w-full"
+                  />
+                </FormControl>
                 <FormDescription>Ignored while the position is vacant.</FormDescription>
                 <FormMessage />
               </FormItem>
@@ -149,18 +146,17 @@ const {
             <FormField v-slot="{ componentField }" name="unitId">
               <FormItem class="min-w-0">
                 <FormLabel>Belongs to</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full min-w-0">
-                      <SelectValue placeholder="Select a group" class="block! min-w-0 truncate" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent class="max-w-[calc(100vw-2rem)]">
-                    <SelectItem v-for="option in groupOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :options="groupOptions"
+                    :disabled="isSubmitting"
+                    placeholder="Select a group"
+                    search-placeholder="Search group..."
+                    class="w-full min-w-0"
+                    content-class="max-w-[calc(100vw-2rem)]"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>

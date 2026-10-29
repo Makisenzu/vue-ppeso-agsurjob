@@ -6,6 +6,7 @@ import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
 import { useSkillRepositoryStore } from '@/stores/peso/provincialPeso/skillRepositoryStore'
+import { toCountedFilterOptions } from '@/helpers/common/searchSelectHelper'
 
 export function useSkillRepository() {
   const router = useRouter()
@@ -118,7 +119,11 @@ export function useSkillRepository() {
     ]
   }
 
+  // Skill filter dropdown (SearchSelect); '' = all skills
+  const skillFilterOptions = computed(() => toCountedFilterOptions(allSkillsList.value, 'All Skills'))
+
   return {
+    skillFilterOptions,
     getMunicipalityCard,
     getMunicipalitySwipeActions,
     // State

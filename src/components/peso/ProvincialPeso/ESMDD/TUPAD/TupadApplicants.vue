@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
@@ -23,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useTupadApplicants } from '@/composables/peso/provincialPeso/useTupadApplicants'
 import {
   formatTupadApplicantName,
@@ -99,34 +99,20 @@ const {
           :model-value="(table.getColumn('name')?.getFilterValue() as string) ?? ''"
           @update:model-value="table.getColumn('name')?.setFilterValue($event)"
         />
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-              {{ status }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
+          :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+          placeholder="Status"
+          class="w-full sm:w-40"
+        />
+        <SearchSelect
           :model-value="(table.getColumn('municipality')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('municipality')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-48">
-            <SelectValue placeholder="Municipality" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Municipalities</SelectItem>
-            <SelectItem v-for="municipality in municipalityOptions" :key="municipality" :value="municipality">
-              {{ municipality }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Municipalities' }, ...municipalityOptions]"
+          placeholder="Municipality"
+          class="w-full sm:w-48"
+        />
       </div>
 
       <Button variant="outline" :disabled="isLoading" @click="refresh">
@@ -155,16 +141,14 @@ const {
         </Button>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Select v-model="bulkStatus" :disabled="isSubmitting || isDeleting">
-          <SelectTrigger class="w-full sm:w-44" aria-label="New status">
-            <SelectValue placeholder="Set status to..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-              {{ status }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchSelect
+          v-model="bulkStatus"
+          :disabled="isSubmitting || isDeleting"
+          :options="statusOptions"
+          placeholder="Set status to..."
+          class="w-full sm:w-44"
+          aria-label="New status"
+        />
         <Button variant="outline" :disabled="!bulkStatus || isSubmitting || isDeleting" @click="applyBulkStatus">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           Update Status
@@ -333,18 +317,15 @@ const {
               <FormField v-slot="{ componentField }" name="status">
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select a status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-                        {{ status }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="statusOptions"
+                      placeholder="Select a status"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>

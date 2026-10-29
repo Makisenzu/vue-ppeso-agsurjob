@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { getRegions, getProvinces, getCities, getBarangays } from '@/helpers/common/psgcHelpers'
+import type { SearchSelectOption } from '@/types/common/searchSelect'
 
 export function usePsgc() {
   // Selected values
@@ -19,6 +20,13 @@ export function usePsgc() {
   const provinces = ref<any[]>([])
   const cities = ref<any[]>([])
   const barangays = ref<any[]>([])
+
+  // SearchSelect options; codes are strings so they match the PSGC selections
+  const toOptions = (list: any[]): SearchSelectOption[] => list.map((item) => ({ value: String(item.code), label: item.name }))
+  const regionOptions = computed(() => toOptions(regions.value))
+  const provinceOptions = computed(() => toOptions(provinces.value))
+  const cityOptions = computed(() => toOptions(cities.value))
+  const barangayOptions = computed(() => toOptions(barangays.value))
 
   // Filtered computed properties
   const filteredRegions = computed(() => {
@@ -181,6 +189,12 @@ export function usePsgc() {
     filteredProvinces,
     filteredCities,
     filteredBarangays,
+
+    // SearchSelect options (value = PSGC code)
+    regionOptions,
+    provinceOptions,
+    cityOptions,
+    barangayOptions,
 
     // Functions
     loadRegions,

@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -31,6 +30,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { useRecruitmentActivities } from '@/composables/peso/provincialPeso/useRecruitmentActivities'
 import { useRecruitmentActivityForm } from '@/composables/peso/provincialPeso/useRecruitmentActivityForm'
 import NsrpForm2Fields from '@/components/NsrpForm2Fields.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const {
   table,
@@ -70,7 +70,7 @@ const {
   clearSelectedEstablishment,
   agencyError,
   establishmentSearchMinLength,
-  typeLabels,
+  typeSelectOptions,
 } = useRecruitmentActivityForm()
 </script>
 
@@ -93,30 +93,20 @@ const {
           :model-value="(table.getColumn('agency_name')?.getFilterValue() as string) ?? ''"
           @update:model-value="table.getColumn('agency_name')?.setFilterValue($event)"
         />
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('type')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('type')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-32">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem v-for="type in typeOptions" :key="type" :value="type">{{ type }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
+          :options="[{ value: 'all', label: 'All Types' }, ...typeOptions]"
+          placeholder="Type"
+          class="w-full sm:w-32"
+        />
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem v-for="status in statusOptions" :key="status" :value="status">{{ status }}</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+          placeholder="Status"
+          class="w-full sm:w-40"
+        />
       </div>
 
       <div class="flex gap-2">
@@ -248,18 +238,15 @@ const {
         <FormField v-slot="{ componentField }" name="type">
           <FormItem>
             <FormLabel>Type</FormLabel>
-            <Select v-bind="componentField" :disabled="isSubmitting || isEditMode">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select a type" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="(label, type) in typeLabels" :key="type" :value="type">
-                  {{ type }} — {{ label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :options="typeSelectOptions"
+                :disabled="isSubmitting || isEditMode"
+                placeholder="Select a type"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>

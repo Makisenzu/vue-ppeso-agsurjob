@@ -33,13 +33,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -53,6 +46,7 @@ import type {
 } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNewEntry } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 import ReferencePicker from '@/components/ReferencePicker.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const props = defineProps<{
   isSubmitting?: boolean
@@ -1565,16 +1559,12 @@ const confirmDuplicateResolution = () => {
               <!-- Program Selector -->
               <div v-if="duplicateAction === 'link_program'" class="pl-6 pt-1 flex items-center gap-2" @click.stop>
                 <span class="text-[11px] font-medium text-foreground whitespace-nowrap">Target Program:</span>
-                <Select v-model="duplicateProgram">
-                  <SelectTrigger class="h-8 text-xs w-48">
-                    <SelectValue placeholder="Select program" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem v-for="prog in programOptions" :key="prog" :value="prog">
-                      {{ prog }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchSelect
+                  v-model="duplicateProgram"
+                  :options="programOptions"
+                  placeholder="Select program"
+                  class="h-8 text-xs w-48"
+                />
               </div>
             </label>
 

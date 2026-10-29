@@ -144,6 +144,12 @@ export function useSpesAppointmentForm() {
     })
   )
 
+  /** Appointee dropdown (SearchSelect), grouped; the hint shows on the second line */
+  const appointeeOptions = computed(() => [
+    ...applicantOptions.value.map((option) => ({ ...option, description: option.hint, group: 'Approved applicants' })),
+    ...beneficiaryOptions.value.map((option) => ({ ...option, description: option.hint, group: 'Former beneficiaries' })),
+  ])
+
   /** "2 of 5" while appointing the applicants of a randomizer draw one after another, else null. */
   const drawAppointProgress = computed(() => {
     const total = drawAppointTotal.value
@@ -407,6 +413,7 @@ export function useSpesAppointmentForm() {
     editingAppointment,
     applicantOptions,
     beneficiaryOptions,
+    appointeeOptions,
     fixedAppointeeName,
     drawAppointProgress,
     appointmentSchema,

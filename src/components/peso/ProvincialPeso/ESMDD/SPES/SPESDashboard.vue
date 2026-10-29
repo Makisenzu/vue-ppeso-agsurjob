@@ -34,15 +34,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
@@ -78,6 +69,7 @@ import { useSpesConcludeForm } from '@/composables/peso/provincialPeso/useSpesCo
 import { useSpesDraw } from '@/composables/peso/provincialPeso/useSpesDraw'
 import { useSpesAppointmentForm } from '@/composables/peso/provincialPeso/useSpesAppointmentForm'
 import SpesCompletionReportList from '@/components/SpesCompletionReportList.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import {
   formatSpesDate,
   formatSpesFormName,
@@ -90,7 +82,7 @@ const {
   columns,
   yearAppointments,
   selectedYear,
-  availableYears,
+  yearOptions,
   summary,
   isLoading,
   errorMessage,
@@ -166,8 +158,7 @@ const {
 const {
   isAppointmentFormOpen,
   isEditMode,
-  applicantOptions,
-  beneficiaryOptions,
+  appointeeOptions,
   fixedAppointeeName,
   drawAppointProgress,
   appointmentSchema,
@@ -209,16 +200,14 @@ const {
         </p>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Select :model-value="String(selectedYear)" @update:model-value="onYearChange">
-          <SelectTrigger class="w-full sm:w-36" aria-label="SPES year">
-            <SelectValue placeholder="SPES year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="year in availableYears" :key="year" :value="String(year)">
-              SPES {{ year }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchSelect
+          :model-value="String(selectedYear)"
+          @update:model-value="onYearChange"
+          :options="yearOptions"
+          placeholder="SPES year"
+          class="w-full sm:w-36"
+          aria-label="SPES year"
+        />
         <Button variant="outline" as-child>
           <AppLink :to="{ name: 'provincial-peso-spes-applicants' }">View Applicants</AppLink>
         </Button>
@@ -311,20 +300,13 @@ const {
               :model-value="(table.getColumn('name')?.getFilterValue() as string) ?? ''"
               @update:model-value="table.getColumn('name')?.setFilterValue($event)"
             />
-            <Select
+            <SearchSelect
               :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
               @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-            >
-              <SelectTrigger class="w-full sm:w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-                  {{ status }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+              placeholder="Status"
+              class="w-full sm:w-40"
+            />
           </div>
 
           <Button variant="outline" :disabled="isLoading" @click="refreshBeneficiaries">
@@ -474,39 +456,17 @@ const {
         <FormField v-else v-slot="{ componentField }" name="appointee">
           <FormItem>
             <FormLabel>Appointee</FormLabel>
-            <Select
-              v-bind="componentField"
-              :disabled="isSubmitting || (applicantOptions.length === 0 && beneficiaryOptions.length === 0)"
-              @update:model-value="onAppointeeChange"
-            >
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue
-                    :placeholder="
-                      applicantOptions.length || beneficiaryOptions.length
-                        ? 'Select an applicant or former beneficiary'
-                        : 'No one available to appoint'
-                    "
-                  />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectGroup v-if="applicantOptions.length">
-                  <SelectLabel>Approved applicants</SelectLabel>
-                  <SelectItem v-for="option in applicantOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                    <span class="text-xs text-muted-foreground">· {{ option.hint }}</span>
-                  </SelectItem>
-                </SelectGroup>
-                <SelectGroup v-if="beneficiaryOptions.length">
-                  <SelectLabel>Former beneficiaries</SelectLabel>
-                  <SelectItem v-for="option in beneficiaryOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                    <span class="text-xs text-muted-foreground">· {{ option.hint }}</span>
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :options="appointeeOptions"
+                :disabled="isSubmitting || appointeeOptions.length === 0"
+                :placeholder="appointeeOptions.length ? 'Select an applicant or former beneficiary' : 'No one available to appoint'"
+                search-placeholder="Search name..."
+                class="w-full"
+                @update:model-value="onAppointeeChange"
+              />
+            </FormControl>
             <FormDescription>Anyone already appointed for this SPES year is not listed.</FormDescription>
             <FormMessage />
           </FormItem>
@@ -930,16 +890,14 @@ const {
         <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
           <div class="space-y-2">
             <Label for="spes-draw-municipality">Municipality</Label>
-            <Select v-model="selectedMunicipality" :disabled="isSpinning || isSubmitting">
-              <SelectTrigger id="spes-draw-municipality" class="w-full">
-                <SelectValue placeholder="Select a municipality" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="option in drawMunicipalityOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              v-model="selectedMunicipality"
+              :disabled="isSpinning || isSubmitting"
+              :options="drawMunicipalityOptions"
+              placeholder="Select a municipality"
+              id="spes-draw-municipality"
+              class="w-full"
+            />
           </div>
           <div class="space-y-2">
             <Label for="spes-draw-slots">Slots to fill</Label>

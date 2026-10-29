@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -34,6 +33,7 @@ import {
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import TupadBatchDialog from '@/components/peso/ProvincialPeso/ESMDD/TUPAD/TupadBatchDialog.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useTupadBatchDetails } from '@/composables/peso/provincialPeso/useTupadBatchDetails'
 import {
   formatTupadApplicantName,
@@ -398,18 +398,15 @@ const {
             <FormField v-slot="{ componentField }" name="status">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-                      {{ status }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :disabled="isSubmitting"
+                    :options="statusOptions"
+                    placeholder="Select a status"
+                    class="w-full"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>

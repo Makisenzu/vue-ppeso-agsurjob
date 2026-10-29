@@ -23,7 +23,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -47,6 +46,7 @@ import JobVacancyFields from '@/components/JobVacancyFields.vue'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { getVacancyStatusBadgeClass } from '@/helpers/peso/provincialPeso/jobFairHelper'
 import SwipeCardList from '@/components/SwipeCardList.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useRecruitmentActivityDetails } from '@/composables/peso/provincialPeso/useRecruitmentActivityDetails'
 import { useRecruitmentActivityVacancyForm } from '@/composables/peso/provincialPeso/useRecruitmentActivityVacancyForm'
 import type { RecruitmentActivityStatus } from '@/types/peso/provincialPeso/recruitmentActivity'
@@ -166,18 +166,14 @@ const {
             <!-- Status: current status plus the ones it can move to -->
             <div class="flex shrink-0 items-center gap-2">
               <Label for="activity-status" class="text-sm text-muted-foreground">Status</Label>
-              <Select
+              <SearchSelect
                 :model-value="activity.status"
                 :disabled="isUpdatingActivity"
                 @update:model-value="(value) => requestStatusChange(value as RecruitmentActivityStatus)"
-              >
-                <SelectTrigger id="activity-status" class="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="status in statusOptions" :key="status" :value="status">{{ status }}</SelectItem>
-                </SelectContent>
-              </Select>
+                :options="statusOptions"
+                id="activity-status"
+                class="w-44"
+              />
               <Loader2 v-if="isUpdatingActivity" class="size-4 animate-spin text-muted-foreground" />
             </div>
           </div>

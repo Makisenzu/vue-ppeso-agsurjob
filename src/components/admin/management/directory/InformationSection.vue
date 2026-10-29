@@ -50,13 +50,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -548,17 +542,13 @@ const handleUpdateDocumentStatus = async () => {
 
             <div class="space-y-2 pt-2">
               <Label for="edit-doc-status-select">New Document Status <span class="text-destructive">*</span></Label>
-              <Select v-model="selectedDocStatus">
-                <SelectTrigger id="edit-doc-status-select" class="w-full">
-                  <SelectValue placeholder="Select new status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="pending">Pending Review</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="selectedDocStatus"
+                :options="[{ value: 'submitted', label: 'Submitted' }, { value: 'pending', label: 'Pending Review' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }]"
+                placeholder="Select new status"
+                id="edit-doc-status-select"
+                class="w-full"
+              />
             </div>
             <!-- Required for Rejected; sent to the user in their notification -->
             <div v-if="docRemarksRequired" class="space-y-2">

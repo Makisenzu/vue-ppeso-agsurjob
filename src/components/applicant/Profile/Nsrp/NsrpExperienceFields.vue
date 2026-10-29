@@ -4,11 +4,11 @@ import { Trash2 } from '@lucide/vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import NsrpFieldGroup from '@/components/applicant/Profile/Nsrp/NsrpFieldGroup.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 defineProps<{
   /** Groups render flat inside a parent card (profile editor) instead of as separate cards (wizard). */
@@ -142,10 +142,12 @@ const checkRow =
             <FormItem class="col-span-2 sm:col-span-1">
               <FormLabel>Status <span class="font-normal text-muted-foreground">{{ optional }}</span></FormLabel>
               <FormControl>
-                <NativeSelect v-bind="componentField" class="w-full">
-                  <NativeSelectOption value="">Select status</NativeSelectOption>
-                  <NativeSelectOption v-for="opt in appointmentStatusOptions" :key="opt" :value="opt">{{ opt }}</NativeSelectOption>
-                </NativeSelect>
+                <SearchSelect
+                  v-bind="componentField"
+                  class="w-full"
+                  :options="appointmentStatusOptions"
+                  placeholder="Select status"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

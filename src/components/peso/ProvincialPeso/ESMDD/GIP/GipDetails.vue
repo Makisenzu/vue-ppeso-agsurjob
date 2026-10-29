@@ -33,13 +33,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -94,6 +87,7 @@ import {
 } from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import SwipeCardList from '@/components/SwipeCardList.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { cn } from '@/lib/utils'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
@@ -114,7 +108,7 @@ const {
   filteredInterns,
   paginatedInterns,
   totalPages,
-  availableYears,
+  yearFilterOptions,
   selectedIntern,
   isDetailsModalOpen,
   isEditingIntern,
@@ -436,66 +430,40 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </Button>
           </div>
 
-          <Select v-model="selectedAppointmentFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by appointment term">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Appointments</SelectItem>
-              <SelectItem value="EXPIRING">Expiring Soon (≤ 30d)</SelectItem>
-              <SelectItem value="EXPIRED">Expired Terms</SelectItem>
-              <SelectItem value="ACTIVE">Active Appointments</SelectItem>
-              <SelectItem value="COMPLETED">Completed / Concluded</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedAppointmentFilter"
+            :options="[{ value: 'ALL', label: 'All Appointments' }, { value: 'EXPIRING', label: 'Expiring Soon (≤ 30d)' }, { value: 'EXPIRED', label: 'Expired Terms' }, { value: 'ACTIVE', label: 'Active Appointments' }, { value: 'COMPLETED', label: 'Completed / Concluded' }]"
+            class="w-full"
+            aria-label="Filter by appointment term"
+          />
 
-          <Select v-model="selectedLpiiFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by LPII zone">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All LPII Zones</SelectItem>
-              <SelectItem value="LOWLAND">Lowland</SelectItem>
-              <SelectItem value="UPLAND">Upland</SelectItem>
-              <SelectItem value="WETLAND">Wetland</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedLpiiFilter"
+            :options="[{ value: 'ALL', label: 'All LPII Zones' }, { value: 'LOWLAND', label: 'Lowland' }, { value: 'UPLAND', label: 'Upland' }, { value: 'WETLAND', label: 'Wetland' }]"
+            class="w-full"
+            aria-label="Filter by LPII zone"
+          />
 
-          <Select v-model="selectedYearFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by batch year">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Batch Years</SelectItem>
-              <SelectItem v-for="y in availableYears" :key="y" :value="y.toString()">
-                Batch {{ y }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedYearFilter"
+            :options="yearFilterOptions"
+            class="w-full"
+            aria-label="Filter by batch year"
+          />
 
-          <Select v-model="selectedGenderFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by gender">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Genders</SelectItem>
-              <SelectItem value="Male">Male</SelectItem>
-              <SelectItem value="Female">Female</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedGenderFilter"
+            :options="[{ value: 'ALL', label: 'All Genders' }, { value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]"
+            class="w-full"
+            aria-label="Filter by gender"
+          />
 
-          <Select v-model="selectedStatusFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Hired">Hired</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Resigned">Resigned</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedStatusFilter"
+            :options="[{ value: 'ALL', label: 'All Statuses' }, { value: 'Active', label: 'Active' }, { value: 'Hired', label: 'Hired' }, { value: 'Completed', label: 'Completed' }, { value: 'Resigned', label: 'Resigned' }]"
+            class="w-full"
+            aria-label="Filter by status"
+          />
         </div>
       </CardHeader>
 
@@ -1000,17 +968,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             <!-- Status -->
             <div class="grid gap-2">
               <Label for="editStatus">Deployment Status</Label>
-              <Select v-model="editForm.status">
-                <SelectTrigger id="editStatus" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active (Ongoing Deployment)</SelectItem>
-                  <SelectItem value="Hired">Hired (Absorbed / Employed)</SelectItem>
-                  <SelectItem value="Completed">Completed (Finished Term)</SelectItem>
-                  <SelectItem value="Resigned">Resigned (Left Early)</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="editForm.status"
+                :options="[{ value: 'Active', label: 'Active (Ongoing Deployment)' }, { value: 'Hired', label: 'Hired (Absorbed / Employed)' }, { value: 'Completed', label: 'Completed (Finished Term)' }, { value: 'Resigned', label: 'Resigned (Left Early)' }]"
+                id="editStatus"
+                class="w-full"
+              />
             </div>
           </div>
         </div>

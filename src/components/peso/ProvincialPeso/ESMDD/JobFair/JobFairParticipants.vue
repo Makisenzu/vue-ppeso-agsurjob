@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AlertDialog,
@@ -37,6 +36,7 @@ import JobFairMapPreview from '@/components/peso/ProvincialPeso/ESMDD/JobFair/Jo
 import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
 import JobFairAttendees from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttendees.vue'
 import JobFairHots from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairHots.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const {
   table,
@@ -236,20 +236,13 @@ const textFields = {
               :model-value="(table.getColumn('business_name')?.getFilterValue() as string) ?? ''"
               @update:model-value="table.getColumn('business_name')?.setFilterValue($event)"
             />
-            <Select
+            <SearchSelect
               :model-value="(table.getColumn('employer_category')?.getFilterValue() as string) ?? 'all'"
               @update:model-value="(val) => table.getColumn('employer_category')?.setFilterValue(val === 'all' ? undefined : val)"
-            >
-              <SelectTrigger class="w-full sm:w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem v-for="category in categoryOptions" :key="category" :value="category">
-                  {{ category }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              :options="[{ value: 'all', label: 'All Categories' }, ...categoryOptions]"
+              placeholder="Category"
+              class="w-full sm:w-40"
+            />
           </div>
 
           <Button variant="outline" :disabled="isLoading" @click="refreshParticipants">
@@ -435,16 +428,15 @@ const textFields = {
               <FormField v-slot="{ componentField }" name="employerCategory">
                 <FormItem>
                   <FormLabel>Employer Category</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in categoryOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="categoryOptions"
+                      placeholder="Select category"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -452,16 +444,15 @@ const textFields = {
               <FormField v-if="isPublicEmployer" v-slot="{ componentField }" name="publicEmployerType">
                 <FormItem>
                   <FormLabel>Public Employer Type</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in publicTypeOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="publicTypeOptions"
+                      placeholder="Select type"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -469,16 +460,15 @@ const textFields = {
               <FormField v-else v-slot="{ componentField }" name="privateEmployerType">
                 <FormItem>
                   <FormLabel>Private Employer Type</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in privateTypeOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="privateTypeOptions"
+                      placeholder="Select type"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -496,16 +486,15 @@ const textFields = {
               <FormField v-slot="{ componentField }" name="totalWorkforce">
                 <FormItem>
                   <FormLabel>Total Workforce</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSubmitting">
-                    <FormControl>
-                      <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select size" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem v-for="option in workforceOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchSelect
+                      v-bind="componentField"
+                      :disabled="isSubmitting"
+                      :options="workforceOptions"
+                      placeholder="Select size"
+                      class="w-full"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -570,16 +559,15 @@ const textFields = {
           <FormField v-slot="{ componentField }" name="status">
             <FormItem>
               <FormLabel>Participation Status</FormLabel>
-              <Select v-bind="componentField" :disabled="isSubmitting">
-                <FormControl>
-                  <SelectTrigger class="w-full sm:w-60">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="option in statusOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchSelect
+                  v-bind="componentField"
+                  :disabled="isSubmitting"
+                  :options="statusOptions"
+                  placeholder="Select status"
+                  class="w-full sm:w-60"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>

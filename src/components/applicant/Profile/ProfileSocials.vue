@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import SocialPlatformIcon from './SocialPlatformIcon.vue'
 import {
   Dialog,
@@ -24,6 +23,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useProfileSocials } from '@/composables/applicant/useProfileSocials'
 
 const props = defineProps<{
@@ -125,20 +125,17 @@ const Modal = computed(() => ({
           :key="draft.id ?? `new-${index}`"
           class="grid grid-cols-[1fr_2.25rem] items-start gap-2 sm:grid-cols-[9rem_1fr_2.25rem]"
         >
-          <Select v-model="draft.social_name">
-            <SelectTrigger class="w-full" :aria-label="`Platform for link ${index + 1}`">
-              <SelectValue>
-                <SocialPlatformIcon :platform="draft.social_name" />
-                {{ draft.social_name }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="opt in platformOptions" :key="opt" :value="opt">
-                <SocialPlatformIcon :platform="opt" />
-                {{ opt }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="draft.social_name"
+            :options="platformOptions"
+            search-placeholder="Search platform..."
+            class="w-full"
+            :aria-label="`Platform for link ${index + 1}`"
+          >
+            <template #icon="{ option }">
+              <SocialPlatformIcon :platform="String(option.value)" />
+            </template>
+          </SearchSelect>
 
           <div class="col-span-2 row-start-2 space-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-1">
             <Input

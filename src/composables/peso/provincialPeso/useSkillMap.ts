@@ -24,6 +24,7 @@ import {
   resolveMapboxToken,
 } from '@/helpers/common/mapboxHelpers'
 import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
+import { toCountedFilterOptions } from '@/helpers/common/searchSelectHelper'
 import {
   matchesGeographicLabel,
   normalizeGeographicLabel,
@@ -241,6 +242,14 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
       barangays: r.barangays,
     }))
   })
+
+  // Municipality focus dropdown (SearchSelect); '' = all municipalities
+  const municipalityFocusOptions = computed(() =>
+    toCountedFilterOptions(
+      municipalitiesList.value.map((m) => ({ name: m.name, count: m.applicants })),
+      'All municipalities'
+    )
+  )
 
   const totalApplicants = computed(() =>
     municipalitiesList.value.reduce((sum, m) => sum + m.applicants, 0)
@@ -506,9 +515,8 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     flyToMunicipality('')
   }
 
-  function handleMunicipalityChange(event: Event) {
-    const target = event.target as HTMLSelectElement
-    const val = target?.value ?? ''
+  function handleMunicipalityChange(value: string | number) {
+    const val = String(value)
     selectedMunicipality.value = val
     if (options.onSelectMunicipality) {
       options.onSelectMunicipality(val)
@@ -523,6 +531,7 @@ export function useSkillMap(options: UseSkillMapOptions = {}) {
     selectedProvince,
     selectedMunicipality,
     municipalitiesList,
+    municipalityFocusOptions,
     totalApplicants,
     flyToMunicipality,
     resetView,

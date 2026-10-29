@@ -19,7 +19,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   FormControl,
   FormDescription,
@@ -35,6 +34,7 @@ import {
   StepperSeparator,
   StepperTitle,
 } from '@/components/ui/stepper'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const {
   roles,
@@ -74,6 +74,10 @@ const {
   psgcProvinces,
   psgcCities,
   psgcBarangays,
+  regionOptions,
+  provinceOptions,
+  cityOptions,
+  barangayOptions,
   selectedRegion,
   selectedProvince,
   selectedCity,
@@ -239,12 +243,11 @@ const {
                   <FormItem>
                     <FormLabel>Suffix <span class="font-normal text-muted-foreground">(opt.)</span></FormLabel>
                     <FormControl>
-                      <NativeSelect v-bind="componentField" class="w-full">
-                        <NativeSelectOption value="">None</NativeSelectOption>
-                        <NativeSelectOption v-for="opt in SUFFIX_OPTIONS" :key="opt" :value="opt">
-                          {{ opt }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                      <SearchSelect
+                        v-bind="componentField"
+                        class="w-full"
+                        :options="[{ value: '', label: 'None' }, ...SUFFIX_OPTIONS]"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -281,12 +284,12 @@ const {
                   <FormItem>
                     <FormLabel>Sex</FormLabel>
                     <FormControl>
-                      <NativeSelect v-bind="componentField" class="w-full">
-                        <NativeSelectOption value="" disabled>Select</NativeSelectOption>
-                        <NativeSelectOption v-for="opt in SEX_OPTIONS" :key="opt.value" :value="opt.value">
-                          {{ opt.label }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                      <SearchSelect
+                        v-bind="componentField"
+                        class="w-full"
+                        :options="SEX_OPTIONS"
+                        placeholder="Select"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -295,12 +298,12 @@ const {
                   <FormItem>
                     <FormLabel>Civil status</FormLabel>
                     <FormControl>
-                      <NativeSelect v-bind="componentField" class="w-full">
-                        <NativeSelectOption value="" disabled>Select</NativeSelectOption>
-                        <NativeSelectOption v-for="opt in CIVIL_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
-                          {{ opt.label }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                      <SearchSelect
+                        v-bind="componentField"
+                        class="w-full"
+                        :options="CIVIL_STATUS_OPTIONS"
+                        placeholder="Select"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -346,18 +349,13 @@ const {
                   <FormItem>
                     <FormLabel>Region</FormLabel>
                     <FormControl>
-                      <NativeSelect
+                      <SearchSelect
                         :model-value="selectedRegion?.code ?? ''"
                         class="w-full"
                         @update:model-value="onRegionChange"
-                      >
-                        <NativeSelectOption value="" disabled>
-                          {{ psgcRegions.length === 0 ? 'Loading...' : 'Select region' }}
-                        </NativeSelectOption>
-                        <NativeSelectOption v-for="r in psgcRegions" :key="r.code" :value="r.code">
-                          {{ r.name }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                        :options="regionOptions"
+                        :placeholder="psgcRegions.length === 0 ? 'Loading...' : 'Select region'"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -366,19 +364,14 @@ const {
                   <FormItem>
                     <FormLabel>Province</FormLabel>
                     <FormControl>
-                      <NativeSelect
+                      <SearchSelect
                         :model-value="selectedProvince?.code ?? ''"
                         :disabled="!selectedRegion"
                         class="w-full"
                         @update:model-value="onProvinceChange"
-                      >
-                        <NativeSelectOption value="" disabled>
-                          {{ !selectedRegion ? 'Select a region first' : psgcProvinces.length === 0 ? 'Loading...' : 'Select province' }}
-                        </NativeSelectOption>
-                        <NativeSelectOption v-for="p in psgcProvinces" :key="p.code" :value="p.code">
-                          {{ p.name }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                        :options="provinceOptions"
+                        :placeholder="!selectedRegion ? 'Select a region first' : psgcProvinces.length === 0 ? 'Loading...' : 'Select province'"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -387,19 +380,14 @@ const {
                   <FormItem>
                     <FormLabel>City / Municipality</FormLabel>
                     <FormControl>
-                      <NativeSelect
+                      <SearchSelect
                         :model-value="selectedCity?.code ?? ''"
                         :disabled="!selectedProvince"
                         class="w-full"
                         @update:model-value="onCityChange"
-                      >
-                        <NativeSelectOption value="" disabled>
-                          {{ !selectedProvince ? 'Select a province first' : psgcCities.length === 0 ? 'Loading...' : 'Select city / municipality' }}
-                        </NativeSelectOption>
-                        <NativeSelectOption v-for="c in psgcCities" :key="c.code" :value="c.code">
-                          {{ c.name }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                        :options="cityOptions"
+                        :placeholder="!selectedProvince ? 'Select a province first' : psgcCities.length === 0 ? 'Loading...' : 'Select city / municipality'"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -408,19 +396,14 @@ const {
                   <FormItem>
                     <FormLabel>Barangay</FormLabel>
                     <FormControl>
-                      <NativeSelect
+                      <SearchSelect
                         :model-value="selectedBarangay?.code ?? ''"
                         :disabled="!selectedCity"
                         class="w-full"
                         @update:model-value="onBarangayChange"
-                      >
-                        <NativeSelectOption value="" disabled>
-                          {{ !selectedCity ? 'Select a city first' : psgcBarangays.length === 0 ? 'Loading...' : 'Select barangay' }}
-                        </NativeSelectOption>
-                        <NativeSelectOption v-for="b in psgcBarangays" :key="b.code" :value="b.code">
-                          {{ b.name }}
-                        </NativeSelectOption>
-                      </NativeSelect>
+                        :options="barangayOptions"
+                        :placeholder="!selectedCity ? 'Select a city first' : psgcBarangays.length === 0 ? 'Loading...' : 'Select barangay'"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

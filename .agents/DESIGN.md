@@ -162,7 +162,7 @@ The project has **40 shadcn-vue primitives** already installed. When you need a 
 | Inline expandable content        | `Collapsible`, `Accordion`                           | `ExpandSection.vue`                  |
 | Tooltip / info hover             | `Tooltip`, `HoverCard`                               | `InfoPopup.vue`, `HoverInfo.vue`     |
 | Floating content / picker        | `Popover`                                            | `FloatingPanel.vue`                  |
-| Selection dropdown               | `Select`, `Combobox`, `NativeSelect`                 | `CustomSelect.vue`                   |
+| Selection dropdown               | `SearchSelect` (see 5.2)                             | `CustomSelect.vue`, raw `Select` / `NativeSelect` |
 | Notifications / feedback         | `useToastAlert()` (wraps `Sonner`)                   | `NotificationBanner.vue`             |
 | Destructive confirmation         | `AlertDialog`                                        | `DeleteConfirm.vue`                  |
 | Step-by-step flow                | `Stepper`                                            | `WizardStepper.vue`                  |
@@ -246,6 +246,42 @@ Only create a new `.vue` component when you are composing **significant business
 > 2. **Compose primitives inline** in the parent component's `<template>` where they are used.
 > 3. If the same dialog/sheet pattern is reused across **3+ unrelated components**, extract it — but import and extend the shadcn-vue primitive, never re-implement its functionality.
 > 4. **Always check the installed primitives list** (Section 5) before building any UI pattern from scratch.
+
+### 5.2 Dropdowns — Always Searchable (`SearchSelect`) — MANDATORY
+
+Every single-choice dropdown uses [`SearchSelect.vue`](file:///src/components/SearchSelect.vue), the same searchable `Combobox` pattern as the PSGC pickers (region / province / city / barangay). It replaces `Select` and `NativeSelect` everywhere: a type-to-filter box is always at the top, and **at most 50 matches render at once** (`SEARCH_SELECT_RENDER_LIMIT`), with a "N more, type to narrow the list" line under them. Long data (municipalities, barangays, applicants, vacancies, years) never renders in full.
+
+| Rule | Detail |
+| ---- | ------ |
+| **Component** | `<SearchSelect>` from `@/components/SearchSelect.vue`. Don't use `Select`, `SelectTrigger`, `SelectItem`, `NativeSelect` or a hand-built `Combobox` for a pick list. |
+| **Options** | `options` takes `{ value, label, description?, group?, disabled? }[]`, or plain strings / numbers when the label is the value. Data-driven options are built in the composable or helper; a short fixed list (e.g. Male / Female) may be an inline array literal. `group` replaces `SelectGroup` / `SelectLabel`. |
+| **Binding** | `v-model` for local state; `v-bind="componentField"` inside `<FormControl>` for vee-validate. Numbers and numeric strings match each other, so a year or page size works either way. |
+| **Placeholder / filters** | `placeholder` for the empty state; filter dropdowns keep their `'all'` option (`{ value: 'all', label: 'All Statuses' }`) as the first option. |
+| **Sizing** | Width and height go on `class` (e.g. `class="w-full sm:w-40"`), `size="sm"` for compact toolbars, `content-class` for the popup width. |
+| **Long lists** | Keep the default `limit`. Pass a larger `limit` only when the list is fixed and short enough to scan. |
+| **Exceptions** | `ReferencePicker` (religions, courses: adds an "Others, please specify" box) is built on the same pattern and stays. Multi-select lists use checkboxes, not this component. |
+
+```vue
+<!-- Toolbar filter -->
+<SearchSelect
+  v-model="selectedMunicipality"
+  :options="municipalityFilterOptions"
+  placeholder="Municipality"
+  search-placeholder="Search municipality..."
+  class="w-full sm:w-48"
+/>
+
+<!-- vee-validate field -->
+<FormField v-slot="{ componentField }" name="status">
+  <FormItem>
+    <FormLabel>Status</FormLabel>
+    <FormControl>
+      <SearchSelect v-bind="componentField" :options="statusOptions" placeholder="Select status" class="w-full" />
+    </FormControl>
+    <FormMessage />
+  </FormItem>
+</FormField>
+```
 
 ---
 

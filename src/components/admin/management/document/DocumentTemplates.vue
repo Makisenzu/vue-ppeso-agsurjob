@@ -19,13 +19,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -49,6 +42,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 const {
   filteredTemplates,
@@ -150,29 +144,20 @@ const {
         </div>
 
         <!-- Category Filter -->
-        <Select v-model="selectedCategory">
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem v-for="cat in categories" :key="cat" :value="cat">
-              {{ cat }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchSelect
+          v-model="selectedCategory"
+          :options="[{ value: 'all', label: 'All Categories' }, ...categories]"
+          placeholder="Category"
+          class="w-full sm:w-40"
+        />
 
         <!-- Role Filter -->
-        <Select v-model="selectedTargetRole">
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Target Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="role in targetRoles" :key="role.value" :value="role.value">
-              {{ role.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchSelect
+          v-model="selectedTargetRole"
+          :options="targetRoles"
+          placeholder="Target Role"
+          class="w-full sm:w-40"
+        />
       </div>
 
       <Button @click="() => openCreateModal()">
@@ -337,30 +322,17 @@ const {
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="category">Category</Label>
-              <Select v-model="formCategory">
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="cat in categories" :key="cat" :value="cat">
-                    {{ cat }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect v-model="formCategory" :options="categories" placeholder="Select Category" id="category" />
             </div>
 
             <div class="space-y-2">
               <Label for="target_role">Target Role</Label>
-              <Select v-model="formTargetRole">
-                <SelectTrigger id="target_role">
-                  <SelectValue placeholder="Target Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="role in targetRoles" :key="role.value" :value="role.value">
-                    {{ role.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="formTargetRole"
+                :options="targetRoles"
+                placeholder="Target Role"
+                id="target_role"
+              />
             </div>
           </div>
 

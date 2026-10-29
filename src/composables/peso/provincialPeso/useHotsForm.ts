@@ -128,7 +128,8 @@ export function useHotsForm() {
     for (const option of vacancyOptions.value) {
       byId.set(option.participant_id, option.job_fair_participants?.business_name ?? 'Unnamed employer')
     }
-    return [...byId].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+    // SearchSelect options: value = participant id
+    return [...byId].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))
   })
 
   const vacancyChoices = computed(() =>
@@ -145,6 +146,16 @@ export function useHotsForm() {
           isFull: slotsLeft === 0 && !isCurrent,
         }
       })
+  )
+
+  // Vacancy dropdown (SearchSelect): slots left on the second line, full vacancies disabled
+  const vacancySelectOptions = computed(() =>
+    vacancyChoices.value.map((choice) => ({
+      value: choice.id,
+      label: choice.title,
+      description: choice.isFull ? 'Full' : choice.slotsLabel,
+      disabled: choice.isFull,
+    }))
   )
 
   // Switching employer clears a vacancy that belongs to another employer
@@ -253,6 +264,7 @@ export function useHotsForm() {
     isRegistrySource,
     participantOptions,
     vacancyChoices,
+    vacancySelectOptions,
     selectedApplicant,
     registrySearchTerm,
     registryResults,

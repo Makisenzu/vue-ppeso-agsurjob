@@ -15,6 +15,7 @@ import {
 	type MapCoordinates,
 } from '@/helpers/common/mapboxHelpers'
 import type { ProfileRow } from '@/types/admin/userAccounts'
+import { toCountedFilterOptions } from '@/helpers/common/searchSelectHelper'
 
 export { AGUSAN_DEL_SUR_MUNICIPALITIES }
 
@@ -314,6 +315,11 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		}
 		return [...seen.values()].sort((left, right) => left.name.localeCompare(right.name))
 	})
+
+	// Location filter dropdowns (SearchSelect); '' = all
+	const provinceFilterOptions = computed(() => toCountedFilterOptions(provinces.value, 'All provinces'))
+	const municipalityFilterOptions = computed(() => toCountedFilterOptions(municipalities.value, 'All municipalities'))
+	const barangayFilterOptions = computed(() => toCountedFilterOptions(barangays.value, 'All barangays'))
 
 	const filteredRecords = computed(() => {
 		return records.value.filter((record) => {
@@ -786,6 +792,9 @@ export function useGeographicMap(options: UseGeographicMapOptions = {}) {
 		municipalities,
 		municipalityRows,
 		barangays,
+		provinceFilterOptions,
+		municipalityFilterOptions,
+		barangayFilterOptions,
 		filteredRecords,
 		totalUsers,
 		selectedLocationLabel,

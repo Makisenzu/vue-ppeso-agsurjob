@@ -3,7 +3,6 @@ import { Eye, RefreshCw, Search, X, Info, MapPin } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import SwipeCardList from '@/components/SwipeCardList.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import SkillMapboxMap from './SkillMapboxMap.vue'
 import { useSkillRepository } from '@/composables/peso/provincialPeso/useSkillRepository'
 
@@ -24,7 +24,7 @@ const {
   selectedMunicipality,
   selectedSkillFilter,
   searchQuery,
-  allSkillsList,
+  skillFilterOptions,
   activeTab,
   hasActiveFilters,
   currentDisplayRows,
@@ -196,16 +196,11 @@ const {
 
             <!-- Skill filter dropdown -->
             <div class="flex items-center gap-1.5">
-              <NativeSelect v-model="selectedSkillFilter" class="h-8 text-xs w-full">
-                <NativeSelectOption value="">All Skills</NativeSelectOption>
-                <NativeSelectOption
-                  v-for="skill in allSkillsList"
-                  :key="skill.name"
-                  :value="skill.name"
-                >
-                  {{ skill.name }} ({{ skill.count }})
-                </NativeSelectOption>
-              </NativeSelect>
+              <SearchSelect
+                v-model="selectedSkillFilter"
+                class="h-8 text-xs w-full"
+                :options="skillFilterOptions"
+              />
 
               <Button
                 v-if="hasActiveFilters"

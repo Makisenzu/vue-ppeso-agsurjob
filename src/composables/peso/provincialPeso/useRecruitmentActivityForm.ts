@@ -251,5 +251,10 @@ export function useRecruitmentActivityForm() {
     agencyError,
     establishmentSearchMinLength: ESTABLISHMENT_SEARCH_MIN_LENGTH,
     typeLabels: RECRUITMENT_ACTIVITY_TYPE_LABELS,
+    // Type dropdown (SearchSelect): "LRA — Local Recruitment Activity"
+    typeSelectOptions: Object.entries(RECRUITMENT_ACTIVITY_TYPE_LABELS).map(([type, label]) => ({
+      value: type,
+      label: `${type} — ${label}`,
+    })),
   }
 }

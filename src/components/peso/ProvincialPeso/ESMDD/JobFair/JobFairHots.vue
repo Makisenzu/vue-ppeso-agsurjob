@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AlertDialog,
@@ -40,6 +39,7 @@ import {
   ComboboxViewport,
 } from '@/components/ui/combobox'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useJobFairHots } from '@/composables/peso/provincialPeso/useJobFairHots'
 import { useHotsForm } from '@/composables/peso/provincialPeso/useHotsForm'
 import { formatHireName, formatRegistryName, getRegistryPhone } from '@/helpers/peso/provincialPeso/jobFairHelper'
@@ -74,6 +74,7 @@ const {
   isRegistrySource,
   participantOptions,
   vacancyChoices,
+  vacancySelectOptions,
   selectedApplicant,
   registrySearchTerm,
   registryResults,
@@ -145,20 +146,13 @@ const walkInFields = [
             :model-value="(table.getColumn('applicant')?.getFilterValue() as string) ?? ''"
             @update:model-value="table.getColumn('applicant')?.setFilterValue($event)"
           />
-          <Select
+          <SearchSelect
             :model-value="(table.getColumn('employer')?.getFilterValue() as string) ?? 'all'"
             @update:model-value="(val) => table.getColumn('employer')?.setFilterValue(val === 'all' ? undefined : val)"
-          >
-            <SelectTrigger class="w-full sm:w-48">
-              <SelectValue placeholder="Employer" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employers</SelectItem>
-              <SelectItem v-for="employer in employerOptions" :key="employer" :value="employer">
-                {{ employer }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            :options="[{ value: 'all', label: 'All Employers' }, ...employerOptions]"
+            placeholder="Employer"
+            class="w-full sm:w-48"
+          />
         </div>
 
         <div class="flex gap-2">
@@ -281,18 +275,15 @@ const walkInFields = [
             <FormField v-slot="{ componentField }" name="participantId">
               <FormItem>
                 <FormLabel>Employer</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select employer" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="option in participantOptions" :key="option.id" :value="option.id">
-                      {{ option.name }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :disabled="isSubmitting"
+                    :options="participantOptions"
+                    placeholder="Select employer"
+                    class="w-full"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>
@@ -300,24 +291,16 @@ const walkInFields = [
             <FormField v-slot="{ componentField }" name="jobFairVacancyId">
               <FormItem>
                 <FormLabel>Vacancy</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting || vacancyChoices.length === 0">
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue :placeholder="vacancyChoices.length ? 'Select vacancy' : 'Select an employer first'" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="choice in vacancyChoices"
-                      :key="choice.id"
-                      :value="choice.id"
-                      :disabled="choice.isFull"
-                    >
-                      {{ choice.title }}
-                      <span class="text-xs text-muted-foreground">· {{ choice.isFull ? 'Full' : choice.slotsLabel }}</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :options="vacancySelectOptions"
+                    :disabled="isSubmitting || vacancyChoices.length === 0"
+                    :placeholder="vacancyChoices.length ? 'Select vacancy' : 'Select an employer first'"
+                    search-placeholder="Search vacancy..."
+                    class="w-full"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>

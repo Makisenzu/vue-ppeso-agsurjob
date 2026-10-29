@@ -30,13 +30,6 @@ import {
   ComboboxItemIndicator,
 } from '@/components/ui/combobox'
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 import { cn } from '@/lib/utils'
 import { Calendar } from '@/components/ui/calendar'
@@ -46,6 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 import useProfileEdit from '@/composables/applicant/useProfileEdit'
 
@@ -177,20 +171,14 @@ onMounted(() => {
 
           <div class="space-y-2">
             <Label for="gender">Gender</Label>
-            <Select v-model="formData.gender">
-              <SelectTrigger 
-                id="gender" 
-                class="w-full" 
-                :class="errors.gender ? 'border-destructive' : ''">
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="man">Man</SelectItem>
-                <SelectItem value="woman">Woman</SelectItem>
-                <SelectItem value="non_binary">Non-binary</SelectItem>
-                <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              v-model="formData.gender"
+              :options="[{ value: 'man', label: 'Man' }, { value: 'woman', label: 'Woman' }, { value: 'non_binary', label: 'Non-binary' }, { value: 'prefer_not_to_say', label: 'Prefer not to say' }]"
+              placeholder="Select gender"
+              id="gender"
+              class="w-full"
+              :class="errors.gender ? 'border-destructive' : ''"
+            />
             <p v-if="errors.gender" class="text-xs text-destructive">{{ errors.gender }}</p>
           </div>
         </div>

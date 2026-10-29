@@ -47,13 +47,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 import type { DirectoryProfileRow } from '@/types/admin/systemDirectory'
 
@@ -251,98 +245,55 @@ const handleUpdateDocumentStatus = async () => {
           @update:model-value="table.getColumn('firstname')?.setFilterValue($event)"
         />
 
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('region')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => setHierarchyFilter('region', val ?? 'all', ['province', 'geographic', 'barangay'])"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Region" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Regions</SelectItem>
-            <SelectItem v-for="region in regionOptions" :key="region" :value="region">
-              {{ region }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Regions' }, ...regionOptions]"
+          placeholder="Region"
+          class="w-full sm:w-40"
+        />
 
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('province')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => setHierarchyFilter('province', val ?? 'all', ['geographic', 'barangay'])"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Province" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Provinces</SelectItem>
-            <SelectItem v-for="province in provinceOptions" :key="province" :value="province">
-              {{ province }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Provinces' }, ...provinceOptions]"
+          placeholder="Province"
+          class="w-full sm:w-40"
+        />
 
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('geographic')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => setHierarchyFilter('geographic', val ?? 'all', ['barangay'])"
-        >
-          <SelectTrigger class="w-full sm:w-48">
-            <SelectValue placeholder="City / Municipality" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Cities / Municipalities</SelectItem>
-            <SelectItem v-for="city in cityOptions" :key="city" :value="city">
-              {{ city }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Cities / Municipalities' }, ...cityOptions]"
+          placeholder="City / Municipality"
+          class="w-full sm:w-48"
+        />
 
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('barangay')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => setColumnFilter('barangay', val ?? 'all')"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Barangay" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Barangays</SelectItem>
-            <SelectItem v-for="barangay in barangayOptions" :key="barangay" :value="barangay">
-              {{ barangay }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Barangays' }, ...barangayOptions]"
+          placeholder="Barangay"
+          class="w-full sm:w-40"
+        />
 
         <!-- Submitted Files Filter -->
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('hasDocuments')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('hasDocuments')?.setFilterValue(val === 'all' ? undefined : val === 'true')"
-        >
-          <SelectTrigger class="w-full sm:w-44">
-            <SelectValue placeholder="Submitted Files" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Submissions</SelectItem>
-            <SelectItem value="true">With Submitted Files</SelectItem>
-            <SelectItem value="false">No Files Submitted</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Submissions' }, { value: 'true', label: 'With Submitted Files' }, { value: 'false', label: 'No Files Submitted' }]"
+          placeholder="Submitted Files"
+          class="w-full sm:w-44"
+        />
 
         <!-- Status Filter -->
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Statuses' }, { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]"
+          placeholder="Status"
+          class="w-full sm:w-36"
+        />
       </div>
 
       <div class="flex items-center gap-2">
@@ -488,18 +439,13 @@ const handleUpdateDocumentStatus = async () => {
 
             <div class="space-y-2 pt-2">
               <Label for="edit-status-select">New Account Status <span class="text-destructive">*</span></Label>
-              <Select v-model="selectedStatus">
-                <SelectTrigger id="edit-status-select" class="w-full">
-                  <SelectValue placeholder="Select new status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="selectedStatus"
+                :options="[{ value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]"
+                placeholder="Select new status"
+                id="edit-status-select"
+                class="w-full"
+              />
             </div>
             <!-- Required for Rejected; sent to the user in their notification -->
             <div v-if="statusRemarksRequired" class="space-y-2">
@@ -570,17 +516,13 @@ const handleUpdateDocumentStatus = async () => {
 
             <div class="space-y-2 pt-2">
               <Label for="edit-doc-status-select">New Document Status <span class="text-destructive">*</span></Label>
-              <Select v-model="selectedDocStatus">
-                <SelectTrigger id="edit-doc-status-select" class="w-full">
-                  <SelectValue placeholder="Select new status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="pending">Pending Review</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="selectedDocStatus"
+                :options="[{ value: 'submitted', label: 'Submitted' }, { value: 'pending', label: 'Pending Review' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }]"
+                placeholder="Select new status"
+                id="edit-doc-status-select"
+                class="w-full"
+              />
             </div>
             <!-- Required for Rejected; sent to the user in their notification -->
             <div v-if="docRemarksRequired" class="space-y-2">

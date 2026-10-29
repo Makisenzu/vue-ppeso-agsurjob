@@ -66,16 +66,10 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { onMounted, watch } from 'vue'
 import { usePsgc } from '@/composables/common/usePsgc'
 import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 // Reusable action dropdown template
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate<{
@@ -162,6 +156,10 @@ const {
   provinces: psgcProvinces,
   cities: psgcCities,
   barangays: psgcBarangays,
+  regionOptions,
+  provinceOptions,
+  cityOptions,
+  barangayOptions,
   selectedRegion,
   selectedProvince,
   selectedCity,
@@ -300,42 +298,22 @@ const handleCreateAccount = async () => {
         />
 
         <!-- Role Filter -->
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('role')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('role')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Filter by Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="applicant">Applicant</SelectItem>
-            <SelectItem value="company_owner">Company Owner</SelectItem>
-            <SelectItem value="company_member">Company Member</SelectItem>
-            <SelectItem value="provincial_peso">Provincial PESO</SelectItem>
-            <SelectItem value="municipal_peso">Municipal PESO</SelectItem>
-            <SelectItem value="dole">DOLE</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Roles' }, { value: 'admin', label: 'Admin' }, { value: 'applicant', label: 'Applicant' }, { value: 'company_owner', label: 'Company Owner' }, { value: 'company_member', label: 'Company Member' }, { value: 'provincial_peso', label: 'Provincial PESO' }, { value: 'municipal_peso', label: 'Municipal PESO' }, { value: 'dole', label: 'DOLE' }]"
+          placeholder="Filter by Role"
+          class="w-full sm:w-40"
+        />
 
         <!-- Status Filter -->
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Filter by Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Statuses' }, { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]"
+          placeholder="Filter by Status"
+          class="w-full sm:w-40"
+        />
       </div>
 
       <div class="flex items-center gap-2">
@@ -622,18 +600,13 @@ const handleCreateAccount = async () => {
 
             <div class="space-y-2 pt-2">
               <Label for="edit-status-select">New Account Status <span class="text-destructive">*</span></Label>
-              <Select v-model="selectedStatus">
-                <SelectTrigger id="edit-status-select" class="w-full">
-                  <SelectValue placeholder="Select new status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="selectedStatus"
+                :options="[{ value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]"
+                placeholder="Select new status"
+                id="edit-status-select"
+                class="w-full"
+              />
             </div>
 
             <!-- Required for Rejected; sent to the user in their notification -->
@@ -720,20 +693,13 @@ const handleCreateAccount = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-role">System Role <span class="text-destructive">*</span></Label>
-                <Select v-model="formData.role">
-                  <SelectTrigger id="add-role" class="w-full">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="applicant">Applicant</SelectItem>
-                    <SelectItem value="company_owner">Company Owner</SelectItem>
-                    <SelectItem value="company_member">Company Member</SelectItem>
-                    <SelectItem value="municipal_peso">Municipal PESO</SelectItem>
-                    <SelectItem value="provincial_peso">Provincial PESO</SelectItem>
-                    <SelectItem value="dole">DOLE</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchSelect
+                  v-model="formData.role"
+                  :options="[{ value: 'applicant', label: 'Applicant' }, { value: 'company_owner', label: 'Company Owner' }, { value: 'company_member', label: 'Company Member' }, { value: 'municipal_peso', label: 'Municipal PESO' }, { value: 'provincial_peso', label: 'Provincial PESO' }, { value: 'dole', label: 'DOLE' }, { value: 'admin', label: 'Admin' }]"
+                  placeholder="Select role"
+                  id="add-role"
+                  class="w-full"
+                />
               </div>
               <div class="space-y-2">
                 <Label for="add-contact">Contact Number</Label>
@@ -745,18 +711,13 @@ const handleCreateAccount = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="add-gender">Gender</Label>
-                <Select v-model="formData.gender">
-                  <SelectTrigger id="add-gender" class="w-full">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="woman">Woman</SelectItem>
-                    <SelectItem value="man">Man</SelectItem>
-                    <SelectItem value="non_binary">Non-binary</SelectItem>
-                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                    <SelectItem value="different_identity">Different identity</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchSelect
+                  v-model="formData.gender"
+                  :options="[{ value: 'woman', label: 'Woman' }, { value: 'man', label: 'Man' }, { value: 'non_binary', label: 'Non-binary' }, { value: 'prefer_not_to_say', label: 'Prefer not to say' }, { value: 'different_identity', label: 'Different identity' }]"
+                  placeholder="Select gender"
+                  id="add-gender"
+                  class="w-full"
+                />
               </div>
               <div class="space-y-2">
                 <Label for="add-birthdate">Birthdate</Label>
@@ -770,58 +731,53 @@ const handleCreateAccount = async () => {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label for="add-region">Region</Label>
-                  <Select :model-value="selectedRegion?.code ? String(selectedRegion.code) : undefined" @update:model-value="(val) => onRegionChange(String(val))">
-                    <SelectTrigger id="add-region" class="w-full">
-                      <SelectValue placeholder="Select region" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="r in psgcRegions" :key="r.code" :value="String(r.code)">
-                        {{ r.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchSelect
+                    :model-value="selectedRegion?.code ? String(selectedRegion.code) : undefined"
+                    @update:model-value="(val) => onRegionChange(String(val))"
+                    :options="regionOptions"
+                    placeholder="Select region"
+                    id="add-region"
+                    class="w-full"
+                  />
                 </div>
 
                 <div class="space-y-2">
                   <Label for="add-province">Province</Label>
-                  <Select :model-value="selectedProvince?.code ? String(selectedProvince.code) : undefined" @update:model-value="(val) => onProvinceChange(String(val))" :disabled="!selectedRegion">
-                    <SelectTrigger id="add-province" class="w-full">
-                      <SelectValue placeholder="Select province" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="p in psgcProvinces" :key="p.code" :value="String(p.code)">
-                        {{ p.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchSelect
+                    :model-value="selectedProvince?.code ? String(selectedProvince.code) : undefined"
+                    @update:model-value="(val) => onProvinceChange(String(val))"
+                    :disabled="!selectedRegion"
+                    :options="provinceOptions"
+                    placeholder="Select province"
+                    id="add-province"
+                    class="w-full"
+                  />
                 </div>
 
                 <div class="space-y-2">
                   <Label for="add-geographic">City / Municipality</Label>
-                  <Select :model-value="selectedCity?.code ? String(selectedCity.code) : undefined" @update:model-value="(val) => onCityChange(String(val))" :disabled="!selectedProvince">
-                    <SelectTrigger id="add-geographic" class="w-full">
-                      <SelectValue placeholder="Select city/municipality" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="c in psgcCities" :key="c.code" :value="String(c.code)">
-                        {{ c.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchSelect
+                    :model-value="selectedCity?.code ? String(selectedCity.code) : undefined"
+                    @update:model-value="(val) => onCityChange(String(val))"
+                    :disabled="!selectedProvince"
+                    :options="cityOptions"
+                    placeholder="Select city/municipality"
+                    id="add-geographic"
+                    class="w-full"
+                  />
                 </div>
 
                 <div class="space-y-2">
                   <Label for="add-barangay">Barangay</Label>
-                  <Select :model-value="selectedBarangay?.code ? String(selectedBarangay.code) : undefined" @update:model-value="(val) => onBarangayChange(String(val))" :disabled="!selectedCity">
-                    <SelectTrigger id="add-barangay" class="w-full">
-                      <SelectValue placeholder="Select barangay" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="b in psgcBarangays" :key="b.code" :value="String(b.code)">
-                        {{ b.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SearchSelect
+                    :model-value="selectedBarangay?.code ? String(selectedBarangay.code) : undefined"
+                    @update:model-value="(val) => onBarangayChange(String(val))"
+                    :disabled="!selectedCity"
+                    :options="barangayOptions"
+                    placeholder="Select barangay"
+                    id="add-barangay"
+                    class="w-full"
+                  />
                 </div>
               </div>
             </div>

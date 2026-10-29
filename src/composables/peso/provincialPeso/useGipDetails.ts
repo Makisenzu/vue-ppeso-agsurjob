@@ -504,6 +504,12 @@ export function useGipDetails() {
     selectedInternIds.value = selectedInternIds.value.filter((id) => validIds.has(id))
   })
 
+  // Batch year filter dropdown (SearchSelect)
+  const yearFilterOptions = computed(() => [
+    { value: 'ALL', label: 'All Batch Years' },
+    ...availableYears.value.map((year) => ({ value: year.toString(), label: `Batch ${year}` })),
+  ])
+
   onMounted(() => {
     fetchDetailsData()
   })
@@ -522,6 +528,7 @@ export function useGipDetails() {
     paginatedInterns,
     totalPages,
     availableYears,
+    yearFilterOptions,
     selectedIntern,
     isDetailsModalOpen,
     isAddInternModalOpen,

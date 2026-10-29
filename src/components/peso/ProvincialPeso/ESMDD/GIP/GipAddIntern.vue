@@ -22,13 +22,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -55,6 +48,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { cn } from '@/lib/utils'
 
 const {
@@ -202,29 +196,21 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
 
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-3">
-            <Select v-model="selectedLpiiFilter">
-              <SelectTrigger size="sm" class="w-40" aria-label="Filter by LPII zone">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All LPII Zones</SelectItem>
-                <SelectItem value="LOWLAND">Lowland</SelectItem>
-                <SelectItem value="UPLAND">Upland</SelectItem>
-                <SelectItem value="WETLAND">Wetland</SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              v-model="selectedLpiiFilter"
+              :options="[{ value: 'ALL', label: 'All LPII Zones' }, { value: 'LOWLAND', label: 'Lowland' }, { value: 'UPLAND', label: 'Upland' }, { value: 'WETLAND', label: 'Wetland' }]"
+              size="sm"
+              class="w-40"
+              aria-label="Filter by LPII zone"
+            />
 
-            <Select v-model="selectedStatusFilter">
-              <SelectTrigger size="sm" class="w-36" aria-label="Filter by status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Hired">Hired</SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              v-model="selectedStatusFilter"
+              :options="[{ value: 'ALL', label: 'All Statuses' }, { value: 'Pending', label: 'Pending' }, { value: 'Approved', label: 'Approved' }, { value: 'Hired', label: 'Hired' }]"
+              size="sm"
+              class="w-36"
+              aria-label="Filter by status"
+            />
 
             <Label class="cursor-pointer font-normal text-muted-foreground">
               <Checkbox v-model="onlyAvailable" />
@@ -605,16 +591,12 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
             <!-- Status -->
             <div class="grid gap-2">
               <Label for="status">Deployment Status</Label>
-              <Select v-model="status">
-                <SelectTrigger id="status" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active (Ongoing Deployment)</SelectItem>
-                  <SelectItem value="Pending">Pending (Awaiting Orientation)</SelectItem>
-                  <SelectItem value="Hired">Hired (Absorbed by Agency)</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="status"
+                :options="[{ value: 'Active', label: 'Active (Ongoing Deployment)' }, { value: 'Pending', label: 'Pending (Awaiting Orientation)' }, { value: 'Hired', label: 'Hired (Absorbed by Agency)' }]"
+                id="status"
+                class="w-full"
+              />
             </div>
 
             <!-- Notes -->

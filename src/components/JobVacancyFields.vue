@@ -7,8 +7,8 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import {
   DISABILITY_TYPE_OPTIONS,
   NATURE_OF_WORK_OPTIONS,
@@ -64,16 +64,15 @@ const qualificationFields = [
         <FormField v-slot="{ componentField }" name="natureOfWork">
           <FormItem>
             <FormLabel>Nature of Work</FormLabel>
-            <Select v-bind="componentField" :disabled="disabled">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select nature of work" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="option in NATURE_OF_WORK_OPTIONS" :key="option" :value="option">{{ option }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="disabled"
+                :options="NATURE_OF_WORK_OPTIONS"
+                placeholder="Select nature of work"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -261,18 +260,16 @@ const qualificationFields = [
       <FormField v-slot="{ componentField }" name="status">
         <FormItem>
           <FormLabel>Status</FormLabel>
-          <Select v-bind="componentField" :disabled="disabled">
-            <FormControl>
-              <SelectTrigger class="w-full capitalize">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <SelectItem v-for="option in VACANCY_STATUSES" :key="option" :value="option" class="capitalize">
-                {{ option }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <FormControl>
+            <SearchSelect
+              v-bind="componentField"
+              :disabled="disabled"
+              :options="VACANCY_STATUSES"
+              placeholder="Select status"
+              class="w-full capitalize"
+              content-class="capitalize"
+            />
+          </FormControl>
           <FormMessage />
         </FormItem>
       </FormField>

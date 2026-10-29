@@ -76,13 +76,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Combobox,
@@ -99,6 +92,7 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import SearchSelect from '@/components/SearchSelect.vue'
 import type { DirectoryRow } from '@/types/common/directory'
 import { useGipEditApplicant } from '@/composables/peso/provincialPeso/useGipEditApplicant'
 import { useGipBulkDeploy } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
@@ -480,52 +474,33 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </Button>
           </div>
 
-          <Select v-model="selectedLpiiFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by LPII zone">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All LPII Zones</SelectItem>
-              <SelectItem value="LOWLAND">Lowland</SelectItem>
-              <SelectItem value="UPLAND">Upland</SelectItem>
-              <SelectItem value="WETLAND">Wetland</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedLpiiFilter"
+            :options="[{ value: 'ALL', label: 'All LPII Zones' }, { value: 'LOWLAND', label: 'Lowland' }, { value: 'UPLAND', label: 'Upland' }, { value: 'WETLAND', label: 'Wetland' }]"
+            class="w-full"
+            aria-label="Filter by LPII zone"
+          />
 
-          <Select v-model="selectedMonthFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by month">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="m in availableMonths" :key="m.value" :value="m.value">
-                {{ m.label }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedMonthFilter"
+            :options="availableMonths"
+            class="w-full"
+            aria-label="Filter by month"
+          />
 
-          <Select v-model="selectedGenderFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by gender">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Genders</SelectItem>
-              <SelectItem value="Male">Male</SelectItem>
-              <SelectItem value="Female">Female</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedGenderFilter"
+            :options="[{ value: 'ALL', label: 'All Genders' }, { value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]"
+            class="w-full"
+            aria-label="Filter by gender"
+          />
 
-          <Select v-model="selectedStatusFilter">
-            <SelectTrigger class="w-full" aria-label="Filter by status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-              <SelectItem value="Hired">Hired</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedStatusFilter"
+            :options="[{ value: 'ALL', label: 'All Statuses' }, { value: 'Pending', label: 'Pending' }, { value: 'Approved', label: 'Approved' }, { value: 'Hired', label: 'Hired' }, { value: 'Rejected', label: 'Rejected' }]"
+            class="w-full"
+            aria-label="Filter by status"
+          />
         </div>
       </CardHeader>
 
@@ -1298,16 +1273,13 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
 
           <div v-if="selectedDuplicateAction === 'link_program'" class="grid gap-2 pt-2">
             <Label for="duplicateTargetProgram">Target Program</Label>
-            <Select v-model="selectedDuplicateProgram">
-              <SelectTrigger id="duplicateTargetProgram" class="w-full sm:w-56">
-                <SelectValue placeholder="Select program" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="prog in duplicateProgramOptions" :key="prog" :value="prog">
-                  {{ prog }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              v-model="selectedDuplicateProgram"
+              :options="duplicateProgramOptions"
+              placeholder="Select program"
+              id="duplicateTargetProgram"
+              class="w-full sm:w-56"
+            />
           </div>
         </section>
       </div>
@@ -1342,18 +1314,15 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         <FormField v-else v-slot="{ componentField }" name="status">
           <FormItem>
             <FormLabel>Application Status</FormLabel>
-            <Select v-bind="componentField" :disabled="isSavingApplicantReview">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select a status" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="opt in editStatusOptions" :key="opt" :value="opt">
-                  {{ opt }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="isSavingApplicantReview"
+                :options="editStatusOptions"
+                placeholder="Select a status"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -1576,15 +1545,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div class="grid gap-2">
               <Label for="ec-sex">Sex</Label>
-              <Select v-model="candidateForm.sex">
-                <SelectTrigger id="ec-sex" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="candidateForm.sex"
+                :options="[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]"
+                id="ec-sex"
+                class="w-full"
+              />
             </div>
             <div class="grid gap-2">
               <Label for="ec-dob">Date of Birth</Label>
@@ -1592,17 +1558,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </div>
             <div class="grid gap-2">
               <Label for="ec-civil">Civil Status</Label>
-              <Select v-model="candidateForm.civilStatus">
-                <SelectTrigger id="ec-civil" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Single">Single</SelectItem>
-                  <SelectItem value="Married">Married</SelectItem>
-                  <SelectItem value="Widowed">Widowed</SelectItem>
-                  <SelectItem value="Separated">Separated</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="candidateForm.civilStatus"
+                :options="[{ value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' }, { value: 'Widowed', label: 'Widowed' }, { value: 'Separated', label: 'Separated' }]"
+                id="ec-civil"
+                class="w-full"
+              />
             </div>
             <div class="grid gap-2">
               <Label for="ec-tin">TIN (optional)</Label>
@@ -1619,14 +1580,13 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div class="grid gap-2">
               <Label for="ec-muni">Municipality / City <span class="text-destructive">*</span></Label>
-              <Select v-model="candidateForm.municipality">
-                <SelectTrigger id="ec-muni" class="w-full">
-                  <SelectValue placeholder="Select municipality" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="m in candidateMunicipalities" :key="m" :value="m">{{ m }}</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="candidateForm.municipality"
+                :options="candidateMunicipalities"
+                placeholder="Select municipality"
+                id="ec-muni"
+                class="w-full"
+              />
             </div>
             <div class="grid gap-2">
               <Label for="ec-brgy">Barangay <span class="text-destructive">*</span></Label>
@@ -1661,17 +1621,12 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </div>
             <div class="grid gap-2">
               <Label for="ec-level">Educational Level</Label>
-              <Select v-model="candidateForm.educationalLevel">
-                <SelectTrigger id="ec-level" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="College Graduate">College Graduate</SelectItem>
-                  <SelectItem value="College Level">College Level</SelectItem>
-                  <SelectItem value="Tech-Voc Graduate">Tech-Voc / TVET Graduate</SelectItem>
-                  <SelectItem value="Senior High Graduate">Senior High School Graduate</SelectItem>
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                v-model="candidateForm.educationalLevel"
+                :options="[{ value: 'College Graduate', label: 'College Graduate' }, { value: 'College Level', label: 'College Level' }, { value: 'Tech-Voc Graduate', label: 'Tech-Voc / TVET Graduate' }, { value: 'Senior High Graduate', label: 'Senior High School Graduate' }]"
+                id="ec-level"
+                class="w-full"
+              />
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div class="grid gap-2">
@@ -2013,18 +1968,15 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
           <FormField v-slot="{ componentField }" name="status">
             <FormItem>
               <FormLabel>Deployment Status</FormLabel>
-              <Select v-bind="componentField" :disabled="isBulkDeploying">
-                <FormControl>
-                  <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="opt in deploymentStatusOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchSelect
+                  v-bind="componentField"
+                  :disabled="isBulkDeploying"
+                  :options="deploymentStatusOptions"
+                  placeholder="Select a status"
+                  class="w-full"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>

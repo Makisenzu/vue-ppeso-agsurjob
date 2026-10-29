@@ -5,9 +5,9 @@ import { Building2, RefreshCw } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useRegisteredCompanies } from '@/composables/peso/provincialPeso/useRegisteredCompanies'
 
 const {
@@ -41,18 +41,13 @@ const {
           :model-value="(table.getColumn('company')?.getFilterValue() as string) ?? ''"
           @update:model-value="table.getColumn('company')?.setFilterValue($event)"
         />
-        <Select
+        <SearchSelect
           :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
           @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-        >
-          <SelectTrigger class="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem v-for="status in statusOptions" :key="status" :value="status">{{ status }}</SelectItem>
-          </SelectContent>
-        </Select>
+          :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+          placeholder="Status"
+          class="w-full sm:w-40"
+        />
       </div>
 
       <Button variant="outline" :disabled="isLoading" @click="refreshCompanies">

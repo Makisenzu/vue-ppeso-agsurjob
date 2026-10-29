@@ -2,10 +2,10 @@
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import NsrpFieldGroup from '@/components/applicant/Profile/Nsrp/NsrpFieldGroup.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 defineProps<{
   /** Groups render flat inside a parent card (profile editor) instead of as separate cards (wizard). */
@@ -57,10 +57,7 @@ const checkRow =
         <FormItem>
           <FormLabel>Sex</FormLabel>
           <FormControl>
-            <NativeSelect v-bind="componentField" class="w-full">
-              <NativeSelectOption value="" disabled>Select</NativeSelectOption>
-              <NativeSelectOption v-for="opt in sexOptions" :key="opt" :value="opt">{{ opt }}</NativeSelectOption>
-            </NativeSelect>
+            <SearchSelect v-bind="componentField" class="w-full" :options="sexOptions" placeholder="Select" />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -69,10 +66,7 @@ const checkRow =
         <FormItem>
           <FormLabel>Civil status</FormLabel>
           <FormControl>
-            <NativeSelect v-bind="componentField" class="w-full">
-              <NativeSelectOption value="" disabled>Select</NativeSelectOption>
-              <NativeSelectOption v-for="opt in civilStatusOptions" :key="opt" :value="opt">{{ opt }}</NativeSelectOption>
-            </NativeSelect>
+            <SearchSelect v-bind="componentField" class="w-full" :options="civilStatusOptions" placeholder="Select" />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -117,12 +111,12 @@ const checkRow =
         <FormItem>
           <FormLabel>Employment status</FormLabel>
           <FormControl>
-            <NativeSelect v-bind="componentField" class="w-full">
-              <NativeSelectOption value="" disabled>Select status</NativeSelectOption>
-              <NativeSelectOption v-for="opt in employmentStatusOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </NativeSelectOption>
-            </NativeSelect>
+            <SearchSelect
+              v-bind="componentField"
+              class="w-full"
+              :options="employmentStatusOptions"
+              placeholder="Select status"
+            />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -133,12 +127,12 @@ const checkRow =
           <FormItem>
             <FormLabel>Employment type</FormLabel>
             <FormControl>
-              <NativeSelect v-bind="componentField" class="w-full">
-                <NativeSelectOption value="" disabled>Select type</NativeSelectOption>
-                <NativeSelectOption v-for="opt in employmentTypeOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </NativeSelectOption>
-              </NativeSelect>
+              <SearchSelect
+                v-bind="componentField"
+                class="w-full"
+                :options="employmentTypeOptions"
+                placeholder="Select type"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -159,10 +153,12 @@ const checkRow =
           <FormItem>
             <FormLabel>Reason</FormLabel>
             <FormControl>
-              <NativeSelect v-bind="componentField" class="w-full">
-                <NativeSelectOption value="" disabled>Select reason</NativeSelectOption>
-                <NativeSelectOption v-for="opt in unemployedReasonOptions" :key="opt" :value="opt">{{ opt }}</NativeSelectOption>
-              </NativeSelect>
+              <SearchSelect
+                v-bind="componentField"
+                class="w-full"
+                :options="unemployedReasonOptions"
+                placeholder="Select reason"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

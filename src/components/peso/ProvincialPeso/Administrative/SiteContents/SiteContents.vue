@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -33,6 +32,7 @@ import PageHeroes from '@/components/peso/ProvincialPeso/Administrative/SiteCont
 import MunicipalityLogos from '@/components/peso/ProvincialPeso/Administrative/SiteContents/MunicipalityLogos.vue'
 import Achievements from '@/components/peso/ProvincialPeso/Administrative/SiteContents/Achievements.vue'
 import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useSiteContents } from '@/composables/peso/provincialPeso/useSiteContents'
 import { useSiteContentForm } from '@/composables/peso/provincialPeso/useSiteContentForm'
 
@@ -100,18 +100,13 @@ const {
             :model-value="(table.getColumn('title')?.getFilterValue() as string) ?? ''"
             @update:model-value="table.getColumn('title')?.setFilterValue($event)"
           />
-          <Select
+          <SearchSelect
             :model-value="(table.getColumn('state')?.getFilterValue() as string) ?? 'all'"
             @update:model-value="(val) => table.getColumn('state')?.setFilterValue(val === 'all' ? undefined : val)"
-          >
-            <SelectTrigger class="w-full sm:w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem v-for="state in stateOptions" :key="state" :value="state">{{ state }}</SelectItem>
-            </SelectContent>
-          </Select>
+            :options="[{ value: 'all', label: 'All Statuses' }, ...stateOptions]"
+            placeholder="Status"
+            class="w-full sm:w-40"
+          />
         </div>
 
         <div class="flex gap-2">
@@ -422,18 +417,15 @@ const {
             <FormField v-slot="{ componentField }" name="status">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select v-bind="componentField" :disabled="isSubmitting">
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="option in statusOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchSelect
+                    v-bind="componentField"
+                    :disabled="isSubmitting"
+                    :options="statusOptions"
+                    placeholder="Select a status"
+                    class="w-full"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>

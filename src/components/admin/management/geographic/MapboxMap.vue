@@ -2,7 +2,7 @@
 import { ref, toRefs, watch } from 'vue'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useGeographicMap } from '@/composables/admin/useGeographicMap'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import SearchSelect from '@/components/SearchSelect.vue'
 
 type JumpLocation = {
     province?: string
@@ -40,9 +40,9 @@ const mapContainer = ref<HTMLDivElement | null>(null)
 
 const {
     mapboxToken,
-    provinces,
-    municipalities,
-    barangays,
+    provinceFilterOptions,
+    municipalityFilterOptions,
+    barangayFilterOptions,
     selectedProvince,
     selectedMunicipality,
     selectedBarangay,
@@ -80,44 +80,29 @@ watch(
         <div class="mb-3 grid gap-3 md:grid-cols-3">
             <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Province</span>
-                <NativeSelect v-model="selectedProvince" class="w-full">
-                    <NativeSelectOption value="">All provinces</NativeSelectOption>
-                    <NativeSelectOption
-                        v-for="province in provinces"
-                        :key="province.name"
-                        :value="province.name"
-                    >
-                        {{ province.name }} ({{ province.count }})
-                    </NativeSelectOption>
-                </NativeSelect>
+                <SearchSelect
+                  v-model="selectedProvince"
+                  class="w-full"
+                  :options="provinceFilterOptions"
+                />
             </div>
 
             <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Municipality</span>
-                <NativeSelect v-model="selectedMunicipality" class="w-full">
-                    <NativeSelectOption value="">All municipalities</NativeSelectOption>
-                    <NativeSelectOption
-                        v-for="municipality in municipalities"
-                        :key="municipality.name"
-                        :value="municipality.name"
-                    >
-                        {{ municipality.name }} ({{ municipality.count }})
-                    </NativeSelectOption>
-                </NativeSelect>
+                <SearchSelect
+                  v-model="selectedMunicipality"
+                  class="w-full"
+                  :options="municipalityFilterOptions"
+                />
             </div>
 
             <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Barangay</span>
-                <NativeSelect v-model="selectedBarangay" class="w-full">
-                    <NativeSelectOption value="">All barangays</NativeSelectOption>
-                    <NativeSelectOption
-                        v-for="barangay in barangays"
-                        :key="barangay.name"
-                        :value="barangay.name"
-                    >
-                        {{ barangay.name }} ({{ barangay.count }})
-                    </NativeSelectOption>
-                </NativeSelect>
+                <SearchSelect
+                  v-model="selectedBarangay"
+                  class="w-full"
+                  :options="barangayFilterOptions"
+                />
             </div>
         </div>
 

@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import { useFieldValue } from 'vee-validate'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { Constants } from '@/types/database.types'
 
 /**
@@ -77,16 +77,15 @@ const textFields = {
         <FormField v-slot="{ componentField }" :name="fieldName('employerCategory')">
           <FormItem>
             <FormLabel>Employer Category</FormLabel>
-            <Select v-bind="componentField" :disabled="disabled">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="option in categoryOptions" :key="option" :value="option">{{ option }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="disabled"
+                :options="categoryOptions"
+                placeholder="Select category"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -94,16 +93,15 @@ const textFields = {
         <FormField v-if="isPublicEmployer" v-slot="{ componentField }" :name="fieldName('publicEmployerType')">
           <FormItem>
             <FormLabel>Public Employer Type</FormLabel>
-            <Select v-bind="componentField" :disabled="disabled">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="option in publicTypeOptions" :key="option" :value="option">{{ option }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="disabled"
+                :options="publicTypeOptions"
+                placeholder="Select type"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -111,16 +109,15 @@ const textFields = {
         <FormField v-else v-slot="{ componentField }" :name="fieldName('privateEmployerType')">
           <FormItem>
             <FormLabel>Private Employer Type</FormLabel>
-            <Select v-bind="componentField" :disabled="disabled">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="option in privateTypeOptions" :key="option" :value="option">{{ option }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="disabled"
+                :options="privateTypeOptions"
+                placeholder="Select type"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -141,16 +138,15 @@ const textFields = {
         <FormField v-slot="{ componentField }" :name="fieldName('totalWorkforce')">
           <FormItem>
             <FormLabel>Total Workforce</FormLabel>
-            <Select v-bind="componentField" :disabled="disabled">
-              <FormControl>
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select size" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="option in workforceOptions" :key="option" :value="option">{{ option }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchSelect
+                v-bind="componentField"
+                :disabled="disabled"
+                :options="workforceOptions"
+                placeholder="Select size"
+                class="w-full"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         </FormField>

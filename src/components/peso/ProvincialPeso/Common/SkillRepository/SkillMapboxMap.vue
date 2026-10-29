@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Button } from '@/components/ui/button'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { computed, ref } from 'vue'
 import { SKILL_MAP_TERRAINS, useSkillMap } from '@/composables/peso/provincialPeso/useSkillMap'
 import type { MunicipalitySkillSummaryRow } from '@/types/peso/provincialPeso/skillRepository'
@@ -32,6 +32,7 @@ const {
   isReady,
   selectedMunicipality: internalSelectedMunicipality,
   municipalitiesList,
+  municipalityFocusOptions,
   totalApplicants,
   resetView,
   handleMunicipalityChange,
@@ -58,21 +59,15 @@ const activeMunicipality = computed(() => props.selectedMunicipality || internal
       </div>
 
       <div class="w-full sm:w-64">
-        <NativeSelect
+        <SearchSelect
           :model-value="activeMunicipality"
-          class="h-8 w-full text-xs"
+          :options="municipalityFocusOptions"
+          search-placeholder="Search municipality..."
+          size="sm"
+          class="w-full text-xs"
           aria-label="Focus on a municipality"
-          @change="handleMunicipalityChange"
-        >
-          <NativeSelectOption value="">All municipalities</NativeSelectOption>
-          <NativeSelectOption
-            v-for="muni in municipalitiesList"
-            :key="muni.name"
-            :value="muni.name"
-          >
-            {{ muni.name }} ({{ muni.applicants }})
-          </NativeSelectOption>
-        </NativeSelect>
+          @update:model-value="handleMunicipalityChange"
+        />
       </div>
     </div>
 

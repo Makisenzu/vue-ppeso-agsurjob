@@ -9,13 +9,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -30,6 +23,7 @@ import {
 } from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import SwipeCardList from '@/components/SwipeCardList.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useGipPriorityApplicants } from '@/composables/peso/provincialPeso/useGipPriorityApplicants'
 
 const {
@@ -165,38 +159,26 @@ const scoreBreakdown = (record: (typeof paginatedPriorityList.value)[number]) =>
             </Button>
           </div>
 
-          <Select v-model="selectedMunicipality">
-            <SelectTrigger class="w-full lg:col-span-3" aria-label="Filter by municipality">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Municipalities</SelectItem>
-              <SelectItem v-for="m in availableMunicipalities" :key="m" :value="m">{{ m }}</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedMunicipality"
+            :options="[{ value: 'ALL', label: 'All Municipalities' }, ...availableMunicipalities]"
+            class="w-full lg:col-span-3"
+            aria-label="Filter by municipality"
+          />
 
-          <Select v-model="selectedTier">
-            <SelectTrigger class="w-full lg:col-span-2" aria-label="Filter by score tier">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Score Tiers</SelectItem>
-              <SelectItem value="HIGH">High Priority (70–100)</SelectItem>
-              <SelectItem value="MODERATE">Moderate (40–69)</SelectItem>
-              <SelectItem value="BASELINE">Baseline (0–39)</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="selectedTier"
+            :options="[{ value: 'ALL', label: 'All Score Tiers' }, { value: 'HIGH', label: 'High Priority (70–100)' }, { value: 'MODERATE', label: 'Moderate (40–69)' }, { value: 'BASELINE', label: 'Baseline (0–39)' }]"
+            class="w-full lg:col-span-2"
+            aria-label="Filter by score tier"
+          />
 
-          <Select v-model="pageSize">
-            <SelectTrigger class="w-full lg:col-span-2" aria-label="Rows per page">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem :value="10">10 per page</SelectItem>
-              <SelectItem :value="25">25 per page</SelectItem>
-              <SelectItem :value="50">50 per page</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchSelect
+            v-model="pageSize"
+            :options="[{ value: 10, label: '10 per page' }, { value: 25, label: '25 per page' }, { value: 50, label: '50 per page' }]"
+            class="w-full lg:col-span-2"
+            aria-label="Rows per page"
+          />
         </div>
       </CardHeader>
 

@@ -3,7 +3,6 @@ import { Loader2 } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { usePrivacyRequests } from '@/composables/admin/usePrivacyRequests'
 
 const {
@@ -52,11 +52,13 @@ const {
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Privacy Requests</h1>
         <p class="text-sm text-muted-foreground">Data subject requests under the Data Privacy Act.</p>
       </div>
-      <NativeSelect :model-value="statusFilter" class="w-full sm:w-48" aria-label="Status" @update:model-value="onStatusFilterChange">
-        <NativeSelectOption v-for="option in statusOptions" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </NativeSelectOption>
-      </NativeSelect>
+      <SearchSelect
+        :model-value="statusFilter"
+        class="w-full sm:w-48"
+        aria-label="Status"
+        @update:model-value="onStatusFilterChange"
+        :options="statusOptions"
+      />
     </div>
 
     <div v-if="isLoading" class="flex flex-col gap-2">

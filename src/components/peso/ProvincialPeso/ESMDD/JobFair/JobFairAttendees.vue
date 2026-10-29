@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AlertDialog,
@@ -39,6 +38,7 @@ import {
   ComboboxViewport,
 } from '@/components/ui/combobox'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { useJobFairAttendees } from '@/composables/peso/provincialPeso/useJobFairAttendees'
 import { useJobFairAttendeeForm } from '@/composables/peso/provincialPeso/useJobFairAttendeeForm'
 import { formatRegistryName, getRegistryPhone } from '@/helpers/peso/provincialPeso/jobFairHelper'
@@ -130,20 +130,13 @@ const {
             :model-value="(table.getColumn('applicant')?.getFilterValue() as string) ?? ''"
             @update:model-value="table.getColumn('applicant')?.setFilterValue($event)"
           />
-          <Select
+          <SearchSelect
             :model-value="(table.getColumn('status')?.getFilterValue() as string) ?? 'all'"
             @update:model-value="(val) => table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)"
-          >
-            <SelectTrigger class="w-full sm:w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem v-for="status in statusOptions" :key="status" :value="status">
-                {{ status }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            :options="[{ value: 'all', label: 'All Statuses' }, ...statusOptions]"
+            placeholder="Status"
+            class="w-full sm:w-40"
+          />
         </div>
 
         <div class="flex gap-2">
@@ -338,16 +331,15 @@ const {
           <FormField v-slot="{ componentField }" name="status">
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select v-bind="componentField" :disabled="isSubmitting">
-                <FormControl>
-                  <SelectTrigger class="w-full sm:w-48">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem v-for="option in statusOptions" :key="option" :value="option">{{ option }}</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchSelect
+                  v-bind="componentField"
+                  :disabled="isSubmitting"
+                  :options="statusOptions"
+                  placeholder="Select status"
+                  class="w-full sm:w-48"
+                />
+              </FormControl>
               <FormDescription>Registered = signed up; Attended = showed up at the job fair.</FormDescription>
               <FormMessage />
             </FormItem>

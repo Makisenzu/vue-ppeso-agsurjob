@@ -304,6 +304,9 @@ export function useSpesBeneficiaries() {
     table.getColumn('status')?.setFilterValue(current === 'Expired' ? undefined : 'Expired')
   }
 
+  // SPES year dropdown (SearchSelect)
+  const yearOptions = computed(() => availableYears.value.map((year) => ({ value: String(year), label: `SPES ${year}` })))
+
   const onYearChange = (value: unknown) => {
     const year = Number(value)
     if (Number.isInteger(year)) setSelectedYear(year)
@@ -324,6 +327,7 @@ export function useSpesBeneficiaries() {
     yearAppointments,
     selectedYear,
     availableYears,
+    yearOptions,
     summary,
     isLoading: isLoadingBeneficiaries,
     errorMessage: beneficiariesError,
