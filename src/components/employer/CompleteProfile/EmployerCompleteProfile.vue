@@ -59,8 +59,7 @@ const {
       <p class="text-xs font-medium text-muted-foreground">Step {{ currentStep + 1 }} of {{ steps.length }}</p>
       <h1 class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Register your establishment</h1>
       <p class="text-sm text-muted-foreground">
-        Welcome, {{ displayName }}. PESO Agusan del Sur needs your company's NSRP Form 2 before you can post jobs and
-        manage applicants. PESO will review it after you submit.
+        Welcome, {{ displayName }}. Submit your NSRP Form 2 for PESO review to start posting jobs.
       </p>
     </header>
 
