@@ -18,8 +18,7 @@ const {
   profileId,
   accountDetails,
   companyName,
-  form2Status,
-  form2StatusClass,
+  companyStatus,
 } = useEmployerAccount()
 </script>
 
@@ -78,8 +77,8 @@ const {
             <div class="min-w-0 space-y-1">
               <p class="truncate text-sm font-medium text-foreground">{{ companyName || '—' }}</p>
               <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                NSRP Form 2
-                <Badge variant="outline" :class="form2StatusClass">{{ form2Status }}</Badge>
+                Company status
+                <Badge variant="outline" :class="companyStatus.class">{{ companyStatus.label }}</Badge>
               </div>
             </div>
             <Button variant="outline" as-child>

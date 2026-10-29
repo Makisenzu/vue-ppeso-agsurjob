@@ -4,8 +4,8 @@ import {
   formatAccountAddress,
   formatBirthdate,
   formatGender,
-  getForm2StatusBadgeClass,
 } from '@/helpers/employer/employerAccountHelper'
+import { getCompanyStatusBadge } from '@/helpers/common/companyRequirementHelper'
 
 /**
  * Employer "Account" page: the owner's own account details (core.profiles), laid out like the
@@ -40,8 +40,8 @@ export function useEmployerAccount() {
   ])
 
   const companyName = computed(() => authStore.employerProfile?.company_name ?? '')
-  const form2Status = computed(() => authStore.employerEstablishment?.status ?? 'Not filed')
-  const form2StatusClass = computed(() => getForm2StatusBadgeClass(authStore.employerEstablishment?.status))
+  /** Company status set by Provincial PESO (Form 2 is always complete once signup is done) */
+  const companyStatus = computed(() => getCompanyStatusBadge(authStore.employerProfile?.verification_status))
 
   return {
     displayName,
@@ -55,7 +55,6 @@ export function useEmployerAccount() {
     profileId: computed(() => profile.value?.id ?? null),
     accountDetails,
     companyName,
-    form2Status,
-    form2StatusClass,
+    companyStatus,
   }
 }

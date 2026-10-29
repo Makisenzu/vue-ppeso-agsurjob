@@ -48,11 +48,20 @@ export function getReviewStatusLabel(status: CompanyReviewStatus | null): string
   return status ? STATUS_LABEL[status] : 'Not submitted'
 }
 
+/** Company status filter values, in the order the list filter shows them */
+export const COMPANY_STATUS_LABELS = ['Pending', 'Verified', 'Rejected'] as const
+
 /** Company verification wording ('approved' reads as Verified) */
 export function getCompanyStatusLabel(status: CompanyReviewStatus | null): string {
   if (status === 'approved') return 'Verified'
   if (status === 'rejected') return 'Rejected'
   return 'Pending'
+}
+
+/** The company status pill (companies.verification_status, set by Provincial PESO): label + badge class */
+export function getCompanyStatusBadge(verificationStatus: string | null | undefined): { label: string; class: string } {
+  const status = toReviewStatus(verificationStatus) ?? 'pending'
+  return { label: getCompanyStatusLabel(status), class: getReviewStatusBadgeClass(status) }
 }
 
 export function getReviewStatusBadgeClass(status: CompanyReviewStatus | null): string {

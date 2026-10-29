@@ -6,34 +6,33 @@ import {
   buildCompanyRequirementItems,
   formatFileSize,
   formatSubmittedDate,
+  getCompanyStatusBadge,
   getCompanyStatusLabel,
-  getReviewStatusBadgeClass,
-  getReviewStatusLabel,
   summarizeRequiredDocuments,
   toReviewStatus,
 } from '@/helpers/common/companyRequirementHelper'
-import {
-  getCompanyDisplayName,
-  getCompanyEstablishment,
-  getEstablishmentStatusBadgeClass,
-  getCompanyStatus,
-} from '@/helpers/peso/provincialPeso/registeredCompanyHelper'
-import {
-  COMPANY_REVIEW_STATUS_OPTIONS,
-  type CompanyRequirementItem,
-  type CompanyReviewStatus,
-} from '@/types/employer/companyRequirement'
+import { getCompanyDisplayName, getCompanyEstablishment } from '@/helpers/peso/provincialPeso/registeredCompanyHelper'
+import { COMPANY_REVIEW_STATUS_OPTIONS, type CompanyReviewStatus } from '@/types/employer/companyRequirement'
 
 const REMARKS_REQUIRED = 'Give the reason for rejecting.'
 
+/** A status being edited in the sheet; saved together with Save changes */
+interface ReviewDraft {
+  status: CompanyReviewStatus
+  remarks: string
+  error: string | null
+}
+
+const toStatus = (value: string | number | null): CompanyReviewStatus =>
+  toReviewStatus(value == null ? null : String(value)) ?? 'pending'
+
 /**
- * Review sheet of the Registered Companies page (the list opens it with the store's openCompany) (Provincial PESO): open the company's documents,
- * approve or reject each one, and set the company's verification.
+ * Review sheet of the Registered Companies page (the list opens it with the store's openCompany).
+ * The company status and each document's status are drafts; Save changes sends only what changed.
  */
 export function useRegisteredCompanyReview() {
   const store = useRegisteredCompanyReviewStore()
-  const { company, templates, submissions, verificationRemarks, isLoading, isSavingCompany, reviewingRequirementId } =
-    storeToRefs(store)
+  const { company, templates, submissions, verificationRemarks, isLoading, isSaving } = storeToRefs(store)
   const { openDocument } = usePrivateDocuments()
 
   const isReviewOpen = computed({
@@ -44,123 +43,110 @@ export function useRegisteredCompanyReview() {
   })
 
   const companyName = computed(() => (company.value ? getCompanyDisplayName(company.value) : ''))
-  const companyTin = computed(() => (company.value ? getCompanyEstablishment(company.value)?.tin ?? '' : ''))
-  const form2Status = computed(() => (company.value ? getCompanyStatus(company.value) : ''))
-  const form2StatusClass = computed(() => getEstablishmentStatusBadgeClass(form2Status.value))
+  const companyTin = computed(() => (company.value ? (getCompanyEstablishment(company.value)?.tin ?? '') : ''))
+  /** The saved company status (header pill) */
+  const companyStatusBadge = computed(() => getCompanyStatusBadge(company.value?.verification_status))
 
   const items = computed(() =>
     company.value ? buildCompanyRequirementItems(templates.value, submissions.value) : [],
   )
   const summary = computed(() => summarizeRequiredDocuments(items.value))
 
-  // ─── Company status ───
-  const companyStatusDraft = ref<CompanyReviewStatus>('pending')
-  const companyRemarksDraft = ref('')
-  const companyRemarksError = ref<string | null>(null)
-  const savedCompanyStatus = computed(() => toReviewStatus(company.value?.verification_status) ?? 'pending')
-  const isCompanyStatusChanged = computed(
-    () =>
-      companyStatusDraft.value !== savedCompanyStatus.value ||
-      (companyStatusDraft.value === 'rejected' && companyRemarksDraft.value.trim() !== (verificationRemarks.value ?? '')),
-  )
+  // ─── Drafts ───
+  const companyDraft = ref<ReviewDraft>({ status: 'pending', remarks: '', error: null })
+  /** Keyed by employer_requirements.id; only submitted documents can be reviewed */
+  const documentDrafts = ref<Record<number, ReviewDraft>>({})
 
-  function setCompanyStatusDraft(value: string | number | null) {
-    companyStatusDraft.value = toReviewStatus(value == null ? null : String(value)) ?? 'pending'
-    companyRemarksError.value = null
-  }
-
-  async function saveCompanyStatus() {
-    const remarks = companyRemarksDraft.value.trim()
-    if (companyStatusDraft.value === 'rejected' && !remarks) {
-      companyRemarksError.value = REMARKS_REQUIRED
-      return
+  function resetDrafts() {
+    companyDraft.value = {
+      status: toStatus(company.value?.verification_status ?? null),
+      remarks: verificationRemarks.value ?? '',
+      error: null,
     }
-    await store.reviewCompany(companyStatusDraft.value, companyStatusDraft.value === 'rejected' ? remarks : null)
+    documentDrafts.value = Object.fromEntries(
+      submissions.value.map((row) => [
+        row.id,
+        { status: toStatus(row.status), remarks: row.status_remarks ?? '', error: null },
+      ]),
+    )
   }
 
-  // ─── Document review ───
-  /** employer_requirements.id whose reject reason is being typed */
-  const rejectingRequirementId = ref<number | null>(null)
-  const rejectRemarks = ref('')
-  const rejectRemarksError = ref<string | null>(null)
+  // A newly opened company, or its documents arriving, starts the drafts from what is saved
+  watch([() => company.value?.id, submissions, verificationRemarks], resetDrafts, { immediate: true })
 
-  function startReject(item: CompanyRequirementItem) {
-    if (!item.submission) return
-    rejectingRequirementId.value = item.submission.id
-    rejectRemarks.value = item.submission.status_remarks ?? ''
-    rejectRemarksError.value = null
-  }
+  const isDraftChanged = (draft: ReviewDraft, status: CompanyReviewStatus, remarks: string | null) =>
+    draft.status !== status || (draft.status === 'rejected' && draft.remarks.trim() !== (remarks ?? ''))
 
-  function cancelReject() {
-    rejectingRequirementId.value = null
-    rejectRemarks.value = ''
-    rejectRemarksError.value = null
-  }
-
-  async function confirmReject() {
-    const id = rejectingRequirementId.value
-    const remarks = rejectRemarks.value.trim()
-    if (!id) return
-    if (!remarks) {
-      rejectRemarksError.value = REMARKS_REQUIRED
-      return
-    }
-    if (await store.reviewRequirement(id, 'rejected', remarks)) cancelReject()
-  }
-
-  async function setDocumentStatus(item: CompanyRequirementItem, status: Exclude<CompanyReviewStatus, 'rejected'>) {
-    if (!item.submission) return
-    cancelReject()
-    await store.reviewRequirement(item.submission.id, status, null)
-  }
-
-  // A newly opened company starts from its saved status; its remarks arrive with the documents
-  watch(
-    () => company.value?.id,
-    () => {
-      companyStatusDraft.value = savedCompanyStatus.value
-      companyRemarksDraft.value = ''
-      companyRemarksError.value = null
-      cancelReject()
-    },
-    { immediate: true },
+  const changedDocuments = computed(() =>
+    submissions.value.filter((row) => {
+      const draft = documentDrafts.value[row.id]
+      return draft && isDraftChanged(draft, toStatus(row.status), row.status_remarks)
+    }),
   )
-  watch(verificationRemarks, (remarks) => {
-    companyRemarksDraft.value = remarks ?? ''
-  })
+  const isCompanyChanged = computed(() =>
+    isDraftChanged(companyDraft.value, toStatus(company.value?.verification_status ?? null), verificationRemarks.value),
+  )
+  const hasChanges = computed(() => isCompanyChanged.value || changedDocuments.value.length > 0)
+
+  function setCompanyStatus(value: string | number) {
+    companyDraft.value = { ...companyDraft.value, status: toStatus(value), error: null }
+  }
+
+  function setDocumentStatus(requirementId: number, value: string | number) {
+    const draft = documentDrafts.value[requirementId]
+    if (draft) documentDrafts.value[requirementId] = { ...draft, status: toStatus(value), error: null }
+  }
+
+  /** Rejected needs a reason; marks the drafts that miss one */
+  function validate(): boolean {
+    let isValid = true
+    const check = (draft: ReviewDraft) => {
+      draft.error = draft.status === 'rejected' && !draft.remarks.trim() ? REMARKS_REQUIRED : null
+      if (draft.error) isValid = false
+    }
+    if (isCompanyChanged.value) check(companyDraft.value)
+    changedDocuments.value.forEach((row) => check(documentDrafts.value[row.id]))
+    return isValid
+  }
+
+  async function saveReview() {
+    if (!hasChanges.value || !validate()) return
+    const remarksOf = (draft: ReviewDraft) => (draft.status === 'rejected' ? draft.remarks.trim() : null)
+    await store.saveReview({
+      documents: changedDocuments.value.map((row) => {
+        const draft = documentDrafts.value[row.id]
+        return { requirementId: row.id, status: draft.status, remarks: remarksOf(draft) }
+      }),
+      company: isCompanyChanged.value
+        ? { status: companyDraft.value.status, remarks: remarksOf(companyDraft.value) }
+        : null,
+    })
+  }
 
   return {
     isReviewOpen,
     isLoading,
+    isSaving,
     companyName,
     companyTin,
-    form2Status,
-    form2StatusClass,
+    companyStatusBadge,
     items,
     summary,
     openDocument,
-    // Company status
-    statusOptions: COMPANY_REVIEW_STATUS_OPTIONS,
-    companyStatusDraft,
-    companyRemarksDraft,
-    companyRemarksError,
-    isCompanyStatusChanged,
-    isSavingCompany,
-    setCompanyStatusDraft,
-    saveCompanyStatus,
-    // Documents
-    reviewingRequirementId,
-    rejectingRequirementId,
-    rejectRemarks,
-    rejectRemarksError,
-    startReject,
-    cancelReject,
-    confirmReject,
+    // Drafts
+    companyDraft,
+    documentDrafts,
+    hasChanges,
+    setCompanyStatus,
     setDocumentStatus,
+    saveReview,
+    /** Company wording: approved reads as Verified */
+    companyStatusOptions: COMPANY_REVIEW_STATUS_OPTIONS.map((option) => ({
+      ...option,
+      label: getCompanyStatusLabel(option.value),
+    })),
+    documentStatusOptions: COMPANY_REVIEW_STATUS_OPTIONS,
     // Display helpers
-    getReviewStatusLabel,
-    getReviewStatusBadgeClass,
-    getCompanyStatusLabel,
     formatFileSize,
     formatSubmittedDate,
   }

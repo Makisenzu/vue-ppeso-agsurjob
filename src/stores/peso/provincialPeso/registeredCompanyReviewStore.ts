@@ -26,9 +26,7 @@ export const useRegisteredCompanyReviewStore = defineStore('pesoRegisteredCompan
   const submissions = ref<EmployerRequirementWithFiles[]>([])
   const verificationRemarks = ref<string | null>(null)
   const isLoading = ref(false)
-  const isSavingCompany = ref(false)
-  /** employer_requirements.id being reviewed */
-  const reviewingRequirementId = ref<number | null>(null)
+  const isSaving = ref(false)
 
   // ─── Actions ───
 
@@ -64,43 +62,40 @@ export const useRegisteredCompanyReviewStore = defineStore('pesoRegisteredCompan
     }
   }
 
-  async function reviewRequirement(
-    requirementId: number,
-    status: CompanyReviewStatus,
-    remarks: string | null,
-  ): Promise<boolean> {
-    reviewingRequirementId.value = requirementId
-    try {
-      await companyRequirementService.reviewRequirement(requirementId, status, remarks)
-      submissions.value = submissions.value.map((row) =>
-        row.id === requirementId ? { ...row, status, status_remarks: status === 'rejected' ? remarks : null } : row,
-      )
-      toastAlert.success('Document updated', 'The company was notified.')
-      return true
-    } catch (error: unknown) {
-      toastAlert.error('Error', errorMessageOf(error, 'Failed to update the document status.'))
-      return false
-    } finally {
-      reviewingRequirementId.value = null
-    }
-  }
-
-  async function reviewCompany(status: CompanyReviewStatus, remarks: string | null): Promise<boolean> {
+  /**
+   * Saves the review sheet in one go: the changed documents, then the company status. The company
+   * gets one notification per change (database triggers, migration 079).
+   */
+  async function saveReview(review: {
+    documents: { requirementId: number; status: CompanyReviewStatus; remarks: string | null }[]
+    company: { status: CompanyReviewStatus; remarks: string | null } | null
+  }): Promise<boolean> {
     const id = companyId.value
     if (!id) return false
-    isSavingCompany.value = true
+    isSaving.value = true
     try {
-      await companyRequirementService.reviewCompany(id, status, remarks)
-      verificationRemarks.value = status === 'rejected' ? remarks : null
-      listStore.setVerificationStatus(id, status)
-      if (company.value?.id === id) company.value = { ...company.value, verification_status: status }
-      toastAlert.success('Company status updated', 'The company was notified.')
+      for (const doc of review.documents) {
+        await companyRequirementService.reviewRequirement(doc.requirementId, doc.status, doc.remarks)
+        submissions.value = submissions.value.map((row) =>
+          row.id === doc.requirementId
+            ? { ...row, status: doc.status, status_remarks: doc.status === 'rejected' ? doc.remarks : null }
+            : row,
+        )
+      }
+      if (review.company) {
+        const { status, remarks } = review.company
+        await companyRequirementService.reviewCompany(id, status, remarks)
+        verificationRemarks.value = status === 'rejected' ? remarks : null
+        listStore.setVerificationStatus(id, status)
+        if (company.value?.id === id) company.value = { ...company.value, verification_status: status }
+      }
+      toastAlert.success('Review saved', 'The company was notified.')
       return true
     } catch (error: unknown) {
-      toastAlert.error('Error', errorMessageOf(error, 'Failed to update the company status.'))
+      toastAlert.error('Error', errorMessageOf(error, 'Failed to save the review.'))
       return false
     } finally {
-      isSavingCompany.value = false
+      isSaving.value = false
     }
   }
 
@@ -112,13 +107,11 @@ export const useRegisteredCompanyReviewStore = defineStore('pesoRegisteredCompan
     submissions,
     verificationRemarks,
     isLoading,
-    isSavingCompany,
-    reviewingRequirementId,
+    isSaving,
     // Actions
     openCompany,
     closeCompany,
     loadCompany,
-    reviewRequirement,
-    reviewCompany,
+    saveReview,
   }
 })

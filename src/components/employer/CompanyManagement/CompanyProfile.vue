@@ -31,8 +31,7 @@ const {
   displayEmail,
   displayCreatedDate,
   companyInitials,
-  form2Status,
-  form2StatusClass,
+  companyStatus,
   companyDetails,
   contactDetails,
   isLoadingDetails,
@@ -85,8 +84,7 @@ const {
             :logo-url="logoUrl"
             :is-updating-logo="isUpdatingLogo"
             :industry="displayIndustry"
-            :form2-status="form2Status"
-            :form2-status-class="form2StatusClass"
+            :company-status="companyStatus"
             :address="displayAddress"
             :email="displayEmail"
             :contact="displayContact"

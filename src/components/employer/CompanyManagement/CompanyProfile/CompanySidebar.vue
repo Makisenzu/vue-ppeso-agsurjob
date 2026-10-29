@@ -13,8 +13,8 @@ const props = defineProps<{
   logoUrl: string | null
   isUpdatingLogo: boolean
   industry: string
-  form2Status: string
-  form2StatusClass: string
+  /** Company status pill (set by Provincial PESO) */
+  companyStatus: { label: string; class: string }
   address: string
   email: string
   contact: string
@@ -98,8 +98,7 @@ const shows = (value: string) => !!value && value !== NOT_SPECIFIED
       <h1 class="text-lg font-semibold text-foreground lg:text-xl">{{ props.companyName }}</h1>
       <p v-if="shows(props.industry)" class="text-sm text-muted-foreground">{{ props.industry }}</p>
       <div class="flex items-center justify-center gap-2 pt-1 text-xs text-muted-foreground lg:justify-start">
-        NSRP Form 2
-        <Badge variant="outline" :class="props.form2StatusClass">{{ props.form2Status }}</Badge>
+        <Badge variant="outline" :class="props.companyStatus.class">{{ props.companyStatus.label }}</Badge>
       </div>
     </div>
 

@@ -12,7 +12,7 @@ import {
   getCompanyCoverPath,
   getCompanyLogoPath,
 } from '@/helpers/employer/companyProfileHelpers'
-import { getForm2StatusBadgeClass } from '@/helpers/employer/employerAccountHelper'
+import { getCompanyStatusBadge } from '@/helpers/common/companyRequirementHelper'
 import type { EmployerRecord, ProfileRecord } from '@/types/employer/companyProfile'
 
 export function useCompanyProfile() {
@@ -125,10 +125,9 @@ export function useCompanyProfile() {
     displayWebsite.value.startsWith('http') ? displayWebsite.value : `https://${displayWebsite.value}`,
   )
 
-  // ─── NSRP Form 2 review (the company's verification, same badge as the Account page) ───
+  // ─── Company status set by Provincial PESO (same pill as the Account page) ───
 
-  const form2Status = computed(() => authStore.employerEstablishment?.status ?? 'Not filed')
-  const form2StatusClass = computed(() => getForm2StatusBadgeClass(authStore.employerEstablishment?.status))
+  const companyStatus = computed(() => getCompanyStatusBadge(employer.value?.verification_status))
 
   /** Company cover photo (migration 076); null shows the plain band */
   const coverUrl = computed(() =>
@@ -243,8 +242,7 @@ export function useCompanyProfile() {
     displayCreatedDate,
     companyInitials,
     websiteHref,
-    form2Status,
-    form2StatusClass,
+    companyStatus,
     companyDetails,
     contactDetails,
     /** The detail cards also wait for Form 2 */

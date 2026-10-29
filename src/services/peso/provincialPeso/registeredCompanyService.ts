@@ -4,7 +4,7 @@ import type { RegisteredCompanyListItem } from '@/types/peso/provincialPeso/regi
 
 const LIST_COLUMNS = `
   id, company_name, company_email, company_contact, created_at, verification_status,
-  establishments (id, business_name, trade_name, tin, industry_line, city_municipality, province, status)
+  establishments (id, business_name, trade_name, tin, industry_line, city_municipality, province)
 `
 
 /**

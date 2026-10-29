@@ -24,13 +24,3 @@ export function formatAccountAddress(profile?: {
 } | null): string {
   return [profile?.barangay, profile?.geographic, profile?.province].filter(Boolean).join(', ')
 }
-
-const FORM2_STATUS_BADGE_CLASS: Record<string, string> = {
-  pending: 'bg-warning/10 text-warning border-warning/30',
-  verified: 'bg-success/10 text-success border-success/30',
-  rejected: 'bg-destructive/10 text-destructive border-destructive/30',
-}
-
-export function getForm2StatusBadgeClass(status?: string | null): string {
-  return FORM2_STATUS_BADGE_CLASS[(status || '').toLowerCase()] ?? 'bg-muted text-muted-foreground border-border'
-}

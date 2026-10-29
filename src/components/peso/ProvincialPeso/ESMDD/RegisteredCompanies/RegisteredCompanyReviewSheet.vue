@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, CircleAlert, FileText, Loader2, RotateCcw, X } from '@lucide/vue'
+import { Loader2 } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -10,231 +10,149 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import SearchSelect from '@/components/SearchSelect.vue'
 import { useRegisteredCompanyReview } from '@/composables/peso/provincialPeso/useRegisteredCompanyReview'
 
-/** Review sheet of a registered company: its status and each submitted document (opened from the list) */
+/** Review sheet of a registered company (DESIGN.md 5.1 form sheet): its status and each document's status */
 const {
   isReviewOpen,
-  companyName,
-  items,
-  companyTin,
-  form2StatusClass,
-  form2Status,
-  companyStatusDraft,
-  statusOptions,
-  isSavingCompany,
   isLoading,
-  setCompanyStatusDraft,
-  companyRemarksDraft,
-  companyRemarksError,
-  isCompanyStatusChanged,
-  saveCompanyStatus,
+  isSaving,
+  companyName,
+  companyTin,
+  companyStatusBadge,
+  items,
   summary,
-  formatSubmittedDate,
-  getReviewStatusBadgeClass,
-  getReviewStatusLabel,
   openDocument,
-  formatFileSize,
-  rejectingRequirementId,
-  rejectRemarks,
-  reviewingRequirementId,
-  rejectRemarksError,
-  cancelReject,
-  confirmReject,
+  companyDraft,
+  documentDrafts,
+  hasChanges,
+  setCompanyStatus,
   setDocumentStatus,
-  startReject,
+  saveReview,
+  companyStatusOptions,
+  documentStatusOptions,
+  formatFileSize,
+  formatSubmittedDate,
 } = useRegisteredCompanyReview()
 </script>
 
 <template>
   <Sheet v-model:open="isReviewOpen">
-    <SheetContent class="flex h-full flex-col p-0 sm:max-w-xl">
+    <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
       <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
-        <SheetTitle>{{ companyName }}</SheetTitle>
+        <!-- pr-8 keeps the name clear of the sheet's close button -->
+        <SheetTitle class="pr-8">{{ companyName }}</SheetTitle>
         <SheetDescription class="flex flex-wrap items-center gap-2">
-          <span v-if="companyTin">TIN {{ companyTin }} ·</span>
-          NSRP Form 2
-          <Badge variant="outline" :class="form2StatusClass">{{ form2Status }}</Badge>
+          <span v-if="companyTin">TIN {{ companyTin }}</span>
+          <Badge variant="outline" :class="companyStatusBadge.class">{{ companyStatusBadge.label }}</Badge>
         </SheetDescription>
       </SheetHeader>
 
-      <div class="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-        <!-- Company status -->
-        <section class="space-y-3">
-          <div>
-            <h3 class="text-sm font-semibold">Company Status</h3>
-            <p class="text-xs text-muted-foreground">The company is notified when this changes.</p>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-[12rem_1fr] sm:items-start">
+      <form class="contents" @submit.prevent="saveReview">
+        <div class="grid flex-1 grid-cols-1 content-start gap-6 overflow-y-auto px-6 py-4">
+          <!-- Company status -->
+          <section class="space-y-2">
+            <Label for="company-status">Company status</Label>
             <SearchSelect
-              :model-value="companyStatusDraft"
-              :options="statusOptions"
-              :disabled="isSavingCompany || isLoading"
+              id="company-status"
+              :model-value="companyDraft.status"
+              :options="companyStatusOptions"
+              :disabled="isSaving || isLoading"
               placeholder="Status"
               class="w-full"
-              @update:model-value="setCompanyStatusDraft"
+              @update:model-value="setCompanyStatus"
             />
-            <div v-if="companyStatusDraft === 'rejected'" class="space-y-1.5">
+            <p class="text-xs text-muted-foreground">The company is notified when this changes.</p>
+            <template v-if="companyDraft.status === 'rejected'">
               <Textarea
-                v-model="companyRemarksDraft"
+                v-model="companyDraft.remarks"
                 rows="3"
-                placeholder="Reason for rejecting (sent to the company)"
-                :disabled="isSavingCompany"
-                :aria-invalid="!!companyRemarksError"
+                placeholder="Reason for rejecting"
+                :disabled="isSaving"
+                :aria-invalid="!!companyDraft.error"
               />
-              <p v-if="companyRemarksError" class="text-xs text-destructive">
-                {{ companyRemarksError }}
+              <p v-if="companyDraft.error" class="text-xs text-destructive">{{ companyDraft.error }}</p>
+            </template>
+          </section>
+
+          <Separator />
+
+          <!-- Documents -->
+          <section class="space-y-1">
+            <div class="flex items-baseline justify-between gap-3">
+              <h3 class="text-base font-semibold">Documents</h3>
+              <p v-if="!isLoading && summary.total" class="text-xs text-muted-foreground">
+                {{ summary.approved }} of {{ summary.total }} approved
               </p>
             </div>
-          </div>
-          <div class="flex justify-end">
-            <Button
-              size="sm"
-              :disabled="!isCompanyStatusChanged || isSavingCompany"
-              @click="saveCompanyStatus"
-            >
-              <Loader2 v-if="isSavingCompany" class="size-4 animate-spin" />
-              Save status
-            </Button>
-          </div>
-        </section>
 
-        <Separator />
-
-        <!-- Documents -->
-        <section class="space-y-3">
-          <div>
-            <h3 class="text-sm font-semibold">Documents</h3>
-            <p v-if="!isLoading && summary.total" class="text-xs text-muted-foreground">
-              {{ summary.approved }} of {{ summary.total }} approved ·
-              {{ summary.submitted }} submitted
-            </p>
-          </div>
-
-          <template v-if="isLoading">
-            <Skeleton v-for="n in 4" :key="n" class="h-24 w-full rounded-lg" />
-          </template>
-
-          <p v-else-if="items.length === 0" class="rounded-lg border py-8 text-center text-sm text-muted-foreground">
-            The requirement list is not set up yet (migration 079).
-          </p>
-
-          <div
-            v-for="item in items"
-            v-else
-            :key="item.templateId"
-            class="space-y-3 rounded-lg border p-4"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-sm font-medium">
-                  {{ item.name }}
-                </p>
-                <p v-if="item.submission?.submitted_at" class="text-xs text-muted-foreground">
-                  Submitted {{ formatSubmittedDate(item.submission.submitted_at) }}
-                </p>
-              </div>
-              <Badge variant="outline" class="shrink-0" :class="getReviewStatusBadgeClass(item.status)">
-                {{ getReviewStatusLabel(item.status) }}
-              </Badge>
+            <div v-if="isLoading" class="space-y-4 pt-3">
+              <Skeleton v-for="n in 3" :key="n" class="h-14 w-full" />
             </div>
 
-            <p v-if="item.files.length === 0" class="text-xs text-muted-foreground">No file submitted.</p>
+            <p v-else-if="items.length === 0" class="py-6 text-sm text-muted-foreground">
+              The requirement list is not set up yet.
+            </p>
 
-            <template v-else>
-              <ul class="divide-y rounded-md border">
-                <li v-for="file in item.files" :key="file.id" class="flex min-w-0 items-center gap-3 px-3 py-2">
-                  <FileText class="size-4 shrink-0 text-muted-foreground" />
-                  <button
-                    type="button"
-                    class="min-w-0 flex-1 truncate text-left text-sm hover:underline"
-                    :title="file.filename"
-                    @click="openDocument(file.path)"
-                  >
-                    {{ file.filename }}
-                  </button>
-                  <span class="shrink-0 text-xs text-muted-foreground">{{ formatFileSize(file.size) }}</span>
-                </li>
-              </ul>
+            <ul v-else class="divide-y">
+              <li v-for="item in items" :key="item.templateId" class="space-y-3 py-4">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0 space-y-1">
+                    <p class="text-sm font-medium text-foreground">{{ item.name }}</p>
+                    <template v-if="item.files.length">
+                      <button
+                        v-for="file in item.files"
+                        :key="file.id"
+                        type="button"
+                        class="block max-w-full truncate text-left text-sm text-primary hover:underline"
+                        :title="`Open ${file.filename}`"
+                        @click="openDocument(file.path)"
+                      >
+                        {{ file.filename }}
+                        <span class="text-xs text-muted-foreground">· {{ formatFileSize(file.size) }}</span>
+                      </button>
+                      <p v-if="item.submission?.submitted_at" class="text-xs text-muted-foreground">
+                        Submitted {{ formatSubmittedDate(item.submission.submitted_at) }}
+                      </p>
+                    </template>
+                    <p v-else class="text-xs text-muted-foreground">Not submitted yet.</p>
+                  </div>
 
-              <div
-                v-if="item.status === 'rejected' && item.submission?.status_remarks"
-                class="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive"
-              >
-                <CircleAlert class="mt-0.5 size-3.5 shrink-0" />
-                <span class="whitespace-pre-wrap">{{ item.submission.status_remarks }}</span>
-              </div>
-
-              <!-- Reject: reason first -->
-              <div v-if="rejectingRequirementId === item.submission?.id" class="space-y-2">
-                <Label :for="`reject-${item.templateId}`" class="text-xs">Reason for rejecting</Label>
-                <Textarea
-                  :id="`reject-${item.templateId}`"
-                  v-model="rejectRemarks"
-                  rows="2"
-                  placeholder="Sent to the company"
-                  :disabled="reviewingRequirementId !== null"
-                  :aria-invalid="!!rejectRemarksError"
-                />
-                <p v-if="rejectRemarksError" class="text-xs text-destructive">
-                  {{ rejectRemarksError }}
-                </p>
-                <div class="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="reviewingRequirementId !== null"
-                    @click="cancelReject"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    :disabled="reviewingRequirementId !== null"
-                    @click="confirmReject"
-                  >
-                    <Loader2 v-if="reviewingRequirementId === item.submission?.id" class="size-4 animate-spin" />
-                    Reject
-                  </Button>
+                  <SearchSelect
+                    v-if="item.submission && documentDrafts[item.submission.id]"
+                    :model-value="documentDrafts[item.submission.id].status"
+                    :options="documentStatusOptions"
+                    :disabled="isSaving"
+                    placeholder="Status"
+                    class="w-32 shrink-0"
+                    @update:model-value="(value) => item.submission && setDocumentStatus(item.submission.id, value)"
+                  />
                 </div>
-              </div>
 
-              <div v-else class="flex flex-wrap justify-end gap-2">
-                <Button
-                  v-if="item.status !== 'pending'"
-                  variant="ghost"
-                  size="sm"
-                  :disabled="reviewingRequirementId !== null"
-                  @click="setDocumentStatus(item, 'pending')"
-                >
-                  <RotateCcw class="size-4" />
-                  Back to review
-                </Button>
-                <Button
-                  v-if="item.status !== 'rejected'"
-                  variant="outline"
-                  size="sm"
-                  class="text-destructive hover:text-destructive"
-                  :disabled="reviewingRequirementId !== null"
-                  @click="startReject(item)"
-                >
-                  <X class="size-4" />
-                  Reject
-                </Button>
-                <Button
-                  v-if="item.status !== 'approved'"
-                  size="sm"
-                  :disabled="reviewingRequirementId !== null"
-                  @click="setDocumentStatus(item, 'approved')"
-                >
-                  <Loader2 v-if="reviewingRequirementId === item.submission?.id" class="size-4 animate-spin" />
-                  <Check v-else class="size-4" />
-                  Approve
-                </Button>
-              </div>
-            </template>
-          </div>
-        </section>
-      </div>
+                <template v-if="item.submission && documentDrafts[item.submission.id]?.status === 'rejected'">
+                  <Textarea
+                    v-model="documentDrafts[item.submission.id].remarks"
+                    rows="2"
+                    placeholder="Reason for rejecting"
+                    :disabled="isSaving"
+                    :aria-invalid="!!documentDrafts[item.submission.id].error"
+                  />
+                  <p v-if="documentDrafts[item.submission.id].error" class="text-xs text-destructive">
+                    {{ documentDrafts[item.submission.id].error }}
+                  </p>
+                </template>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- Sticky footer -->
+        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
+          <Button type="button" variant="outline" :disabled="isSaving" @click="isReviewOpen = false">Cancel</Button>
+          <Button type="submit" :disabled="!hasChanges || isSaving">
+            <Loader2 v-if="isSaving" class="size-4 animate-spin" />
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </Button>
+        </div>
+      </form>
     </SheetContent>
   </Sheet>
 </template>

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { useRegisteredCompanyStore } from '@/stores/peso/provincialPeso/registeredCompanyStore'
 import { useRegisteredCompanyReviewStore } from '@/stores/peso/provincialPeso/registeredCompanyReviewStore'
 import {
+  COMPANY_STATUS_LABELS,
   getCompanyStatusLabel,
   getReviewStatusBadgeClass,
   toReviewStatus,
@@ -26,15 +27,9 @@ import {
   getCompanyDisplayName,
   getCompanyEstablishment,
   getCompanyLocation,
-  getCompanyStatus,
-  getEstablishmentStatusBadgeClass,
 } from '@/helpers/peso/provincialPeso/registeredCompanyHelper'
 import type { SwipeCard } from '@/types/common/swipeCard'
-import {
-  ESTABLISHMENT_REVIEW_STATUSES,
-  NO_FORM2_STATUS,
-  type RegisteredCompanyListItem,
-} from '@/types/peso/provincialPeso/registeredCompany'
+import type { RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
 
 /** Company accounts that signed up through the system (Provincial PESO); Review opens the review sheet. */
 export function useRegisteredCompanies() {
@@ -127,14 +122,6 @@ export function useRegisteredCompanies() {
     },
     {
       id: 'status',
-      accessorFn: getCompanyStatus,
-      header: 'Form 2 Status',
-      filterFn: 'equalsString',
-      cell: ({ getValue }) =>
-        h(Badge, { variant: 'outline', class: getEstablishmentStatusBadgeClass(String(getValue())) }, () => String(getValue())),
-    },
-    {
-      id: 'verification',
       accessorFn: (row) => getCompanyStatusLabel(toReviewStatus(row.verification_status)),
       header: 'Company Status',
       filterFn: 'equalsString',
@@ -195,7 +182,7 @@ export function useRegisteredCompanies() {
     companies,
     isLoading,
     errorMessage,
-    statusOptions: [...ESTABLISHMENT_REVIEW_STATUSES, NO_FORM2_STATUS],
+    statusOptions: COMPANY_STATUS_LABELS.map((label) => ({ value: label, label })),
     refreshCompanies: fetchCompanies,
   }
 }
