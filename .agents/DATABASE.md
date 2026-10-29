@@ -374,6 +374,8 @@ Company/employer profiles.
 | `profile_id`          | `uuid`        | FK → `core.profiles.id` |
 | `company_name`        | `text`        | nullable                |
 | `company_description` | `text`        | nullable                |
+| `cover_photo_path`    | `text`        | nullable; company profile cover in the `media` bucket, `<owner uid>/company-cover/<file>` (CHECK, migration `076_company_cover_photo.sql`); the owner sets it through `owner_update` |
+| `logo_path`    | `text`        | nullable; company logo in the `media` bucket, `<owner uid>/company-logo/<file>` (CHECK, migration `078_company_logo.sql`); the owner sets it through `owner_update` |
 | `industry`            | `text`        | nullable                |
 | `business_type`       | `text`        | nullable                |
 | `company_address`     | `text`        | nullable                |
@@ -396,6 +398,20 @@ Team members linked to a company.
 | `profile_id` | `uuid`        | FK → `core.profiles.id`  |
 | `role`       | `user_role`   | enum                     |
 | `status`     | `status_type` | nullable                 |
+
+#### `company_team_members` (migration `077_company_team_members.sql`)
+Team members shown on the company profile. Display only: not accounts (that is `company_members`).
+
+| Column | Type | Notes |
+| ------ | ---- | ----- |
+| `id` | `uuid` | PK |
+| `company_id` | `uuid` | FK → `companies.id`, `ON DELETE CASCADE` |
+| `full_name` | `text` | required, 1–120 chars |
+| `position` | `text` | nullable, ≤ 120 chars |
+| `photo_path` | `text` | nullable; `media` bucket, `<owner uid>/company-team/<file>` (trigger-checked) |
+| `sort_order` | `int4` | display order |
+
+RLS: owner full CRUD, company members / PESO / DOLE read, admin all.
 
 #### `employer_requirements` / `employer_requirement_media`
 Employer document verification (mirrors applicant pattern).

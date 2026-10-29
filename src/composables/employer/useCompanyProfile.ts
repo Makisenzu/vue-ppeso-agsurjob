@@ -1,16 +1,24 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/common/auth'
+import { useCompanyProfileStore } from '@/stores/employer/companyProfileStore'
+import { mediaService } from '@/services/common/mediaService'
 import { fetchCompanyProfileByProfileId } from '@/services/employer/companyProfileService'
 import {
   formatVerificationStatus,
   getVerificationBadgeVariant,
   formatEmployeeCount,
   formatCompanyField,
+  getCompanyCoverPath,
+  getCompanyLogoPath,
 } from '@/helpers/employer/companyProfileHelpers'
+import { getForm2StatusBadgeClass } from '@/helpers/employer/employerAccountHelper'
 import type { EmployerRecord, ProfileRecord } from '@/types/employer/companyProfile'
 
 export function useCompanyProfile() {
   const authStore = useAuthStore()
+  const companyStore = useCompanyProfileStore()
+  const { establishment, isLoadingEstablishment } = storeToRefs(companyStore)
 
   const isLoading = ref(true)
   const employer = ref<EmployerRecord | null>(null)
@@ -112,6 +120,60 @@ export function useCompanyProfile() {
     })
   })
 
+  /** Website as a link (adds https:// when the owner left it out) */
+  const websiteHref = computed(() =>
+    displayWebsite.value.startsWith('http') ? displayWebsite.value : `https://${displayWebsite.value}`,
+  )
+
+  // ─── NSRP Form 2 review (the company's verification, same badge as the Account page) ───
+
+  const form2Status = computed(() => authStore.employerEstablishment?.status ?? 'Not filed')
+  const form2StatusClass = computed(() => getForm2StatusBadgeClass(authStore.employerEstablishment?.status))
+
+  /** Company cover photo (migration 076); null shows the plain band */
+  const coverUrl = computed(() =>
+    getCompanyCoverPath(employer.value) ? mediaService.getPublicUrl(getCompanyCoverPath(employer.value)!) : null,
+  )
+
+  /** Company logo (migration 078); null shows the initials */
+  const logoUrl = computed(() =>
+    getCompanyLogoPath(employer.value) ? mediaService.getPublicUrl(getCompanyLogoPath(employer.value)!) : null,
+  )
+
+  /** Rows of the Company Details card: the employer half of Form 2 plus the company-only fields */
+  const companyDetails = computed(() => {
+    const form2 = establishment.value
+    const employerType = form2?.employer_category === 'Public' ? form2?.public_employer_type : form2?.private_employer_type
+    return [
+      { label: 'Business name', value: form2?.business_name ?? displayCompanyName.value },
+      { label: 'Trade name', value: form2?.trade_name ?? '' },
+      { label: 'Acronym', value: form2?.acronym ?? '' },
+      { label: 'TIN', value: form2?.tin ?? '' },
+      { label: 'Employer category', value: [form2?.employer_category, employerType].filter(Boolean).join(' · ') },
+      { label: 'Total workforce', value: form2?.total_workforce ?? '' },
+      { label: 'Line of industry', value: form2?.industry_line ?? employer.value?.industry ?? '' },
+      { label: 'Owner / President', value: form2?.owner_president_name ?? '' },
+      { label: 'Business type', value: employer.value?.business_type ?? '' },
+      { label: 'Registration number', value: employer.value?.registration_number ?? '' },
+    ]
+  })
+
+  /** Rows of the Contact & Address card: the contact and address half of Form 2 */
+  const contactDetails = computed(() => {
+    const form2 = establishment.value
+    return [
+      { label: 'Contact person', value: form2?.contact_person_name ?? '' },
+      { label: 'Position', value: form2?.contact_person_position ?? '' },
+      { label: 'Email address', value: form2?.email_address ?? employer.value?.company_email ?? '' },
+      { label: 'Mobile number', value: form2?.mobile_number ?? '' },
+      { label: 'Telephone number', value: form2?.telephone_number ?? '' },
+      { label: 'Fax number', value: form2?.fax_number ?? '' },
+      { label: 'Address', value: employer.value?.company_address ?? '' },
+      { label: 'Office', value: form2 ? (form2.is_main_office ? 'Main office' : 'Branch') : '' },
+      { label: 'Website', value: displayWebsite.value },
+    ]
+  })
+
   // ─── Data fetching ───
 
   function hydrateFromAuthStore() {
@@ -122,6 +184,9 @@ export function useCompanyProfile() {
   async function loadCompanyProfile() {
     try {
       isLoading.value = true
+
+      // Form 2 holds most of the profile; it loads alongside the company row
+      void companyStore.fetchEstablishment()
 
       // Try hydrating from the already-loaded auth store first
       if (authStore.employerProfile && authStore.profile) {
@@ -142,6 +207,14 @@ export function useCompanyProfile() {
       isLoading.value = false
     }
   }
+
+  // Section edits and cover changes reload the auth store's company row
+  watch(
+    () => authStore.employerProfile,
+    (company) => {
+      if (company) employer.value = company
+    },
+  )
 
   onMounted(async () => {
     await authStore.init()
@@ -169,6 +242,15 @@ export function useCompanyProfile() {
     verificationBadgeVariant,
     displayCreatedDate,
     companyInitials,
+    websiteHref,
+    form2Status,
+    form2StatusClass,
+    companyDetails,
+    contactDetails,
+    /** The detail cards also wait for Form 2 */
+    isLoadingDetails: computed(() => isLoading.value || isLoadingEstablishment.value),
+    coverUrl,
+    logoUrl,
 
     // Owner display
     ownerDisplayName,

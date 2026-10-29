@@ -23,6 +23,12 @@ export const mediaService = {
     return data
   },
 
+  async removeFromStorage(filePaths: string[], bucket = BUCKET_NAME) {
+    if (filePaths.length === 0) return
+    const { error } = await supabase.storage.from(bucket).remove(filePaths.map(normalizeStoragePath))
+    if (error) throw error
+  },
+
   getPublicUrl(filePath: string, bucket = BUCKET_NAME) {
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath

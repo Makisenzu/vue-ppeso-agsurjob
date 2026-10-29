@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useCompanyMap } from '@/composables/employer/useCompanyMap'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { toRef } from 'vue'
 import { MapPinIcon, InfoIcon } from '@lucide/vue'
 
 const props = defineProps<{
@@ -9,10 +10,11 @@ const props = defineProps<{
   companyName: string
 }>()
 
-const { mapContainer, shouldShowMap: _shouldShowMap, fallbackType } = useCompanyMap({
-  latitude: props.latitude,
-  longitude: props.longitude,
-  companyName: props.companyName,
+// Refs, so the pin moves when the owner updates the location
+const { mapContainer, hasCoordinates, fallbackType } = useCompanyMap({
+  latitude: toRef(props, 'latitude'),
+  longitude: toRef(props, 'longitude'),
+  companyName: toRef(props, 'companyName'),
 })
 
 // mapContainer is used as a template ref via :ref binding
@@ -21,16 +23,16 @@ defineExpose({ mapContainer })
 
 <template>
   <div class="w-full">
-    <template v-if="fallbackType === 'missing-coordinates'">
+    <template v-if="fallbackType === 'missing-token'">
       <div
-        class="w-full min-h-75 rounded-xl border border-dashed border-border bg-muted/15 flex flex-col items-center justify-center p-6 text-center"
+        class="w-full min-h-40 rounded-xl border border-dashed border-border bg-muted/15 flex flex-col items-center justify-center p-6 text-center"
       >
         <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
           <MapPinIcon class="h-5 w-5" />
         </div>
-        <h4 class="text-sm font-semibold text-foreground">Location Not Set</h4>
+        <h4 class="text-sm font-semibold text-foreground">Map Unavailable</h4>
         <p class="text-xs text-muted-foreground max-w-xs mt-1 leading-relaxed">
-          No geographical coordinates (latitude & longitude) have been set for this company's profile yet.
+          The Mapbox access token is not configured.
         </p>
       </div>
     </template>
@@ -40,11 +42,12 @@ defineExpose({ mapContainer })
       <div class="space-y-2">
         <div
           ref="mapContainer"
-          class="w-full h-80 rounded-xl border border-border shadow-sm overflow-hidden bg-muted/5"
+          class="w-full h-48 sm:h-56 rounded-xl border border-border shadow-sm overflow-hidden bg-muted/5"
         ></div>
         <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground px-1">
           <InfoIcon class="h-3 w-3 shrink-0" />
-          <span>Drag with mouse/touch to explore the map. Use navigation buttons to zoom.</span>
+          <span v-if="hasCoordinates">Drag with mouse/touch to explore the map. Use navigation buttons to zoom.</span>
+          <span v-else>Your company isn't pinned yet. Use Edit to set its location.</span>
         </div>
       </div>
     </template>

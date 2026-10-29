@@ -1,15 +1,16 @@
-import { computed } from 'vue'
+import { computed, type MaybeRef } from 'vue'
 import { useMapboxMap } from '@/composables/common/useMapboxMap'
 
 interface UseCompanyMapOptions {
-  latitude: number | null
-  longitude: number | null
-  companyName: string
+  latitude: MaybeRef<number | null>
+  longitude: MaybeRef<number | null>
+  companyName: MaybeRef<string>
 }
 
 /**
  * Composable for managing company location map.
  * Extends generic mapbox composable with company-specific configuration.
+ * The map always renders: without a pin it shows the default center (Agusan del Sur).
  */
 export function useCompanyMap(options: UseCompanyMapOptions) {
   const { latitude, longitude, companyName } = options
@@ -22,16 +23,10 @@ export function useCompanyMap(options: UseCompanyMapOptions) {
   })
 
   // Check if map should be displayed
-  const shouldShowMap = computed(() => {
-    return mapState.mapboxToken && mapState.hasCoordinates.value
-  })
+  const shouldShowMap = computed(() => Boolean(mapState.mapboxToken))
 
   // Determine which fallback to show
-  const fallbackType = computed(() => {
-    if (!mapState.mapboxToken) return 'missing-token'
-    if (!mapState.hasCoordinates.value) return 'missing-coordinates'
-    return 'none'
-  })
+  const fallbackType = computed(() => (mapState.mapboxToken ? 'none' : 'missing-token'))
 
   return {
     ...mapState,

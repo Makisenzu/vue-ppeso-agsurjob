@@ -39,7 +39,8 @@ export const employerRoutes: RouteRecordRaw[] = [
       {
         path: 'company-profile',
         name: 'company-profile',
-        component: () => import('@/components/employer/CompanyManagement/CompanyProfile.vue')
+        component: () => import('@/components/employer/CompanyManagement/CompanyProfile.vue'),
+        meta: { breadcrumb: 'Company Profile' },
       },
       {
         path: 'job-postings',

@@ -1,115 +1,106 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Pencil } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariants } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import CompanyMap from './CompanyMap.vue'
+import CompanyTeam from './CompanyTeam.vue'
+import type { CompanyProfileSection } from '@/types/employer/companyProfile'
 
+/** Main column of the company profile, in the card style of the Account page; each section edits on its own. */
 const props = defineProps<{
+  details: { label: string; value: string }[]
+  contactDetails: { label: string; value: string }[]
   description: string
   hasDescription: boolean
-  businessType: string
-  industry: string
-  registrationNumber: string
-  employeeCount: string
-  verificationStatus: string
-  verificationBadgeVariant: BadgeVariants['variant']
   isLoading: boolean
   latitude: number | null
   longitude: number | null
   companyName: string
 }>()
+
+const emit = defineEmits<{ edit: [section: CompanyProfileSection] }>()
+
+const rowSections = [
+  { key: 'details', title: 'Company Details', description: 'The employer half of your NSRP Form 2.' },
+  { key: 'contact', title: 'Contact & Address', description: 'How PESO and applicants reach your company.' },
+] as const
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- About Company -->
-    <Card>
+    <Card v-for="section in rowSections" :key="section.key">
       <CardHeader>
-        <CardTitle class="text-lg font-bold text-foreground">About the Company</CardTitle>
+        <CardTitle>{{ section.title }}</CardTitle>
+        <CardDescription>{{ section.description }}</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" :disabled="props.isLoading" @click="emit('edit', section.key)">
+            <Pencil class="size-3.5" />
+            Edit
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        <template v-if="isLoading">
-          <div class="space-y-2">
-            <Skeleton class="h-4 w-full" />
-            <Skeleton class="h-4 w-full" />
-            <Skeleton class="h-4 w-3/4" />
+        <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          <template v-if="props.isLoading">
+            <div v-for="n in 6" :key="n" class="space-y-1.5">
+              <Skeleton class="h-3 w-24" />
+              <Skeleton class="h-4 w-40" />
+            </div>
+          </template>
+          <div
+            v-for="row in section.key === 'details' ? props.details : props.contactDetails"
+            v-else
+            :key="row.label"
+            class="min-w-0"
+          >
+            <dt class="text-xs text-muted-foreground">{{ row.label }}</dt>
+            <dd class="truncate text-sm font-medium text-foreground" :title="row.value">{{ row.value || '—' }}</dd>
           </div>
-        </template>
-        <template v-else>
-          <Label v-if="hasDescription" class="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{{ description }}</Label>
-          <Label v-else class="text-sm italic text-muted-foreground">No description provided.</Label>
-        </template>
+        </dl>
       </CardContent>
     </Card>
 
-    <!-- Business Information -->
     <Card>
       <CardHeader>
-        <CardTitle class="text-lg font-bold text-foreground">Business Information</CardTitle>
+        <CardTitle>About the Company</CardTitle>
+        <CardAction>
+          <Button variant="outline" size="sm" :disabled="props.isLoading" @click="emit('edit', 'about')">
+            <Pencil class="size-3.5" />
+            Edit
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <template v-if="isLoading">
-            <div v-for="n in 4" :key="n" class="space-y-2">
-              <Skeleton class="h-4 w-24" />
-              <Skeleton class="h-5 w-40" />
-            </div>
-          </template>
-          <template v-else>
-            <!-- Business Type -->
-            <div>
-              <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Business Type</Label>
-              <Label class="text-sm font-medium text-foreground">{{ businessType }}</Label>
-            </div>
-
-            <!-- Industry -->
-            <div>
-              <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Industry</Label>
-              <Label class="text-sm font-medium text-foreground">{{ industry }}</Label>
-            </div>
-
-            <!-- Registration Number -->
-            <div>
-              <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Registration Number</Label>
-              <Label class="text-sm font-mono font-medium text-foreground">{{ registrationNumber }}</Label>
-            </div>
-
-            <!-- Employee Size -->
-            <div>
-              <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Employee Size</Label>
-              <Label class="text-sm font-medium text-foreground">{{ employeeCount }}</Label>
-            </div>
-
-            <!-- Verification Status -->
-            <div class="md:col-span-2">
-              <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Verification Status</Label>
-              <Badge :variant="verificationBadgeVariant" class="mt-0.5">{{ verificationStatus }}</Badge>
-            </div>
-          </template>
+        <div v-if="props.isLoading" class="space-y-2">
+          <Skeleton class="h-4 w-full" />
+          <Skeleton class="h-4 w-full" />
+          <Skeleton class="h-4 w-3/4" />
         </div>
+        <p v-else-if="props.hasDescription" class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          {{ props.description }}
+        </p>
+        <p v-else class="text-sm italic text-muted-foreground">No description provided.</p>
       </CardContent>
     </Card>
 
-    <!-- Company Location -->
+    <CompanyTeam />
+
     <Card>
       <CardHeader>
-        <CardTitle class="text-lg font-bold text-foreground">Company Location</CardTitle>
+        <CardTitle>Company Location</CardTitle>
+        <CardDescription>Where applicants find your office.</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" :disabled="props.isLoading" @click="emit('edit', 'location')">
+            <Pencil class="size-3.5" />
+            Edit
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        <template v-if="isLoading">
-          <Skeleton class="h-80 w-full rounded-xl" />
-        </template>
-        <template v-else>
-          <CompanyMap
-            :latitude="latitude"
-            :longitude="longitude"
-            :company-name="companyName"
-          />
-        </template>
+        <Skeleton v-if="props.isLoading" class="h-48 w-full rounded-xl sm:h-56" />
+        <CompanyMap v-else :latitude="props.latitude" :longitude="props.longitude" :company-name="props.companyName" />
       </CardContent>
     </Card>
   </div>
 </template>
-

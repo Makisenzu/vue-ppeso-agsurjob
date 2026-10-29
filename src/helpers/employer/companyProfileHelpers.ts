@@ -1,4 +1,4 @@
-import type { VerificationStatus } from '@/types/employer/companyProfile'
+import type { CompanyMediaFields, VerificationStatus } from '@/types/employer/companyProfile'
 import type { BadgeVariants } from '@/components/ui/badge'
 
 /**
@@ -57,4 +57,21 @@ export function formatCompanyField(
   fallback = 'Not specified',
 ): string {
   return value?.trim() || fallback
+}
+
+/** Reads the cover path (migration 076) from a company row, typed or not yet regenerated */
+export function getCompanyCoverPath(company: object | null | undefined): string | null {
+  return (company as CompanyMediaFields | null | undefined)?.cover_photo_path ?? null
+}
+
+/** Reads the logo path (migration 078) from a company row, typed or not yet regenerated */
+export function getCompanyLogoPath(company: object | null | undefined): string | null {
+  return (company as CompanyMediaFields | null | undefined)?.logo_path ?? null
+}
+
+/** Up to two initials of a person's name, for avatar fallbacks */
+export function getNameInitials(name: string | null | undefined): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  return (words[0].charAt(0) + (words.length > 1 ? words[words.length - 1].charAt(0) : '')).toUpperCase()
 }
