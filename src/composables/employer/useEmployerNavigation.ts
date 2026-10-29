@@ -87,7 +87,7 @@ export function useEmployerNavigation() {
 
   const visibleNavItems = computed(() => (authStore.isEmployerProfileComplete ? navItems : incompleteNavItems))
   const gooeyNavItems = computed(() => toGooeyNavItems(visibleNavItems.value))
-  const accountRoute: RouteLocationRaw = { name: 'company-profile' }
+  const accountRoute: RouteLocationRaw = { name: 'employer-account' }
 
   // Computed once per route change instead of re-scanning every nav item on each render
   const activeTitles = computed(() => {

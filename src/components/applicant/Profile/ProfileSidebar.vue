@@ -71,6 +71,8 @@ const props = defineProps<{
   media?: any[]
   profileId?: string | null
   isOwnProfile: boolean
+  /** Hides the share button: only applicant profiles have a public page (employer account page) */
+  hideShare?: boolean
 }>()
 
 const { isUploading, handleUpload, createAvatarSource } = useProfileMedia()
@@ -159,7 +161,7 @@ const profileShareUrl = computed(() => {
     <!-- Edit Profile Button -->
     <div class="flex gap-2 w-full">
         <ProfileEdit />
-      <component :is="Modal.Root" v-model:open="open">
+      <component :is="Modal.Root" v-if="!props.hideShare" v-model:open="open">
         <component :is="Modal.Trigger" as-child>
           <Button size="icon" variant="outline" class="h-10 w-10 shrink-0 rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <Share2 class="h-4 w-4" /> 
