@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
 import { Bell, Mail, Phone, Search, Settings, ShieldCheck, Star, UserRoundCog } from '@lucide/vue'
 import { useAuth } from '@/composables/common/useAuth'
+import { useAuthStore } from '@/stores/common/auth'
 import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 
 export interface ApplicantNavChild {
@@ -65,12 +66,16 @@ const navItems: ApplicantNavItem[] = [
   },
 ]
 
+// Until the NSRP record is complete the router guard only allows the complete-profile page, so Home is the only item
+const incompleteNavItems: ApplicantNavItem[] = [{ title: 'Home', to: { name: 'complete-profile' } }]
+
 // Same items in the shape GoeyNav.vue renders (desktop nav)
-const gooeyNavItems = navItems.map(item => ({
-  label: item.title,
-  to: item.to,
-  children: item.children?.map(child => ({ label: child.title, to: child.to })),
-}))
+const toGooeyNavItems = (items: ApplicantNavItem[]) =>
+  items.map(item => ({
+    label: item.title,
+    to: item.to,
+    children: item.children?.map(child => ({ label: child.title, to: child.to })),
+  }))
 
 // Support and settings pages don't exist yet; they point at Home for now
 const supportItems: ApplicantMenuLink[] = [
@@ -96,7 +101,12 @@ export function useApplicantNavigation() {
   const { createAvatarSource, profileMedia } = useProfileMedia()
   const { avatarSrc } = createAvatarSource(displayName, profileMedia)
 
+  const authStore = useAuthStore()
+
   const isDark = computed(() => mode.value === 'dark')
+
+  const visibleNavItems = computed(() => (authStore.isApplicantProfileComplete ? navItems : incompleteNavItems))
+  const gooeyNavItems = computed(() => toGooeyNavItems(visibleNavItems.value))
 
   const accountRoute = computed<RouteLocationRaw>(() =>
     profileUsername.value ? { name: 'profile', params: { username: profileUsername.value } } : { name: 'home' }
@@ -106,14 +116,14 @@ export function useApplicantNavigation() {
   const activeTitles = computed(() => {
     const name = route.name
     return new Set(
-      navItems
+      visibleNavItems.value
         .filter(item => (item.to ? item.to.name === name : item.children?.some(child => child.to?.name === name)))
         .map(item => item.title)
     )
   })
 
   // -1 on pages outside the main nav (notifications, profile) so GoeyNav hides its pill
-  const activeNavIndex = computed(() => navItems.findIndex(item => activeTitles.value.has(item.title)))
+  const activeNavIndex = computed(() => visibleNavItems.value.findIndex(item => activeTitles.value.has(item.title)))
 
   function isActive(item: ApplicantNavItem) {
     return activeTitles.value.has(item.title)
@@ -132,7 +142,7 @@ export function useApplicantNavigation() {
   }
 
   return {
-    navItems,
+    navItems: visibleNavItems,
     gooeyNavItems,
     activeNavIndex,
     supportItems,

@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
 import { Mail, Phone, Search, ShieldCheck, Star, UserRoundCog } from '@lucide/vue'
 import { useAuth } from '@/composables/common/useAuth'
+import { useAuthStore } from '@/stores/common/auth'
 import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 
 export interface EmployerNavChild {
@@ -47,12 +48,16 @@ const navItems: EmployerNavItem[] = [
   { title: 'Chats', to: { name: 'employer-dashboard' } },
 ]
 
+// Until the establishment (NSRP Form 2) is registered the router guard only allows the complete-profile page, so Home is the only item
+const incompleteNavItems: EmployerNavItem[] = [{ title: 'Home', to: { name: 'employer-complete-profile' } }]
+
 // Same items in the shape GoeyNav.vue renders (desktop nav)
-const gooeyNavItems = navItems.map(item => ({
-  label: item.title,
-  to: item.to,
-  children: item.children?.map(child => ({ label: child.title, to: child.to })),
-}))
+const toGooeyNavItems = (items: EmployerNavItem[]) =>
+  items.map(item => ({
+    label: item.title,
+    to: item.to,
+    children: item.children?.map(child => ({ label: child.title, to: child.to })),
+  }))
 
 // Support pages don't exist yet; they point at the dashboard for now
 const supportItems: EmployerMenuLink[] = [
@@ -76,21 +81,26 @@ export function useEmployerNavigation() {
   const { createAvatarSource, profileMedia } = useProfileMedia()
   const { avatarSrc } = createAvatarSource(displayName, profileMedia)
 
+  const authStore = useAuthStore()
+
   const isDark = computed(() => mode.value === 'dark')
+
+  const visibleNavItems = computed(() => (authStore.isEmployerProfileComplete ? navItems : incompleteNavItems))
+  const gooeyNavItems = computed(() => toGooeyNavItems(visibleNavItems.value))
   const accountRoute: RouteLocationRaw = { name: 'company-profile' }
 
   // Computed once per route change instead of re-scanning every nav item on each render
   const activeTitles = computed(() => {
     const name = route.name
     return new Set(
-      navItems
+      visibleNavItems.value
         .filter(item => (item.to ? item.to.name === name : item.children?.some(child => child.to?.name === name)))
         .map(item => item.title)
     )
   })
 
   // -1 on pages outside the main nav (notifications, privacy) so GoeyNav hides its pill
-  const activeNavIndex = computed(() => navItems.findIndex(item => activeTitles.value.has(item.title)))
+  const activeNavIndex = computed(() => visibleNavItems.value.findIndex(item => activeTitles.value.has(item.title)))
 
   function isActive(item: EmployerNavItem) {
     return activeTitles.value.has(item.title)
@@ -109,7 +119,7 @@ export function useEmployerNavigation() {
   }
 
   return {
-    navItems,
+    navItems: visibleNavItems,
     gooeyNavItems,
     activeNavIndex,
     supportItems,
