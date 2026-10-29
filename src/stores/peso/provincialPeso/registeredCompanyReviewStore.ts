@@ -9,7 +9,18 @@ import type {
   EmployerRequirementWithFiles,
   RequirementTemplate,
 } from '@/types/employer/companyRequirement'
-import type { RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
+import type { CompanyVerification, RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
+
+/**
+ * Toast description after a review. Companies are notified only when their company status changes
+ * (document changes are not notified, migration 080).
+ */
+function describeStatusChange(previous: string | null, current: string | null, setByPeso: boolean): string | undefined {
+  if (previous === current) return undefined
+  if (!setByPeso && current === 'approved') return 'All documents are approved, so the company is now verified.'
+  if (!setByPeso && current === 'pending') return 'A document was rejected, so the company is back to pending.'
+  return 'The company was notified of its new status.'
+}
 
 const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
 
@@ -39,22 +50,29 @@ export const useRegisteredCompanyReviewStore = defineStore('pesoRegisteredCompan
     company.value = null
   }
 
+  /** Puts the company's saved status into the sheet and the list */
+  function applyVerification(id: string, verification: CompanyVerification): void {
+    verificationRemarks.value = verification.verification_remarks
+    listStore.setVerificationStatus(id, verification.verification_status)
+    if (company.value?.id === id) company.value = { ...company.value, verification_status: verification.verification_status }
+  }
+
   async function loadCompany(id: string): Promise<void> {
     companyId.value = id
     submissions.value = []
     verificationRemarks.value = null
     isLoading.value = true
     try {
-      const [templateRows, submissionRows, remarks] = await Promise.all([
+      const [templateRows, submissionRows, verification] = await Promise.all([
         templates.value.length ? Promise.resolve(templates.value) : companyRequirementService.fetchTemplates(),
         companyRequirementService.fetchCompanyRequirements(id),
-        registeredCompanyService.fetchVerificationRemarks(id),
+        registeredCompanyService.fetchVerification(id),
       ])
       // A newer company was opened while this one loaded
       if (companyId.value !== id) return
       templates.value = templateRows
       submissions.value = submissionRows
-      verificationRemarks.value = remarks
+      applyVerification(id, verification)
     } catch (error: unknown) {
       toastAlert.error('Error', errorMessageOf(error, 'Failed to load the company documents.'))
     } finally {
@@ -83,13 +101,13 @@ export const useRegisteredCompanyReviewStore = defineStore('pesoRegisteredCompan
         )
       }
       if (review.company) {
-        const { status, remarks } = review.company
-        await companyRequirementService.reviewCompany(id, status, remarks)
-        verificationRemarks.value = status === 'rejected' ? remarks : null
-        listStore.setVerificationStatus(id, status)
-        if (company.value?.id === id) company.value = { ...company.value, verification_status: status }
+        await companyRequirementService.reviewCompany(id, review.company.status, review.company.remarks)
       }
-      toastAlert.success('Review saved', 'The company was notified.')
+      // Re-read: the documents can move the company status on their own (migration 080)
+      const previousStatus = company.value?.verification_status ?? null
+      const verification = await registeredCompanyService.fetchVerification(id)
+      applyVerification(id, verification)
+      toastAlert.success('Review saved', describeStatusChange(previousStatus, verification.verification_status, !!review.company))
       return true
     } catch (error: unknown) {
       toastAlert.error('Error', errorMessageOf(error, 'Failed to save the review.'))

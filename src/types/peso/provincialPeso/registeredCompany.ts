@@ -3,6 +3,12 @@ import type { Database } from '@/types/database.types'
 
 type CompanyRow = Database['employers']['Tables']['companies']['Row']
 
+/** A company's status as Provincial PESO set it (verification_remarks: migration 079) */
+export interface CompanyVerification {
+  verification_status: CompanyRow['verification_status']
+  verification_remarks: string | null
+}
+
 /** The Form 2 columns the Registered Companies list shows */
 export type RegisteredCompanyEstablishment = Pick<
   EstablishmentRow,

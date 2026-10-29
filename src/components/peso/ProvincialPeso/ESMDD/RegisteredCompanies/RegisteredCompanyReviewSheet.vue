@@ -60,7 +60,7 @@ const {
               class="w-full"
               @update:model-value="setCompanyStatus"
             />
-            <p class="text-xs text-muted-foreground">The company is notified when this changes.</p>
+            <p class="text-xs text-muted-foreground">Verified once all documents are approved; back to Pending if one is rejected.</p>
             <template v-if="companyDraft.status === 'rejected'">
               <Textarea
                 v-model="companyDraft.remarks"

@@ -424,7 +424,8 @@ BIR Certificate (TIN) / SEC / Mayor's Permit; Order of Payment, all mandatory). 
 - Review RPCs (admin / provincial_peso only; `rejected` needs remarks):
   `employers.review_employer_requirement(p_requirement_id, p_status, p_remarks)` and
   `employers.review_company_verification(p_company_id, p_status, p_remarks)` (sets `companies.verification_status` + `verification_remarks`).
-- Notifications: document status → company owner (`document_status`); company verification now carries the remarks.
+- Notifications: only the company status (`account_status`, carries the remarks of a rejection). Document status changes are not notified (079's trigger dropped in 080); the owner reads them on the Company Profile.
+- `trg_employer_requirements_auto_verify` (migration `080_company_auto_verify.sql`): approving the last of the three mandatory documents sets the company's `verification_status` to `approved`; rejecting a document sets a verified company back to `pending`. A company PESO rejected keeps its status.
 
 #### `establishments` — NSRP Form 2 (migration `037_establishments_nsrp_form2.sql`)
 Establishment Registration, filed once per establishment and reused by every recruitment activity (job fair, LRA, SRA). NSRP Form 1 is `applicants.applicants`.

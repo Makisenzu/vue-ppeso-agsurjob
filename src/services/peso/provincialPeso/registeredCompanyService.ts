@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
-import type { RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
+import type { CompanyVerification, RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
 
 const LIST_COLUMNS = `
   id, company_name, company_email, company_contact, created_at, verification_status,
@@ -23,16 +23,20 @@ export const registeredCompanyService = {
     return (data ?? []) as RegisteredCompanyListItem[]
   },
 
-  /** Why PESO rejected the company (companies.verification_remarks, migration 079) */
-  async fetchVerificationRemarks(companyId: string): Promise<string | null> {
+  /**
+   * The company's current status and why PESO rejected it (verification_remarks, migration 079).
+   * Re-read after a review: approving the last document verifies the company (migration 080).
+   */
+  async fetchVerification(companyId: string): Promise<CompanyVerification> {
     const { data, error } = await (supabase as unknown as SupabaseClient)
       .schema('employers')
       .from('companies')
-      .select('verification_remarks')
+      .select('verification_status, verification_remarks')
       .eq('id', companyId)
       .maybeSingle()
 
     if (error) throw new Error(error.message || 'Failed to load the company status.')
-    return (data as { verification_remarks: string | null } | null)?.verification_remarks ?? null
+    const row = data as Partial<CompanyVerification> | null
+    return { verification_status: row?.verification_status ?? null, verification_remarks: row?.verification_remarks ?? null }
   },
 }
