@@ -26,6 +26,13 @@ export const useRegisteredCompanyStore = defineStore('pesoRegisteredCompany', ()
     }
   }
 
+  /** Reflects a review in the list without reloading it */
+  function setVerificationStatus(companyId: string, status: RegisteredCompanyListItem['verification_status']): void {
+    companies.value = companies.value.map((company) =>
+      company.id === companyId ? { ...company, verification_status: status } : company,
+    )
+  }
+
   return {
     // State
     companies,
@@ -33,5 +40,6 @@ export const useRegisteredCompanyStore = defineStore('pesoRegisteredCompany', ()
     errorMessage,
     // Actions
     fetchCompanies,
+    setVerificationStatus,
   }
 })

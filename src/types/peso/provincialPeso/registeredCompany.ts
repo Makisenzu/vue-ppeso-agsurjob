@@ -12,13 +12,20 @@ export const NO_FORM2_STATUS = 'Not filed'
 /** The Form 2 columns the Registered Companies list shows */
 export type RegisteredCompanyEstablishment = Pick<
   EstablishmentRow,
-  'id' | 'business_name' | 'trade_name' | 'tin' | 'industry_line' | 'city_municipality' | 'province' | 'status'
+  | 'id'
+  | 'business_name'
+  | 'trade_name'
+  | 'tin'
+  | 'industry_line'
+  | 'city_municipality'
+  | 'province'
+  | 'status'
 >
 
 /** A company account (employers.companies) that signed up through the system, with its linked Form 2 */
 export type RegisteredCompanyListItem = Pick<
   CompanyRow,
-  'id' | 'company_name' | 'company_email' | 'company_contact' | 'created_at'
+  'id' | 'company_name' | 'company_email' | 'company_contact' | 'created_at' | 'verification_status'
 > & {
   establishments: RegisteredCompanyEstablishment[]
 }

@@ -8,12 +8,19 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ArrowUpDown } from '@lucide/vue'
+import { ArrowUpDown, ClipboardCheck } from '@lucide/vue'
 
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useRegisteredCompanyStore } from '@/stores/peso/provincialPeso/registeredCompanyStore'
+import { useRegisteredCompanyReviewStore } from '@/stores/peso/provincialPeso/registeredCompanyReviewStore'
+import {
+  getCompanyStatusLabel,
+  getReviewStatusBadgeClass,
+  toReviewStatus,
+} from '@/helpers/common/companyRequirementHelper'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
 import {
   formatRegisteredDate,
   getCompanyDisplayName,
@@ -29,11 +36,14 @@ import {
   type RegisteredCompanyListItem,
 } from '@/types/peso/provincialPeso/registeredCompany'
 
-/** Read-only list of company accounts that signed up through the system (Provincial PESO). */
+/** Company accounts that signed up through the system (Provincial PESO); Review opens the review sheet. */
 export function useRegisteredCompanies() {
   const store = useRegisteredCompanyStore()
   const { companies, isLoading, errorMessage } = storeToRefs(store)
   const { fetchCompanies } = store
+  const reviewStore = useRegisteredCompanyReviewStore()
+
+  const openReview = (row: RegisteredCompanyListItem) => void reviewStore.openCompany(row)
 
   const sorting = ref<SortingState>([{ id: 'created_at', desc: true }])
   const columnFilters = ref<ColumnFiltersState>([])
@@ -49,10 +59,18 @@ export function useRegisteredCompanies() {
   /** Mobile card: company name, then one line of key details */
   const getRowCard = (row: RegisteredCompanyListItem): SwipeCard => ({
     title: getCompanyDisplayName(row),
-    subtitle: [getCompanyLocation(row), getCompanyStatus(row), formatRegisteredDate(row.created_at)]
+    subtitle: [
+      getCompanyLocation(row),
+      getCompanyStatusLabel(toReviewStatus(row.verification_status)),
+      formatRegisteredDate(row.created_at),
+    ]
       .filter(Boolean)
       .join(' · '),
   })
+
+  const getRowSwipeActions = (row: RegisteredCompanyListItem): SwipeAction[] => [
+    { id: 'review', label: 'Review', icon: ClipboardCheck, onSelect: () => openReview(row) },
+  ]
 
   const columns: ColumnDef<RegisteredCompanyListItem>[] = [
     {
@@ -116,9 +134,31 @@ export function useRegisteredCompanies() {
         h(Badge, { variant: 'outline', class: getEstablishmentStatusBadgeClass(String(getValue())) }, () => String(getValue())),
     },
     {
+      id: 'verification',
+      accessorFn: (row) => getCompanyStatusLabel(toReviewStatus(row.verification_status)),
+      header: 'Company Status',
+      filterFn: 'equalsString',
+      cell: ({ row, getValue }) =>
+        h(
+          Badge,
+          { variant: 'outline', class: getReviewStatusBadgeClass(toReviewStatus(row.original.verification_status) ?? 'pending') },
+          () => String(getValue()),
+        ),
+    },
+    {
       accessorKey: 'created_at',
       header: sortableHeader('Registered'),
       cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-sm' }, formatRegisteredDate(row.original.created_at)),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) =>
+        h(Button, { variant: 'outline', size: 'sm', onClick: () => openReview(row.original) }, () => [
+          h(ClipboardCheck, { class: 'size-4' }),
+          'Review',
+        ]),
     },
   ]
 
@@ -149,6 +189,7 @@ export function useRegisteredCompanies() {
 
   return {
     getRowCard,
+    getRowSwipeActions,
     table,
     columns,
     companies,

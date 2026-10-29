@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import SearchSelect from '@/components/SearchSelect.vue'
 import { useRegisteredCompanies } from '@/composables/peso/provincialPeso/useRegisteredCompanies'
+import RegisteredCompanyReviewSheet from './RegisteredCompanyReviewSheet.vue'
 
 const {
   table,
@@ -19,6 +20,7 @@ const {
   statusOptions,
   refreshCompanies,
   getRowCard,
+  getRowSwipeActions,
 } = useRegisteredCompanies()
 </script>
 
@@ -28,7 +30,7 @@ const {
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Registered Companies</h1>
       <p class="text-sm text-muted-foreground">
-        Company accounts that signed up through the system, with the status of their NSRP Form 2.
+        Company accounts that signed up through the system. Review a company to check its documents and set its status.
       </p>
     </div>
 
@@ -83,6 +85,8 @@ const {
         :items="table.getRowModel().rows"
         :item-key="(row) => row.id"
         :card="(row) => getRowCard(row.original)"
+        :actions="(row) => getRowSwipeActions(row.original)"
+        primary-tone="primary"
         :loading="isLoading && companies.length === 0"
       >
         <template #empty>
@@ -145,5 +149,7 @@ const {
         </div>
       </div>
     </template>
+
+    <RegisteredCompanyReviewSheet />
   </div>
 </template>

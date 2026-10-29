@@ -387,6 +387,7 @@ Company/employer profiles.
 | `latitude`            | `float8`      | nullable (map pin)      |
 | `longitude`           | `float8`      | nullable (map pin)      |
 | `verification_status` | `status_type` | nullable                |
+| `verification_remarks` | `text`      | nullable; why PESO rejected the company (migration 079) |
 
 #### `company_members`
 Team members linked to a company.
@@ -413,8 +414,17 @@ Team members shown on the company profile. Display only: not accounts (that is `
 
 RLS: owner full CRUD, company members / PESO / DOLE read, admin all.
 
-#### `employer_requirements` / `employer_requirement_media`
-Employer document verification (mirrors applicant pattern).
+#### `employer_requirements` / `employer_requirement_files`
+Company requirement documents (migration `079_company_requirements_review.sql`). One `employer_requirements` row per
+company per `public.requirement_templates` row with `requirement_type = 'employer_requirements'` (seeded: Company Profile;
+BIR Certificate (TIN) / SEC / Mayor's Permit; Order of Payment, all mandatory). Files: `employer_requirement_files` rows, stored in the private `documents` bucket at
+`<owner uid>/employer-requirements/<file>`, opened by signed URL only.
+
+- `trg_employer_requirements_guard`: an owner's insert / update always becomes `pending`, clears `status_remarks` and stamps `submitted_at`.
+- Review RPCs (admin / provincial_peso only; `rejected` needs remarks):
+  `employers.review_employer_requirement(p_requirement_id, p_status, p_remarks)` and
+  `employers.review_company_verification(p_company_id, p_status, p_remarks)` (sets `companies.verification_status` + `verification_remarks`).
+- Notifications: document status → company owner (`document_status`); company verification now carries the remarks.
 
 #### `establishments` — NSRP Form 2 (migration `037_establishments_nsrp_form2.sql`)
 Establishment Registration, filed once per establishment and reused by every recruitment activity (job fair, LRA, SRA). NSRP Form 1 is `applicants.applicants`.

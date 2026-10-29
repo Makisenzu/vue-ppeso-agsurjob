@@ -7,6 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useCompanyProfile } from '@/composables/employer/useCompanyProfile'
 import { useCompanyProfileEditor } from '@/composables/employer/useCompanyProfileEditor'
+import CompanyDocuments from '@/components/employer/Documents/CompanyDocuments.vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import NsrpForm2Fields from '@/components/NsrpForm2Fields.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
@@ -100,7 +101,10 @@ const {
         </div>
       </div>
 
-      <div class="min-w-0 lg:col-span-9">
+      <div class="min-w-0 space-y-6 lg:col-span-9">
+        <!-- Same place and flow as the applicant's Document Upload Progress on their account -->
+        <CompanyDocuments />
+
         <CompanyDetails
           :details="companyDetails"
           :contact-details="contactDetails"
