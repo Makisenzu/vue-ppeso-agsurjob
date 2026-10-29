@@ -77,7 +77,9 @@ const { searchTerm, selectedOption, selectedKey, visibleGroups, hiddenCount, onS
     </ComboboxAnchor>
 
     <ComboboxList :class="cn('min-w-56', contentClass)" align="start">
+      <!-- display-value: reka would otherwise prefill the search with the selected item key ("v:Private") -->
       <ComboboxInput
+        :display-value="() => ''"
         :placeholder="searchPlaceholder ?? 'Search...'"
         @input="searchTerm = ($event.target as HTMLInputElement).value"
       />
