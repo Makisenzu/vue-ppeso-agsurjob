@@ -4,6 +4,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import {
   Blocks,
   BookMarked,
+  Building2,
   CalendarDays,
   File,
   GalleryHorizontalEnd,
@@ -55,6 +56,7 @@ const employmentItems: ProvincialPesoSidebarItem[] = [
   { title: 'GIP', to: { name: 'provincial-peso-gip' }, icon: SquareUser },
   { title: 'TUPAD', to: { name: 'provincial-peso-tupad' }, icon: Hammer },
   { title: 'SPES', to: { name: 'provincial-peso-spes' }, icon: BookMarked },
+  { title: 'Companies', to: { name: 'provincial-peso-registered-companies' }, icon: Building2 },
   { title: 'Recruitment Activity', to: { name: 'provincial-peso-recruitment-activity' }, icon: MapPinned },
 ]
 

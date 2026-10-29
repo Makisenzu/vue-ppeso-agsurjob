@@ -205,6 +205,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContents.vue'),
         meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Site Contents' },
       },
+      {
+        path: 'registered-companies',
+        name: 'provincial-peso-registered-companies',
+        component: () => import('@/components/peso/ProvincialPeso/ESMDD/RegisteredCompanies/RegisteredCompanies.vue'),
+        meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Registered Companies' },
+      },
       // ─── Recruitment Activity: LRA / SRA (breadcrumb hierarchy: Recruitment Activity > Details) ───
       {
         path: 'recruitment-activity',
