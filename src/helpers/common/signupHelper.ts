@@ -14,6 +14,7 @@ import type {
   UserRole,
 } from '@/types/common/signup'
 import { UserSearch, Building2 } from '@lucide/vue'
+import { TIN_FORMAT_MESSAGE, TIN_PATTERN } from '@/helpers/common/establishmentHelper'
 
 // ─── Constants ───
 
@@ -112,7 +113,6 @@ const requiredText = (message: string) => z.string().trim().min(1, message)
 const optionalText = (max: number) => z.string().trim().max(max, `Maximum of ${max} characters.`)
 
 const PH_MOBILE_PATTERN = /^(09|\+639)\d{9}$/
-const TIN_PATTERN = /^\d{3}-?\d{3}-?\d{3}(-?\d{3,5})?$/
 const USERNAME_PATTERN = /^[a-zA-Z0-9._]+$/
 
 const personalSchema = z.object({
@@ -142,7 +142,7 @@ const personalSchema = z.object({
   tin: z
     .string()
     .trim()
-    .refine((value) => value === '' || TIN_PATTERN.test(value), 'Use the format 123-456-789-000.')
+    .refine((value) => value === '' || TIN_PATTERN.test(value), TIN_FORMAT_MESSAGE)
     .optional(),
 })
 

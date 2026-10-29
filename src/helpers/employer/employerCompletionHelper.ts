@@ -10,6 +10,8 @@ import type {
 } from '@/types/employer/employerCompletion'
 import {
   EMPTY_ESTABLISHMENT_FORM_VALUES,
+  TIN_FORMAT_MESSAGE,
+  TIN_PATTERN,
   establishmentFormShape,
   refineCompleteEstablishmentForm,
   toEstablishmentFormFields,
@@ -65,7 +67,13 @@ const ESTABLISHMENT_STEP_FIELDS = {
 /** The Form 2 schema for one step: only that step's fields are checked */
 function establishmentStepSchema(step: keyof typeof ESTABLISHMENT_STEP_FIELDS) {
   const keys: readonly string[] = ESTABLISHMENT_STEP_FIELDS[step]
-  const shape = Object.fromEntries(Object.entries(establishmentFormShape).filter(([key]) => keys.includes(key)))
+  const shape: Record<string, z.ZodTypeAny> = Object.fromEntries(
+    Object.entries(establishmentFormShape).filter(([key]) => keys.includes(key))
+  )
+  // A company account's TIN is required (refineCompleteEstablishmentForm) and must be a valid BIR TIN
+  if (keys.includes('tin')) {
+    shape.tin = z.string().trim().refine((value) => value === '' || TIN_PATTERN.test(value), TIN_FORMAT_MESSAGE).optional()
+  }
   return z.object(shape).superRefine((values, ctx) =>
     refineCompleteEstablishmentForm(values, {
       path: ctx.path,

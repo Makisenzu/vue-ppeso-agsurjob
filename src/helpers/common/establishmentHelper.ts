@@ -12,6 +12,10 @@ const PUBLIC_EMPLOYER_TYPES = Constants.esmdd.Enums.public_employer_type_enum
 const PRIVATE_EMPLOYER_TYPES = Constants.esmdd.Enums.private_employer_type_enum
 const TOTAL_WORKFORCE_OPTIONS = Constants.esmdd.Enums.total_workforce_enum
 
+/** BIR TIN: 9 digits plus an optional 3–5 digit branch code, dashes optional */
+export const TIN_PATTERN = /^\d{3}-?\d{3}-?\d{3}(-?\d{3,5})?$/
+export const TIN_FORMAT_MESSAGE = 'Use the format 123-456-789-000.'
+
 /** The Form 2 fields of an establishment, e.g. to merge onto an activity row. */
 export function pickEstablishmentFormFields(row: EstablishmentRow): EstablishmentFormFields {
   return Object.fromEntries(ESTABLISHMENT_FORM_FIELDS.map((key) => [key, row[key]])) as EstablishmentFormFields
