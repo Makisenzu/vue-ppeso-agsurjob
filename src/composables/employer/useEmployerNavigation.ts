@@ -38,7 +38,6 @@ const navItems: EmployerNavItem[] = [
       { title: 'Interviews' },
     ],
   },
-  { title: 'Chats', to: { name: 'employer-dashboard' } },
   {
     title: 'Company',
     children: [
