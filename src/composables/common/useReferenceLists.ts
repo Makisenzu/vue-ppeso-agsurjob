@@ -1,7 +1,12 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReferenceListStore } from '@/stores/common/referenceListStore'
-import { getCourseLevel, toCourseOptions, toReligionOptions } from '@/helpers/common/referenceListHelper'
+import {
+  getCourseLevel,
+  toCourseOptions,
+  toReligionOptions,
+  toVacancyCourseOptions,
+} from '@/helpers/common/referenceListHelper'
 import type { CourseLevel, ReferenceOption } from '@/types/common/referenceList'
 
 /** Religion and course choices for ReferencePicker (core.religions / core.courses). */
@@ -31,5 +36,8 @@ export function useReferenceLists() {
 
   const trainingOptions = computed(() => coursesByLevel.value.techvoc)
 
-  return { religionOptions, getCourseOptions, trainingOptions, isLoadingReferenceLists: isLoading }
+  /** Every level for job vacancies, with "None (not required)" */
+  const vacancyCourseOptions = computed(() => toVacancyCourseOptions(courses.value))
+
+  return { religionOptions, getCourseOptions, trainingOptions, vacancyCourseOptions, isLoadingReferenceLists: isLoading }
 }

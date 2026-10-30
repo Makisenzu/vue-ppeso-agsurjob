@@ -31,6 +31,33 @@ export function toCourseOptions(rows: CourseRow[], level: CourseLevel): Referenc
   )
 }
 
+/** Stored on job_vacancies.course_shs_strand when a vacancy needs no particular course */
+export const NO_COURSE_REQUIRED = 'None'
+
+const COURSE_LEVEL_LABEL: Record<CourseLevel, string> = {
+  tertiary: 'College',
+  graduate: 'Graduate',
+  shs_strand: 'SHS strand',
+  techvoc: 'TESDA',
+}
+
+/**
+ * Every course level in one list for vacancies, "None (not required)" first and "Others" last.
+ * Group reads "College · Information Technology" so the level shows in the picker.
+ */
+export function toVacancyCourseOptions(rows: CourseRow[]): ReferenceOption[] {
+  const none: ReferenceOption = { name: NO_COURSE_REQUIRED, abbreviation: null, group: 'Not required', requiresSpecify: false }
+  const listed = rows
+    .filter((row) => !row.requires_specify)
+    .map((row) => ({
+      name: row.name,
+      abbreviation: row.abbreviation,
+      group: [COURSE_LEVEL_LABEL[row.level as CourseLevel], row.field].filter(Boolean).join(' · ') || null,
+      requiresSpecify: false,
+    }))
+  return withOthersFallback([none, ...listed])
+}
+
 /** The course list for an NSRP education level, or null when that level has no courses (e.g. Elementary). */
 export function getCourseLevel(educationLevel?: string | null): CourseLevel | null {
   return (educationLevel && COURSE_LEVEL_BY_EDUCATION_LEVEL[educationLevel]) || null

@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/dialog'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import SearchSelect from '@/components/SearchSelect.vue'
+import JobVacancyCourseFields from '@/components/JobVacancyCourseFields.vue'
+import JobVacancySkillsField from '@/components/JobVacancySkillsField.vue'
 import { useParticipantVacancies } from '@/composables/peso/provincialPeso/useParticipantVacancies'
 import { useJobVacancyForm } from '@/composables/peso/provincialPeso/useJobVacancyForm'
 
@@ -75,7 +77,6 @@ const {
 
 const qualificationFields = [
   { name: 'educationalLevel', label: 'Educational Level', placeholder: 'e.g. College Graduate' },
-  { name: 'courseShsStrand', label: 'Course / SHS Strand', placeholder: 'e.g. BS Accountancy' },
   { name: 'eligibility', label: 'Eligibility', placeholder: 'e.g. CSC Professional' },
   { name: 'license', label: 'License', placeholder: 'e.g. Professional Driver’s License' },
   { name: 'certification', label: 'Certification', placeholder: 'e.g. TESDA NC II' },
@@ -410,6 +411,8 @@ const qualificationFields = [
               </FormField>
             </div>
 
+            <JobVacancyCourseFields :disabled="isSubmitting" />
+
             <FormField v-slot="{ componentField }" name="languages">
               <FormItem>
                 <FormLabel>Languages / Dialects Spoken</FormLabel>
@@ -432,6 +435,11 @@ const qualificationFields = [
               </FormItem>
             </FormField>
           </section>
+
+          <Separator />
+
+          <!-- Skills (for applicant matching) -->
+          <JobVacancySkillsField :disabled="isSubmitting" />
 
           <Separator />
 

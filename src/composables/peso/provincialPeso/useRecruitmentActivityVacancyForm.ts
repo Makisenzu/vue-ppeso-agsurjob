@@ -4,14 +4,16 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useRecruitmentActivityDetailsStore } from '@/stores/peso/provincialPeso/recruitmentActivityDetailsStore'
+import { useJobVacancyMatchingStore } from '@/stores/common/jobVacancyMatchingStore'
 import {
   EMPTY_JOB_VACANCY_FORM_VALUES,
   jobVacancyFormShape,
   refineCompleteJobVacancyForm,
   toJobVacancyFields,
   toJobVacancyFormValues,
+  toJobVacancyMatching,
 } from '@/helpers/common/jobVacancyHelper'
-import type { JobVacancyFormValues } from '@/types/common/jobVacancy'
+import type { JobVacancyFormValues, JobVacancyMatching } from '@/types/common/jobVacancy'
 import type {
   RecruitmentActivityVacancyDetails,
   RecruitmentActivityVacancyFormPayload,
@@ -47,9 +49,13 @@ type JobOrderFormValues = JobVacancyFormValues & {
   jobOrderNumber: string
 }
 
-function toFormValues(row: RecruitmentActivityVacancyDetails | null, isSra: boolean): JobOrderFormValues {
+function toFormValues(
+  row: RecruitmentActivityVacancyDetails | null,
+  isSra: boolean,
+  matching?: JobVacancyMatching,
+): JobOrderFormValues {
   return {
-    ...(row ? toJobVacancyFormValues(row) : EMPTY_JOB_VACANCY_FORM_VALUES),
+    ...(row ? toJobVacancyFormValues(row, matching) : EMPTY_JOB_VACANCY_FORM_VALUES),
     isSra,
     destinationCountry: row?.destination_country ?? '',
     jobOrderNumber: row?.job_order_number ?? '',
@@ -60,6 +66,7 @@ const orNull = (value?: string | null) => (value && value.trim() ? value.trim() 
 
 export function useRecruitmentActivityVacancyForm() {
   const store = useRecruitmentActivityDetailsStore()
+  const matchingStore = useJobVacancyMatchingStore()
   const { activity, isVacancyFormOpen, editingVacancy, isSubmittingVacancy } = storeToRefs(store)
   const { createVacancy, updateVacancy, closeVacancyFormDialog } = store
 
@@ -72,10 +79,16 @@ export function useRecruitmentActivityVacancyForm() {
 
   const isEditMode = computed(() => editingVacancy.value !== null)
 
-  // Load the selected row (or blank values) each time the dialog opens.
-  watch(isVacancyFormOpen, (open) => {
+  // Load the selected row with its skills (or blank values) each time the dialog opens.
+  watch(isVacancyFormOpen, async (open) => {
     if (!open) return
-    resetForm({ values: toFormValues(editingVacancy.value, isSra.value) })
+    const editing = editingVacancy.value
+    resetForm({ values: toFormValues(editing, isSra.value) })
+    if (!editing) return
+    const matching = await matchingStore.loadMatching(editing.job_vacancy_id)
+    if (isVacancyFormOpen.value && editingVacancy.value?.id === editing.id) {
+      resetForm({ values: toFormValues(editing, isSra.value, matching) })
+    }
   })
 
   const onVacancyDialogOpenChange = (open: boolean) => {
@@ -90,6 +103,7 @@ export function useRecruitmentActivityVacancyForm() {
       status: formValues.status,
       destination_country: isSra.value ? orNull(formValues.destinationCountry) : null,
       job_order_number: orNull(formValues.jobOrderNumber),
+      matching: toJobVacancyMatching(formValues as JobOrderFormValues),
     }
 
     if (editingVacancy.value) await updateVacancy(editingVacancy.value, payload)
@@ -99,6 +113,7 @@ export function useRecruitmentActivityVacancyForm() {
   return {
     isVacancyFormOpen,
     isSubmittingVacancy,
+    isLoadingSkills: computed(() => matchingStore.isLoading),
     isEditMode,
     isSra,
     onVacancyDialogOpenChange,

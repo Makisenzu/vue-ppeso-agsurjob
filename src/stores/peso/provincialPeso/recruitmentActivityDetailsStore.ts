@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { recruitmentActivityService } from '@/services/peso/provincialPeso/recruitmentActivityService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useJobVacancyMatchingStore } from '@/stores/common/jobVacancyMatchingStore'
 import {
   RECRUITMENT_ACTIVITY_DOCUMENT_MAX_SIZE_MB,
   RECRUITMENT_ACTIVITY_DOCUMENT_MIME_TYPES,
@@ -16,6 +17,7 @@ import {
 
 export const useRecruitmentActivityDetailsStore = defineStore('pesoRecruitmentActivityDetails', () => {
   const toastAlert = useToastAlert()
+  const matchingStore = useJobVacancyMatchingStore()
 
   // ─── State ───
   const activity = ref<RecruitmentActivityDetails | null>(null)
@@ -193,7 +195,10 @@ export const useRecruitmentActivityDetailsStore = defineStore('pesoRecruitmentAc
       const created = await recruitmentActivityService.createVacancy(current.id, current.establishment_id, payload)
       vacancies.value = [...vacancies.value, created].sort((a, b) => a.position_title.localeCompare(b.position_title))
       isVacancyFormOpen.value = false
-      toastAlert.success('Job order added', `${created.position_title} has been added.`)
+      // Skills / related courses go on the vacancy itself; the store toasts if only they failed
+      if (await matchingStore.saveMatching(created.job_vacancy_id, payload.matching)) {
+        toastAlert.success('Job order added', `${created.position_title} has been added.`)
+      }
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -208,9 +213,10 @@ export const useRecruitmentActivityDetailsStore = defineStore('pesoRecruitmentAc
     try {
       const updated = await recruitmentActivityService.updateVacancy(target, payload)
       vacancies.value = vacancies.value.map((row) => (row.id === updated.id ? updated : row))
+      const isMatchingSaved = await matchingStore.saveMatching(updated.job_vacancy_id, payload.matching)
       isVacancyFormOpen.value = false
       editingVacancy.value = null
-      toastAlert.success('Job order updated', `${updated.position_title} has been updated.`)
+      if (isMatchingSaved) toastAlert.success('Job order updated', `${updated.position_title} has been updated.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)

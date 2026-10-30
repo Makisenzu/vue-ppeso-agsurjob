@@ -1,5 +1,6 @@
 import { Constants, type Database } from '@/types/database.types'
 import type { EstablishmentFormFields } from '@/types/common/establishment'
+import type { JobVacancyMatching } from '@/types/common/jobVacancy'
 
 type EsmddTables = Database['esmdd']['Tables']
 type EsmddEnums = Database['esmdd']['Enums']
@@ -85,6 +86,8 @@ export type JobFairVacancyFormPayload = {
   vacancy: JobVacancyDetailsFields
   vacancy_count: number
   status: JobVacancyStatus
+  /** Skills and related courses, saved on the vacancy after it (esmdd.set_job_vacancy_matching) */
+  matching: JobVacancyMatching
 }
 
 export type NatureOfWork = EsmddEnums['nature_of_work_enum']

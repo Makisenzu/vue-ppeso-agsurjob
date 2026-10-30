@@ -1,4 +1,5 @@
 import type { Database } from '@/types/database.types'
+import type { JobVacancyMatching } from '@/types/common/jobVacancy'
 import type { EstablishmentFormFields, EstablishmentRow } from '@/types/common/establishment'
 import type { JobVacancyDetailsFields, JobVacancyRow, JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 
@@ -65,6 +66,8 @@ export type RecruitmentActivityVacancyFormPayload = {
   status: JobVacancyStatus
   destination_country: string | null
   job_order_number: string | null
+  /** Skills and related courses, saved on the vacancy after it (esmdd.set_job_vacancy_matching) */
+  matching: JobVacancyMatching
 }
 
 export const RECRUITMENT_ACTIVITY_DOCUMENT_BUCKET = 'recruitment-activity-documents'

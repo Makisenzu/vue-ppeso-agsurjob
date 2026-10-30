@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { jobFairService } from '@/services/peso/provincialPeso/jobFairService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useJobVacancyMatchingStore } from '@/stores/common/jobVacancyMatchingStore'
 import type {
   JobFairParticipantDetails,
   JobFairParticipantFormPayload,
@@ -13,6 +14,7 @@ import type {
 
 export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', () => {
   const toastAlert = useToastAlert()
+  const matchingStore = useJobVacancyMatchingStore()
 
   // ─── State: Job Fair + Participants ───
   const jobFair = ref<JobFairRow | null>(null)
@@ -162,7 +164,10 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
       vacancies.value = [...vacancies.value, created].sort((a, b) => a.position_title.localeCompare(b.position_title))
       syncParticipantVacancyCount(created.participant_id)
       isVacancyFormOpen.value = false
-      toastAlert.success('Vacancy added', `${created.position_title} has been added.`)
+      // Skills / related courses go on the vacancy itself; the store toasts if only they failed
+      if (await matchingStore.saveMatching(created.job_vacancy_id, payload.matching)) {
+        toastAlert.success('Vacancy added', `${created.position_title} has been added.`)
+      }
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)
@@ -177,9 +182,10 @@ export const useJobFairParticipantStore = defineStore('pesoJobFairParticipant', 
     try {
       const updated = await jobFairService.updateVacancy(target, payload)
       vacancies.value = vacancies.value.map((v) => (v.id === updated.id ? updated : v))
+      const isMatchingSaved = await matchingStore.saveMatching(updated.job_vacancy_id, payload.matching)
       isVacancyFormOpen.value = false
       editingVacancy.value = null
-      toastAlert.success('Vacancy updated', `${updated.position_title} has been updated.`)
+      if (isMatchingSaved) toastAlert.success('Vacancy updated', `${updated.position_title} has been updated.`)
       return true
     } catch (error: any) {
       toastAlert.error('Error', error.message)

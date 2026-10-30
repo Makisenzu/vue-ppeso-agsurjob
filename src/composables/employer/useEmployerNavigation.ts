@@ -47,8 +47,14 @@ const navItems: EmployerNavItem[] = [
   },
 ]
 
-// Members invited by the owner (migration 081): the owner-only pages (company profile, team) are left out
-const memberNavItems: EmployerNavItem[] = navItems.filter(item => item.title !== 'Company')
+// Members invited by the owner (migration 081): the owner-only pages (company profile, team, job posts) are left out
+const OWNER_ONLY_ROUTES = ['job-postings']
+const memberNavItems: EmployerNavItem[] = navItems
+  .filter(item => item.title !== 'Company')
+  .map(item => ({
+    ...item,
+    children: item.children?.filter(child => !child.to || !OWNER_ONLY_ROUTES.includes(child.to.name)),
+  }))
 
 // Until the establishment (NSRP Form 2) is registered the router guard only allows the complete-profile page, so Home is the only item
 const incompleteNavItems: EmployerNavItem[] = [{ title: 'Home', to: { name: 'employer-complete-profile' } }]

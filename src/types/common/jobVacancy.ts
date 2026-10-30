@@ -26,4 +26,34 @@ export type JobVacancyFormValues = {
   postingDate: string
   validUntil: string
   status: JobVacancyStatus
+  /** Skills used to match applicants (job_vacancy_skills, migration 084) */
+  skills: JobVacancySkillValue[]
+  /** Optional courses accepted besides courseShsStrand (job_vacancies.related_courses, migration 085) */
+  relatedCourses: string[]
+}
+
+/** One skill a vacancy needs, as the skills field edits it */
+export type JobVacancySkillValue = {
+  name: string
+  /** Must-have (true) or nice-to-have (false) */
+  isRequired: boolean
+}
+
+/**
+ * esmdd.job_vacancy_skills (migration 084). Typed by hand until `npm run types:gen` is re-run;
+ * then derive it from database.types.ts.
+ */
+export type JobVacancySkillRow = {
+  id: string
+  job_vacancy_id: string
+  skill_name: string
+  skill_key: string
+  is_required: boolean
+  created_at: string
+}
+
+/** A vacancy's skills and related courses, as loaded for its form */
+export type JobVacancyMatching = {
+  skills: Pick<JobVacancySkillRow, 'skill_name' | 'is_required'>[]
+  related_courses: string[]
 }

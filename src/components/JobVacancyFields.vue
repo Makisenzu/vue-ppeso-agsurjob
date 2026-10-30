@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import SearchSelect from '@/components/SearchSelect.vue'
+import JobVacancyCourseFields from '@/components/JobVacancyCourseFields.vue'
+import JobVacancySkillsField from '@/components/JobVacancySkillsField.vue'
 import {
   DISABILITY_TYPE_OPTIONS,
   NATURE_OF_WORK_OPTIONS,
@@ -37,7 +39,6 @@ const toggleDisability = (option: DisabilityType, checked: boolean) => {
 
 const qualificationFields = [
   { name: 'educationalLevel', label: 'Educational Level', placeholder: 'e.g. College Graduate' },
-  { name: 'courseShsStrand', label: 'Course / SHS Strand', placeholder: 'e.g. BS Accountancy, or None' },
   { name: 'eligibility', label: 'Eligibility', placeholder: 'e.g. CSC Professional, or None' },
   { name: 'license', label: 'License', placeholder: 'e.g. Professional Driver’s License, or None' },
   { name: 'certification', label: 'Certification', placeholder: 'e.g. TESDA NC II, or None' },
@@ -149,6 +150,8 @@ const qualificationFields = [
         </FormField>
       </div>
 
+      <JobVacancyCourseFields :disabled="disabled" />
+
       <FormField v-slot="{ componentField }" name="languages">
         <FormItem>
           <FormLabel>Languages / Dialects Spoken</FormLabel>
@@ -171,6 +174,11 @@ const qualificationFields = [
         </FormItem>
       </FormField>
     </section>
+
+    <Separator />
+
+    <!-- Skills (for applicant matching) -->
+    <JobVacancySkillsField :disabled="disabled" />
 
     <Separator />
 

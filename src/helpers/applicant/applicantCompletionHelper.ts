@@ -14,6 +14,7 @@ import type {
   WorkEntryForm,
 } from '@/types/applicant/applicantCompletion'
 import { calculateAge, MIN_SIGNUP_AGE } from '@/helpers/common/signupHelper'
+import { NSRP_SKILL_OPTIONS } from '@/helpers/common/skillHelper'
 
 // ─── Steps ───
 
@@ -74,25 +75,8 @@ export const JOB_TYPE_OPTIONS = [
   'Remote / Work From Home',
 ] as const
 
-export const SKILL_OPTIONS = [
-  'Auto Mechanic',
-  'Beautician',
-  'Carpentry Work',
-  'Computer Literate',
-  'Domestic Chores',
-  'Driver',
-  'Electrician',
-  'Embroidery',
-  'Gardening',
-  'Masonry',
-  'Painter/Artist',
-  'Painting Jobs',
-  'Photography',
-  'Plumbing',
-  'Sewing Dresses',
-  'Stenography',
-  'Tailoring',
-] as const
+// One list for applicants and vacancies, so skills match (helpers/common/skillHelper)
+export const SKILL_OPTIONS = NSRP_SKILL_OPTIONS
 
 export const LANGUAGE_ABILITIES = ['read', 'write', 'speak', 'understand'] as const
 

@@ -667,7 +667,7 @@ One model for Local (LRA) and Special / overseas (SRA) Recruitment Activities, t
 - `core.religions`: `name` (unique, case-insensitive), `requires_specify` ("Others" → user types the value), `sort_order`, `is_active`. Seeded from the PSA 2020 census affiliation groups.
 - `core.courses`: `level` (`tertiary` / `graduate` / `shs_strand` / `techvoc`), `name` (unique per level), `abbreviation` (e.g. BSIT, STEM, SMAW NC II), `field` (PSCED broad field / SHS track / TESDA sector), `requires_specify`, `sort_order`, `is_active`. Seeded with CHED programs, graduate degrees, K to 12 strands and TESDA qualifications.
 - Data: `supabase/seeds/001_core_religions_courses.sql` (re-runnable upsert; run after 044).
-- These lists drive dropdowns only; the chosen name is still stored as text on `applicants.religion`, `*_degree_course` and `job_vacancies.course_shs_strand`.
+- These lists drive dropdowns only; the chosen name is still stored as text on `applicants.religion`, `*_degree_course`, `job_vacancies.course_shs_strand` and `job_vacancies.related_courses` (085).
 - RLS: `anon` + `authenticated` read active rows (signup uses religion); `admin` full CRUD.
 
 #### HOTS — Hired on the Spot (migration `024_hots_job_fair_alignment.sql`)
@@ -681,6 +681,18 @@ One model for Local (LRA) and Special / overseas (SRA) Recruitment Activities, t
 - RLS (migration 005): `provincial_peso` full CRUD; `municipal_peso` / `admin` read; applicants read their own via `applicant_profile_id`.
 - `trg_hots_mark_job_fair_attendance` (migration 025) marks a registry applicant's hire as attendance in `job_fair_applicants`.
 - UI: the "Hired on the Spot" section of the job fair details page (`JobFairHots.vue` → `useJobFairHots` / `useHotsForm` → `hotsStore` → `hotsService`).
+
+#### `job_vacancy_skills` — Skills per vacancy (migration `084_job_vacancy_skills.sql`)
+`job_vacancies ──< job_vacancy_skills`, for matching applicants to vacancies.
+
+- Columns: `id` (uuid), `job_vacancy_id` (FK → `job_vacancies.id`, `ON DELETE CASCADE`), `skill_name` (2–80 chars), `skill_key` (generated: lower case, single spaces; UNIQUE with `job_vacancy_id`, indexed for matching), `is_required` (must-have `true` / nice-to-have `false`), `created_at`.
+- Match on `skill_key` against the applicant's skills normalized the same way: NSRP `other_skills` / `other_skills_specified`, `applicant_skills.skill_name` and vocational trainings. The app suggests the NSRP checklist names (`helpers/common/skillHelper.ts` `NSRP_SKILL_OPTIONS`, shared with the applicant NSRP form) so both sides use the same wording.
+- RLS: every signed-in user reads; insert / update / delete through `esmdd.can_manage_job_vacancy(id)` (SECURITY DEFINER): `admin` / `provincial_peso`, or the owner of the vacancy's establishment's company (same rule as the 039 `job_vacancies` policies).
+- `esmdd.save_job_vacancy(p_job_vacancy_id, p_establishment_id, p_vacancy jsonb, p_skills jsonb) → uuid`: SECURITY INVOKER; creates (id NULL) or updates the vacancy and replaces its skills in one transaction; requires 1–30 skills (`22023` otherwise), `42501` when the caller may not edit the vacancy.
+- **Every vacancy needs skills** (migration `085_job_vacancy_matching_fields.sql`): 1–30, at least one must-have, checked by `esmdd.assert_job_vacancy_skills` in both RPCs and by `jobVacancySkillsSchema` in all three forms (job fair, LRA / SRA job order, company posting). Vacancies saved before 084 have none until edited.
+- `job_vacancies.related_courses TEXT[]` (085, default `{}`, max 10, GIN index): optional courses accepted besides `course_shs_strand`. Both are names from `core.courses` stored as text (the vacancy picker lists every level plus `None` = not required); related courses are cleared when the course is `None`.
+- `esmdd.set_job_vacancy_matching(p_job_vacancy_id, p_skills jsonb, p_related_courses text[])`: SECURITY INVOKER; replaces a saved vacancy's skills and related courses. The PESO job fair / recruitment activity stores call it right after saving the vacancy (`jobVacancyMatchingStore` → `jobVacancyMatchingService`); `save_job_vacancy` (employer) saves `related_courses` from `p_vacancy` in the same transaction.
+- UI: `JobVacancyFields.vue` (job orders, company postings) and the job fair vacancy dialog (`JobFairParticipantVacancies.vue`) both render `JobVacancyCourseFields.vue` (`useJobVacancyCourseFields`) and `JobVacancySkillsField.vue` (`useJobVacancySkillsField`). Employer page: `JobPosting.vue` → `useJobPostings` → `jobPostingStore` → `jobPostingService`.
 
 ---
 

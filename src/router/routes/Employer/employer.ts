@@ -59,7 +59,9 @@ export const employerRoutes: RouteRecordRaw[] = [
       {
         path: 'job-postings',
         name: 'job-postings',
-        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPosting.vue')
+        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPosting.vue'),
+        // RLS (migration 039) lets only the owner write their establishment's vacancies
+        meta: { breadcrumb: 'Job Posting', role: 'company_owner' },
       },
       {
         path: 'job-applicants',

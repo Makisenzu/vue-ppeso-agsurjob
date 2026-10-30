@@ -4,6 +4,13 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useJobFairParticipantStore } from '@/stores/peso/provincialPeso/jobFairParticipantStore'
+import { useJobVacancyMatchingStore } from '@/stores/common/jobVacancyMatchingStore'
+import {
+  jobVacancyRelatedCoursesSchema,
+  jobVacancySkillsSchema,
+  toJobVacancyMatching,
+} from '@/helpers/common/jobVacancyHelper'
+import type { JobVacancyMatching, JobVacancySkillValue } from '@/types/common/jobVacancy'
 import {
   DISABILITY_TYPE_OPTIONS,
   NATURE_OF_WORK_OPTIONS,
@@ -40,6 +47,9 @@ const vacancySchema = toTypedSchema(
       postingDate: optionalText,
       validUntil: optionalText,
       status: z.enum(VACANCY_STATUSES),
+      // Every vacancy carries skills for applicant matching (migrations 084 / 085)
+      skills: jobVacancySkillsSchema,
+      relatedCourses: jobVacancyRelatedCoursesSchema,
     })
     // ISO yyyy-mm-dd strings compare correctly as plain strings
     .refine((v) => !v.postingDate || !v.validUntil || v.validUntil >= v.postingDate, {
@@ -70,6 +80,8 @@ type VacancyFormValues = {
   postingDate: string
   validUntil: string
   status: (typeof VACANCY_STATUSES)[number]
+  skills: JobVacancySkillValue[]
+  relatedCourses: string[]
 }
 
 const INITIAL_VALUES: VacancyFormValues = {
@@ -94,6 +106,8 @@ const INITIAL_VALUES: VacancyFormValues = {
   postingDate: '',
   validUntil: '',
   status: 'open',
+  skills: [],
+  relatedCourses: [],
 }
 
 const joinList = (items?: string[] | null) => (items ?? []).join(', ')
@@ -103,7 +117,7 @@ const splitList = (value?: string) => {
 }
 const orNull = (value?: string | null) => (value && value.trim() ? value.trim() : null)
 
-function toFormValues(row: JobFairVacancyDetails): VacancyFormValues {
+function toFormValues(row: JobFairVacancyDetails, matching: JobVacancyMatching): VacancyFormValues {
   const status = row.status
   return {
     positionTitle: row.position_title,
@@ -127,11 +141,14 @@ function toFormValues(row: JobFairVacancyDetails): VacancyFormValues {
     postingDate: row.posting_date?.slice(0, 10) ?? '',
     validUntil: row.valid_until?.slice(0, 10) ?? '',
     status,
+    skills: matching.skills.map((skill) => ({ name: skill.skill_name, isRequired: skill.is_required })),
+    relatedCourses: [...matching.related_courses],
   }
 }
 
 export function useJobVacancyForm() {
   const store = useJobFairParticipantStore()
+  const matchingStore = useJobVacancyMatchingStore()
   const { participant, isVacancyFormOpen, editingVacancy, isSubmitting } = storeToRefs(store)
   const { createVacancy, updateVacancy, closeVacancyFormDialog } = store
 
@@ -144,10 +161,19 @@ export function useJobVacancyForm() {
   const acceptsPwd = computed(() => values.acceptsPwd === true)
   const hasOtherDisability = computed(() => values.pwdDisabilities?.includes('Others') ?? false)
 
-  // Load the selected row (or blank values) each time the dialog opens.
-  watch(isVacancyFormOpen, (open) => {
+  // Load the selected row with its skills (or blank values) each time the dialog opens.
+  watch(isVacancyFormOpen, async (open) => {
     if (!open) return
-    resetForm({ values: editingVacancy.value ? toFormValues(editingVacancy.value) : INITIAL_VALUES })
+    const editing = editingVacancy.value
+    if (!editing) {
+      resetForm({ values: INITIAL_VALUES })
+      return
+    }
+    resetForm({ values: toFormValues(editing, { skills: [], related_courses: [] }) })
+    const matching = await matchingStore.loadMatching(editing.job_vacancy_id)
+    if (isVacancyFormOpen.value && editingVacancy.value?.id === editing.id) {
+      resetForm({ values: toFormValues(editing, matching) })
+    }
   })
 
   const onVacancyDialogOpenChange = (open: boolean) => {
@@ -190,7 +216,12 @@ export function useJobVacancyForm() {
       valid_until: orNull(formValues.validUntil),
     }
     // Openings and status belong to this job fair's offer of the vacancy
-    const payload: JobFairVacancyFormPayload = { vacancy, vacancy_count: formValues.vacancyCount, status: formValues.status }
+    const payload: JobFairVacancyFormPayload = {
+      vacancy,
+      vacancy_count: formValues.vacancyCount,
+      status: formValues.status,
+      matching: toJobVacancyMatching({ ...formValues, courseShsStrand: formValues.courseShsStrand ?? '' }),
+    }
 
     if (editingVacancy.value) {
       await updateVacancy(editingVacancy.value, payload)
@@ -202,6 +233,7 @@ export function useJobVacancyForm() {
   return {
     isVacancyFormOpen,
     isSubmitting,
+    isLoadingSkills: computed(() => matchingStore.isLoading),
     isEditMode,
     acceptsPwd,
     hasOtherDisability,

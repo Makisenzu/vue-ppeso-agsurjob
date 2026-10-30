@@ -417,11 +417,15 @@ export type Database = {
           father_occupation: string | null
           first_name: string
           gsis_beneficiary_relationship: string | null
+          has_application_letter: boolean
           has_birth_certificate: boolean
           has_income_proof: boolean
           has_osy_certification: boolean
           has_passing_grade_proof: boolean
+          has_passport_photo: boolean
           has_registrar_certification: boolean
+          has_resume: boolean
+          has_spes_form: boolean
           id: string
           middle_name: string | null
           mother_contact_no: string | null
@@ -492,11 +496,15 @@ export type Database = {
           father_occupation?: string | null
           first_name: string
           gsis_beneficiary_relationship?: string | null
+          has_application_letter?: boolean
           has_birth_certificate?: boolean
           has_income_proof?: boolean
           has_osy_certification?: boolean
           has_passing_grade_proof?: boolean
+          has_passport_photo?: boolean
           has_registrar_certification?: boolean
+          has_resume?: boolean
+          has_spes_form?: boolean
           id?: string
           middle_name?: string | null
           mother_contact_no?: string | null
@@ -567,11 +575,15 @@ export type Database = {
           father_occupation?: string | null
           first_name?: string
           gsis_beneficiary_relationship?: string | null
+          has_application_letter?: boolean
           has_birth_certificate?: boolean
           has_income_proof?: boolean
           has_osy_certification?: boolean
           has_passing_grade_proof?: boolean
+          has_passport_photo?: boolean
           has_registrar_certification?: boolean
+          has_resume?: boolean
+          has_spes_form?: boolean
           id?: string
           middle_name?: string | null
           mother_contact_no?: string | null
@@ -686,11 +698,15 @@ export type Database = {
           father_occupation: string | null
           first_name: string
           gsis_beneficiary_relationship: string | null
+          has_application_letter: boolean
           has_birth_certificate: boolean
           has_income_proof: boolean
           has_osy_certification: boolean
           has_passing_grade_proof: boolean
+          has_passport_photo: boolean
           has_registrar_certification: boolean
+          has_resume: boolean
+          has_spes_form: boolean
           id: string
           middle_name: string | null
           mother_contact_no: string | null
@@ -900,6 +916,98 @@ export type Database = {
         }
         Relationships: []
       }
+      data_subject_requests: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          profile_id: string | null
+          request_type: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          profile_id?: string | null
+          request_type: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          profile_id?: string | null
+          request_type?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_subject_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_subject_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_consents: {
+        Row: {
+          granted_at: string
+          id: number
+          notice_version: string
+          profile_id: string
+          purpose: string
+          source: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          granted_at?: string
+          id?: never
+          notice_version: string
+          profile_id: string
+          purpose: string
+          source?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          granted_at?: string
+          id?: never
+          notice_version?: string
+          profile_id?: string
+          purpose?: string
+          source?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_consents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_media: {
         Row: {
           alt_text: string | null
@@ -1095,10 +1203,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_privacy_notice: { Args: { p_purposes: string[] }; Returns: Json }
       admin_delete_account: {
         Args: { p_profile_id: string }
         Returns: undefined
       }
+      admin_list_data_subject_requests: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          created_at: string
+          details: string
+          id: string
+          profile_id: string
+          request_type: string
+          requester_email: string
+          requester_name: string
+          requester_role: string
+          resolution_note: string
+          resolved_at: string
+          status: string
+          total_count: number
+        }[]
+      }
+      admin_update_data_subject_request: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: undefined
+      }
+      collect_personal_data: {
+        Args: {
+          p_depth: number
+          p_result: Json
+          p_table: unknown
+          p_where: string
+        }
+        Returns: Json
+      }
+      data_subject_request_label: { Args: { p_type: string }; Returns: string }
+      export_my_data: { Args: never; Returns: Json }
       get_user_emails: {
         Args: never
         Returns: {
@@ -1108,10 +1249,18 @@ export type Database = {
       }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
       is_authorship_column: { Args: { p_column: string }; Returns: boolean }
+      my_privacy_status: { Args: never; Returns: Json }
+      privacy_notice_version: { Args: never; Returns: string }
       purge_rows: {
         Args: { p_depth?: number; p_table: unknown; p_where: string }
         Returns: undefined
       }
+      required_privacy_purposes: { Args: { p_role: string }; Returns: string[] }
+      submit_data_subject_request: {
+        Args: { p_details?: string; p_type: string }
+        Returns: string
+      }
+      withdraw_privacy_consent: { Args: { p_purpose: string }; Returns: Json }
     }
     Enums: {
       gender_type:
@@ -1153,15 +1302,18 @@ export type Database = {
           company_description: string | null
           company_email: string | null
           company_name: string
+          cover_photo_path: string | null
           created_at: string
           employee_count: number | null
           id: string
           industry: string | null
           latitude: number | null
+          logo_path: string | null
           longitude: number | null
           profile_id: string | null
           registration_number: string | null
           updated_at: string
+          verification_remarks: string | null
           verification_status: Database["public"]["Enums"]["status_type"] | null
           website: string | null
         }
@@ -1172,15 +1324,18 @@ export type Database = {
           company_description?: string | null
           company_email?: string | null
           company_name: string
+          cover_photo_path?: string | null
           created_at?: string
           employee_count?: number | null
           id?: string
           industry?: string | null
           latitude?: number | null
+          logo_path?: string | null
           longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
           updated_at?: string
+          verification_remarks?: string | null
           verification_status?:
             | Database["public"]["Enums"]["status_type"]
             | null
@@ -1193,15 +1348,18 @@ export type Database = {
           company_description?: string | null
           company_email?: string | null
           company_name?: string
+          cover_photo_path?: string | null
           created_at?: string
           employee_count?: number | null
           id?: string
           industry?: string | null
           latitude?: number | null
+          logo_path?: string | null
           longitude?: number | null
           profile_id?: string | null
           registration_number?: string | null
           updated_at?: string
+          verification_remarks?: string | null
           verification_status?:
             | Database["public"]["Enums"]["status_type"]
             | null
@@ -1209,13 +1367,66 @@ export type Database = {
         }
         Relationships: []
       }
+      company_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          member_role: string
+          status: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          member_role: string
+          status?: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          member_role?: string
+          status?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_members: {
         Row: {
           company_id: string | null
           created_at: string
           id: number
+          member_role: string | null
           profile_id: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
           status: Database["public"]["Enums"]["status_type"] | null
           updated_at: string
         }
@@ -1223,8 +1434,8 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: number
+          member_role?: string | null
           profile_id?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string
         }
@@ -1232,14 +1443,55 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: number
+          member_role?: string | null
           profile_id?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
           status?: Database["public"]["Enums"]["status_type"] | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_team_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          full_name: string
+          id: string
+          photo_path: string | null
+          position: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          full_name: string
+          id?: string
+          photo_path?: string | null
+          position?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          photo_path?: string | null
+          position?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_team_members_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -1468,8 +1720,98 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_company_invitation: {
+        Args: {
+          p_contact_number?: string
+          p_firstname: string
+          p_lastname: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      find_unclaimed_establishments: {
+        Args: { p_business_name: string; p_tin: string }
+        Returns: {
+          business_name: string
+          city_municipality: string
+          id: string
+          province: string
+          trade_name: string
+        }[]
+      }
+      get_company_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          company_name: string
+          email: string
+          has_account: boolean
+          is_expired: boolean
+          member_role: string
+        }[]
+      }
+      hash_invitation_token: { Args: { p_token: string }; Returns: string }
+      invite_company_member: {
+        Args: { p_email: string; p_member_role: string }
+        Returns: {
+          invitation_id: string
+          token: string
+        }[]
+      }
       is_company_member: { Args: { p_company_id: string }; Returns: boolean }
       is_company_owner: { Args: { p_company_id: string }; Returns: boolean }
+      list_company_members: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          joined_at: string
+          member_id: number
+          member_role: string
+          profile_id: string
+          status: string
+        }[]
+      }
+      new_invitation_token: { Args: never; Returns: string }
+      register_company_establishment: {
+        Args: {
+          p_company_id: string
+          p_establishment_id?: string
+          p_form: Json
+        }
+        Returns: string
+      }
+      remove_company_member: {
+        Args: { p_member_id: number }
+        Returns: undefined
+      }
+      remove_company_members: {
+        Args: { p_member_ids: number[] }
+        Returns: number
+      }
+      review_company_verification: {
+        Args: {
+          p_company_id: string
+          p_remarks?: string
+          p_status: Database["core"]["Enums"]["status_type"]
+        }
+        Returns: undefined
+      }
+      review_employer_requirement: {
+        Args: {
+          p_remarks?: string
+          p_requirement_id: number
+          p_status: Database["core"]["Enums"]["status_type"]
+        }
+        Returns: undefined
+      }
+      revoke_company_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      set_member_account_access: {
+        Args: { p_enabled: boolean; p_profile_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2579,33 +2921,42 @@ export type Database = {
       tupad_applicants: {
         Row: {
           applicant_id: string
+          applied_online: boolean
           created_at: string
           dependent_name: string | null
           doc_submitted: string[]
           id: string
           monthly_income: number | null
+          orientation_at: string | null
+          orientation_note: string | null
           status: string
           status_remarks: string | null
           updated_at: string
         }
         Insert: {
           applicant_id: string
+          applied_online?: boolean
           created_at?: string
           dependent_name?: string | null
           doc_submitted?: string[]
           id?: string
           monthly_income?: number | null
+          orientation_at?: string | null
+          orientation_note?: string | null
           status?: string
           status_remarks?: string | null
           updated_at?: string
         }
         Update: {
           applicant_id?: string
+          applied_online?: boolean
           created_at?: string
           dependent_name?: string | null
           doc_submitted?: string[]
           id?: string
           monthly_income?: number | null
+          orientation_at?: string | null
+          orientation_note?: string | null
           status?: string
           status_remarks?: string | null
           updated_at?: string
@@ -2828,6 +3179,29 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "gip_applicants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_to_tupad: {
+        Args: never
+        Returns: {
+          applicant_id: string
+          applied_online: boolean
+          created_at: string
+          dependent_name: string | null
+          doc_submitted: string[]
+          id: string
+          monthly_income: number | null
+          orientation_at: string | null
+          orientation_note: string | null
+          status: string
+          status_remarks: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tupad_applicants"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3880,6 +4254,27 @@ export type Database = {
         }
         Relationships: []
       }
+      retention_policies: {
+        Row: {
+          data_category: string
+          description: string
+          keep_days: number
+          updated_at: string
+        }
+        Insert: {
+          data_category: string
+          description: string
+          keep_days: number
+          updated_at?: string
+        }
+        Update: {
+          data_category?: string
+          description?: string
+          keep_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_contents: {
         Row: {
           announcement_id: string | null
@@ -3960,34 +4355,43 @@ export type Database = {
       system_audit_logs: {
         Row: {
           action: string | null
+          actor_role: string | null
+          changed_columns: string[] | null
           created_at: string
           id: number
           ip_address: string | null
           new_values: Json | null
           old_values: Json | null
           record_id: string | null
+          subject_profile_id: string | null
           table_name: string | null
           user_id: string | null
         }
         Insert: {
           action?: string | null
+          actor_role?: string | null
+          changed_columns?: string[] | null
           created_at?: string
           id?: never
           ip_address?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
+          subject_profile_id?: string | null
           table_name?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string | null
+          actor_role?: string | null
+          changed_columns?: string[] | null
           created_at?: string
           id?: never
           ip_address?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
+          subject_profile_id?: string | null
           table_name?: string | null
           user_id?: string | null
         }
@@ -4002,6 +4406,7 @@ export type Database = {
         Args: { p_applicant_id: string }
         Returns: string
       }
+      apply_retention_policies: { Args: never; Returns: Json }
       company_profile_id: { Args: { p_company_id: string }; Returns: string }
       current_audience: {
         Args: never
@@ -4020,6 +4425,15 @@ export type Database = {
       is_staff_only_program_status: {
         Args: { p_status: string }
         Returns: boolean
+      }
+      log_personal_data_access: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_record_id?: string
+          p_table: string
+        }
+        Returns: undefined
       }
       notify: {
         Args: {
@@ -4044,6 +4458,17 @@ export type Database = {
         Returns: string
       }
       unread_announcement_count: { Args: never; Returns: number }
+      write_audit_log: {
+        Args: {
+          p_action: string
+          p_changed_columns?: string[]
+          p_details?: Json
+          p_record_id: string
+          p_subject_profile_id: string
+          p_table: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       agsur_municipality:
