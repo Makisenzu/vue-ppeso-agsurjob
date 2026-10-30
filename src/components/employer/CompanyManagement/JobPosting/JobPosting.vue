@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -20,10 +19,6 @@ import {
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
-import JobVacancyFields from '@/components/JobVacancyFields.vue'
-import JobPostingAttachmentsField from '@/components/employer/CompanyManagement/JobPosting/JobPostingAttachmentsField.vue'
-import JobPostingRequirementsField from '@/components/employer/CompanyManagement/JobPosting/JobPostingRequirementsField.vue'
-import { Separator } from '@/components/ui/separator'
 import { useJobPostings } from '@/composables/employer/useJobPostings'
 
 /** Job Posting page (owner only): the company's vacancies, shown to applicants and PESO */
@@ -58,21 +53,7 @@ const {
   isBulkDeleteOpen,
   isBulkDeleting,
   confirmBulkDelete,
-  isFormOpen,
-  isEditMode,
-  formTitle,
-  isSaving,
   openCreate,
-  onFormOpenChange,
-  submitPosting,
-  attachmentItems,
-  attachmentError,
-  attachmentRemainingSlots,
-  attachmentAccept,
-  attachmentMaxSizeMB,
-  attachmentMaxFiles,
-  addAttachments,
-  removeAttachment,
 } = useJobPostings()
 </script>
 
@@ -228,44 +209,6 @@ const {
       </template>
     </section>
   </div>
-
-  <!-- Post / Edit (long form: Sheet, DESIGN.md 5.1) -->
-  <Sheet :open="isFormOpen" @update:open="onFormOpenChange">
-    <SheetContent class="flex h-full w-full flex-col p-0 sm:max-w-2xl">
-      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
-        <SheetTitle>{{ formTitle }}</SheetTitle>
-        <SheetDescription>Applicants and PESO see every detail you enter here.</SheetDescription>
-      </SheetHeader>
-
-      <form class="contents" @submit="submitPosting">
-        <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
-          <JobVacancyFields :disabled="isSaving" />
-          <Separator />
-          <JobPostingRequirementsField :disabled="isSaving" />
-          <Separator />
-          <JobPostingAttachmentsField
-            :items="attachmentItems"
-            :remaining-slots="attachmentRemainingSlots"
-            :max-files="attachmentMaxFiles"
-            :max-size-mb="attachmentMaxSizeMB"
-            :accept="attachmentAccept"
-            :error="attachmentError"
-            :disabled="isSaving"
-            @add="addAttachments"
-            @remove="removeAttachment"
-          />
-        </div>
-
-        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
-          <Button type="button" variant="outline" :disabled="isSaving" @click="onFormOpenChange(false)">Cancel</Button>
-          <Button type="submit" :disabled="isSaving">
-            <Loader2 v-if="isSaving" class="size-4 animate-spin" />
-            {{ isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Post Job' }}
-          </Button>
-        </div>
-      </form>
-    </SheetContent>
-  </Sheet>
 
   <!-- Delete one -->
   <AlertDialog v-model:open="isDeleteOpen">

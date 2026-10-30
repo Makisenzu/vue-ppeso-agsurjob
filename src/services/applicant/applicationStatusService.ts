@@ -12,6 +12,7 @@ type VacancyApplicationLookupRow = {
   created_at: string
   updated_at: string
   job_vacancies: { position_title: string } | null
+  job_vacancy_stages: { stage_name: string } | null
 }
 
 /**
@@ -41,7 +42,9 @@ export const applicationStatusService = {
       (supabase as unknown as SupabaseClient)
         .schema('esmdd')
         .from('job_vacancy_applications')
-        .select('id, job_vacancy_id, stage, status_remarks, created_at, updated_at, job_vacancies(position_title)')
+        .select(
+          'id, job_vacancy_id, stage, status_remarks, created_at, updated_at, job_vacancies(position_title), job_vacancy_stages!stage_id(stage_name)',
+        )
         .eq('applicant_id', applicantId),
     ])
 
@@ -92,9 +95,10 @@ export const applicationStatusService = {
         }
       }),
       tupad: (tupad.data ?? []).map(({ tupad: batches, ...row }) => ({ ...row, isDeployed: (batches ?? []).length > 0 })),
-      vacancies: ((vacancies.data ?? []) as unknown as VacancyApplicationLookupRow[]).map(({ job_vacancies, ...row }) => ({
+      vacancies: ((vacancies.data ?? []) as unknown as VacancyApplicationLookupRow[]).map(({ job_vacancies, job_vacancy_stages, ...row }) => ({
         ...row,
         position_title: job_vacancies?.position_title ?? 'Job vacancy',
+        stage_name: job_vacancy_stages?.stage_name ?? null,
       })),
     }
   },

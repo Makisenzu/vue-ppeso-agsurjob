@@ -1,13 +1,19 @@
 import { format, isValid, parseISO } from 'date-fns'
 import { VACANCY_STATUSES, type JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 import * as z from 'zod'
-import type { JobPostingRequirementValue, JobPostingStatusFilter } from '@/types/employer/jobPosting'
+import type { JobPostingRequirementValue, JobPostingStageValue, JobPostingStatusFilter } from '@/types/employer/jobPosting'
 import {
+  DEFAULT_HIRING_STAGES,
   DEFAULT_VACANCY_REQUIREMENTS,
+  HIRING_STAGE_NAME_MAX_LENGTH,
+  MAX_HIRING_STAGES,
+  MIN_HIRING_STAGES,
   JOB_APPLICATION_NSRP_DOCUMENT,
   MAX_VACANCY_REQUIREMENTS,
   REQUIREMENT_NAME_MAX_LENGTH,
   type JobVacancyRequirement,
+  type JobVacancyStage,
+  type JobVacancyStageInput,
 } from '@/types/common/jobVacancyApplication'
 import type { SearchSelectOption } from '@/types/common/searchSelect'
 
@@ -59,7 +65,9 @@ export function isJobPostingExpired(validUntil: string | null | undefined, today
 
 /** Generic messages only (SECURITY.md): a hire or an applicant on the posting blocks deleting it (087) */
 export function toJobPostingErrorMessage(error: unknown, fallback: string): string {
-  const code = (error as { code?: string } | null)?.code
+  const { code, message } = (error ?? {}) as { code?: string; message?: string }
+  // Written for the employer by migration 089 (a step with applicants, duplicate / missing steps)
+  if (message && /hiring step/i.test(message)) return message
   if (code === '23503') return 'A posting with applicants or hires cannot be deleted. Close it instead.'
   if (code === '42501') return 'Only the company owner can change job postings.'
   if (code === '22023') return 'Add a position title, 1 to 30 skills and 1 to 15 requirements.'
@@ -98,4 +106,31 @@ export function toJobPostingRequirementValues(
 /** Form values as esmdd.save_job_vacancy's p_requirements, in the employer's order */
 export function toJobVacancyRequirements(values: readonly JobPostingRequirementValue[]): JobVacancyRequirement[] {
   return values.map((item) => ({ requirement_name: cleanRequirementInput(item.name), is_required: item.isRequired }))
+}
+
+// ─── Hiring steps (migration 089) ───
+
+/** 2–12 steps with distinct names of 2–60 characters; the last one means hired */
+export const jobPostingStagesSchema = z
+  .array(z.object({ id: z.string().nullable(), name: z.string() }))
+  .min(MIN_HIRING_STAGES, `Add at least ${MIN_HIRING_STAGES} hiring steps.`)
+  .max(MAX_HIRING_STAGES, `Up to ${MAX_HIRING_STAGES} hiring steps.`)
+  .refine(
+    (items) => items.every((item) => cleanRequirementInput(item.name).length >= 2 && item.name.length <= HIRING_STAGE_NAME_MAX_LENGTH),
+    `Give every step a name of 2 to ${HIRING_STAGE_NAME_MAX_LENGTH} characters.`,
+  )
+  .refine(
+    (items) => new Set(items.map((item) => toRequirementKey(item.name))).size === items.length,
+    'Each hiring step can only be listed once.',
+  )
+
+/** Saved steps as form values; a new posting starts with the default steps */
+export function toJobPostingStageValues(stages?: readonly JobVacancyStage[]): JobPostingStageValue[] {
+  if (!stages?.length) return DEFAULT_HIRING_STAGES.map((name) => ({ id: null, name }))
+  return [...stages].sort((a, b) => a.sort_order - b.sort_order).map((step) => ({ id: step.id, name: step.stage_name }))
+}
+
+/** Form values as esmdd.save_job_vacancy's p_stages, in the employer's order */
+export function toJobVacancyStages(values: readonly JobPostingStageValue[]): JobVacancyStageInput[] {
+  return values.map((item) => ({ id: item.id, stage_name: cleanRequirementInput(item.name) }))
 }

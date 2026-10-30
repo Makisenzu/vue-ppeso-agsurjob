@@ -64,6 +64,19 @@ export const employerRoutes: RouteRecordRaw[] = [
         meta: { breadcrumb: 'Job Posting', role: 'company_owner' },
       },
       {
+        // Posting form as its own page with a stepper (details, requirements, hiring steps, review)
+        path: 'job-postings/new',
+        name: 'job-posting-new',
+        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
+        meta: { breadcrumb: 'Post a Job', role: 'company_owner' },
+      },
+      {
+        path: 'job-postings/:vacancyId/edit',
+        name: 'job-posting-edit',
+        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
+        meta: { breadcrumb: 'Edit Job Posting', role: 'company_owner' },
+      },
+      {
         // Owner and members review applicants (esmdd.can_review_job_vacancy, migration 087)
         path: 'job-applicants',
         name: 'job-applicants',

@@ -62,7 +62,7 @@ export function useApplicantVacancies() {
         countdown,
         postedAgo: describePosted(row.posting_date),
         hasApplied: !!row.my_application_id,
-        stageLabel: row.my_application_id ? getJobApplicationStageLabel(row.my_stage) : null,
+        stageLabel: row.my_application_id ? getJobApplicationStageLabel(row.my_stage, row.my_stage_name) : null,
         stageClass: row.my_stage ? JOB_APPLICATION_STAGE_BADGE_CLASS[row.my_stage] : '',
         to: { name: 'vacancy-application-form', params: { vacancyId: row.id } },
       }

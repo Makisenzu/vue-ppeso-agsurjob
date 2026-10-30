@@ -15,15 +15,16 @@ import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipAppl
 import { formatJobPostingDate, getJobPostingStatusLabel } from '@/helpers/employer/jobPostingHelper'
 import {
   JOB_APPLICATION_STAGE_BADGE_CLASS,
-  JOB_APPLICATION_STAGE_LABELS,
   getJobApplicationStageLabel,
-  isJobApplicationStage,
   jobApplicationCode,
   toJobApplicationRequirements,
 } from '@/helpers/common/jobVacancyApplicationHelper'
-import { JOB_APPLICATION_STAGE_OPTIONS, isApplicantStageFilter } from '@/helpers/employer/jobApplicantHelper'
-import { JOB_APPLICATION_STAGES, type JobApplicationStage } from '@/types/common/jobVacancyApplication'
-import type { ApplicantStageFilter, VacancyApplicantRow } from '@/types/employer/jobApplicant'
+import { toApplicantMoveOptions } from '@/helpers/employer/jobApplicantHelper'
+import type { ApplicantStageFilter, VacancyApplicantRow, VacancyApplicationDetails } from '@/types/employer/jobApplicant'
+
+/** Where an application sits, as the "Move to" dropdown names it: 'applied', 'rejected' or the step id */
+const currentTarget = (application: Pick<VacancyApplicationDetails, 'stage' | 'stage_id'>): ApplicantStageFilter =>
+  application.stage === 'rejected' ? 'rejected' : (application.stage_id ?? 'applied')
 
 /**
  * Applicants of one job posting: stage counts, server-paged list, review sheet with the applicant's
@@ -68,25 +69,22 @@ export function useVacancyApplicants() {
     }
   })
 
-  // ─── Stage chips: click to filter ───
+  // ─── Step chips: click to filter (All, New, the employer's hiring steps, Not selected) ───
+  const steps = computed(() => [...(vacancy.value?.stages ?? [])].sort((a, b) => a.sort_order - b.sort_order))
+
   const stageCards = computed(() => [
-    { key: 'all' as const, label: 'All', value: stageCounts.value.all },
-    ...JOB_APPLICATION_STAGES.map((stage) => ({
-      key: stage,
-      label: JOB_APPLICATION_STAGE_LABELS[stage],
-      value: stageCounts.value[stage],
+    { key: 'all', label: 'All', value: stageCounts.value.all },
+    { key: 'applied', label: 'New', value: stageCounts.value.applied },
+    ...steps.value.map((step, index) => ({
+      key: step.id,
+      label: `${index + 1}. ${step.stage_name}`,
+      value: stageCounts.value.byStep[step.id] ?? 0,
     })),
+    { key: 'rejected', label: 'Not selected', value: stageCounts.value.rejected },
   ])
 
-  const stageFilterModel = computed({
-    get: () => stageFilter.value,
-    set: (value: unknown) => {
-      if (isApplicantStageFilter(value)) store.setStageFilter(value)
-    },
-  })
-
   const selectStage = (key: ApplicantStageFilter) => {
-    stageFilterModel.value = stageFilter.value === key ? 'all' : key
+    void store.setStageFilter(stageFilter.value === key ? 'all' : key)
   }
 
   // ─── Search (debounced, server side) ───
@@ -109,7 +107,7 @@ export function useVacancyApplicants() {
   /** Mobile card: name, then stage · municipality · date applied */
   const getRowCard = (row: VacancyApplicantRow): SwipeCard => ({
     title: row.full_name,
-    subtitle: [getJobApplicationStageLabel(row.stage), row.municipality, `Applied ${formatGipDate(row.created_at)}`]
+    subtitle: [getJobApplicationStageLabel(row.stage, row.stage_name), row.municipality, `Applied ${formatGipDate(row.created_at)}`]
       .filter(Boolean)
       .join(' · '),
   })
@@ -139,10 +137,10 @@ export function useVacancyApplicants() {
     },
     {
       id: 'stage',
-      header: 'Stage',
+      header: 'Step',
       cell: ({ row }) =>
         h(Badge, { variant: 'outline', class: JOB_APPLICATION_STAGE_BADGE_CLASS[row.original.stage] }, () =>
-          getJobApplicationStageLabel(row.original.stage),
+          getJobApplicationStageLabel(row.original.stage, row.original.stage_name),
         ),
     },
     {
@@ -197,11 +195,13 @@ export function useVacancyApplicants() {
   const nextPage = () => store.setPage(page.value + 1)
 
   // ─── Review sheet ───
-  const stage = ref<JobApplicationStage>('applied')
+  /** 'applied', 'rejected' or a hiring step id; Not selected needs remarks */
+  const stage = ref<ApplicantStageFilter>('applied')
+  const stageOptions = computed(() => toApplicantMoveOptions(steps.value))
   const stageModel = computed({
     get: () => stage.value,
     set: (value: unknown) => {
-      if (isJobApplicationStage(value)) stage.value = value
+      if (typeof value === 'string' && stageOptions.value.some((option) => option.value === value)) stage.value = value
     },
   })
   const { remarks, remarksError, isRemarksRequired, remarksToSave, validateRemarks, resetRemarks } =
@@ -210,7 +210,7 @@ export function useVacancyApplicants() {
   // Load the opened application's stage and remarks each time the sheet opens
   watch(isDetailOpen, (open) => {
     if (!open || !selectedApplication.value) return
-    stage.value = selectedApplication.value.stage
+    stage.value = currentTarget(selectedApplication.value)
     resetRemarks(selectedApplication.value.status_remarks)
   })
 
@@ -233,7 +233,7 @@ export function useVacancyApplicants() {
   const hasStageChange = computed(
     () =>
       !!selectedApplication.value &&
-      (stage.value !== selectedApplication.value.stage ||
+      (stage.value !== currentTarget(selectedApplication.value) ||
         (stage.value === 'rejected' && remarksToSave.value !== (selectedApplication.value.status_remarks ?? null))),
   )
 
@@ -244,7 +244,8 @@ export function useVacancyApplicants() {
 
   async function saveStage() {
     if (!hasStageChange.value || !validateRemarks()) return
-    await store.updateStage(stage.value, remarksToSave.value)
+    const label = String(stageOptions.value.find((option) => option.value === stage.value)?.label ?? 'the new step')
+    await store.updateStage(stage.value, label.replace(/^\d+\. /, ''), remarksToSave.value)
   }
 
   // Another posting reuses the page: load its applicants
@@ -265,7 +266,7 @@ export function useVacancyApplicants() {
     // Stage chips & toolbar
     stageCards,
     selectStage,
-    stageFilter: stageFilterModel,
+    stageFilter,
     searchInput,
     hasFilters,
     clearFilters,
@@ -286,7 +287,7 @@ export function useVacancyApplicants() {
     isDetailOpen,
     review,
     stage: stageModel,
-    stageOptions: JOB_APPLICATION_STAGE_OPTIONS,
+    stageOptions,
     remarks,
     remarksError,
     isRemarksRequired,

@@ -15,6 +15,7 @@ import {
   JOB_APPLICATION_STAGE_DESCRIPTIONS,
   getJobApplicationStageLabel,
   jobApplicationCode,
+  toHiringProgress,
   toJobApplicationRequirements,
   validateJobApplicationAttachment,
 } from '@/helpers/common/jobVacancyApplicationHelper'
@@ -32,15 +33,6 @@ export const JOB_APPLICATION_WIZARD_STEPS = [
   { key: 'details', title: 'Your details', description: 'Check the details the employer will see.' },
   { key: 'requirements', title: 'Requirements', description: 'Attach a PDF of each requirement.' },
   { key: 'review', title: 'Review & submit', description: 'Check your files, then submit.' },
-] as const
-
-/** Steps the employer moves an application through, in order */
-const PROGRESS_STAGES = [
-  { stage: 'applied', title: 'Submitted' },
-  { stage: 'screening', title: 'Screening' },
-  { stage: 'interview', title: 'Interview' },
-  { stage: 'offered', title: 'Offer' },
-  { stage: 'hired', title: 'Hired' },
 ] as const
 
 const plural = (count: number, unit: string) => `${count} ${unit}${count === 1 ? '' : 's'}`
@@ -257,6 +249,8 @@ export function useJobVacancyApplicationForm() {
         .join(' · '),
       description: row.job_description?.trim() || null,
       skills: row.skills,
+      /** The employer's hiring steps, shown before applying so the applicant knows what's ahead */
+      hiringSteps: row.stages.map((step) => step.stage_name),
       /** What to prepare before applying: the employer's requirements */
       documents: toJobApplicationRequirements(row.requirements),
       attachments: row.attachments,
@@ -282,7 +276,11 @@ export function useJobVacancyApplicationForm() {
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
   const stage = computed(() => myApplication.value?.stage ?? 'applied')
-  const stageLabel = computed(() => getJobApplicationStageLabel(stage.value))
+  /** Name of the hiring step the applicant is at */
+  const stepName = computed(
+    () => vacancy.value?.stages.find((step) => step.id === myApplication.value?.stage_id)?.stage_name ?? null,
+  )
+  const stageLabel = computed(() => getJobApplicationStageLabel(stage.value, stepName.value))
   const stageClass = computed(() => JOB_APPLICATION_STAGE_BADGE_CLASS[stage.value])
   const stageDescription = computed(() => JOB_APPLICATION_STAGE_DESCRIPTIONS[stage.value])
   const statusRemarks = computed(() => (stage.value === 'rejected' ? (myApplication.value?.status_remarks ?? null) : null))
@@ -344,21 +342,10 @@ export function useJobVacancyApplicationForm() {
   )
 
   // ─── Progress tracker (after applying) ───
-  const progressSteps = computed<GipProgressStep[]>(() => {
-    if (stage.value === 'rejected') {
-      return [
-        { title: 'Submitted', state: 'completed' },
-        { title: 'Reviewed', state: 'completed' },
-        { title: 'Not selected', state: 'rejected' },
-      ]
-    }
-    const current = PROGRESS_STAGES.findIndex((step) => step.stage === stage.value)
-    return PROGRESS_STAGES.map((step, index) => ({
-      title: step.title,
-      // Hired is the last step: done, not in progress
-      state: index < current || (index === current && step.stage === 'hired') ? 'completed' : index === current ? 'active' : 'upcoming',
-    }))
-  })
+  /** Submitted, then the employer's hiring steps for this vacancy (migration 089) */
+  const progressSteps = computed<GipProgressStep[]>(() =>
+    toHiringProgress(vacancy.value?.stages ?? [], stage.value, myApplication.value?.stage_id ?? null),
+  )
 
   const reload = async () => {
     if (!applicantId.value || !vacancyId.value) return

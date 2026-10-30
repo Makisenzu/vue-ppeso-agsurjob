@@ -1,9 +1,7 @@
 import { computed, h, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
 import { watchDebounced } from '@vueuse/core'
-import * as z from 'zod'
 import type { ColumnDef, RowSelectionState } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
 import { CheckCircle2, MoreHorizontal, Pencil, RotateCcw, Trash2, XCircle } from '@lucide/vue'
@@ -22,15 +20,6 @@ import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useAuthStore } from '@/stores/common/auth'
 import { useJobPostingStore } from '@/stores/employer/jobPostingStore'
-import { useJobPostingAttachments } from '@/composables/employer/useJobPostingAttachments'
-import {
-  EMPTY_JOB_VACANCY_FORM_VALUES,
-  jobVacancyFormShape,
-  refineCompleteJobVacancyForm,
-  toJobVacancyFields,
-  toJobVacancyFormValues,
-  toJobVacancyMatching,
-} from '@/helpers/common/jobVacancyHelper'
 import { toReviewStatus } from '@/helpers/common/companyRequirementHelper'
 import {
   JOB_POSTING_STATUS_FILTER_OPTIONS,
@@ -39,20 +28,9 @@ import {
   getJobPostingStatusVariant,
   isJobPostingExpired,
   isJobPostingStatusFilter,
-  jobPostingRequirementsSchema,
-  toJobPostingRequirementValues,
-  toJobVacancyRequirements,
 } from '@/helpers/employer/jobPostingHelper'
 import type { JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
-import type { JobPostingFormValues, JobPostingListRow, JobPostingStatusFilter } from '@/types/employer/jobPosting'
-
-/**
- * Every job_vacancies field is required, as on PESO's vacancy forms, including the skills used for matching,
- * plus the documents applicants submit (employer postings only, migration 088)
- */
-const jobPostingSchema = toTypedSchema(
-  z.object({ ...jobVacancyFormShape, requirements: jobPostingRequirementsSchema }).superRefine(refineCompleteJobVacancyForm),
-)
+import type { JobPostingListRow, JobPostingStatusFilter } from '@/types/employer/jobPosting'
 
 /** Up to 3 skill names, then "+N" */
 function summarizeSkills(row: JobPostingListRow): string {
@@ -62,11 +40,10 @@ function summarizeSkills(row: JobPostingListRow): string {
   return names.length > 3 ? `${shown} +${names.length - 3}` : shown
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
-
-/** Job Posting page (owner only): stats, server-paged list, create / edit sheet, status changes, delete */
+/** Job Posting page (owner only): stats, server-paged list, status changes, delete; create / edit open their own page */
 export function useJobPostings() {
   const authStore = useAuthStore()
+  const router = useRouter()
   const store = useJobPostingStore()
   const {
     rows,
@@ -77,9 +54,6 @@ export function useJobPostings() {
     pageSize,
     isLoading,
     isLoadingStats,
-    isFormOpen,
-    editingPosting,
-    isSaving,
     busyId,
     isBulkDeleting,
   } = storeToRefs(store)
@@ -130,7 +104,7 @@ export function useJobPostings() {
   const requestDelete = (row: JobPostingListRow) => {
     postingToDelete.value = row
   }
-  const editPosting = (row: JobPostingListRow) => store.openEdit(row.id)
+  const editPosting = (row: JobPostingListRow) => router.push({ name: 'job-posting-edit', params: { vacancyId: row.id } })
   const setStatus = (row: JobPostingListRow, status: JobVacancyStatus) => store.setPostingStatus(row, status)
 
   /** Open postings can be filled or closed; any other status can be reopened */
@@ -334,54 +308,8 @@ export function useJobPostings() {
     if (await store.deletePostings([...selectedIds.value])) isBulkDeleteOpen.value = false
   }
 
-  // ─── Create / edit sheet ───
-  const { handleSubmit, resetForm } = useForm<JobPostingFormValues>({
-    validationSchema: jobPostingSchema,
-    initialValues: { ...EMPTY_JOB_VACANCY_FORM_VALUES, requirements: toJobPostingRequirementValues() },
-  })
-
-  const attachments = useJobPostingAttachments()
-
-  const isEditMode = computed(() => editingPosting.value !== null)
-  const formTitle = computed(() => (isEditMode.value ? 'Edit Job Posting' : 'Post a Job'))
-
-  // Load the selected posting (or blank values, starting today) each time the sheet opens
-  watch(isFormOpen, (open) => {
-    if (!open) return
-    attachments.resetAttachments(editingPosting.value?.attachments ?? [])
-    resetForm({
-      values: editingPosting.value
-        ? {
-            ...toJobVacancyFormValues(editingPosting.value, editingPosting.value),
-            requirements: toJobPostingRequirementValues(editingPosting.value.requirements),
-          }
-        : {
-            ...EMPTY_JOB_VACANCY_FORM_VALUES,
-            postingDate: todayIso(),
-            placeOfWork: authStore.employerProfile?.company_address ?? '',
-            requirements: toJobPostingRequirementValues(),
-          },
-    })
-  })
-
-  const onFormOpenChange = (open: boolean) => {
-    if (open || isSaving.value) return
-    store.closeForm()
-  }
-
-  const submitPosting = handleSubmit(async (values) => {
-    const matching = toJobVacancyMatching(values)
-    await store.savePosting({
-      vacancy: {
-        ...toJobVacancyFields(values),
-        vacancy_count: values.vacancyCount,
-        status: values.status,
-        related_courses: matching.related_courses,
-      },
-      skills: matching.skills,
-      requirements: toJobVacancyRequirements(values.requirements),
-    }, attachments.attachmentChanges.value)
-  })
+  // ─── Create / edit: their own page with a stepper (JobPostingForm.vue) ───
+  const openCreate = () => router.push({ name: 'job-posting-new' })
 
   onMounted(async () => {
     await authStore.init()
@@ -424,22 +352,7 @@ export function useJobPostings() {
     isBulkDeleteOpen,
     isBulkDeleting,
     confirmBulkDelete,
-    // Sheet
-    isFormOpen,
-    isEditMode,
-    formTitle,
-    isSaving,
-    openCreate: store.openCreate,
-    onFormOpenChange,
-    submitPosting,
-    // Attachments (optional, staged until save)
-    attachmentItems: attachments.attachmentItems,
-    attachmentError: attachments.attachmentError,
-    attachmentRemainingSlots: attachments.remainingSlots,
-    attachmentAccept: attachments.attachmentAccept,
-    attachmentMaxSizeMB: attachments.attachmentMaxSizeMB,
-    attachmentMaxFiles: attachments.attachmentMaxFiles,
-    addAttachments: attachments.addAttachments,
-    removeAttachment: attachments.removeAttachment,
+    // Create
+    openCreate,
   }
 }

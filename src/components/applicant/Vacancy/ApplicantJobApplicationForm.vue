@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Check, ChevronDown, FileText, Loader2, Paperclip, Send, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, FileText, Loader2, Paperclip, Send, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -126,6 +126,15 @@ const INDICATOR_CLASS =
               <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
             </div>
           </dl>
+          <div v-if="job.hiringSteps.length" class="flex flex-col gap-2">
+            <h3 class="text-xs font-medium text-muted-foreground uppercase">Hiring process</h3>
+            <ol class="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-foreground">
+              <li v-for="(step, index) in job.hiringSteps" :key="step" class="inline-flex items-center gap-1">
+                <span class="rounded-md bg-muted px-2 py-1 text-xs">{{ index + 1 }}. {{ step }}</span>
+                <ChevronRight v-if="index !== job.hiringSteps.length - 1" class="size-3.5 text-muted-foreground" aria-hidden="true" />
+              </li>
+            </ol>
+          </div>
           <div class="flex flex-col gap-2">
             <h3 class="text-xs font-medium text-muted-foreground uppercase">Skills</h3>
             <p v-if="!job.skills.length" class="text-sm text-foreground">Not required</p>
@@ -281,22 +290,24 @@ const INDICATOR_CLASS =
 
       <!-- ═══ Applied: progress and details ═══ -->
       <form v-else class="flex flex-col gap-8" @submit.prevent="submit">
-        <!-- Read-only progress; Not selected shows in the destructive color -->
-        <ol class="flex w-full items-start gap-1 sm:gap-2" aria-label="Application progress">
+        <!-- Read-only progress through the employer's hiring steps; vertical on phones (up to 13 steps),
+             one row from md up. Not selected shows in the destructive color. -->
+        <ol class="flex w-full flex-col md:flex-row md:items-start md:gap-1" aria-label="Application progress">
           <li
             v-for="(step, index) in progressSteps"
-            :key="step.title"
-            class="relative flex flex-1 flex-col items-center gap-1.5"
+            :key="`${index}-${step.title}`"
+            class="relative flex min-w-0 flex-1 gap-3 pb-5 last:pb-0 md:flex-col md:items-center md:gap-1.5 md:pb-0"
             :aria-current="step.state === 'active' ? 'step' : undefined"
           >
+            <!-- Connector: down to the next step on phones, across on desktop -->
             <span
               v-if="index !== progressSteps.length - 1"
-              class="absolute top-4 right-[calc(-50%+14px)] left-[calc(50%+14px)] h-0.5 rounded-full sm:right-[calc(-50%+18px)] sm:left-[calc(50%+18px)]"
+              class="absolute top-8 bottom-0 left-3.5 w-0.5 rounded-full md:top-4 md:right-[calc(-50%+18px)] md:bottom-auto md:left-[calc(50%+18px)] md:h-0.5 md:w-auto"
               :class="step.state === 'completed' ? 'bg-primary' : 'bg-border'"
               aria-hidden="true"
             />
             <span
-              class="z-10 flex size-7 items-center justify-center rounded-full border text-xs font-semibold sm:size-8"
+              class="z-10 flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold md:size-8"
               :class="{
                 'border-primary bg-primary text-primary-foreground': step.state === 'completed',
                 'border-primary bg-background text-foreground ring-4 ring-primary/15': step.state === 'active',
@@ -309,7 +320,7 @@ const INDICATOR_CLASS =
               <span v-else>{{ index + 1 }}</span>
             </span>
             <span
-              class="text-center text-[11px] font-medium sm:text-xs"
+              class="pt-1 text-sm font-medium md:pt-0 md:text-center md:text-xs"
               :class="{
                 'text-foreground': step.state === 'active' || step.state === 'completed',
                 'text-destructive': step.state === 'rejected',

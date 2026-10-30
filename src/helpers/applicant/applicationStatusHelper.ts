@@ -22,12 +22,10 @@ function stageOf(status: string, isDeployed: boolean): ApplicationStage {
   return 'review'
 }
 
-/** Stage of a job application on the shared tracker: offered reads as approved, hired as placed */
+/** Status of a job application on the shared tracker: any hiring step reads as under review, hired as placed */
 const VACANCY_STAGES: Record<JobApplicationStage, ApplicationStage> = {
   applied: 'submitted',
-  screening: 'review',
-  interview: 'review',
-  offered: 'approved',
+  in_progress: 'review',
   hired: 'deployed',
   rejected: 'rejected',
 }
@@ -86,7 +84,7 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
       source: 'Job',
       title: row.position_title,
       reference: jobApplicationCode(row.id, row.created_at),
-      status: getJobApplicationStageLabel(row.stage),
+      status: getJobApplicationStageLabel(row.stage, row.stage_name),
       stage: VACANCY_STAGES[row.stage] ?? 'review',
       remarks: row.stage === 'rejected' ? row.status_remarks : null,
       appliedAt: row.created_at,

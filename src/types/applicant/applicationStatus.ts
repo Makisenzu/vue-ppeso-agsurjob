@@ -65,5 +65,7 @@ export interface MyProgramApplicationRows {
     created_at: string
     updated_at: string
     position_title: string
+    /** Name of the hiring step (migration 089) */
+    stage_name: string | null
   }[]
 }

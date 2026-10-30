@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { VACANCY_STATUSES, type JobVacancyRow, type JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 import { jobVacancyMatchingService } from '@/services/common/jobVacancyMatchingService'
 import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
+import { jobVacancyStageService } from '@/services/common/jobVacancyStageService'
 import {
   JOB_POSTING_LIST_COLUMNS,
   type JobPostingDetails,
@@ -61,22 +62,24 @@ export async function fetchJobPostingStats(establishmentId: string): Promise<Job
   )
 }
 
-/** Every field of one posting, its skills and requirements, for the edit form */
+/** Every field of one posting, its skills, requirements and hiring steps, for the edit form */
 export async function fetchJobPostingById(id: string): Promise<Omit<JobPostingDetails, 'attachments'>> {
-  const [{ data, error }, skills, requirements] = await Promise.all([
+  const [{ data, error }, skills, requirements, stages] = await Promise.all([
     vacancies().select('*').eq('id', id).single(),
     jobVacancyMatchingService.fetchSkillsByVacancy([id]),
     jobVacancyRequirementService.fetchRequirements(id),
+    jobVacancyStageService.fetchStages(id),
   ])
 
   if (error) throw error
   // related_courses (migration 085) is read untyped until types are regenerated
   const row = data as JobVacancyRow & { related_courses?: string[] | null }
-  return { ...row, skills: skills.get(id) ?? [], related_courses: row.related_courses ?? [], requirements }
+  return { ...row, skills: skills.get(id) ?? [], related_courses: row.related_courses ?? [], requirements, stages }
 }
 
 /**
- * Creates (id null) or updates a posting and replaces its skills and requirements in one transaction.
+ * Creates (id null) or updates a posting and replaces its skills, requirements and hiring steps in one
+ * transaction (esmdd.save_job_vacancy, migration 089).
  * The job_vacancies RLS still decides who may write (the RPC is SECURITY INVOKER).
  */
 export async function saveJobPosting(
@@ -90,6 +93,7 @@ export async function saveJobPosting(
     p_vacancy: payload.vacancy,
     p_skills: payload.skills,
     p_requirements: payload.requirements,
+    p_stages: payload.stages,
   })
 
   if (error) throw error

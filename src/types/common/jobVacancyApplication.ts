@@ -6,8 +6,11 @@ import type { ReusableProfileDocument } from '@/helpers/applicant/applicantRequi
  * Typed by hand until `npm run types:gen` is re-run; then derive the rows from database.types.ts.
  */
 
-/** In order; `rejected` can follow any stage */
-export const JOB_APPLICATION_STAGES = ['applied', 'screening', 'interview', 'offered', 'hired', 'rejected'] as const
+/**
+ * Status of an application (migration 089): applied (not reviewed yet), in_progress (at one of the
+ * vacancy's hiring steps), hired (at its last step) or rejected. The step itself is `stage_id`.
+ */
+export const JOB_APPLICATION_STAGES = ['applied', 'in_progress', 'hired', 'rejected'] as const
 export type JobApplicationStage = (typeof JOB_APPLICATION_STAGES)[number]
 
 export interface JobVacancyApplicationRow {
@@ -15,11 +18,43 @@ export interface JobVacancyApplicationRow {
   job_vacancy_id: string
   applicant_id: string
   stage: JobApplicationStage
+  /** The hiring step the applicant is at; null until reviewed. A rejected application keeps the step it stopped at. */
+  stage_id: string | null
   /** Why the employer rejected it; only set for `rejected` */
   status_remarks: string | null
   created_at: string
   updated_at: string
 }
+
+/**
+ * esmdd.job_vacancy_stages (migration 089): one hiring step of a vacancy, in order; the last one means
+ * hired. Typed by hand until `npm run types:gen` is re-run.
+ */
+export interface JobVacancyStage {
+  id: string
+  stage_name: string
+  sort_order: number
+}
+
+/** A step as the posting form edits it: id null for a step added in this edit */
+export type JobVacancyStageInput = { id: string | null; stage_name: string }
+
+/** What a new posting starts with (migration 089) */
+export const DEFAULT_HIRING_STAGES: readonly string[] = [
+  'Paper Screening',
+  'Qualified',
+  'Initial Exam',
+  'Technical Exam',
+  'Interview',
+  'Result',
+  'Appointed',
+  'Hired',
+]
+
+/** Same limits as esmdd.assert_job_vacancy_stages (migration 089) */
+export const MIN_HIRING_STAGES = 2
+export const MAX_HIRING_STAGES = 12
+export const HIRING_STAGE_NAME_MAX_LENGTH = 60
 
 /** PESO's form for its programs, job fairs and analytics; job applications don't use it, so employers can't ask for it */
 export const JOB_APPLICATION_NSRP_DOCUMENT = 'NSRP Form'

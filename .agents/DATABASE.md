@@ -731,6 +731,12 @@ never the NSRP Form, which is only for PESO programs, job fairs and analytics). 
 `esmdd.can_review_job_vacancy` (vacancy managers + company members); applicant names and details reach employers only
 through the SECURITY DEFINER RPCs `search_job_vacancy_applications` / `get_job_vacancy_application` (the latter
 audit-logs the view). The legacy int4 `jobs.job_applications` tables are unused.
+Hiring steps (migration `089_job_vacancy_hiring_stages.sql`): `esmdd.job_vacancy_stages` holds each vacancy's steps
+(2–12, employer-defined, default Paper Screening → Qualified → Initial Exam → Technical Exam → Interview → Result →
+Appointed → Hired; the last one means hired). `job_vacancy_applications.stage_id` is the applicant's step and `stage` is
+only the status (`applied` / `in_progress` / `hired` / `rejected`), derived from the step by the review guard. Moving to
+another step notifies the applicant. The employer saves the steps with the posting (`save_job_vacancy(… p_stages)`); a step
+that still holds applicants can't be removed.
 Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities`, and (058) `applicants.applicant_requirements`, `employers.employer_requirements` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
 Realtime (migration `054_notifications_realtime.sql`): the table is in the `supabase_realtime` publication; the app subscribes to INSERT / UPDATE filtered by `recipient_id` (`notificationService.subscribe`), RLS limits events to the recipient.
 

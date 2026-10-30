@@ -2,9 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
 import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
+import { jobVacancyStageService } from '@/services/common/jobVacancyStageService'
 import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
 import type {
   ApplicantStageCounts,
+  ApplicantStageFilter,
+  ApplicantStepCounts,
   ApplicantVacancySummary,
   VacancyApplicantPage,
   VacancyApplicantQuery,
@@ -21,11 +24,15 @@ const untypedEsmdd = () => (supabase as unknown as SupabaseClient).schema('esmdd
 const EMPTY_COUNTS = (): ApplicantStageCounts => ({
   all: 0,
   applied: 0,
-  screening: 0,
-  interview: 0,
-  offered: 0,
+  in_progress: 0,
   hired: 0,
   rejected: 0,
+})
+
+/** The search RPC's status / step filter for a chip value */
+const toStageParams = (filter: ApplicantStageFilter) => ({
+  p_stage: filter === 'applied' || filter === 'rejected' ? filter : null,
+  p_stage_id: filter === 'all' || filter === 'applied' || filter === 'rejected' ? null : filter,
 })
 
 /** Applicants of the company's vacancies. RLS / the RPCs only return vacancies the caller may review. */
@@ -52,7 +59,7 @@ export const jobApplicantService = {
 
   /** The vacancy shown above its applicants, with the documents it asks for (migration 088) */
   async fetchVacancy(vacancyId: string): Promise<ApplicantVacancySummary | null> {
-    const [{ data, error }, requirements] = await Promise.all([
+    const [{ data, error }, requirements, stages] = await Promise.all([
       supabase
         .schema('esmdd')
         .from('job_vacancies')
@@ -60,10 +67,11 @@ export const jobApplicantService = {
         .eq('id', vacancyId)
         .maybeSingle(),
       jobVacancyRequirementService.fetchRequirements(vacancyId),
+      jobVacancyStageService.fetchStages(vacancyId),
     ])
 
     if (error) throw error
-    return data ? { ...data, requirements } : null
+    return data ? { ...data, requirements, stages } : null
   },
 
   /** One page of a vacancy's applicants, searched by name and filtered by stage in SQL (BACKEND.md §19) */
@@ -71,7 +79,7 @@ export const jobApplicantService = {
     const { data, error } = await untypedEsmdd().rpc('search_job_vacancy_applications', {
       p_job_vacancy_id: vacancyId,
       p_search: query.search.trim() || null,
-      p_stage: query.stage === 'all' ? null : query.stage,
+      ...toStageParams(query.stage),
       p_limit: query.pageSize,
       p_offset: query.page * query.pageSize,
     })
@@ -89,12 +97,37 @@ export const jobApplicantService = {
     return data as VacancyApplicationDetails
   },
 
-  /** Moves an application to a stage; Rejected needs remarks (BACKEND.md §17.8). The applicant is notified (087). */
-  async updateStage(applicationId: string, stage: JobApplicationStage, remarks: string | null): Promise<void> {
-    assertStatusRemarks(stage, remarks)
+  /** One vacancy's applicants per status and hiring step, for its filter chips */
+  async fetchStepCounts(vacancyId: string): Promise<ApplicantStepCounts> {
+    const { data, error } = await untypedEsmdd().rpc('job_vacancy_application_stage_counts', { p_job_vacancy_id: vacancyId })
+    if (error) throw error
+
+    const counts: ApplicantStepCounts = { all: 0, applied: 0, rejected: 0, byStep: {} }
+    for (const row of (data ?? []) as { stage: JobApplicationStage; stage_id: string | null; total: number }[]) {
+      const total = Number(row.total)
+      counts.all += total
+      if (row.stage === 'applied') counts.applied += total
+      else if (row.stage === 'rejected') counts.rejected += total
+      else if (row.stage_id) counts.byStep[row.stage_id] = (counts.byStep[row.stage_id] ?? 0) + total
+    }
+    return counts
+  },
+
+  /**
+   * Moves an application: 'applied' (back to New), 'rejected' (Not selected; needs remarks, BACKEND.md §17.8)
+   * or a hiring step id. The database derives in progress / hired from the step and notifies the applicant (089).
+   */
+  async moveApplication(applicationId: string, target: ApplicantStageFilter, remarks: string | null): Promise<void> {
+    assertStatusRemarks(target, remarks)
+    const update =
+      target === 'rejected'
+        ? { stage: 'rejected', status_remarks: normalizeStatusRemarks(remarks) }
+        : target === 'applied'
+          ? { stage: 'applied', stage_id: null, status_remarks: null }
+          : { stage: 'in_progress', stage_id: target, status_remarks: null }
     const { data, error } = await untypedEsmdd()
       .from('job_vacancy_applications')
-      .update({ stage, status_remarks: stage === 'rejected' ? normalizeStatusRemarks(remarks) : null })
+      .update(update)
       .eq('id', applicationId)
       .select('id')
       .maybeSingle()

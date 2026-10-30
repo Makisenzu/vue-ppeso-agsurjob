@@ -10,16 +10,18 @@ import {
   JOB_APPLICANT_PAGE_SIZE,
   toJobApplicantErrorMessage,
 } from '@/helpers/employer/jobApplicantHelper'
-import { getJobApplicationStageLabel } from '@/helpers/common/jobVacancyApplicationHelper'
 import type { JobPostingListRow } from '@/types/employer/jobPosting'
-import type { JobApplicationDocumentMap, JobApplicationStage } from '@/types/common/jobVacancyApplication'
+import type { JobApplicationDocumentMap } from '@/types/common/jobVacancyApplication'
 import type {
   ApplicantStageCounts,
+  ApplicantStepCounts,
   ApplicantStageFilter,
   ApplicantVacancySummary,
   VacancyApplicantRow,
   VacancyApplicationDetails,
 } from '@/types/employer/jobApplicant'
+
+const EMPTY_STEP_COUNTS = (): ApplicantStepCounts => ({ all: 0, applied: 0, rejected: 0, byStep: {} })
 
 /**
  * Job Applicants pages: the company's vacancies with their applicant counts, then one vacancy's
@@ -43,7 +45,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const vacancy = ref<ApplicantVacancySummary | null>(null)
   const applicants = ref<VacancyApplicantRow[]>([])
   const total = ref(0)
-  const stageCounts = ref<ApplicantStageCounts>(jobApplicantService.emptyCounts())
+  const stageCounts = ref<ApplicantStepCounts>(EMPTY_STEP_COUNTS())
   const search = ref('')
   const stageFilter = ref<ApplicantStageFilter>('all')
   const page = ref(0)
@@ -136,8 +138,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     const vacancyId = vacancy.value?.id
     if (!vacancyId) return
     try {
-      const counts = await jobApplicantService.fetchStageCounts([vacancyId])
-      stageCounts.value = counts.get(vacancyId) ?? jobApplicantService.emptyCounts()
+      stageCounts.value = await jobApplicantService.fetchStepCounts(vacancyId)
     } catch {
       // The list shows its own error; the counts just stay as they were
     }
@@ -149,7 +150,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
       vacancy.value = null
       applicants.value = []
       total.value = 0
-      stageCounts.value = jobApplicantService.emptyCounts()
+      stageCounts.value = EMPTY_STEP_COUNTS()
       search.value = ''
       stageFilter.value = 'all'
       page.value = 0
@@ -216,13 +217,14 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     documents.value = {}
   }
 
-  async function updateStage(stage: JobApplicationStage, remarks: string | null): Promise<boolean> {
+  /** target: 'applied', 'rejected' or a hiring step id; label: what it's called, for the toast */
+  async function updateStage(target: ApplicantStageFilter, label: string, remarks: string | null): Promise<boolean> {
     const application = selectedApplication.value
     if (!application) return false
     isSavingStage.value = true
     try {
-      await jobApplicantService.updateStage(application.id, stage, remarks)
-      toastAlert.success('Stage updated', `The applicant is now in ${getJobApplicationStageLabel(stage).toLowerCase()}.`)
+      await jobApplicantService.moveApplication(application.id, target, remarks)
+      toastAlert.success('Applicant moved', `The applicant is now at ${label}.`)
       closeApplication()
       await Promise.all([fetchApplicants(), fetchStageCounts()])
       return true

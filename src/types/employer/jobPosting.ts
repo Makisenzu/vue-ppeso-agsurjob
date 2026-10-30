@@ -1,6 +1,6 @@
 import type { JobVacancyDetailsFields, JobVacancyRow, JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 import type { JobVacancyFormValues, JobVacancySkillRow } from '@/types/common/jobVacancy'
-import type { JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
+import type { JobVacancyRequirement, JobVacancyStage, JobVacancyStageInput } from '@/types/common/jobVacancyApplication'
 import type { JobVacancyAttachment } from '@/types/common/jobVacancyAttachment'
 
 /**
@@ -52,6 +52,8 @@ export type JobPostingDetails = JobVacancyRow & {
   skills: JobPostingSkill[]
   related_courses: string[]
   requirements: JobVacancyRequirement[]
+  /** Hiring steps in order (migration 089) */
+  stages: JobVacancyStage[]
   attachments: JobVacancyAttachment[]
 }
 
@@ -62,9 +64,16 @@ export type JobPostingRequirementValue = {
   isRequired: boolean
 }
 
-/** The posting sheet: the shared vacancy fields plus the documents applicants submit (migration 088) */
+/** One hiring step as the steps field edits it: id null for a step added in this edit (migration 089) */
+export type JobPostingStageValue = {
+  id: string | null
+  name: string
+}
+
+/** The posting page: the shared vacancy fields, the documents applicants submit (088) and the hiring steps (089) */
 export type JobPostingFormValues = JobVacancyFormValues & {
   requirements: JobPostingRequirementValue[]
+  stages: JobPostingStageValue[]
 }
 
 /** Attachment edits staged in the sheet, applied after the posting saves (a new posting has no id before) */
@@ -82,4 +91,5 @@ export type JobPostingPayload = {
   }
   skills: JobPostingSkill[]
   requirements: JobVacancyRequirement[]
+  stages: JobVacancyStageInput[]
 }

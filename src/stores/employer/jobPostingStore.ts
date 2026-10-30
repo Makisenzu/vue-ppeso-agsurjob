@@ -47,7 +47,6 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
   const isLoading = ref(false)
   const isLoadingStats = ref(false)
 
-  const isFormOpen = ref(false)
   const editingPosting = ref<JobPostingDetails | null>(null)
   const isLoadingPosting = ref(false)
   const isSaving = ref(false)
@@ -126,16 +125,15 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     return fetchPostings()
   }
 
-  // ─── Create / edit sheet ───
+  // ─── Create / edit page ───
 
-  function openCreate() {
+  /** A new posting: nothing to load */
+  function startCreate() {
     editingPosting.value = null
-    isFormOpen.value = true
   }
 
-  /** Loads every field of the posting and its attachments before the sheet opens */
-  async function openEdit(id: string): Promise<void> {
-    busyId.value = id
+  /** Loads every field of the posting, its attachments and hiring steps for the edit page; false on failure */
+  async function loadPosting(id: string): Promise<boolean> {
     isLoadingPosting.value = true
     try {
       const [posting, attachments] = await Promise.all([
@@ -143,18 +141,14 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
         jobVacancyAttachmentService.fetchAttachments(id),
       ])
       editingPosting.value = { ...posting, attachments }
-      isFormOpen.value = true
+      return true
     } catch (error: unknown) {
+      editingPosting.value = null
       toastAlert.error('Error', toJobPostingErrorMessage(error, 'Failed to open the job posting.'))
+      return false
     } finally {
       isLoadingPosting.value = false
-      busyId.value = null
     }
-  }
-
-  function closeForm() {
-    isFormOpen.value = false
-    editingPosting.value = null
   }
 
   /**
@@ -195,9 +189,9 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
       } else {
         toastAlert.success(existing ? 'Job posting updated' : 'Job posted', `"${payload.vacancy.position_title}" has been saved.`)
       }
-      closeForm()
+      editingPosting.value = null
+      // The list reloads when the page returns to it; a new posting shows on the first page
       if (!existing) page.value = 0
-      await refresh()
       return true
     } catch (error: unknown) {
       toastAlert.error('Error', toJobPostingErrorMessage(error, 'Failed to save the job posting.'))
@@ -255,7 +249,6 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     pageSize,
     isLoading,
     isLoadingStats,
-    isFormOpen,
     editingPosting,
     isLoadingPosting,
     isSaving,
@@ -268,9 +261,8 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     setSearch,
     setStatusFilter,
     setPage,
-    openCreate,
-    openEdit,
-    closeForm,
+    startCreate,
+    loadPosting,
     savePosting,
     setPostingStatus,
     deletePostings,

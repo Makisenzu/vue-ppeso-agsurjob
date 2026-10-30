@@ -1,5 +1,5 @@
 import type { JobVacancyRow } from '@/types/peso/provincialPeso/jobFair'
-import type { JobApplicationStage, JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
+import type { JobApplicationStage, JobVacancyRequirement, JobVacancyStage } from '@/types/common/jobVacancyApplication'
 import type { GipApplicantSummarySource } from '@/helpers/applicant/gipApplicationHelper'
 
 /**
@@ -8,11 +8,23 @@ import type { GipApplicantSummarySource } from '@/helpers/applicant/gipApplicati
  * SECURITY DEFINER RPCs that return only what the application needs (PRIVACY.md §4.3).
  */
 
-/** 'all' or one stage */
-export type ApplicantStageFilter = 'all' | JobApplicationStage
+/** Applicants per status of each vacancy, counted in SQL (esmdd.job_vacancy_application_stats) */
+export type ApplicantStageCounts = Record<'all' | JobApplicationStage, number>
 
-/** Applicants per stage, counted in SQL (esmdd.job_vacancy_application_stats) */
-export type ApplicantStageCounts = Record<ApplicantStageFilter, number>
+/**
+ * Filter / target of one vacancy's applicants: 'all', 'applied' (New), 'rejected' (Not selected) or the
+ * id of one of the vacancy's hiring steps (migration 089)
+ */
+export type ApplicantStageFilter = string
+
+/** One vacancy's applicants per status and step, counted in SQL (esmdd.job_vacancy_application_stage_counts) */
+export interface ApplicantStepCounts {
+  all: number
+  applied: number
+  rejected: number
+  /** In progress or hired, per hiring step id */
+  byStep: Record<string, number>
+}
 
 /** The vacancy whose applicants are listed */
 export type ApplicantVacancySummary = Pick<
@@ -21,6 +33,8 @@ export type ApplicantVacancySummary = Pick<
 > & {
   /** Documents applicants submit (migration 088) */
   requirements: JobVacancyRequirement[]
+  /** The employer's hiring steps, in order (migration 089) */
+  stages: JobVacancyStage[]
 }
 
 /** One applicant as esmdd.search_job_vacancy_applications returns it */
@@ -29,6 +43,8 @@ export interface VacancyApplicantRow {
   full_name: string
   municipality: string | null
   stage: JobApplicationStage
+  stage_id: string | null
+  stage_name: string | null
   created_at: string
   updated_at: string
   /** Matching applicants before paging */
@@ -52,6 +68,7 @@ export interface VacancyApplicationDetails {
   id: string
   job_vacancy_id: string
   stage: JobApplicationStage
+  stage_id: string | null
   status_remarks: string | null
   created_at: string
   updated_at: string

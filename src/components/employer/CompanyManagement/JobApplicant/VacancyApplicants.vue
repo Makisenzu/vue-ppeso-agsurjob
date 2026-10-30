@@ -80,19 +80,19 @@ const {
     </Alert>
 
     <template v-else>
-      <!-- Stages: click to filter -->
-      <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <!-- Hiring steps: click to filter. Pills wrap, so any number of steps fits at 360px -->
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by hiring step">
         <button
           v-for="card in stageCards"
           :key="card.key"
           type="button"
-          class="rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          :class="stageFilter === card.key && card.key !== 'all' ? 'border-primary' : ''"
+          class="inline-flex h-10 items-center gap-2 rounded-full border bg-card px-3 text-sm transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9"
+          :class="stageFilter === card.key ? 'border-primary bg-primary/5 text-foreground' : 'text-muted-foreground'"
           :aria-pressed="stageFilter === card.key"
           @click="selectStage(card.key)"
         >
-          <p class="truncate text-xs text-muted-foreground">{{ card.label }}</p>
-          <p class="mt-1 text-xl font-semibold tabular-nums">{{ card.value }}</p>
+          <span class="max-w-48 truncate">{{ card.label }}</span>
+          <span class="rounded-full bg-muted px-1.5 text-xs font-semibold text-foreground tabular-nums">{{ card.value }}</span>
         </button>
       </div>
 
@@ -238,14 +238,14 @@ const {
           <Separator />
 
           <section class="space-y-4" aria-labelledby="applicant-stage-title">
-            <h3 id="applicant-stage-title" class="text-sm font-semibold">Stage</h3>
+            <h3 id="applicant-stage-title" class="text-sm font-semibold">Hiring step</h3>
             <div class="space-y-2">
               <Label for="applicant-stage">Move to</Label>
               <SearchSelect
                 id="applicant-stage"
                 v-model="stage"
                 :options="stageOptions"
-                placeholder="Select stage"
+                placeholder="Select step"
                 class="w-full"
                 :disabled="isSavingStage"
               />
@@ -271,7 +271,7 @@ const {
           <Button type="button" variant="outline" :disabled="isSavingStage" @click="onDetailOpenChange(false)">Close</Button>
           <Button type="submit" :disabled="isSavingStage || !hasStageChange">
             <Loader2 v-if="isSavingStage" class="size-4 animate-spin" />
-            {{ isSavingStage ? 'Saving...' : 'Save stage' }}
+            {{ isSavingStage ? 'Saving...' : 'Move applicant' }}
           </Button>
         </div>
       </form>
