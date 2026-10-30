@@ -133,6 +133,7 @@ Changing what the notice says about data, purposes, recipients or retention:
 | `documents`                      | **No**  | Signed URL (`supportingDocumentService`)     |
 | `applicant-forms`                | **No**  | Signed URL (`ocrVisionService`)              |
 | `recruitment-activity-documents` | **No**  | Signed URL (`recruitmentActivityService`)    |
+| `job-vacancy-attachments`        | **No**  | Signed URL (`jobVacancyAttachmentService`, migration 086). Job information uploaded by employers / PESO; private because the uploader chooses the content |
 | `media` (profile pictures)       | Check   | Must be readable only by signed-in users; if the bucket is public, profile photos are reachable by URL — move to signed URLs before adding anything else to it |
 | `announcement-media`, `site-content-media`, `job-*-attachments`, `templates` | Yes/RLS | Public content only. **Never** upload personal data there |
 

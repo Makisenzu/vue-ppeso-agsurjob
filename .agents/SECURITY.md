@@ -350,7 +350,7 @@ src/services/common/      ← Shared across 2+ roles
 - **anon table access**: 034 gives `anon` none, with two deliberate exceptions limited to live rows: `system.announcements` (+ media, `public` audience only) and `system.site_contents`.
 - **Upload method**: `upsert: true` (overwrites existing files at same path)
 - **Public URLs**: Generated via `supabase.storage.from(bucket).getPublicUrl(path)` — **public content only**.
-  `documents`, `applicant-forms` and `recruitment-activity-documents` are private (073); their files open through signed
+  `documents`, `applicant-forms`, `recruitment-activity-documents` (073) and `job-vacancy-attachments` (086) are private; their files open through signed
   URLs (`usePrivateDocuments`, `createSignedUrls`). See [`PRIVACY.md`](PRIVACY.md) §4.
 
 ### 9.2 File Path Normalization

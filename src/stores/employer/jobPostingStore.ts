@@ -8,6 +8,7 @@ import {
   saveJobPosting,
   updateJobPostingStatus,
 } from '@/services/employer/jobPostingService'
+import { jobVacancyAttachmentService } from '@/services/common/jobVacancyAttachmentService'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/helpers/employer/jobPostingHelper'
 import type { JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 import type {
+  JobPostingAttachmentChanges,
   JobPostingDetails,
   JobPostingListRow,
   JobPostingPayload,
@@ -131,12 +133,16 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     isFormOpen.value = true
   }
 
-  /** Loads every field of the posting before the sheet opens */
+  /** Loads every field of the posting and its attachments before the sheet opens */
   async function openEdit(id: string): Promise<void> {
     busyId.value = id
     isLoadingPosting.value = true
     try {
-      editingPosting.value = await fetchJobPostingById(id)
+      const [posting, attachments] = await Promise.all([
+        fetchJobPostingById(id),
+        jobVacancyAttachmentService.fetchAttachments(id),
+      ])
+      editingPosting.value = { ...posting, attachments }
       isFormOpen.value = true
     } catch (error: unknown) {
       toastAlert.error('Error', toJobPostingErrorMessage(error, 'Failed to open the job posting.'))
@@ -151,16 +157,44 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     editingPosting.value = null
   }
 
-  async function savePosting(payload: JobPostingPayload): Promise<boolean> {
+  /**
+   * Removed attachments go first (freeing slots), then new files upload. Returns how many changes
+   * failed; the posting itself is already saved by then.
+   */
+  async function applyAttachmentChanges(vacancyId: string, changes: JobPostingAttachmentChanges): Promise<number> {
+    let failed = 0
+    if (changes.remove.length) {
+      await jobVacancyAttachmentService.deleteAttachments(changes.remove).catch(() => {
+        failed += changes.remove.length
+      })
+    }
+    const uploads = await Promise.allSettled(
+      changes.add.map((file) => jobVacancyAttachmentService.uploadAttachment(vacancyId, file)),
+    )
+    return failed + uploads.filter((result) => result.status === 'rejected').length
+  }
+
+  async function savePosting(
+    payload: JobPostingPayload,
+    attachmentChanges: JobPostingAttachmentChanges = { add: [], remove: [] },
+  ): Promise<boolean> {
     const establishmentId = authStore.employerEstablishment?.id
     if (!establishmentId) return false
 
     const existing = editingPosting.value
     isSaving.value = true
     try {
-      await saveJobPosting(existing?.id ?? null, establishmentId, payload)
+      const vacancyId = await saveJobPosting(existing?.id ?? null, establishmentId, payload)
+      const failedFiles = await applyAttachmentChanges(vacancyId, attachmentChanges)
 
-      toastAlert.success(existing ? 'Job posting updated' : 'Job posted', `"${payload.vacancy.position_title}" has been saved.`)
+      if (failedFiles > 0) {
+        toastAlert.error(
+          'Some files were not saved',
+          `The posting was saved, but ${failedFiles} attachment change${failedFiles === 1 ? '' : 's'} failed. Edit it to try again.`,
+        )
+      } else {
+        toastAlert.success(existing ? 'Job posting updated' : 'Job posted', `"${payload.vacancy.position_title}" has been saved.`)
+      }
       closeForm()
       if (!existing) page.value = 0
       await refresh()
@@ -192,7 +226,10 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     if (isBulk) isBulkDeleting.value = true
     else busyId.value = ids[0] ?? null
     try {
+      // Read the file paths first: the rows go with the postings, the stored files don't
+      const paths = await jobVacancyAttachmentService.fetchPathsOfVacancies(ids)
       await deleteJobPostings(ids)
+      await jobVacancyAttachmentService.removeFiles(paths)
       toastAlert.success(
         isBulk ? `${ids.length} job postings deleted` : 'Job posting deleted',
       )

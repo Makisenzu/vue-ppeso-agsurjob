@@ -61,7 +61,7 @@ export async function fetchJobPostingStats(establishmentId: string): Promise<Job
 }
 
 /** Every field of one posting and its skills, for the edit form */
-export async function fetchJobPostingById(id: string): Promise<JobPostingDetails> {
+export async function fetchJobPostingById(id: string): Promise<Omit<JobPostingDetails, 'attachments'>> {
   const [{ data, error }, skills] = await Promise.all([
     vacancies().select('*').eq('id', id).single(),
     jobVacancyMatchingService.fetchSkillsByVacancy([id]),

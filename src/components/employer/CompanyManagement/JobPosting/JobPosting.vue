@@ -21,6 +21,8 @@ import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import JobVacancyFields from '@/components/JobVacancyFields.vue'
+import JobPostingAttachmentsField from '@/components/employer/CompanyManagement/JobPosting/JobPostingAttachmentsField.vue'
+import { Separator } from '@/components/ui/separator'
 import { useJobPostings } from '@/composables/employer/useJobPostings'
 
 /** Job Posting page (owner only): the company's vacancies, shown to applicants and PESO */
@@ -62,6 +64,14 @@ const {
   openCreate,
   onFormOpenChange,
   submitPosting,
+  attachmentItems,
+  attachmentError,
+  attachmentRemainingSlots,
+  attachmentAccept,
+  attachmentMaxSizeMB,
+  attachmentMaxFiles,
+  addAttachments,
+  removeAttachment,
 } = useJobPostings()
 </script>
 
@@ -229,6 +239,18 @@ const {
       <form class="contents" @submit="submitPosting">
         <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
           <JobVacancyFields :disabled="isSaving" />
+          <Separator />
+          <JobPostingAttachmentsField
+            :items="attachmentItems"
+            :remaining-slots="attachmentRemainingSlots"
+            :max-files="attachmentMaxFiles"
+            :max-size-mb="attachmentMaxSizeMB"
+            :accept="attachmentAccept"
+            :error="attachmentError"
+            :disabled="isSaving"
+            @add="addAttachments"
+            @remove="removeAttachment"
+          />
         </div>
 
         <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
@@ -249,7 +271,7 @@ const {
         <AlertDialogTitle>Delete this job posting?</AlertDialogTitle>
         <AlertDialogDescription>
           <strong class="font-medium text-foreground">{{ postingToDelete?.position_title }}</strong> will be removed for
-          applicants and from any job fair listing it. This cannot be undone.
+          applicants and from any job fair listing it, with its attachments. This cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -270,7 +292,7 @@ const {
           Delete {{ selectedIds.length }} job posting{{ selectedIds.length === 1 ? '' : 's' }}?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          They will be removed for applicants and from any job fair listing them. This cannot be undone.
+          They will be removed for applicants and from any job fair listing them, with their attachments. This cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

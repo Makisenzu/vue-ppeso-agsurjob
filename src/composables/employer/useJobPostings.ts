@@ -22,6 +22,7 @@ import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useAuthStore } from '@/stores/common/auth'
 import { useJobPostingStore } from '@/stores/employer/jobPostingStore'
+import { useJobPostingAttachments } from '@/composables/employer/useJobPostingAttachments'
 import {
   EMPTY_JOB_VACANCY_FORM_VALUES,
   jobVacancyFormShape,
@@ -332,12 +333,15 @@ export function useJobPostings() {
     initialValues: EMPTY_JOB_VACANCY_FORM_VALUES,
   })
 
+  const attachments = useJobPostingAttachments()
+
   const isEditMode = computed(() => editingPosting.value !== null)
   const formTitle = computed(() => (isEditMode.value ? 'Edit Job Posting' : 'Post a Job'))
 
   // Load the selected posting (or blank values, starting today) each time the sheet opens
   watch(isFormOpen, (open) => {
     if (!open) return
+    attachments.resetAttachments(editingPosting.value?.attachments ?? [])
     resetForm({
       values: editingPosting.value
         ? toJobVacancyFormValues(editingPosting.value, editingPosting.value)
@@ -364,7 +368,7 @@ export function useJobPostings() {
         related_courses: matching.related_courses,
       },
       skills: matching.skills,
-    })
+    }, attachments.attachmentChanges.value)
   })
 
   onMounted(async () => {
@@ -416,5 +420,14 @@ export function useJobPostings() {
     openCreate: store.openCreate,
     onFormOpenChange,
     submitPosting,
+    // Attachments (optional, staged until save)
+    attachmentItems: attachments.attachmentItems,
+    attachmentError: attachments.attachmentError,
+    attachmentRemainingSlots: attachments.remainingSlots,
+    attachmentAccept: attachments.attachmentAccept,
+    attachmentMaxSizeMB: attachments.attachmentMaxSizeMB,
+    attachmentMaxFiles: attachments.attachmentMaxFiles,
+    addAttachments: attachments.addAttachments,
+    removeAttachment: attachments.removeAttachment,
   }
 }
