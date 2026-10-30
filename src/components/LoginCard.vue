@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLogin } from '@/composables/common/useLogin';
+import PasswordInput from '@/components/PasswordInput.vue';
 
 const { agsurlogo, 
         pesologo,
@@ -72,10 +73,10 @@ const { agsurlogo,
                 Forgot your password?
               </AppLink>
             </div>
-            <Input
+            <PasswordInput
               id="password"
               v-model="password"
-              type="password"
+              autocomplete="current-password"
               :class="passwordError ? 'border-destructive' : ''"
             />
             <p v-if="passwordError" class="text-xs text-destructive">{{ passwordError }}</p>

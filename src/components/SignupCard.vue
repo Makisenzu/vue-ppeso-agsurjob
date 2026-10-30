@@ -35,6 +35,7 @@ import {
   StepperTitle,
 } from '@/components/ui/stepper'
 import SearchSelect from '@/components/SearchSelect.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const {
   roles,
@@ -491,7 +492,7 @@ const {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input v-bind="componentField" type="password" autocomplete="new-password" />
+                      <PasswordInput v-bind="componentField" autocomplete="new-password" />
                     </FormControl>
                     <FormDescription>At least {{ minPasswordLength }} characters. Mix letters, numbers, and symbols.</FormDescription>
                     <FormMessage />
@@ -501,7 +502,7 @@ const {
                   <FormItem>
                     <FormLabel>Confirm password</FormLabel>
                     <FormControl>
-                      <Input v-bind="componentField" type="password" autocomplete="new-password" />
+                      <PasswordInput v-bind="componentField" autocomplete="new-password" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
