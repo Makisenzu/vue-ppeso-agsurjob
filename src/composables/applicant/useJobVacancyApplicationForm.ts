@@ -282,7 +282,11 @@ export function useJobVacancyApplicationForm() {
   )
   const stageLabel = computed(() => getJobApplicationStageLabel(stage.value, stepName.value))
   const stageClass = computed(() => JOB_APPLICATION_STAGE_BADGE_CLASS[stage.value])
-  const stageDescription = computed(() => JOB_APPLICATION_STAGE_DESCRIPTIONS[stage.value])
+  const stageDescription = computed(() =>
+    stage.value === 'in_progress' && !isLocked.value
+      ? 'The employer is screening your application. You can still change your files until they move you on.'
+      : JOB_APPLICATION_STAGE_DESCRIPTIONS[stage.value],
+  )
   const statusRemarks = computed(() => (stage.value === 'rejected' ? (myApplication.value?.status_remarks ?? null) : null))
   const appliedOn = computed(() => formatGipDate(myApplication.value?.created_at))
 

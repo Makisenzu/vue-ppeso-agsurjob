@@ -18,6 +18,7 @@ const {
   canAddDraft,
   isFull,
   canRemove,
+  isLocked,
   maxStages,
   maxLength,
   addDraft,
@@ -42,7 +43,9 @@ const {
     <FormField name="stages">
       <FormItem>
         <FormLabel>Steps applicants go through, in order</FormLabel>
-        <FormDescription>Applicants see these steps and are notified at each one. The last step marks them hired.</FormDescription>
+        <FormDescription>
+          Applications start at Paper Screening. Applicants see every step and are notified at each one; the last step marks them hired.
+        </FormDescription>
         <FormMessage />
       </FormItem>
     </FormField>
@@ -55,7 +58,13 @@ const {
         >
           {{ index + 1 }}
         </span>
+        <!-- Paper Screening: fixed first step (migration 091) -->
+        <template v-if="isLocked(index)">
+          <span class="flex h-10 min-w-0 flex-1 items-center truncate px-3 text-sm font-medium sm:h-9">{{ item.name }}</span>
+          <span class="shrink-0 text-xs text-muted-foreground">Required first step</span>
+        </template>
         <Input
+          v-else
           :model-value="item.name"
           class="h-10 min-w-0 flex-1 sm:h-9"
           :maxlength="maxLength"
@@ -64,13 +73,13 @@ const {
           @update:model-value="(value) => renameStage(index, String(value))"
         />
         <span v-if="index === stages.length - 1" class="hidden shrink-0 text-xs text-success sm:inline">Hired</span>
-        <div class="flex shrink-0 items-center">
+        <div v-if="!isLocked(index)" class="flex shrink-0 items-center">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             class="size-10 sm:size-8"
-            :disabled="disabled || index === 0"
+            :disabled="disabled || index <= 1"
             :aria-label="`Move ${item.name} up`"
             @click="moveStage(index, -1)"
           >

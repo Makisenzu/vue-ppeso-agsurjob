@@ -9,6 +9,7 @@ import {
   updateJobPostingStatus,
 } from '@/services/employer/jobPostingService'
 import { jobVacancyAttachmentService } from '@/services/common/jobVacancyAttachmentService'
+import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import {
@@ -220,10 +221,17 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     if (isBulk) isBulkDeleting.value = true
     else busyId.value = ids[0] ?? null
     try {
-      // Read the file paths first: the rows go with the postings, the stored files don't
-      const paths = await jobVacancyAttachmentService.fetchPathsOfVacancies(ids)
+      // Read the file paths first: the rows go with the postings (applicants and their documents included,
+      // migration 090), the stored files don't
+      const [paths, applicantPaths] = await Promise.all([
+        jobVacancyAttachmentService.fetchPathsOfVacancies(ids),
+        jobApplicationDocumentService.fetchPathsOfVacancies(ids),
+      ])
       await deleteJobPostings(ids)
-      await jobVacancyAttachmentService.removeFiles(paths)
+      await Promise.all([
+        jobVacancyAttachmentService.removeFiles(paths),
+        jobApplicationDocumentService.removeFilesOfDeletedVacancies(applicantPaths),
+      ])
       toastAlert.success(
         isBulk ? `${ids.length} job postings deleted` : 'Job posting deleted',
       )

@@ -8,6 +8,7 @@ import {
   HIRING_STAGE_NAME_MAX_LENGTH,
   MAX_HIRING_STAGES,
   MIN_HIRING_STAGES,
+  PAPER_SCREENING_STAGE,
   JOB_APPLICATION_NSRP_DOCUMENT,
   MAX_VACANCY_REQUIREMENTS,
   REQUIREMENT_NAME_MAX_LENGTH,
@@ -63,12 +64,13 @@ export function isJobPostingExpired(validUntil: string | null | undefined, today
   return !!validUntil && validUntil.slice(0, 10) < today
 }
 
-/** Generic messages only (SECURITY.md): a hire or an applicant on the posting blocks deleting it (087) */
+/** Generic messages only (SECURITY.md); deleting a posting removes its applicants too (migration 090) */
 export function toJobPostingErrorMessage(error: unknown, fallback: string): string {
   const { code, message } = (error ?? {}) as { code?: string; message?: string }
   // Written for the employer by migration 089 (a step with applicants, duplicate / missing steps)
   if (message && /hiring step/i.test(message)) return message
-  if (code === '23503') return 'A posting with applicants or hires cannot be deleted. Close it instead.'
+  // Only a job fair hire on record (hots, RESTRICT since 039) still blocks the delete; applicants cascade (090)
+  if (code === '23503') return "PESO recorded job fair hires for this posting, so it can't be deleted. Close it instead."
   if (code === '42501') return 'Only the company owner can change job postings.'
   if (code === '22023') return 'Add a position title, 1 to 30 skills and 1 to 15 requirements.'
   return fallback
@@ -123,11 +125,17 @@ export const jobPostingStagesSchema = z
     (items) => new Set(items.map((item) => toRequirementKey(item.name))).size === items.length,
     'Each hiring step can only be listed once.',
   )
+  .refine((items) => isPaperScreening(items[0]?.name ?? ''), `The first step must be ${PAPER_SCREENING_STAGE}.`)
 
-/** Saved steps as form values; a new posting starts with the default steps */
+/** Paper Screening is every vacancy's first step; applications start there (migration 091) */
+export const isPaperScreening = (name: string) => toRequirementKey(name) === toRequirementKey(PAPER_SCREENING_STAGE)
+
+/** Saved steps as form values, Paper Screening first; a new posting starts with the default steps */
 export function toJobPostingStageValues(stages?: readonly JobVacancyStage[]): JobPostingStageValue[] {
   if (!stages?.length) return DEFAULT_HIRING_STAGES.map((name) => ({ id: null, name }))
-  return [...stages].sort((a, b) => a.sort_order - b.sort_order).map((step) => ({ id: step.id, name: step.stage_name }))
+  const values = [...stages].sort((a, b) => a.sort_order - b.sort_order).map((step) => ({ id: step.id, name: step.stage_name }))
+  const screening = values.find((item) => isPaperScreening(item.name)) ?? { id: null, name: PAPER_SCREENING_STAGE }
+  return [screening, ...values.filter((item) => item !== screening)]
 }
 
 /** Form values as esmdd.save_job_vacancy's p_stages, in the employer's order */

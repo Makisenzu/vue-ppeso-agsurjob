@@ -6,13 +6,12 @@ export const JOB_APPLICANT_PAGE_SIZE = 10
 export const APPLICANT_VACANCY_PAGE_SIZE = 9
 
 /**
- * "Move to" dropdown of the review sheet: New, the vacancy's hiring steps in order (the last one hires),
- * then Not selected (migration 089)
+ * "Move to" dropdown of the review sheet: the vacancy's hiring steps in order, from Paper Screening (where
+ * every application starts, migration 091) to the last one, which hires; then Not selected (migration 089)
  */
 export function toApplicantMoveOptions(steps: readonly JobVacancyStage[]): SearchSelectOption[] {
   const ordered = [...steps].sort((a, b) => a.sort_order - b.sort_order)
   return [
-    { value: 'applied', label: 'New (not reviewed)' },
     ...ordered.map((step, index) => ({
       value: step.id,
       label: `${index + 1}. ${step.stage_name}`,

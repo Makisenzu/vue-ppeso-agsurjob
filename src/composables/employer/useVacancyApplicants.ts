@@ -22,9 +22,15 @@ import {
 import { toApplicantMoveOptions } from '@/helpers/employer/jobApplicantHelper'
 import type { ApplicantStageFilter, VacancyApplicantRow, VacancyApplicationDetails } from '@/types/employer/jobApplicant'
 
-/** Where an application sits, as the "Move to" dropdown names it: 'applied', 'rejected' or the step id */
-const currentTarget = (application: Pick<VacancyApplicationDetails, 'stage' | 'stage_id'>): ApplicantStageFilter =>
-  application.stage === 'rejected' ? 'rejected' : (application.stage_id ?? 'applied')
+/**
+ * Where an application sits, as the "Move to" dropdown names it: 'rejected' or the step id. An application
+ * from before migration 091 without a step reads as the first step (Paper Screening).
+ */
+const currentTarget = (
+  application: Pick<VacancyApplicationDetails, 'stage' | 'stage_id'>,
+  firstStepId: string | null,
+): ApplicantStageFilter =>
+  application.stage === 'rejected' ? 'rejected' : (application.stage_id ?? firstStepId ?? 'applied')
 
 /**
  * Applicants of one job posting: stage counts, server-paged list, review sheet with the applicant's
@@ -69,12 +75,11 @@ export function useVacancyApplicants() {
     }
   })
 
-  // ─── Step chips: click to filter (All, New, the employer's hiring steps, Not selected) ───
+  // ─── Step chips: click to filter (All, the employer's hiring steps from Paper Screening, Not selected) ───
   const steps = computed(() => [...(vacancy.value?.stages ?? [])].sort((a, b) => a.sort_order - b.sort_order))
 
   const stageCards = computed(() => [
     { key: 'all', label: 'All', value: stageCounts.value.all },
-    { key: 'applied', label: 'New', value: stageCounts.value.applied },
     ...steps.value.map((step, index) => ({
       key: step.id,
       label: `${index + 1}. ${step.stage_name}`,
@@ -195,7 +200,7 @@ export function useVacancyApplicants() {
   const nextPage = () => store.setPage(page.value + 1)
 
   // ─── Review sheet ───
-  /** 'applied', 'rejected' or a hiring step id; Not selected needs remarks */
+  /** A hiring step id or 'rejected'; Not selected needs remarks */
   const stage = ref<ApplicantStageFilter>('applied')
   const stageOptions = computed(() => toApplicantMoveOptions(steps.value))
   const stageModel = computed({
@@ -210,7 +215,7 @@ export function useVacancyApplicants() {
   // Load the opened application's stage and remarks each time the sheet opens
   watch(isDetailOpen, (open) => {
     if (!open || !selectedApplication.value) return
-    stage.value = currentTarget(selectedApplication.value)
+    stage.value = currentTarget(selectedApplication.value, steps.value[0]?.id ?? null)
     resetRemarks(selectedApplication.value.status_remarks)
   })
 
@@ -233,7 +238,7 @@ export function useVacancyApplicants() {
   const hasStageChange = computed(
     () =>
       !!selectedApplication.value &&
-      (stage.value !== currentTarget(selectedApplication.value) ||
+      (stage.value !== currentTarget(selectedApplication.value, steps.value[0]?.id ?? null) ||
         (stage.value === 'rejected' && remarksToSave.value !== (selectedApplication.value.status_remarks ?? null))),
   )
 

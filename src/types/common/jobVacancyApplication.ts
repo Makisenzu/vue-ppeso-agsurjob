@@ -39,6 +39,9 @@ export interface JobVacancyStage {
 /** A step as the posting form edits it: id null for a step added in this edit */
 export type JobVacancyStageInput = { id: string | null; stage_name: string }
 
+/** Mandatory first step of every vacancy; applications start there (migration 091) */
+export const PAPER_SCREENING_STAGE = 'Paper Screening'
+
 /** What a new posting starts with (migration 089) */
 export const DEFAULT_HIRING_STAGES: readonly string[] = [
   'Paper Screening',

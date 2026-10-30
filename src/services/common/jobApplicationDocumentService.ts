@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
+import { fetchAllInChunks } from '@/helpers/common/supabasePaging'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
 import type {
   JobApplicationDocumentMap,
@@ -15,8 +16,11 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60
  * esmdd.job_vacancy_application_documents (migration 087) is not in database.types.ts until
  * `npm run types:gen` is re-run, so the typed client rejects it. Use `supabase` directly after regenerating.
  */
-const documentsTable = () =>
-  (supabase as unknown as SupabaseClient).schema('esmdd').from('job_vacancy_application_documents')
+const untypedEsmdd = () => (supabase as unknown as SupabaseClient).schema('esmdd')
+const documentsTable = () => untypedEsmdd().from('job_vacancy_application_documents')
+
+/** Paths per storage remove call */
+const STORAGE_REMOVE_BATCH = 100
 
 async function removeStorageFiles(paths: string[]) {
   if (!paths.length) return
@@ -133,6 +137,39 @@ export const jobApplicationDocumentService = {
         mimeType: document.mimeType,
         size: document.size,
       })
+    }
+  },
+
+  /**
+   * Storage paths of every file applicants submitted to these vacancies. Read them before deleting the
+   * vacancies: the rows cascade away with them (087), the stored files don't.
+   */
+  async fetchPathsOfVacancies(vacancyIds: string[]): Promise<string[]> {
+    if (!vacancyIds.length) return []
+    const { data, error } = await fetchAllInChunks(vacancyIds, (chunk) =>
+      documentsTable()
+        .select('id, path, job_vacancy_applications!inner(job_vacancy_id)')
+        .in('job_vacancy_applications.job_vacancy_id', chunk)
+        .order('id'),
+    )
+    if (error) throw new Error(error.message || "Failed to load the applicants' documents.")
+    return (data as { path: string }[]).map((row) => row.path)
+  },
+
+  /**
+   * Removes applicants' files after their vacancies were deleted, through the cleanup tickets the delete left
+   * (migration 090), then closes the tickets. Best effort: a leftover file is only storage clutter.
+   */
+  async removeFilesOfDeletedVacancies(paths: string[]): Promise<void> {
+    for (let i = 0; i < paths.length; i += STORAGE_REMOVE_BATCH) {
+      const batch = paths.slice(i, i + STORAGE_REMOVE_BATCH)
+      const { error } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).remove(batch)
+      if (error) {
+        console.warn('[jobApplicationDocumentService] Failed to remove applicant files:', error.message)
+        continue
+      }
+      const { error: ticketErr } = await untypedEsmdd().rpc('finish_job_application_file_cleanup', { p_paths: batch })
+      if (ticketErr) console.warn('[jobApplicationDocumentService] Failed to close cleanup tickets:', ticketErr.message)
     }
   },
 

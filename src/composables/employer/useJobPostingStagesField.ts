@@ -7,7 +7,8 @@ import type { JobPostingStageValue } from '@/types/employer/jobPosting'
 /**
  * The `stages` field of the posting page (JobPostingStagesField.vue): the hiring steps applicants go through,
  * in order, the last one meaning hired (migration 089). Saved steps keep their id when renamed or moved, so
- * applicants at a step stay there.
+ * applicants at a step stay there. The first step is always Paper Screening and can't be renamed, moved or
+ * removed: every application starts there (migration 091).
  */
 export function useJobPostingStagesField() {
   const value = useFieldValue<JobPostingStageValue[]>('stages')
@@ -18,6 +19,9 @@ export function useJobPostingStagesField() {
 
   const isFull = computed(() => stages.value.length >= MAX_HIRING_STAGES)
   const canRemove = computed(() => stages.value.length > MIN_HIRING_STAGES)
+
+  /** Paper Screening, locked in first place */
+  const isLocked = (index: number) => index === 0
 
   const isTaken = (name: string, exceptIndex = -1) =>
     stages.value.some((item, index) => index !== exceptIndex && toRequirementKey(item.name) === toRequirementKey(name))
@@ -48,12 +52,13 @@ export function useJobPostingStagesField() {
   }
 
   function renameStage(index: number, name: string) {
+    if (isLocked(index)) return
     setValue(stages.value.map((item, i) => (i === index ? { ...item, name: name.slice(0, HIRING_STAGE_NAME_MAX_LENGTH) } : item)))
   }
 
   function moveStage(index: number, offset: -1 | 1) {
     const target = index + offset
-    if (target < 0 || target >= stages.value.length) return
+    if (isLocked(index) || isLocked(target) || target < 0 || target >= stages.value.length) return
     const list = [...stages.value]
     const [item] = list.splice(index, 1)
     list.splice(target, 0, item!)
@@ -61,7 +66,7 @@ export function useJobPostingStagesField() {
   }
 
   function removeStage(index: number) {
-    if (!canRemove.value) return
+    if (!canRemove.value || isLocked(index)) return
     setValue(stages.value.filter((_, i) => i !== index))
   }
 
@@ -78,6 +83,7 @@ export function useJobPostingStagesField() {
     canAddDraft,
     isFull,
     canRemove,
+    isLocked,
     maxStages: MAX_HIRING_STAGES,
     maxLength: HIRING_STAGE_NAME_MAX_LENGTH,
     addDraft,

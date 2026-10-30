@@ -29,8 +29,20 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
   const errorMessage = ref<string | null>(null)
 
   // ─── Getters ───
-  /** Editable until the employer moves it past `applied` — the same rule RLS enforces (migration 087) */
-  const isLocked = computed(() => !!myApplication.value && myApplication.value.stage !== 'applied')
+  /** First hiring step: Paper Screening (migration 091) */
+  const firstStageId = computed(
+    () => [...(vacancy.value?.stages ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.id ?? null,
+  )
+
+  /**
+   * Editable while at Paper Screening (or still "applied"), until the employer moves it on or rejects it —
+   * the same rule RLS enforces (can_edit_own_job_vacancy_application, migration 091)
+   */
+  const isLocked = computed(() => {
+    const application = myApplication.value
+    if (!application || application.stage === 'applied') return false
+    return !(application.stage === 'in_progress' && application.stage_id === firstStageId.value)
+  })
 
   // ─── Actions ───
   async function refreshApplication(vacancyId: string, applicantId: string): Promise<void> {

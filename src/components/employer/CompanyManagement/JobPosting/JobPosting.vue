@@ -216,8 +216,8 @@ const {
       <AlertDialogHeader>
         <AlertDialogTitle>Delete this job posting?</AlertDialogTitle>
         <AlertDialogDescription>
-          <strong class="font-medium text-foreground">{{ postingToDelete?.position_title }}</strong> will be removed for
-          applicants and from any job fair listing it, with its attachments. This cannot be undone.
+          <strong class="font-medium text-foreground">{{ postingToDelete?.position_title }}</strong>, its attachments, and
+          every application to it with the applicants' documents will be deleted. Applicants are notified. This cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -238,7 +238,8 @@ const {
           Delete {{ selectedIds.length }} job posting{{ selectedIds.length === 1 ? '' : 's' }}?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          They will be removed for applicants and from any job fair listing them, with their attachments. This cannot be undone.
+          Their attachments and every application to them, with the applicants' documents, will be deleted. Applicants are
+          notified. This cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

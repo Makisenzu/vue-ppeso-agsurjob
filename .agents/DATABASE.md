@@ -737,6 +737,13 @@ Appointed → Hired; the last one means hired). `job_vacancy_applications.stage_
 only the status (`applied` / `in_progress` / `hired` / `rejected`), derived from the step by the review guard. Moving to
 another step notifies the applicant. The employer saves the steps with the posting (`save_job_vacancy(… p_stages)`); a step
 that still holds applicants can't be removed.
+Paper Screening (migration `091_job_vacancy_paper_screening.sql`) is every vacancy's mandatory first step: a new application
+starts there (`apply_to_job_vacancy`), the applicant can change their files until the employer moves them on, and the
+posting cards count applications at it as new.
+Deleting a posting (migration `090_job_vacancy_delete_cascade.sql`) deletes its applications and their documents; each
+applicant is notified. A posting with job fair hires on record (`hots.job_fair_vacancy_id`, RESTRICT) still can't be
+deleted: PESO keeps those records, so the employer closes it instead. The applicants' files
+are removed by the app through `esmdd.job_application_file_cleanups` tickets left by the delete.
 Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities`, and (058) `applicants.applicant_requirements`, `employers.employer_requirements` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
 Realtime (migration `054_notifications_realtime.sql`): the table is in the `supabase_realtime` publication; the app subscribes to INSERT / UPDATE filtered by `recipient_id` (`notificationService.subscribe`), RLS limits events to the recipient.
 
