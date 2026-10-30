@@ -112,7 +112,7 @@ export function mapSexToGender(sex: ApplicantSex | ''): GenderType | null {
 const requiredText = (message: string) => z.string().trim().min(1, message)
 const optionalText = (max: number) => z.string().trim().max(max, `Maximum of ${max} characters.`)
 
-const PH_MOBILE_PATTERN = /^(09|\+639)\d{9}$/
+export const PH_MOBILE_PATTERN = /^(09|\+639)\d{9}$/
 const USERNAME_PATTERN = /^[a-zA-Z0-9._]+$/
 
 const personalSchema = z.object({

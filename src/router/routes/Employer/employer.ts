@@ -5,13 +5,14 @@ export const employerRoutes: RouteRecordRaw[] = [
   {
     path: '/employer',
     component: EmployerLayout,
-    meta: { breadcrumb: false, requiresAuth: true, role: 'company_owner' },
+    // Owners and the members they invite (migration 081); owner-only pages set their own role below
+    meta: { breadcrumb: false, requiresAuth: true, role: ['company_owner', 'company_member'] },
     children: [
       {
         path: 'complete-profile',
         name: 'employer-complete-profile',
         component: () => import('@/components/employer/CompleteProfile/EmployerCompleteProfile.vue'),
-        meta: { breadcrumb: 'Complete Profile' },
+        meta: { breadcrumb: 'Complete Profile', role: 'company_owner' },
       },
       {
         path: 'notifications',
@@ -40,7 +41,20 @@ export const employerRoutes: RouteRecordRaw[] = [
         path: 'company-profile',
         name: 'company-profile',
         component: () => import('@/components/employer/CompanyManagement/CompanyProfile.vue'),
-        meta: { breadcrumb: 'Company Profile' },
+        meta: { breadcrumb: 'Company Profile', role: 'company_owner' },
+      },
+      {
+        path: 'team',
+        name: 'employer-team',
+        component: () => import('@/components/employer/Team/CompanyTeamAccess.vue'),
+        meta: { breadcrumb: 'Team', role: 'company_owner' },
+      },
+      {
+        // A member whose membership was removed by the owner
+        path: 'no-company',
+        name: 'employer-no-company',
+        component: () => import('@/components/employer/Team/EmployerNoCompany.vue'),
+        meta: { breadcrumb: false, role: 'company_member' },
       },
       {
         path: 'job-postings',

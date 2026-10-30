@@ -73,6 +73,13 @@ export const loginRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/PrivacyConsent.vue'),
         meta: { requiresAuth: true }
       },
+      {
+        // The company invitation email signs the person in and opens this page (migration 081). Not
+        // requiresAuth: an expired or used link arrives signed out, and the page explains why
+        path: 'accept-invite',
+        name: 'accept-invite',
+        component: () => import('@/components/AcceptInvitation.vue'),
+      },
     ]
   },
 ]

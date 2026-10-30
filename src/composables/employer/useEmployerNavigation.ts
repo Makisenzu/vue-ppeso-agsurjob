@@ -34,7 +34,7 @@ const navItems: EmployerNavItem[] = [
     title: 'Company',
     children: [
       { title: 'Company Profile', to: { name: 'company-profile' } },
-      { title: 'Team' },
+      { title: 'Team', to: { name: 'employer-team' } },
     ],
   },
   {
@@ -47,6 +47,9 @@ const navItems: EmployerNavItem[] = [
   },
   { title: 'Chats', to: { name: 'employer-dashboard' } },
 ]
+
+// Members invited by the owner (migration 081): the owner-only pages (company profile, team) are left out
+const memberNavItems: EmployerNavItem[] = navItems.filter(item => item.title !== 'Company')
 
 // Until the establishment (NSRP Form 2) is registered the router guard only allows the complete-profile page, so Home is the only item
 const incompleteNavItems: EmployerNavItem[] = [{ title: 'Home', to: { name: 'employer-complete-profile' } }]
@@ -85,7 +88,15 @@ export function useEmployerNavigation() {
 
   const isDark = computed(() => mode.value === 'dark')
 
-  const visibleNavItems = computed(() => (authStore.isEmployerProfileComplete ? navItems : incompleteNavItems))
+  const isMember = computed(() => authStore.userRole === 'company_member')
+  const visibleNavItems = computed(() => {
+    if (isMember.value) return memberNavItems
+    return authStore.isEmployerProfileComplete ? navItems : incompleteNavItems
+  })
+  // Company settings are the owner's
+  const visibleSettingsItems = computed(() =>
+    isMember.value ? settingsItems.filter(item => item.to.name !== 'company-profile') : settingsItems
+  )
   const gooeyNavItems = computed(() => toGooeyNavItems(visibleNavItems.value))
   const accountRoute: RouteLocationRaw = { name: 'employer-account' }
 
@@ -123,7 +134,7 @@ export function useEmployerNavigation() {
     gooeyNavItems,
     activeNavIndex,
     supportItems,
-    settingsItems,
+    settingsItems: visibleSettingsItems,
     mobileOpen,
     isDark,
     displayName,

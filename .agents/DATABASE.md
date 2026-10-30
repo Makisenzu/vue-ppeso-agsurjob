@@ -414,6 +414,30 @@ Team members shown on the company profile. Display only: not accounts (that is `
 
 RLS: owner full CRUD, company members / PESO / DOLE read, admin all.
 
+#### `company_invitations` + member accounts (migration `081_company_member_invitations.sql`)
+The owner invites people to sign in for the company with their **own** account (role `company_member`); the owner never
+creates accounts. `company_members.member_role` = `recruiter` / `viewer`.
+
+| Column | Type | Notes |
+| ------ | ---- | ----- |
+| `id` | `uuid` | PK |
+| `company_id` | `uuid` | FK → `companies.id`, `ON DELETE CASCADE` |
+| `email` | `text` | lower-case; one `pending` invite per company + email |
+| `member_role` | `text` | `recruiter` / `viewer` |
+| `token_hash` | `text` | SHA-256 of the link token; the token is only in the email |
+| `status` | `text` | `pending` / `accepted` / `revoked` |
+| `expires_at` | `timestamptz` | 7 days; re-inviting rotates token and expiry |
+| `invited_by`, `accepted_by`, `accepted_at` | | |
+
+- RPCs (owner): `invite_company_member(email, role)` → `(invitation_id, token)`, `revoke_company_invitation(id)`,
+  `list_company_members()`, `remove_company_member(member_id)` (sets the membership `closed`).
+- RPCs (invitee, signed in by the invite email): `get_company_invitation(token)`, `accept_company_invitation(token, firstname, lastname, contact)`
+  → creates the `company_member` profile (`status = approved`) and the active membership. Members fill in no NSRP form; they accept the Privacy Notice like every account.
+- An email that already has an AGSURJOBS account cannot be invited (one account, one role).
+- `core.guard_profile_privileged_columns` (033, redefined in 081) lets only `accept_company_invitation` insert a `company_member` profile.
+- Edge Function `invite-company-member` sends the invite email (needs secret `SITE_URL`; `<SITE_URL>/accept-invite` must be an allowed Auth redirect URL).
+- RLS: owner reads its invitations; writes only through the RPCs; admin all.
+
 #### `employer_requirements` / `employer_requirement_files`
 Company requirement documents (migration `079_company_requirements_review.sql`). One `employer_requirements` row per
 company per `public.requirement_templates` row with `requirement_type = 'employer_requirements'` (seeded: Company Profile;

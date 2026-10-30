@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient"
+import { companyAccessService } from '@/services/employer/companyAccessService'
 import type { SignInWithPasswordCredentials } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import { LEGACY_APPLICANT_REQUIREMENT_TYPES } from '@/helpers/applicant/applicantRequirementTypes'
@@ -137,6 +138,18 @@ export const authService = {
     return data
   },
 
+  /** A company member's company, through their active membership (migration 081) */
+  async fetchMemberCompany(profileId: string): Promise<EmployerRow | null> {
+    const companyId = await companyAccessService.fetchMemberCompanyId(profileId)
+    if (!companyId) return null
+
+    const { data, error } = await supabase.schema('employers').from('companies').select('*').eq('id', companyId).maybeSingle()
+    if (error) {
+      throw new Error(error.message || 'Failed to fetch employer data')
+    }
+    return data
+  },
+
   async fetchUserBundle(userId: string): Promise<UserBundleData> {
     const profile = await this.fetchProfileIfExists(userId)
     if (!profile) {
@@ -156,7 +169,11 @@ export const authService = {
     const [applicantResult, employerResult, experiencesResult, skillsResult, requirementsResult, requirementMediaResult, profileMediaResult] =
       await Promise.all([
         profile.role === 'applicant' ? this.fetchApplicantByProfileId(userId) : Promise.resolve(null),
-        profile.role === 'company_owner' || profile.role === 'company_member' ? this.fetchEmployerByProfileId(userId) : Promise.resolve(null),
+        profile.role === 'company_owner'
+          ? this.fetchEmployerByProfileId(userId)
+          : profile.role === 'company_member'
+            ? this.fetchMemberCompany(userId)
+            : Promise.resolve(null),
         supabase.schema('applicants').from('applicant_experiences').select('*').eq('profile_id', userId),
         supabase.schema('applicants').from('applicant_skills').select('*').eq('profile_id', userId),
         supabase.schema('applicants').from('applicant_requirements').select('*').eq('profile_id', userId),

@@ -24,13 +24,20 @@ const router = createRouter({
 })
 
 /** Open to signed-in users who haven't accepted the current Privacy Notice yet */
-const PRIVACY_ROUTE_NAMES = new Set(['privacy-consent', 'privacy-notice'])
+const PRIVACY_ROUTE_NAMES = new Set(['privacy-consent', 'privacy-notice', 'accept-invite'])
+
+/** The role(s) a route allows: the deepest matched record that sets one (child pages can narrow their layout's) */
+function allowsRole(routeRole: unknown, userRole: string | null) {
+  if (!routeRole) return true
+  return Array.isArray(routeRole) ? routeRole.includes(userRole) : routeRole === userRole
+}
 
 export function getDashboardRouteForRole(role: string | null) {
   switch (role) {
     case 'admin':
       return { name: 'admin-dashboard' }
     case 'company_owner':
+    case 'company_member':
     case 'employer':
       return { name: 'employer-dashboard' }
     case 'provincial_peso':
@@ -61,12 +68,12 @@ router.beforeEach(async (to, _from, next) => {
       next(getDashboardRouteForRole(userRole))
     } else {
       // Check if user is accessing a page defined for another role
-      const routeRole = to.matched.find(record => record.meta.role)?.meta.role
+      const routeRole = [...to.matched].reverse().find(record => record.meta.role)?.meta.role
       
       // Prevent infinite redirect: if they are already heading to the fallback dashboard, let them through
       const fallbackRoute = getDashboardRouteForRole(userRole).name
       
-      if (routeRole && routeRole !== userRole && to.name !== fallbackRoute) {
+      if (!allowsRole(routeRole, userRole) && to.name !== fallbackRoute) {
         next(getDashboardRouteForRole(userRole))
       } else if (!authStore.hasAcceptedPrivacyNotice && !PRIVACY_ROUTE_NAMES.has(String(to.name))) {
         // Every account accepts the current Privacy Notice before using the portal (RA 10173, PRIVACY.md §3)
@@ -85,6 +92,14 @@ router.beforeEach(async (to, _from, next) => {
       ) {
         // Company owners must register their establishment (NSRP Form 2) before using the portal
         next({ name: 'employer-complete-profile' })
+      } else if (
+        userRole === 'company_member' &&
+        !authStore.employerProfile &&
+        to.name !== 'employer-no-company' &&
+        to.matched.some(record => record.path === '/employer')
+      ) {
+        // Members never fill in a form; one the owner removed has no company to work in
+        next({ name: 'employer-no-company' })
       } else {
         next()
       }
