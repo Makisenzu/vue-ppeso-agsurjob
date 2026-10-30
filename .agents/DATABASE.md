@@ -390,15 +390,17 @@ Company/employer profiles.
 | `verification_remarks` | `text`      | nullable; why PESO rejected the company (migration 079) |
 
 #### `company_members`
-Team members linked to a company.
+Accounts that sign in to work for a company (the owner is `companies.profile_id`, not a row here).
 
-| Column       | Type          | FK                       |
-| ------------ | ------------- | ------------------------ |
-| `id`         | `int4`        | PK, serial               |
-| `company_id` | `int4`        | FK → `companies.id`      |
-| `profile_id` | `uuid`        | FK → `core.profiles.id`  |
-| `role`       | `user_role`   | enum                     |
-| `status`     | `status_type` | nullable                 |
+| Column        | Type          | FK / Notes                                                  |
+| ------------- | ------------- | ----------------------------------------------------------- |
+| `id`          | `int4`        | PK, serial                                                  |
+| `company_id`  | `int4`        | FK → `companies.id`                                         |
+| `profile_id`  | `uuid`        | FK → `core.profiles.id`                                     |
+| `member_role` | `text`        | `recruiter` / `viewer` (081)                                |
+| `status`      | `status_type` | nullable; `active` (or legacy `approved`) grants access. The owner does not set it (083) |
+
+The legacy `role` (`user_role`) column was dropped in 083: `member_role` replaces it.
 
 #### `company_team_members` (migration `077_company_team_members.sql`)
 Team members shown on the company profile. Display only: not accounts (that is `company_members`).
@@ -430,7 +432,13 @@ creates accounts. `company_members.member_role` = `recruiter` / `viewer`.
 | `invited_by`, `accepted_by`, `accepted_at` | | |
 
 - RPCs (owner): `invite_company_member(email, role)` → `(invitation_id, token)`, `revoke_company_invitation(id)`,
-  `list_company_members()`, `remove_company_member(member_id)` (sets the membership `closed`).
+  `list_company_members()` (active members, never the owner), `remove_company_member(member_id)` and `remove_company_members(member_ids[])` (083: delete the
+  membership row; the account stays; returns the count removed).
+- Removed members (083): when a `company_member` has no membership left, `employers.set_member_account_access` locks the
+  account: `core.profiles.status = 'inactive'`, `auth.users.banned_until` far ahead, `auth.sessions` deleted. Inviting
+  that email again unlocks it (so the sign-in link works) and accepting rejoins with the same account; cancelling the
+  invitation locks it again. The lock / unlock uses the `agsurjobs.company_member_access` flag in the profile guard and
+  sends no account-status notification.
 - RPCs (invitee, signed in by the invite email): `get_company_invitation(token)`, `accept_company_invitation(token, firstname, lastname, contact)`
   → creates the `company_member` profile (`status = approved`) and the active membership. Members fill in no NSRP form; they accept the Privacy Notice like every account.
 - An email that already has an AGSURJOBS account cannot be invited (one account, one role).

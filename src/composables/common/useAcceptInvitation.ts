@@ -23,6 +23,8 @@ export function useAcceptInvitation() {
 
   const token = computed(() => String(route.query.token ?? ''))
   const roleLabel = computed(() => getMemberRoleLabel(invitation.value?.member_role))
+  /** Re-invited member: joins with the account they already have, no set-up form */
+  const hasAccount = computed(() => invitation.value?.has_account === true)
 
   const { handleSubmit } = useForm<AcceptInvitationFormValues>({
     validationSchema: toTypedSchema(acceptInvitationSchema),
@@ -40,6 +42,10 @@ export function useAcceptInvitation() {
     if (joined) await router.replace({ name: 'employer-dashboard' })
   })
 
+  async function rejoin() {
+    if (await store.accept(token.value)) await router.replace({ name: 'employer-dashboard' })
+  }
+
   onMounted(async () => {
     await authStore.init()
     await store.loadInvitation(token.value)
@@ -48,10 +54,12 @@ export function useAcceptInvitation() {
   return {
     invitation,
     roleLabel,
+    hasAccount,
     isLoading,
     isAccepting,
     loadError,
     minPasswordLength: MIN_PASSWORD_LENGTH,
     acceptInvitation,
+    rejoin,
   }
 }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { FlexRender } from '@tanstack/vue-table'
 import { Loader2, UserPlus, Users } from '@lucide/vue'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import SwipeCardList from '@/components/SwipeCardList.vue'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +33,15 @@ import { useCompanyAccess } from '@/composables/employer/useCompanyAccess'
 /** Team page (owner only): people who sign in to work for the company */
 const {
   memberRows,
+  table,
+  columns,
+  getRowCard,
+  getRowSwipeActions,
+  selectedIds,
+  clearSelection,
+  isBulkRemoving,
+  isBulkRemoveOpen,
+  confirmBulkRemove,
   invitationRows,
   isLoading,
   busyId,
@@ -63,49 +74,100 @@ const {
     </div>
 
     <!-- Members -->
-    <Card>
-      <CardHeader>
-        <CardTitle class="text-base">Members</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div v-if="isLoading" class="space-y-3">
-          <Skeleton v-for="n in 2" :key="n" class="h-12 w-full" />
+    <section class="space-y-4">
+      <Empty v-if="!isLoading && memberRows.length === 0" class="rounded-md border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon"><Users /></EmptyMedia>
+          <EmptyTitle>No members yet</EmptyTitle>
+          <EmptyDescription>Invite the people who post jobs or review applicants.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+
+      <template v-else>
+        <!-- Bulk action bar (DESIGN.md 13.1) -->
+        <div
+          v-if="selectedIds.length > 0"
+          class="flex items-center justify-between gap-4 rounded-md border bg-muted/50 px-4 py-2"
+        >
+          <span class="text-sm text-muted-foreground">{{ selectedIds.length }} selected</span>
+          <div class="flex items-center gap-2">
+            <Button variant="ghost" size="sm" @click="clearSelection">Clear</Button>
+            <Button variant="destructive" size="sm" :disabled="isBulkRemoving" @click="isBulkRemoveOpen = true">
+              Remove selected
+            </Button>
+          </div>
         </div>
 
-        <Empty v-else-if="memberRows.length === 0">
-          <EmptyHeader>
-            <EmptyMedia variant="icon"><Users /></EmptyMedia>
-            <EmptyTitle>No members yet</EmptyTitle>
-            <EmptyDescription>Invite the people who post jobs or review applicants.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
+        <SwipeCardList
+          class="md:hidden"
+          :items="table.getRowModel().rows"
+          :item-key="(row) => row.id"
+          :card="(row) => getRowCard(row.original)"
+          :actions="(row) => getRowSwipeActions(row.original)"
+          :loading="isLoading && memberRows.length === 0"
+          :is-selected="(row) => row.getIsSelected()"
+          :all-selected="table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')"
+          @toggle="(row, value) => row.toggleSelected(value)"
+          @toggle-all="(value) => table.toggleAllPageRowsSelected(value)"
+        />
 
-        <ul v-else class="divide-y">
-          <li
-            v-for="row in memberRows"
-            :key="row.member.member_id"
-            class="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium">{{ row.name }}</p>
-              <p class="truncate text-xs text-muted-foreground">{{ row.detail }}</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <Badge variant="outline">{{ row.roleLabel }}</Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="text-destructive hover:text-destructive"
-                :disabled="busyId === row.member.member_id"
-                @click="memberToRemove = row.member"
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto rounded-md border md:block">
+          <Table>
+            <TableHeader>
+              <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+                <TableHead v-for="header in headerGroup.headers" :key="header.id">
+                  <FlexRender
+                    v-if="!header.isPlaceholder"
+                    :render="header.column.columnDef.header"
+                    :props="header.getContext()"
+                  />
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <template v-if="isLoading && memberRows.length === 0">
+                <TableRow v-for="i in 3" :key="i">
+                  <TableCell v-for="col in columns.length" :key="col">
+                    <Skeleton class="h-4 w-full" />
+                  </TableCell>
+                </TableRow>
+              </template>
+
+              <TableRow
+                v-for="row in table.getRowModel().rows"
+                v-else
+                :key="row.id"
+                :data-state="row.getIsSelected() ? 'selected' : undefined"
               >
-                Remove
-              </Button>
-            </div>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="table.getPageCount() > 1"
+          class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
+            {{ memberRows.length }} member(s)
+          </p>
+          <div class="flex justify-center gap-2 sm:justify-end">
+            <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" :disabled="!table.getCanNextPage()" @click="table.nextPage()">
+              Next
+            </Button>
+          </div>
+        </div>
+      </template>
+    </section>
 
     <!-- Pending invitations -->
     <Card v-if="invitationRows.length">
@@ -167,7 +229,7 @@ const {
             <FormControl>
               <Input v-bind="componentField" type="email" autocomplete="off" placeholder="name@company.com" :disabled="isInviting" />
             </FormControl>
-            <FormDescription>Use an email that isn't on AGSURJOBS yet, such as a work email.</FormDescription>
+            <FormDescription>Use an email that isn't on AGSURJOBS yet, such as a work email. Members you removed can be invited again.</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -199,7 +261,7 @@ const {
       <AlertDialogHeader>
         <AlertDialogTitle>Remove this member?</AlertDialogTitle>
         <AlertDialogDescription>
-          {{ memberToRemove?.full_name ?? memberToRemove?.email }} will lose access to your company right away.
+          {{ memberToRemove?.full_name ?? memberToRemove?.email }} will lose access to your company right away and won't be able to sign in until you invite them again.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -207,6 +269,24 @@ const {
         <Button variant="destructive" :disabled="busyId !== null" @click="confirmRemove">
           <Loader2 v-if="busyId !== null" class="size-4 animate-spin" />
           Remove
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  <AlertDialog v-model:open="isBulkRemoveOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Remove {{ selectedIds.length }} member{{ selectedIds.length === 1 ? '' : 's' }}?</AlertDialogTitle>
+        <AlertDialogDescription>
+          They will lose access to your company right away and won't be able to sign in until you invite them again.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel :disabled="isBulkRemoving">Cancel</AlertDialogCancel>
+        <Button variant="destructive" :disabled="isBulkRemoving" @click="confirmBulkRemove">
+          <Loader2 v-if="isBulkRemoving" class="size-4 animate-spin" />
+          {{ isBulkRemoving ? 'Removing...' : `Remove ${selectedIds.length}` }}
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>

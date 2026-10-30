@@ -9,7 +9,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { useAcceptInvitation } from '@/composables/common/useAcceptInvitation'
 
 /** /accept-invite: a person invited by a company creates their own member account (migration 081) */
-const { invitation, roleLabel, isLoading, isAccepting, loadError, minPasswordLength, acceptInvitation } =
+const { invitation, roleLabel, hasAccount, isLoading, isAccepting, loadError, minPasswordLength, acceptInvitation, rejoin } =
   useAcceptInvitation()
 </script>
 
@@ -22,7 +22,8 @@ const { invitation, roleLabel, isLoading, isAccepting, loadError, minPasswordLen
         </h1>
       </CardTitle>
       <CardDescription v-if="invitation && !loadError">
-        You were invited as {{ roleLabel }}. Set up your account to continue.
+        You were invited as {{ roleLabel }}.
+        {{ hasAccount ? 'Join with your existing account.' : 'Set up your account to continue.' }}
       </CardDescription>
     </CardHeader>
 
@@ -33,6 +34,21 @@ const { invitation, roleLabel, isLoading, isAccepting, loadError, minPasswordLen
     <CardContent v-else-if="loadError" class="px-4 sm:px-6">
       <p class="text-sm text-muted-foreground">{{ loadError }}</p>
     </CardContent>
+
+    <!-- Re-invited member: their account already exists -->
+    <template v-else-if="hasAccount">
+      <CardContent class="grid gap-2 px-4 sm:px-6">
+        <Label for="rejoin-email">Account</Label>
+        <Input id="rejoin-email" :model-value="invitation?.email ?? ''" disabled />
+        <p class="text-xs text-muted-foreground">You'll sign in with this email and your current password.</p>
+      </CardContent>
+      <CardFooter class="px-4 pb-5 sm:justify-end sm:px-6 sm:pb-0">
+        <Button class="h-11 w-full text-base sm:h-9 sm:w-auto sm:text-sm" :disabled="isAccepting" @click="rejoin">
+          <Loader2 v-if="isAccepting" class="size-4 shrink-0 animate-spin" />
+          {{ isAccepting ? 'Joining...' : 'Join company' }}
+        </Button>
+      </CardFooter>
+    </template>
 
     <form v-else class="contents" @submit="acceptInvitation">
       <CardContent class="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 sm:px-6">

@@ -17,6 +17,7 @@ export const useCompanyAccessStore = defineStore('employerCompanyAccess', () => 
   const invitations = ref<CompanyInvitation[]>([])
   const isLoading = ref(false)
   const isInviting = ref(false)
+  const isBulkRemoving = ref(false)
   /** Invitation id or member id being changed */
   const busyId = ref<string | number | null>(null)
 
@@ -102,12 +103,29 @@ export const useCompanyAccessStore = defineStore('employerCompanyAccess', () => 
     }
   }
 
+  /** Bulk remove from the Team table (DESIGN.md §13.1); refetches so skipped rows stay visible */
+  async function removeMembers(memberIds: number[]): Promise<boolean> {
+    isBulkRemoving.value = true
+    try {
+      const removed = await companyAccessService.removeMembers(memberIds)
+      members.value = await companyAccessService.fetchMembers()
+      toastAlert.success('Members removed', `${removed} member${removed === 1 ? '' : 's'} can no longer access the company.`)
+      return true
+    } catch (error: unknown) {
+      toastAlert.error('Error', errorMessageOf(error, 'Failed to remove the members.'))
+      return false
+    } finally {
+      isBulkRemoving.value = false
+    }
+  }
+
   return {
     // State
     members,
     invitations,
     isLoading,
     isInviting,
+    isBulkRemoving,
     busyId,
     // Actions
     fetchAccess,
@@ -115,5 +133,6 @@ export const useCompanyAccessStore = defineStore('employerCompanyAccess', () => 
     resend,
     revoke,
     removeMember,
+    removeMembers,
   }
 })

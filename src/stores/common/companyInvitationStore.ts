@@ -51,17 +51,22 @@ export const useCompanyInvitationStore = defineStore('companyInvitation', () => 
     }
   }
 
+  /** New member: sets up the account (`values`). Re-invited member (`values` omitted): rejoins with theirs */
   async function accept(
     token: string,
-    values: { firstname: string; lastname: string; contactNumber: string; password: string },
+    values?: { firstname: string; lastname: string; contactNumber: string; password: string },
   ): Promise<boolean> {
     const userId = authStore.user?.id
     if (!userId) return false
     isAccepting.value = true
     try {
-      await companyAccessService.acceptInvitation(token, values)
+      if (values) await companyAccessService.acceptInvitation(token, values)
+      else await companyAccessService.rejoinWithInvitation(token)
       await authStore.hydrateUserData(userId, true)
-      toastAlert.success('Welcome to AGSURJOBS', `You joined ${invitation.value?.company_name ?? 'the company'}.`)
+      toastAlert.success(
+        values ? 'Welcome to AGSURJOBS' : 'Welcome back',
+        `You joined ${invitation.value?.company_name ?? 'the company'}.`,
+      )
       return true
     } catch (error: unknown) {
       toastAlert.error('Could not join', errorMessageOf(error, 'Failed to accept the invitation.'))

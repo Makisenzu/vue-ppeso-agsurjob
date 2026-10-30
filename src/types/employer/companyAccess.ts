@@ -38,6 +38,8 @@ export interface CompanyInvitationPreview {
   email: string
   member_role: CompanyMemberRole
   is_expired: boolean
+  /** A member removed earlier and invited again: rejoins with this account, no set-up form (migration 083) */
+  has_account: boolean
 }
 
 export interface InviteMemberFormValues {

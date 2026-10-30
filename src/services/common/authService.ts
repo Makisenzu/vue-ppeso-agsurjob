@@ -53,6 +53,8 @@ export interface UserBundleData {
 }
 
 export const INACTIVE_ACCOUNT_MESSAGE = 'Your account is inactive. Please contact the PESO office to reactivate it.'
+/** Supabase Auth refuses banned logins: only members removed from their company are banned (migration 083) */
+export const REMOVED_MEMBER_MESSAGE = 'You were removed from your company. Ask the owner to invite you again.'
 
 /** Accounts set to 'inactive' (Admin → User Accounts) may not sign in */
 export const isInactiveProfile = (profile: Pick<ProfileRow, 'status'> | null | undefined) => profile?.status === 'inactive'
@@ -60,6 +62,7 @@ export const isInactiveProfile = (profile: Pick<ProfileRow, 'status'> | null | u
 export const authService = {
   async login(credentials: SignInWithPasswordCredentials) {
     const { data, error } = await supabase.auth.signInWithPassword(credentials)
+    if (error?.code === 'user_banned') throw new Error(REMOVED_MEMBER_MESSAGE)
     if (error) throw error
 
     // Supabase Auth doesn't know the account status, so check it right after sign-in and
@@ -67,7 +70,7 @@ export const authService = {
     const profile = await this.fetchProfileIfExists(data.user.id)
     if (isInactiveProfile(profile)) {
       await supabase.auth.signOut()
-      throw new Error(INACTIVE_ACCOUNT_MESSAGE)
+      throw new Error(profile?.role === 'company_member' ? REMOVED_MEMBER_MESSAGE : INACTIVE_ACCOUNT_MESSAGE)
     }
     return data
   },

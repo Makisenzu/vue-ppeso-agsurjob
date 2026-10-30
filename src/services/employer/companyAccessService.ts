@@ -85,6 +85,13 @@ export const companyAccessService = {
     if (error) throw new Error(messageOf(error, 'Failed to remove the member.'))
   },
 
+  /** Bulk remove (migration 083): one request; returns how many memberships were closed */
+  async removeMembers(memberIds: number[]): Promise<number> {
+    const { data, error } = await untypedEmployers().rpc('remove_company_members', { p_member_ids: memberIds })
+    if (error) throw new Error(messageOf(error, 'Failed to remove the members.'))
+    return (data as number | null) ?? 0
+  },
+
   /** Invitee: the invitation behind their link, or null when it is not theirs / no longer pending */
   async fetchInvitation(token: string): Promise<CompanyInvitationPreview | null> {
     const { data, error } = await untypedEmployers().rpc('get_company_invitation', { p_token: token })
@@ -109,6 +116,17 @@ export const companyAccessService = {
       p_firstname: values.firstname,
       p_lastname: values.lastname,
       p_contact_number: values.contactNumber,
+    })
+    if (error) throw new Error(messageOf(error, 'Failed to accept the invitation.'))
+  },
+
+  /** Re-invited member: rejoins with their existing account (name, number and password kept) */
+  async rejoinWithInvitation(token: string): Promise<void> {
+    const { error } = await untypedEmployers().rpc('accept_company_invitation', {
+      p_token: token,
+      p_firstname: null,
+      p_lastname: null,
+      p_contact_number: null,
     })
     if (error) throw new Error(messageOf(error, 'Failed to accept the invitation.'))
   },
