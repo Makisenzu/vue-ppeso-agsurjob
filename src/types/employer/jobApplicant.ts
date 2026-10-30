@@ -1,5 +1,5 @@
 import type { JobVacancyRow } from '@/types/peso/provincialPeso/jobFair'
-import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
+import type { JobApplicationStage, JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
 import type { GipApplicantSummarySource } from '@/helpers/applicant/gipApplicationHelper'
 
 /**
@@ -18,7 +18,10 @@ export type ApplicantStageCounts = Record<ApplicantStageFilter, number>
 export type ApplicantVacancySummary = Pick<
   JobVacancyRow,
   'id' | 'position_title' | 'status' | 'vacancy_count' | 'place_of_work' | 'valid_until'
->
+> & {
+  /** Documents applicants submit (migration 088) */
+  requirements: JobVacancyRequirement[]
+}
 
 /** One applicant as esmdd.search_job_vacancy_applications returns it */
 export interface VacancyApplicantRow {

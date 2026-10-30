@@ -80,7 +80,7 @@ Organizational duties outside the code (the agent should remind the user, not in
 | Uploaded documents                            | `documents` bucket + `applicants.applicant_requirement_media`         | **Yes** (IDs, TOR, birth certificate) |
 | OCR scans of paper forms                      | `applicant-forms` bucket + `public.applicant_forms`                   | **Yes** |
 | Program records (GIP, SPES, TUPAD, job fairs) | `esmdd.*`, `applicants.spes_form`                                     | Partly |
-| Job vacancy applications (stage, employer remarks, NSRP / resume / letter files) | `esmdd.job_vacancy_applications`, `esmdd.job_vacancy_application_documents` + `documents` bucket (087); shared only with the vacancy's company | **Yes** (NSRP form) |
+| Job vacancy applications (stage, employer remarks, the files the employer asks for — never the NSRP Form) | `esmdd.job_vacancy_applications`, `esmdd.job_vacancy_application_documents` + `documents` bucket (087 / 088); shared only with the vacancy's company | Partly (e.g. a birth certificate or TOR if asked) |
 | Profile pictures                              | `media` bucket (readable by signed-in users only, see §4)             | No |
 | Face data                                    | `core.biometrics` (unused by the app; consent-guarded)                | **Yes** |
 | Consents, requests                            | `core.privacy_consents`, `core.data_subject_requests`                 | No |

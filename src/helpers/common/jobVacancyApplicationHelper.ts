@@ -1,9 +1,34 @@
 import {
   JOB_APPLICATION_ATTACHMENT_MAX_BYTES,
   JOB_APPLICATION_ATTACHMENT_MIME_TYPES,
+  JOB_APPLICATION_REQUIREMENT_HINTS,
   JOB_APPLICATION_STAGES,
+  type JobApplicationDocumentMap,
+  type JobApplicationRequirement,
   type JobApplicationStage,
+  type JobVacancyRequirement,
 } from '@/types/common/jobVacancyApplication'
+
+/**
+ * What an application to this vacancy needs: the employer's requirements in their order (migration 088).
+ * No NSRP Form: it is only for PESO programs. Files saved for a requirement the employer removed
+ * later are listed last as optional, so nobody loses sight of them.
+ */
+export function toJobApplicationRequirements(
+  requirements: readonly JobVacancyRequirement[],
+  savedDocuments: JobApplicationDocumentMap = {},
+): JobApplicationRequirement[] {
+  const list: JobApplicationRequirement[] = requirements.map(({ requirement_name, is_required }) => ({
+    name: requirement_name,
+    hint: JOB_APPLICATION_REQUIREMENT_HINTS[requirement_name] ?? 'Requested by the employer',
+    isOptional: !is_required,
+  }))
+  const listed = new Set(list.map((item) => item.name))
+  for (const name of Object.keys(savedDocuments)) {
+    if (!listed.has(name)) list.push({ name, hint: 'No longer requested by the employer', isOptional: true })
+  }
+  return list
+}
 
 export const JOB_APPLICATION_STAGE_LABELS: Record<JobApplicationStage, string> = {
   applied: 'New',

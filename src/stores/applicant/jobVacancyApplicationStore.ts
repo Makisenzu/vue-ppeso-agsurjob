@@ -2,7 +2,6 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { jobVacancyApplicationService } from '@/services/applicant/jobVacancyApplicationService'
 import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
-import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type { VacancyDetails } from '@/types/applicant/jobVacancyApplication'
 import type {
@@ -25,7 +24,6 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
   const documents = ref<JobApplicationDocumentMap>({})
   const isLoading = ref(false)
   const isSubmitting = ref(false)
-  const isGeneratingNsrp = ref(false)
   /** Document whose saved file is being removed */
   const deletingDocument = ref<string | null>(null)
   const errorMessage = ref<string | null>(null)
@@ -79,7 +77,13 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
       const application = myApplication.value ?? (await jobVacancyApplicationService.apply(vacancyId))
       myApplication.value = application
       try {
-        await jobApplicationDocumentService.uploadDocuments({ applicationId: application.id, uploaderId, pending, reused })
+        await jobApplicationDocumentService.uploadDocuments({
+          applicationId: application.id,
+          uploaderId,
+          pending,
+          reused,
+          documentNames: (vacancy.value?.requirements ?? []).map((item) => item.requirement_name),
+        })
       } finally {
         // Re-read even after a failed upload: the application exists either way
         await refreshApplication(vacancyId, applicantId)
@@ -95,29 +99,6 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
       return false
     } finally {
       isSubmitting.value = false
-    }
-  }
-
-  /**
-   * Builds the applicant's NSRP Form 1 PDF from a fresh copy of their registry record (like the GIP
-   * and TUPAD stores). The PDF libraries load only when asked. Returns null on failure.
-   */
-  async function generateNsrpPdf(profileId: string): Promise<File | null> {
-    isGeneratingNsrp.value = true
-    try {
-      const [record, { mapToApplicantEntryRecord }, pdf] = await Promise.all([
-        applicantCompletionService.fetchMyRecord(profileId),
-        import('@/helpers/peso/provincialPeso/applicantEntryHelper'),
-        import('@/helpers/peso/provincialPeso/nsrpTemplateHelper'),
-      ])
-      if (!record) throw new Error('Your NSRP record could not be loaded.')
-      return await pdf.generateNsrpFormPdfFile(mapToApplicantEntryRecord(record))
-    } catch (error: unknown) {
-      console.error('Failed to generate NSRP PDF:', error)
-      toastAlert.error('NSRP form not generated', errorMessageOf(error, 'Please try again.'))
-      return null
-    } finally {
-      isGeneratingNsrp.value = false
     }
   }
 
@@ -152,13 +133,11 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
     documents,
     isLoading,
     isSubmitting,
-    isGeneratingNsrp,
     deletingDocument,
     errorMessage,
     isLocked,
     load,
     submitApplication,
-    generateNsrpPdf,
     deleteDocument,
     reset,
   }

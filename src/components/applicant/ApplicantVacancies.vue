@@ -89,9 +89,18 @@ const {
                   <Badge v-if="vacancy.natureOfWork" variant="secondary" class="shrink-0">{{ vacancy.natureOfWork }}</Badge>
                 </div>
               </div>
-              <Badge v-if="vacancy.hasApplied" variant="outline" class="shrink-0 self-start" :class="vacancy.stageClass">
-                Applied · {{ vacancy.stageLabel }}
-              </Badge>
+              <!-- Top right: days left, then the applicant's own status -->
+              <div
+                v-if="vacancy.countdown || vacancy.hasApplied"
+                class="flex shrink-0 flex-wrap items-center gap-2 self-start sm:flex-col sm:items-end"
+              >
+                <Badge v-if="vacancy.countdown" variant="outline" :class="vacancy.countdown.class">
+                  {{ vacancy.countdown.label }}
+                </Badge>
+                <Badge v-if="vacancy.hasApplied" variant="outline" :class="vacancy.stageClass">
+                  Applied · {{ vacancy.stageLabel }}
+                </Badge>
+              </div>
             </div>
 
             <!-- Facts: 1 column on phones, 2 on tablets, one line on desktop -->
@@ -129,12 +138,7 @@ const {
                 </span>
                 <div class="min-w-0">
                   <dt class="text-xs text-muted-foreground">Deadline</dt>
-                  <dd class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span class="text-sm font-semibold text-foreground">{{ vacancy.deadline }}</span>
-                    <Badge v-if="vacancy.countdown" variant="outline" class="text-[11px]" :class="vacancy.countdown.class">
-                      {{ vacancy.countdown.label }}
-                    </Badge>
-                  </dd>
+                  <dd class="truncate text-sm font-semibold text-foreground">{{ vacancy.deadline }}</dd>
                 </div>
               </div>
             </dl>

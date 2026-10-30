@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
 import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
 import type {
   ApplicantStageCounts,
@@ -49,17 +50,20 @@ export const jobApplicantService = {
 
   emptyCounts: EMPTY_COUNTS,
 
-  /** The vacancy shown above its applicants */
+  /** The vacancy shown above its applicants, with the documents it asks for (migration 088) */
   async fetchVacancy(vacancyId: string): Promise<ApplicantVacancySummary | null> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('job_vacancies')
-      .select('id, position_title, status, vacancy_count, place_of_work, valid_until')
-      .eq('id', vacancyId)
-      .maybeSingle()
+    const [{ data, error }, requirements] = await Promise.all([
+      supabase
+        .schema('esmdd')
+        .from('job_vacancies')
+        .select('id, position_title, status, vacancy_count, place_of_work, valid_until')
+        .eq('id', vacancyId)
+        .maybeSingle(),
+      jobVacancyRequirementService.fetchRequirements(vacancyId),
+    ])
 
     if (error) throw error
-    return data
+    return data ? { ...data, requirements } : null
   },
 
   /** One page of a vacancy's applicants, searched by name and filtered by stage in SQL (BACKEND.md §19) */

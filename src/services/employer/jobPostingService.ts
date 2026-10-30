@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { VACANCY_STATUSES, type JobVacancyRow, type JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
 import { jobVacancyMatchingService } from '@/services/common/jobVacancyMatchingService'
+import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
 import {
   JOB_POSTING_LIST_COLUMNS,
   type JobPostingDetails,
@@ -15,7 +16,7 @@ import {
 const vacancies = () => supabase.schema('esmdd').from('job_vacancies')
 
 /**
- * esmdd.save_job_vacancy (migrations 084 / 085) is not in database.types.ts until `npm run types:gen`
+ * esmdd.save_job_vacancy (migrations 084 / 085 / 088) is not in database.types.ts until `npm run types:gen`
  * is re-run, so the typed client rejects its name. Use `supabase` directly after regenerating.
  */
 const untypedEsmdd = () => (supabase as unknown as SupabaseClient).schema('esmdd')
@@ -60,21 +61,22 @@ export async function fetchJobPostingStats(establishmentId: string): Promise<Job
   )
 }
 
-/** Every field of one posting and its skills, for the edit form */
+/** Every field of one posting, its skills and requirements, for the edit form */
 export async function fetchJobPostingById(id: string): Promise<Omit<JobPostingDetails, 'attachments'>> {
-  const [{ data, error }, skills] = await Promise.all([
+  const [{ data, error }, skills, requirements] = await Promise.all([
     vacancies().select('*').eq('id', id).single(),
     jobVacancyMatchingService.fetchSkillsByVacancy([id]),
+    jobVacancyRequirementService.fetchRequirements(id),
   ])
 
   if (error) throw error
   // related_courses (migration 085) is read untyped until types are regenerated
   const row = data as JobVacancyRow & { related_courses?: string[] | null }
-  return { ...row, skills: skills.get(id) ?? [], related_courses: row.related_courses ?? [] }
+  return { ...row, skills: skills.get(id) ?? [], related_courses: row.related_courses ?? [], requirements }
 }
 
 /**
- * Creates (id null) or updates a posting and replaces its skills in one transaction.
+ * Creates (id null) or updates a posting and replaces its skills and requirements in one transaction.
  * The job_vacancies RLS still decides who may write (the RPC is SECURITY INVOKER).
  */
 export async function saveJobPosting(
@@ -87,6 +89,7 @@ export async function saveJobPosting(
     p_establishment_id: establishmentId,
     p_vacancy: payload.vacancy,
     p_skills: payload.skills,
+    p_requirements: payload.requirements,
   })
 
   if (error) throw error

@@ -209,8 +209,9 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 > 15. **DO NOT ship a user-facing activity without its notification** — every status change, review decision or
 >     assignment a user should know about gets a `system.notify()` trigger. See [`BACKEND.md`](.agents/BACKEND.md) §17.
 > 16. **DO NOT make applicants re-submit what they already gave us** — every application flow (PESO programs and
->     job vacancies) generates the NSRP from the registry record, auto-fills each requirement that matches a
->     profile document type, offers the rest through "My documents", and uses the GIP application layout.
+>     job vacancies) auto-fills each requirement that matches a profile document type, offers the rest through
+>     "My documents", and uses the GIP application layout. PESO programs, job fairs and PESO analytics also generate
+>     the NSRP from the registry record; job vacancy applications never include the NSRP Form.
 >     See [`BACKEND.md`](.agents/BACKEND.md) §18.
 > 17. **DO NOT ship a screen that only works at test-data size, on a desktop, or with trusted users.** Every change must be:
 >     - **Scalable to the whole province** (150,000+ applicants): unbounded lists page, search and count on the server;

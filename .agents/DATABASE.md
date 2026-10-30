@@ -726,7 +726,8 @@ application (`esmdd.apply_to_job_vacancy`) → the company owner (type `applicat
 must add their trigger (`.agents/BACKEND.md` §17).
 Job vacancy applications (migration `087_job_vacancy_applications.sql`): `esmdd.job_vacancy_applications` (one per
 applicant per vacancy; `stage` applied → screening → interview → offered → hired, or rejected with `status_remarks`) and
-`esmdd.job_vacancy_application_documents` (NSRP Form, Resume, Application Letter in the documents bucket). Reviewed by
+`esmdd.job_vacancy_application_documents` (the vacancy's own requirements from migration 088, in the documents bucket;
+never the NSRP Form, which is only for PESO programs, job fairs and analytics). Reviewed by
 `esmdd.can_review_job_vacancy` (vacancy managers + company members); applicant names and details reach employers only
 through the SECURITY DEFINER RPCs `search_job_vacancy_applications` / `get_job_vacancy_application` (the latter
 audit-logs the view). The legacy int4 `jobs.job_applications` tables are unused.

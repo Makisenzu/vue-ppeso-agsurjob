@@ -21,25 +21,77 @@ export interface JobVacancyApplicationRow {
   updated_at: string
 }
 
-/** Names must match the CHECK on esmdd.job_vacancy_application_documents (migration 087) */
-export const JOB_APPLICATION_DOCUMENT_OPTIONS: readonly string[] = ['NSRP Form', 'Resume', 'Application Letter']
-
-/** Generated from the registry record, never uploaded by hand (BACKEND.md §18) */
+/** PESO's form for its programs, job fairs and analytics; job applications don't use it, so employers can't ask for it */
 export const JOB_APPLICATION_NSRP_DOCUMENT = 'NSRP Form'
 
-/** Every requirement with what it is; the application letter is optional */
-export const JOB_APPLICATION_REQUIREMENTS: readonly { name: string; hint: string; isOptional: boolean }[] = [
-  { name: 'NSRP Form', hint: 'Generated from your profile when you apply', isOptional: false },
-  { name: 'Resume', hint: 'Your latest resume or CV', isOptional: false },
-  { name: 'Application Letter', hint: 'Addressed to the employer', isOptional: true },
+/**
+ * esmdd.job_vacancy_requirements (migration 088): a document the employer asks applicants to submit,
+ * required or optional. Typed by hand until `npm run types:gen` is re-run.
+ */
+export interface JobVacancyRequirementRow {
+  id: string
+  job_vacancy_id: string
+  requirement_name: string
+  requirement_key: string
+  is_required: boolean
+  sort_order: number
+  created_at: string
+}
+
+/** A vacancy's requirement as the posting form saves it and the application forms read it */
+export type JobVacancyRequirement = Pick<JobVacancyRequirementRow, 'requirement_name' | 'is_required'>
+
+/** One requirement of the application form: the vacancy's own, in the employer's order */
+export interface JobApplicationRequirement {
+  name: string
+  hint: string
+  isOptional: boolean
+}
+
+/** Same limits as the CHECKs and esmdd.assert_job_vacancy_requirements (migration 088) */
+export const MAX_VACANCY_REQUIREMENTS = 15
+export const REQUIREMENT_NAME_MAX_LENGTH = 80
+
+/** What a new posting asks for until the employer changes it (the list of migration 087) */
+export const DEFAULT_VACANCY_REQUIREMENTS: readonly JobVacancyRequirement[] = [
+  { requirement_name: 'Resume', is_required: true },
+  { requirement_name: 'Application Letter', is_required: false },
 ]
+
+/** Common documents the employer adds with one tap; any other name can be typed */
+export const VACANCY_REQUIREMENT_SUGGESTIONS: readonly string[] = [
+  'Resume',
+  'Application Letter',
+  'Transcript of Records',
+  'Diploma',
+  'Birth Certificate',
+  'Training Certificates',
+  'Certificate of Employment',
+  'NBI Clearance',
+  'Police Clearance',
+  'Barangay Clearance',
+  'Medical Certificate',
+]
+
+/** Shown under a requirement the applicant may not know; others get a generic hint */
+export const JOB_APPLICATION_REQUIREMENT_HINTS: Partial<Record<string, string>> = {
+  Resume: 'Your latest resume or CV',
+  'Application Letter': 'Addressed to the employer',
+}
 
 /**
  * Profile document types attached automatically to the requirement that means the same thing
- * (BACKEND.md §18). Application Form is not an Application Letter, so the letter is picked by hand.
+ * (BACKEND.md §18), keyed by the requirement's name as normalizeRequirementLabel() writes it. Application Form is not an
+ * Application Letter, so the letter is picked by hand.
  */
 export const JOB_APPLICATION_PROFILE_DOCUMENT_MATCHES: Partial<Record<string, readonly string[]>> = {
-  Resume: ['Resume'],
+  resume: ['Resume'],
+  'birth certificate': ['Birth Certificate'],
+  'transcript of records': ['TOR/Diploma'],
+  diploma: ['TOR/Diploma'],
+  'tor diploma': ['TOR/Diploma'],
+  certificates: ['Certificates'],
+  'training certificates': ['Certificates'],
 }
 
 export const JOB_APPLICATION_ATTACHMENT_MIME_TYPES = ['application/pdf'] as const

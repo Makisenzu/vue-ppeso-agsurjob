@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Check, ChevronDown, FileText, Loader2, Paperclip, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, FileText, Loader2, Paperclip, Send, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,7 +36,8 @@ const {
   appliedOn,
   applicationDetails,
   applicantDetails,
-  isGeneratingNsrp,
+  isApplying,
+  startApplying,
   wizardSteps,
   currentStep,
   reachedStep,
@@ -51,7 +52,6 @@ const {
   selectFile,
   attachProfileDocument,
   removeFile,
-  generateNsrp,
   submit,
   reload,
 } = useJobVacancyApplicationForm()
@@ -64,7 +64,7 @@ const INDICATOR_CLASS =
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-8 pb-16">
+  <div class="flex w-full min-w-0 flex-col gap-8 pb-16">
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-4">
       <AppLink
@@ -107,8 +107,8 @@ const INDICATOR_CLASS =
     </Alert>
 
     <template v-else-if="job">
-      <!-- ─── The job: collapsed once applied ─── -->
-      <Collapsible :default-open="!hasApplied" class="flex flex-col gap-3">
+      <!-- ─── The job: hidden while filling in the wizard, collapsed once applied ─── -->
+      <Collapsible v-if="!isApplying || hasApplied" :default-open="!hasApplied" class="flex flex-col gap-3">
         <CollapsibleTrigger as-child>
           <button
             type="button"
@@ -119,8 +119,8 @@ const INDICATOR_CLASS =
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent class="flex flex-col gap-4">
-          <p v-if="job.description" class="text-sm text-pretty whitespace-pre-line text-foreground">{{ job.description }}</p>
-          <dl v-if="job.details.length" class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
+          <p v-if="job.description" class="max-w-prose text-sm text-pretty whitespace-pre-line text-foreground">{{ job.description }}</p>
+          <dl v-if="job.details.length" class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
             <div v-for="detail in job.details" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
               <dt class="text-xs font-medium text-muted-foreground uppercase">{{ detail.label }}</dt>
               <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
@@ -140,24 +140,43 @@ const INDICATOR_CLASS =
               </li>
             </ul>
           </div>
-          <ul v-if="job.attachments.length" class="flex flex-col gap-1">
-            <li v-for="file in job.attachments" :key="file.id" class="min-w-0">
-              <AppLink
-                v-if="file.url"
-                :href="file.url"
-                target="_blank"
-                class="inline-flex max-w-full items-center gap-1 text-sm text-primary hover:underline"
+          <div class="flex flex-col gap-2">
+            <h3 class="text-xs font-medium text-muted-foreground uppercase">Documents to submit</h3>
+            <ul class="flex flex-wrap gap-2">
+              <li
+                v-for="doc in job.documents"
+                :key="doc.name"
+                class="rounded-md border border-border px-2 py-1 text-xs"
+                :class="doc.isOptional ? 'text-muted-foreground' : 'text-foreground'"
               >
-                <Paperclip class="size-4 shrink-0" />
-                <span class="truncate">{{ file.filename }}</span>
-              </AppLink>
+                {{ doc.name }}<span v-if="doc.isOptional"> · optional</span>
+              </li>
+            </ul>
+          </div>
+          <!-- Stored file names are often random; the link says what it opens instead (numbered when there are several) -->
+          <ul v-if="job.attachments.length" class="flex flex-wrap gap-2">
+            <li v-for="(file, index) in job.attachments" :key="file.id">
+              <Button v-if="file.url" variant="outline" size="sm" as-child class="w-full sm:w-auto">
+                <AppLink :href="file.url" target="_blank">
+                  <Paperclip class="size-4 shrink-0" />
+                  Show Vacancy Attachment{{ job.attachments.length > 1 ? ` ${index + 1}` : '' }}
+                </AppLink>
+              </Button>
             </li>
           </ul>
         </CollapsibleContent>
       </Collapsible>
 
+      <!-- ═══ Not applied: only the Apply now button under the job ═══ -->
+      <div v-if="!hasApplied && !isApplying" class="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted-foreground">Have the documents above ready as PDF files.</p>
+        <Button type="button" size="lg" class="w-full cursor-pointer sm:w-auto" @click="startApplying">
+          <Send class="size-4" /> Apply now
+        </Button>
+      </div>
+
       <!-- ═══ Applying: three-step wizard ═══ -->
-      <form v-if="!hasApplied" class="flex flex-col gap-8" @submit.prevent="submit">
+      <form v-else-if="!hasApplied" class="flex flex-col gap-8" @submit.prevent="submit">
         <Stepper :model-value="currentStep + 1" class="flex w-full items-start gap-1 sm:gap-2">
           <StepperItem
             v-for="(step, index) in wizardSteps"
@@ -186,7 +205,7 @@ const INDICATOR_CLASS =
           <p class="text-sm text-muted-foreground">{{ currentStepMeta.description }}</p>
         </div>
 
-        <!-- Step 1: the applicant's NSRP details -->
+        <!-- Step 1: the applicant's profile details -->
         <section v-if="currentStepMeta.key === 'details'" class="flex flex-col gap-3" aria-label="Your details">
           <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
             <div v-for="detail in applicantDetails" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
@@ -204,13 +223,12 @@ const INDICATOR_CLASS =
             :requirements="requirements"
             :can-upload="canUpload"
             :is-submitting="isSubmitting"
-            :is-generating-nsrp="isGeneratingNsrp"
+            :is-generating-nsrp="false"
             :attachment-accept="attachmentAccept"
             :profile-documents="profileDocuments"
             @use-profile="attachProfileDocument"
             @pick="selectFile"
             @remove="removeFile"
-            @generate-nsrp="generateNsrp"
           />
         </section>
 
@@ -242,7 +260,6 @@ const INDICATOR_CLASS =
         <!-- Navigation -->
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <Button
-            v-if="currentStep > 0"
             type="button"
             variant="outline"
             size="lg"
@@ -250,10 +267,9 @@ const INDICATOR_CLASS =
             :disabled="isSubmitting"
             @click="previousStep"
           >
-            <ArrowLeft class="size-4" /> Back
+            <ArrowLeft class="size-4" /> {{ currentStep === 0 ? 'Back to job' : 'Back' }}
           </Button>
-          <span v-else />
-          <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingNsrp" @click="nextStep">
+          <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" @click="nextStep">
             Next <ArrowRight class="size-4" />
           </Button>
           <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting">
@@ -318,7 +334,7 @@ const INDICATOR_CLASS =
         <section v-if="applicantDetails.length" aria-labelledby="job-form-applicant-title" class="flex flex-col gap-3">
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="job-form-applicant-title" class="text-lg font-semibold text-foreground">Applicant</h2>
-            <span class="text-xs text-muted-foreground">From your NSRP profile</span>
+            <span class="text-xs text-muted-foreground">From your profile</span>
           </div>
           <dl class="grid border-t border-border sm:grid-cols-2 sm:gap-x-8">
             <div v-for="detail in applicantDetails" :key="detail.label" class="flex flex-col gap-0.5 border-b border-border py-3">
@@ -334,13 +350,12 @@ const INDICATOR_CLASS =
             :requirements="requirements"
             :can-upload="canUpload"
             :is-submitting="isSubmitting"
-            :is-generating-nsrp="isGeneratingNsrp"
+            :is-generating-nsrp="false"
             :attachment-accept="attachmentAccept"
             :profile-documents="profileDocuments"
             @use-profile="attachProfileDocument"
             @pick="selectFile"
             @remove="removeFile"
-            @generate-nsrp="generateNsrp"
           />
           <p v-if="isLocked" class="text-sm text-muted-foreground">
             The employer has reviewed your application, so it can no longer be changed.
@@ -358,7 +373,7 @@ const INDICATOR_CLASS =
 
     <Alert v-else>
       <AlertTitle>Complete your profile first</AlertTitle>
-      <AlertDescription>Your NSRP profile is needed before you can apply to a vacancy.</AlertDescription>
+      <AlertDescription>Complete your profile before you can apply to a vacancy.</AlertDescription>
     </Alert>
   </div>
 </template>

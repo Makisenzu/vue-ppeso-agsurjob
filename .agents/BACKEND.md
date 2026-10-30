@@ -579,9 +579,10 @@ follows the GIP application (`ApplicantGipApplicationForm.vue`, `useGipApplicati
 should only ever upload a document once.
 
 > [!IMPORTANT]
-> 1. **NSRP is generated, never uploaded.** Build it from the registry record with
->    `generateNsrpFormPdfFile` (`nsrpTemplateHelper.ts`), attach it automatically, and let the applicant view,
->    remove or generate it again.
+> 1. **NSRP is generated, never uploaded — and only for PESO.** PESO programs, job fairs and PESO analytics build it
+>    from the registry record with `generateNsrpFormPdfFile` (`nsrpTemplateHelper.ts`), attach it automatically,
+>    and let the applicant view, remove or generate it again. **Job vacancy applications never include it:** the
+>    employer's own requirements (migration 088) are all they ask for, and employers can't list the NSRP Form.
 > 2. **Profile documents fill in automatically — by document type, never by file name.** Each program keeps a
 >    `<PROGRAM>_PROFILE_DOCUMENT_MATCHES` map (requirement → profile document types; see
 >    `GIP_PROFILE_DOCUMENT_MATCHES` in `src/types/common/gipProgram.ts`). Profile document types are the

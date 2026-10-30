@@ -15,14 +15,13 @@ import {
   JOB_APPLICATION_STAGE_DESCRIPTIONS,
   getJobApplicationStageLabel,
   jobApplicationCode,
+  toJobApplicationRequirements,
   validateJobApplicationAttachment,
 } from '@/helpers/common/jobVacancyApplicationHelper'
 import {
   JOB_APPLICATION_ATTACHMENT_ACCEPT,
   JOB_APPLICATION_ATTACHMENT_MAX_BYTES,
-  JOB_APPLICATION_NSRP_DOCUMENT,
   JOB_APPLICATION_PROFILE_DOCUMENT_MATCHES,
-  JOB_APPLICATION_REQUIREMENTS,
   type JobApplicationPendingDocumentMap,
   type JobApplicationReusedDocumentMap,
 } from '@/types/common/jobVacancyApplication'
@@ -30,7 +29,7 @@ import type { GipProgressStep, GipRequirementRow } from '@/composables/applicant
 
 /** Steps of applying; once applied, the page shows the progress tracker instead */
 export const JOB_APPLICATION_WIZARD_STEPS = [
-  { key: 'details', title: 'Your details', description: 'Check the job and your NSRP details.' },
+  { key: 'details', title: 'Your details', description: 'Check the details the employer will see.' },
   { key: 'requirements', title: 'Requirements', description: 'Attach a PDF of each requirement.' },
   { key: 'review', title: 'Review & submit', description: 'Check your files, then submit.' },
 ] as const
@@ -61,7 +60,8 @@ const orNotRequired = (value: string | null | undefined) => value?.trim() || NOT
 
 /**
  * Applicant's application to one job vacancy (BACKEND.md §18, like useTupadApplicationForm): they
- * read the job, apply with the generated NSRP form and their resume, then follow the employer's stages.
+ * read the job, apply with the documents the employer asks for (migration 088; no NSRP Form, which is only for PESO programs),
+ * then follow the employer's stages.
  */
 export function useJobVacancyApplicationForm() {
   const route = useRoute()
@@ -76,7 +76,6 @@ export function useJobVacancyApplicationForm() {
     errorMessage,
     isSubmitting,
     isLocked,
-    isGeneratingNsrp,
     deletingDocument,
   } = storeToRefs(store)
 
@@ -161,11 +160,13 @@ export function useJobVacancyApplicationForm() {
 
   /** Attaches the profile document of the same kind to each requirement that has nothing yet */
   const attachProfileMatches = () => {
-    for (const [doc, labels] of Object.entries(JOB_APPLICATION_PROFILE_DOCUMENT_MATCHES)) {
+    for (const { name: doc } of vacancyRequirements.value) {
+      const labels = JOB_APPLICATION_PROFILE_DOCUMENT_MATCHES[normalizeRequirementLabel(doc)]
+      if (!labels) continue
       if (dismissedProfileMatches.has(doc) || documents.value[doc] || pendingFiles.value[doc] || reusedDocs.value[doc]) {
         continue
       }
-      const wanted = (labels ?? []).map(normalizeRequirementLabel)
+      const wanted = labels.map(normalizeRequirementLabel)
       const match = profileDocuments.value.find((item) => wanted.includes(normalizeRequirementLabel(item.label)))
       if (match) reusedDocs.value = { ...reusedDocs.value, [doc]: match }
     }
@@ -173,24 +174,8 @@ export function useJobVacancyApplicationForm() {
 
   onScopeDispose(resetPicks)
 
-  // ─── NSRP Form ───
-  /** Set once the applicant removes the generated form, so it isn't silently attached again */
-  const isNsrpDismissed = ref(false)
-
-  const generateNsrp = async () => {
-    const profileId = user.value?.id
-    if (!profileId) return
-    delete fileErrors[JOB_APPLICATION_NSRP_DOCUMENT]
-    const file = await store.generateNsrpPdf(profileId)
-    if (file) {
-      isNsrpDismissed.value = false
-      setPendingFile(JOB_APPLICATION_NSRP_DOCUMENT, file)
-    }
-  }
-
   /** Removes a picked file, or the saved one when there's nothing picked */
   const removeFile = async (doc: string) => {
-    if (doc === JOB_APPLICATION_NSRP_DOCUMENT) isNsrpDismissed.value = true
     if (reusedDocs.value[doc]) dismissedProfileMatches.add(doc)
     if (pendingFiles.value[doc] || reusedDocs.value[doc]) {
       clearPendingFile(doc)
@@ -200,13 +185,18 @@ export function useJobVacancyApplicationForm() {
   }
 
   // ─── Requirements ───
+  /** What the employer asks for, each required or optional */
+  const vacancyRequirements = computed(() =>
+    toJobApplicationRequirements(vacancy.value?.requirements ?? [], documents.value)
+  )
+
   const requirements = computed<GipRequirementRow[]>(() =>
-    JOB_APPLICATION_REQUIREMENTS.map(({ name, hint, isOptional }) => {
+    vacancyRequirements.value.map(({ name, hint, isOptional }) => {
       const saved = documents.value[name]
       return {
         name,
         hint,
-        isNsrp: name === JOB_APPLICATION_NSRP_DOCUMENT,
+        isNsrp: false,
         isOptional,
         // No paper checklist here (GipRequirementList would say "Received by PESO"); the saved file shows instead
         isReceived: false,
@@ -231,10 +221,9 @@ export function useJobVacancyApplicationForm() {
   /** Every required document needs a file — the saved one or a newly picked one */
   const validateFiles = (): boolean => {
     let valid = true
-    for (const { name, isOptional } of JOB_APPLICATION_REQUIREMENTS) {
+    for (const { name, isOptional } of vacancyRequirements.value) {
       if (isOptional || pendingFiles.value[name] || reusedDocs.value[name] || documents.value[name]) continue
-      fileErrors[name] =
-        name === JOB_APPLICATION_NSRP_DOCUMENT ? 'Generate your NSRP form to attach it.' : 'Attach a PDF of this document.'
+      fileErrors[name] = 'Attach a PDF of this document.'
       valid = false
     }
     return valid
@@ -268,6 +257,8 @@ export function useJobVacancyApplicationForm() {
         .join(' · '),
       description: row.job_description?.trim() || null,
       skills: row.skills,
+      /** What to prepare before applying: the employer's requirements */
+      documents: toJobApplicationRequirements(row.requirements),
       attachments: row.attachments,
       /**
        * Label → value. Qualifications always show ("Not required" when blank); salary, deadline, education,
@@ -312,10 +303,20 @@ export function useJobVacancyApplicationForm() {
     ]
   })
 
-  /** The applicant's own details the employer sees, from their NSRP record */
+  /** The applicant's own details the employer sees, from their profile */
   const applicantDetails = computed(() => (applicantProfile.value ? describeGipApplicant(applicantProfile.value) : []))
 
   // ─── Application wizard (before applying) ───
+  /** The page first shows only the job; "Apply now" opens the wizard */
+  const isApplying = ref(false)
+  const startApplying = () => {
+    isApplying.value = true
+    currentStep.value = 0
+  }
+  const stopApplying = () => {
+    isApplying.value = false
+  }
+
   const currentStep = ref(0)
   /** Furthest step opened so far; the stepper only jumps back to steps already reached */
   const reachedStep = ref(0)
@@ -335,7 +336,8 @@ export function useJobVacancyApplicationForm() {
     reachedStep.value = Math.max(reachedStep.value, currentStep.value)
   }
 
-  const previousStep = () => goToStep(currentStep.value - 1)
+  /** Back from the first step returns to the job */
+  const previousStep = () => (currentStep.value === 0 ? stopApplying() : goToStep(currentStep.value - 1))
 
   const attachedRequirements = computed(() =>
     requirements.value.filter((doc) => doc.pendingFileName || doc.savedFileName)
@@ -361,7 +363,7 @@ export function useJobVacancyApplicationForm() {
   const reload = async () => {
     if (!applicantId.value || !vacancyId.value) return
     resetPicks()
-    isNsrpDismissed.value = false
+    isApplying.value = false
     currentStep.value = 0
     reachedStep.value = 0
     await store.load(vacancyId.value, applicantId.value)
@@ -370,20 +372,9 @@ export function useJobVacancyApplicationForm() {
   // The auth store may still be hydrating when the page opens; another vacancy reuses the page
   watch([applicantId, vacancyId], () => void reload(), { immediate: true })
 
-  // The NSRP form is generated and attached as soon as the form can take it
-  watch(
-    canUpload,
-    (can) => {
-      if (!can || isNsrpDismissed.value || isGeneratingNsrp.value) return
-      if (documents.value[JOB_APPLICATION_NSRP_DOCUMENT] || pendingFiles.value[JOB_APPLICATION_NSRP_DOCUMENT]) return
-      void generateNsrp()
-    },
-    { immediate: true }
-  )
-
   // Matching profile documents are attached as soon as the form can take them
   watch(
-    [canUpload, profileDocuments],
+    [canUpload, profileDocuments, vacancyRequirements],
     ([can]) => {
       if (can) attachProfileMatches()
     },
@@ -419,7 +410,8 @@ export function useJobVacancyApplicationForm() {
     appliedOn,
     applicationDetails,
     applicantDetails,
-    isGeneratingNsrp,
+    isApplying,
+    startApplying,
     wizardSteps: JOB_APPLICATION_WIZARD_STEPS,
     currentStep,
     reachedStep,
@@ -434,7 +426,6 @@ export function useJobVacancyApplicationForm() {
     selectFile,
     attachProfileDocument,
     removeFile,
-    generateNsrp,
     submit,
     reload,
   }

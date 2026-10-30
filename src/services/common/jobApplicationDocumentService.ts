@@ -2,12 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { fileHelpers } from '@/helpers/common/fileHelpers'
 import { DOCUMENT_UPLOAD_BUCKET } from '@/helpers/common/uploadHelpers'
-import {
-  JOB_APPLICATION_DOCUMENT_OPTIONS,
-  type JobApplicationDocumentMap,
-  type JobApplicationDocumentRow,
-  type JobApplicationPendingDocumentMap,
-  type JobApplicationReusedDocumentMap,
+import type {
+  JobApplicationDocumentMap,
+  JobApplicationDocumentRow,
+  JobApplicationPendingDocumentMap,
+  JobApplicationReusedDocumentMap,
 } from '@/types/common/jobVacancyApplication'
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60
@@ -74,8 +73,10 @@ export const jobApplicationDocumentService = {
     uploaderId: string
     pending: JobApplicationPendingDocumentMap
     reused?: JobApplicationReusedDocumentMap
+    /** The vacancy's requirements (migration 088); other names are skipped */
+    documentNames: readonly string[]
   }): Promise<void> {
-    const { applicationId, uploaderId, pending, reused = {} } = options
+    const { applicationId, uploaderId, pending, reused = {}, documentNames } = options
     const existing = await fetchRows(applicationId)
 
     const saveRow = async (
@@ -106,7 +107,7 @@ export const jobApplicationDocumentService = {
     }
 
     for (const [documentName, file] of Object.entries(pending)) {
-      if (!file || !JOB_APPLICATION_DOCUMENT_OPTIONS.includes(documentName)) continue
+      if (!file || !documentNames.includes(documentName)) continue
       const path = fileHelpers.generateUniquePath(uploaderId, file.name)
       const { error: uploadErr } = await supabase.storage
         .from(DOCUMENT_UPLOAD_BUCKET)
@@ -116,7 +117,7 @@ export const jobApplicationDocumentService = {
     }
 
     for (const [documentName, document] of Object.entries(reused)) {
-      if (!document || pending[documentName] || !JOB_APPLICATION_DOCUMENT_OPTIONS.includes(documentName)) continue
+      if (!document || pending[documentName] || !documentNames.includes(documentName)) continue
       const path = fileHelpers.generateUniquePath(uploaderId, document.fileName)
       const { error: copyErr } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).copy(document.path, path)
       if (copyErr) {

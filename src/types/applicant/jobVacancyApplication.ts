@@ -1,6 +1,6 @@
 import type { JobVacancyRow } from '@/types/peso/provincialPeso/jobFair'
 import type { JobVacancyAttachment } from '@/types/common/jobVacancyAttachment'
-import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
+import type { JobApplicationStage, JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
 import type { JobVacancySkillRow } from '@/types/common/jobVacancy'
 
 /** One open vacancy as esmdd.search_open_job_vacancies (migration 087) returns it */
@@ -50,4 +50,6 @@ export type VacancyDetails = OpenVacancyRow &
   > & {
     skills: Pick<JobVacancySkillRow, 'skill_name' | 'is_required'>[]
     attachments: JobVacancyAttachment[]
+    /** Documents to submit (migration 088) */
+    requirements: JobVacancyRequirement[]
   }

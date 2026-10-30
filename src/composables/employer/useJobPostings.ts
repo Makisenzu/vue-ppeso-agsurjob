@@ -39,13 +39,20 @@ import {
   getJobPostingStatusVariant,
   isJobPostingExpired,
   isJobPostingStatusFilter,
+  jobPostingRequirementsSchema,
+  toJobPostingRequirementValues,
+  toJobVacancyRequirements,
 } from '@/helpers/employer/jobPostingHelper'
-import type { JobVacancyFormValues } from '@/types/common/jobVacancy'
 import type { JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
-import type { JobPostingListRow, JobPostingStatusFilter } from '@/types/employer/jobPosting'
+import type { JobPostingFormValues, JobPostingListRow, JobPostingStatusFilter } from '@/types/employer/jobPosting'
 
-/** Every job_vacancies field is required, as on PESO's vacancy forms, including the skills used for matching */
-const jobPostingSchema = toTypedSchema(z.object(jobVacancyFormShape).superRefine(refineCompleteJobVacancyForm))
+/**
+ * Every job_vacancies field is required, as on PESO's vacancy forms, including the skills used for matching,
+ * plus the documents applicants submit (employer postings only, migration 088)
+ */
+const jobPostingSchema = toTypedSchema(
+  z.object({ ...jobVacancyFormShape, requirements: jobPostingRequirementsSchema }).superRefine(refineCompleteJobVacancyForm),
+)
 
 /** Up to 3 skill names, then "+N" */
 function summarizeSkills(row: JobPostingListRow): string {
@@ -328,9 +335,9 @@ export function useJobPostings() {
   }
 
   // ─── Create / edit sheet ───
-  const { handleSubmit, resetForm } = useForm<JobVacancyFormValues>({
+  const { handleSubmit, resetForm } = useForm<JobPostingFormValues>({
     validationSchema: jobPostingSchema,
-    initialValues: EMPTY_JOB_VACANCY_FORM_VALUES,
+    initialValues: { ...EMPTY_JOB_VACANCY_FORM_VALUES, requirements: toJobPostingRequirementValues() },
   })
 
   const attachments = useJobPostingAttachments()
@@ -344,11 +351,15 @@ export function useJobPostings() {
     attachments.resetAttachments(editingPosting.value?.attachments ?? [])
     resetForm({
       values: editingPosting.value
-        ? toJobVacancyFormValues(editingPosting.value, editingPosting.value)
+        ? {
+            ...toJobVacancyFormValues(editingPosting.value, editingPosting.value),
+            requirements: toJobPostingRequirementValues(editingPosting.value.requirements),
+          }
         : {
             ...EMPTY_JOB_VACANCY_FORM_VALUES,
             postingDate: todayIso(),
             placeOfWork: authStore.employerProfile?.company_address ?? '',
+            requirements: toJobPostingRequirementValues(),
           },
     })
   })
@@ -368,6 +379,7 @@ export function useJobPostings() {
         related_courses: matching.related_courses,
       },
       skills: matching.skills,
+      requirements: toJobVacancyRequirements(values.requirements),
     }, attachments.attachmentChanges.value)
   })
 

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { jobVacancyMatchingService } from '@/services/common/jobVacancyMatchingService'
 import { jobVacancyAttachmentService } from '@/services/common/jobVacancyAttachmentService'
+import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
 import type { JobVacancyApplicationRow } from '@/types/common/jobVacancyApplication'
 import type {
   OpenVacancyPage,
@@ -37,21 +38,22 @@ export const jobVacancyApplicationService = {
     return { rows, total: Number(rows[0]?.total_count ?? 0) }
   },
 
-  /** A vacancy with its requirements, skills and attachments; null once it closed (unless applied to) */
+  /** A vacancy with its qualifications, skills, attachments and the documents to submit; null once it closed (unless applied to) */
   async fetchVacancy(vacancyId: string): Promise<VacancyDetails | null> {
     const { data, error } = await untypedEsmdd().rpc('search_open_job_vacancies', { p_job_vacancy_id: vacancyId })
     if (error) throw new Error(error.message || 'Failed to load the job vacancy')
     const summary = ((data ?? []) as OpenVacancyRow[])[0]
     if (!summary) return null
 
-    const [{ data: details, error: detailsErr }, skills, attachments] = await Promise.all([
+    const [{ data: details, error: detailsErr }, skills, attachments, requirements] = await Promise.all([
       supabase.schema('esmdd').from('job_vacancies').select(VACANCY_DETAIL_COLUMNS).eq('id', vacancyId).single(),
       jobVacancyMatchingService.fetchSkillsByVacancy([vacancyId]),
       jobVacancyAttachmentService.fetchAttachments(vacancyId),
+      jobVacancyRequirementService.fetchRequirements(vacancyId),
     ])
     if (detailsErr) throw new Error(detailsErr.message || 'Failed to load the job vacancy')
 
-    return { ...summary, ...details, skills: skills.get(vacancyId) ?? [], attachments }
+    return { ...summary, ...details, skills: skills.get(vacancyId) ?? [], attachments, requirements }
   },
 
   /** The applicant's application to this vacancy, or null when they haven't applied */

@@ -22,6 +22,7 @@ import SearchSelect from '@/components/SearchSelect.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import JobVacancyFields from '@/components/JobVacancyFields.vue'
 import JobPostingAttachmentsField from '@/components/employer/CompanyManagement/JobPosting/JobPostingAttachmentsField.vue'
+import JobPostingRequirementsField from '@/components/employer/CompanyManagement/JobPosting/JobPostingRequirementsField.vue'
 import { Separator } from '@/components/ui/separator'
 import { useJobPostings } from '@/composables/employer/useJobPostings'
 
@@ -239,6 +240,8 @@ const {
       <form class="contents" @submit="submitPosting">
         <div class="grid flex-1 grid-cols-1 content-start gap-5 overflow-y-auto px-6 py-4">
           <JobVacancyFields :disabled="isSaving" />
+          <Separator />
+          <JobPostingRequirementsField :disabled="isSaving" />
           <Separator />
           <JobPostingAttachmentsField
             :items="attachmentItems"

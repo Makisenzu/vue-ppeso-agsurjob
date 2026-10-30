@@ -19,13 +19,10 @@ import {
   getJobApplicationStageLabel,
   isJobApplicationStage,
   jobApplicationCode,
+  toJobApplicationRequirements,
 } from '@/helpers/common/jobVacancyApplicationHelper'
 import { JOB_APPLICATION_STAGE_OPTIONS, isApplicantStageFilter } from '@/helpers/employer/jobApplicantHelper'
-import {
-  JOB_APPLICATION_REQUIREMENTS,
-  JOB_APPLICATION_STAGES,
-  type JobApplicationStage,
-} from '@/types/common/jobVacancyApplication'
+import { JOB_APPLICATION_STAGES, type JobApplicationStage } from '@/types/common/jobVacancyApplication'
 import type { ApplicantStageFilter, VacancyApplicantRow } from '@/types/employer/jobApplicant'
 
 /**
@@ -226,7 +223,7 @@ export function useVacancyApplicants() {
       reference: jobApplicationCode(application.id, application.created_at),
       appliedOn: formatGipDate(application.created_at),
       details: describeGipApplicant(applicant),
-      documents: JOB_APPLICATION_REQUIREMENTS.map(({ name, isOptional }) => {
+      documents: toJobApplicationRequirements(vacancy.value?.requirements ?? [], documents.value).map(({ name, isOptional }) => {
         const file = documents.value[name]
         return { name, isOptional, fileName: file?.file_name ?? null, url: file?.url ?? null }
       }),

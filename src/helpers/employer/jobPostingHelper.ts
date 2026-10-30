@@ -1,6 +1,14 @@
 import { format, isValid, parseISO } from 'date-fns'
 import { VACANCY_STATUSES, type JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
-import type { JobPostingStatusFilter } from '@/types/employer/jobPosting'
+import * as z from 'zod'
+import type { JobPostingRequirementValue, JobPostingStatusFilter } from '@/types/employer/jobPosting'
+import {
+  DEFAULT_VACANCY_REQUIREMENTS,
+  JOB_APPLICATION_NSRP_DOCUMENT,
+  MAX_VACANCY_REQUIREMENTS,
+  REQUIREMENT_NAME_MAX_LENGTH,
+  type JobVacancyRequirement,
+} from '@/types/common/jobVacancyApplication'
 import type { SearchSelectOption } from '@/types/common/searchSelect'
 
 export const JOB_POSTING_PAGE_SIZE = 10
@@ -54,6 +62,40 @@ export function toJobPostingErrorMessage(error: unknown, fallback: string): stri
   const code = (error as { code?: string } | null)?.code
   if (code === '23503') return 'A posting with applicants or hires cannot be deleted. Close it instead.'
   if (code === '42501') return 'Only the company owner can change job postings.'
-  if (code === '22023') return 'Add a position title and 1 to 30 skills.'
+  if (code === '22023') return 'Add a position title, 1 to 30 skills and 1 to 15 requirements.'
   return fallback
+}
+
+// ─── Requirements applicants submit (migration 088) ───
+
+/** Trimmed, single-spaced: how the requirement is saved */
+export const cleanRequirementInput = (value: string) => value.trim().replace(/\s+/g, ' ')
+
+/** The key migration 088 compares names on (requirement_key) */
+export const toRequirementKey = (value: string) => cleanRequirementInput(value).toLowerCase()
+
+/** The NSRP Form is PESO's (programs, job fairs, analytics), so it can't be one of the employer's requirements */
+export const isNsrpRequirement = (value: string) => toRequirementKey(value) === toRequirementKey(JOB_APPLICATION_NSRP_DOCUMENT)
+
+/** 1–15 distinct documents, none of them the NSRP Form; each one required or optional */
+export const jobPostingRequirementsSchema = z
+  .array(z.object({ name: z.string().trim().min(2).max(REQUIREMENT_NAME_MAX_LENGTH), isRequired: z.boolean() }))
+  .min(1, 'Add at least one document applicants must submit.')
+  .max(MAX_VACANCY_REQUIREMENTS, `Up to ${MAX_VACANCY_REQUIREMENTS} requirements.`)
+  .refine((items) => !items.some((item) => isNsrpRequirement(item.name)), 'The NSRP Form is only used for PESO programs, not job applications.')
+  .refine(
+    (items) => new Set(items.map((item) => toRequirementKey(item.name))).size === items.length,
+    'Each requirement can only be listed once.',
+  )
+
+/** Saved requirements as form values; a new posting starts with Resume (required) and Application Letter (optional) */
+export function toJobPostingRequirementValues(
+  requirements: readonly JobVacancyRequirement[] = DEFAULT_VACANCY_REQUIREMENTS,
+): JobPostingRequirementValue[] {
+  return requirements.map((item) => ({ name: item.requirement_name, isRequired: item.is_required }))
+}
+
+/** Form values as esmdd.save_job_vacancy's p_requirements, in the employer's order */
+export function toJobVacancyRequirements(values: readonly JobPostingRequirementValue[]): JobVacancyRequirement[] {
+  return values.map((item) => ({ requirement_name: cleanRequirementInput(item.name), is_required: item.isRequired }))
 }

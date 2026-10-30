@@ -1,5 +1,6 @@
 import type { JobVacancyDetailsFields, JobVacancyRow, JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
-import type { JobVacancySkillRow } from '@/types/common/jobVacancy'
+import type { JobVacancyFormValues, JobVacancySkillRow } from '@/types/common/jobVacancy'
+import type { JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
 import type { JobVacancyAttachment } from '@/types/common/jobVacancyAttachment'
 
 /**
@@ -46,11 +47,24 @@ export interface JobPostingPage {
 /** Counted in SQL per status (BACKEND.md §19) */
 export type JobPostingStats = Record<JobPostingStatusFilter, number>
 
-/** A posting being edited: every vacancy field, its skills, related courses and attachments */
+/** A posting being edited: every vacancy field, its skills, related courses, requirements and attachments */
 export type JobPostingDetails = JobVacancyRow & {
   skills: JobPostingSkill[]
   related_courses: string[]
+  requirements: JobVacancyRequirement[]
   attachments: JobVacancyAttachment[]
+}
+
+/** One document applicants must submit, as the requirements field edits it */
+export type JobPostingRequirementValue = {
+  name: string
+  /** false: the applicant may skip it */
+  isRequired: boolean
+}
+
+/** The posting sheet: the shared vacancy fields plus the documents applicants submit (migration 088) */
+export type JobPostingFormValues = JobVacancyFormValues & {
+  requirements: JobPostingRequirementValue[]
 }
 
 /** Attachment edits staged in the sheet, applied after the posting saves (a new posting has no id before) */
@@ -59,7 +73,7 @@ export type JobPostingAttachmentChanges = {
   remove: Pick<JobVacancyAttachment, 'id' | 'path'>[]
 }
 
-/** What the posting form saves (esmdd.save_job_vacancy, migration 084) */
+/** What the posting form saves (esmdd.save_job_vacancy, migrations 084 / 088) */
 export type JobPostingPayload = {
   vacancy: JobVacancyDetailsFields & {
     vacancy_count: number
@@ -67,4 +81,5 @@ export type JobPostingPayload = {
     related_courses: string[]
   }
   skills: JobPostingSkill[]
+  requirements: JobVacancyRequirement[]
 }
