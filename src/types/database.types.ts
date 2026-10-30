@@ -2376,6 +2376,7 @@ export type Database = {
             | Database["esmdd"]["Enums"]["disability_type_enum"][]
             | null
           pwd_other_disability: string | null
+          related_courses: string[]
           salary: string | null
           status: string | null
           updated_at: string | null
@@ -2406,6 +2407,7 @@ export type Database = {
             | Database["esmdd"]["Enums"]["disability_type_enum"][]
             | null
           pwd_other_disability?: string | null
+          related_courses?: string[]
           salary?: string | null
           status?: string | null
           updated_at?: string | null
@@ -2436,6 +2438,7 @@ export type Database = {
             | Database["esmdd"]["Enums"]["disability_type_enum"][]
             | null
           pwd_other_disability?: string | null
+          related_courses?: string[]
           salary?: string | null
           status?: string | null
           updated_at?: string | null
@@ -2444,6 +2447,82 @@ export type Database = {
           work_experience_months?: number | null
         }
         Relationships: []
+      }
+      job_vacancy_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          job_vacancy_id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          job_vacancy_id: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          job_vacancy_id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_attachments_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_vacancy_skills: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          job_vacancy_id: string
+          skill_key: string | null
+          skill_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_vacancy_id: string
+          skill_key?: string | null
+          skill_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_vacancy_id?: string
+          skill_key?: string | null
+          skill_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_skills_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recruitment_activities: {
         Row: {
@@ -3206,6 +3285,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assert_job_vacancy_skills: {
+        Args: { p_skills: Json }
+        Returns: undefined
+      }
       can_edit_own_gip_application: {
         Args: { p_gip_applicant_id: string }
         Returns: boolean
@@ -3214,11 +3297,44 @@ export type Database = {
         Args: { p_tupad_applicant_id: string }
         Returns: boolean
       }
+      can_manage_job_vacancy: {
+        Args: { p_job_vacancy_id: string }
+        Returns: boolean
+      }
+      can_manage_job_vacancy_folder: {
+        Args: { p_object_name: string }
+        Returns: boolean
+      }
+      clean_related_courses: {
+        Args: { p_courses: string[] }
+        Returns: string[]
+      }
       job_fair_status_for: {
         Args: { p_end_date: string; p_start_date: string; p_status: string }
         Returns: string
       }
       refresh_job_fair_statuses: { Args: never; Returns: number }
+      replace_job_vacancy_skills: {
+        Args: { p_job_vacancy_id: string; p_skills: Json }
+        Returns: undefined
+      }
+      save_job_vacancy: {
+        Args: {
+          p_establishment_id: string
+          p_job_vacancy_id: string
+          p_skills: Json
+          p_vacancy: Json
+        }
+        Returns: string
+      }
+      set_job_vacancy_matching: {
+        Args: {
+          p_job_vacancy_id: string
+          p_related_courses?: string[]
+          p_skills: Json
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       disability_type_enum:
