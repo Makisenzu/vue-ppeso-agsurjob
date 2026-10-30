@@ -721,7 +721,15 @@ Notification triggers (migration `053_notification_triggers.sql`): every user-fa
 Covered: `core.profiles.status`, `applicants.applicant_requirements.status`, `applicants.spes_form.status`,
 `esmdd.tupad_applicants.status`, `esmdd.gip_applicants.status`, inserts / status of `esmdd.spes_appointments`,
 `esmdd.gip_appointments`, `esmdd.tupad`, `employers.companies.verification_status`, `employers.establishments.status`,
-`esmdd.recruitment_activities.status`. New user-facing activities must add their trigger (`.agents/BACKEND.md` §17).
+`esmdd.recruitment_activities.status`, and (087) `esmdd.job_vacancy_applications.stage` → the applicant; a new job
+application (`esmdd.apply_to_job_vacancy`) → the company owner (type `application_status`). New user-facing activities
+must add their trigger (`.agents/BACKEND.md` §17).
+Job vacancy applications (migration `087_job_vacancy_applications.sql`): `esmdd.job_vacancy_applications` (one per
+applicant per vacancy; `stage` applied → screening → interview → offered → hired, or rejected with `status_remarks`) and
+`esmdd.job_vacancy_application_documents` (NSRP Form, Resume, Application Letter in the documents bucket). Reviewed by
+`esmdd.can_review_job_vacancy` (vacancy managers + company members); applicant names and details reach employers only
+through the SECURITY DEFINER RPCs `search_job_vacancy_applications` / `get_job_vacancy_application` (the latter
+audit-logs the view). The legacy int4 `jobs.job_applications` tables are unused.
 Status remarks (migration `055_status_remarks.sql`): `status_remarks` on `core.profiles`, `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `esmdd.tupad_batch`, `esmdd.job_fairs`, `esmdd.recruitment_activities`, and (058) `applicants.applicant_requirements`, `employers.employer_requirements` hold why a row was Rejected / Cancelled (required by the app); notifications include them. Cancelling a TUPAD batch notifies its applicants and cancelling a job fair notifies registered applicants (type `job_fair`).
 Realtime (migration `054_notifications_realtime.sql`): the table is in the `supabase_realtime` publication; the app subscribes to INSERT / UPDATE filtered by `recipient_id` (`notificationService.subscribe`), RLS limits events to the recipient.
 

@@ -64,8 +64,11 @@ const STAGE_BADGE_CLASS: Record<string, string> = {
         <EmptyTitle>No applications yet</EmptyTitle>
         <EmptyDescription>{{ emptyMessage }}</EmptyDescription>
       </EmptyHeader>
-      <EmptyContent v-if="filter !== 'vacancy'">
-        <Button as-child variant="outline">
+      <EmptyContent>
+        <Button v-if="filter === 'vacancy'" as-child variant="outline">
+          <AppLink :to="{ name: 'vacancies' }">Browse vacancies</AppLink>
+        </Button>
+        <Button v-else as-child variant="outline">
           <AppLink :to="{ name: 'gip-application' }">Browse PESO programs</AppLink>
         </Button>
       </EmptyContent>

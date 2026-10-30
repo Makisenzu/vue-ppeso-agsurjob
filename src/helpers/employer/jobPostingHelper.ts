@@ -49,10 +49,10 @@ export function isJobPostingExpired(validUntil: string | null | undefined, today
   return !!validUntil && validUntil.slice(0, 10) < today
 }
 
-/** Generic messages only (SECURITY.md): a hire on the posting blocks deleting it */
+/** Generic messages only (SECURITY.md): a hire or an applicant on the posting blocks deleting it (087) */
 export function toJobPostingErrorMessage(error: unknown, fallback: string): string {
   const code = (error as { code?: string } | null)?.code
-  if (code === '23503') return 'A posting with hires cannot be deleted. Close it instead.'
+  if (code === '23503') return 'A posting with applicants or hires cannot be deleted. Close it instead.'
   if (code === '42501') return 'Only the company owner can change job postings.'
   if (code === '22023') return 'Add a position title and 1 to 30 skills.'
   return fallback

@@ -64,9 +64,17 @@ export const employerRoutes: RouteRecordRaw[] = [
         meta: { breadcrumb: 'Job Posting', role: 'company_owner' },
       },
       {
+        // Owner and members review applicants (esmdd.can_review_job_vacancy, migration 087)
         path: 'job-applicants',
         name: 'job-applicants',
-        component: () => import('@/components/employer/CompanyManagement/JobApplicant/JobApplicant.vue')
+        component: () => import('@/components/employer/CompanyManagement/JobApplicant/JobApplicant.vue'),
+        meta: { breadcrumb: 'Job Applicants' },
+      },
+      {
+        path: 'job-applicants/:vacancyId',
+        name: 'vacancy-applicants',
+        component: () => import('@/components/employer/CompanyManagement/JobApplicant/VacancyApplicants.vue'),
+        meta: { breadcrumb: 'Applicants' },
       },
     ]
   },

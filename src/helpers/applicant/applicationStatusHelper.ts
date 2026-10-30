@@ -1,4 +1,6 @@
 import { gipApplicationCode, normalizeGipStatus } from '@/helpers/applicant/gipApplicationHelper'
+import { getJobApplicationStageLabel, jobApplicationCode } from '@/helpers/common/jobVacancyApplicationHelper'
+import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
 import type {
   ApplicationStage,
   ApplicationSummary,
@@ -20,7 +22,17 @@ function stageOf(status: string, isDeployed: boolean): ApplicationStage {
   return 'review'
 }
 
-/** Every program application as one list, newest first. */
+/** Stage of a job application on the shared tracker: offered reads as approved, hired as placed */
+const VACANCY_STAGES: Record<JobApplicationStage, ApplicationStage> = {
+  applied: 'submitted',
+  screening: 'review',
+  interview: 'review',
+  offered: 'approved',
+  hired: 'deployed',
+  rejected: 'rejected',
+}
+
+/** Every program and job vacancy application as one list, newest first. */
 export function toApplicationSummaries(rows: MyProgramApplicationRows): ApplicationSummary[] {
   const summaries: ApplicationSummary[] = [
     ...rows.gip.map((row) => {
@@ -67,6 +79,20 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
       updatedAt: row.updated_at ?? row.created_at,
       // `from` points the form's back link here instead of the TUPAD page
       to: { name: 'tupad-application-form', query: { from: 'application' } },
+    })),
+    ...rows.vacancies.map((row) => ({
+      key: `vacancy:${row.id}`,
+      kind: 'vacancy' as const,
+      source: 'Job',
+      title: row.position_title,
+      reference: jobApplicationCode(row.id, row.created_at),
+      status: getJobApplicationStageLabel(row.stage),
+      stage: VACANCY_STAGES[row.stage] ?? 'review',
+      remarks: row.stage === 'rejected' ? row.status_remarks : null,
+      appliedAt: row.created_at,
+      updatedAt: row.updated_at ?? row.created_at,
+      // `from` points the form's back link here instead of Vacancies
+      to: { name: 'vacancy-application-form', params: { vacancyId: row.job_vacancy_id }, query: { from: 'application' } },
     })),
   ]
   return summaries.sort((a, b) => (b.appliedAt ?? '').localeCompare(a.appliedAt ?? ''))

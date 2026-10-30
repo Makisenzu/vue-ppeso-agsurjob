@@ -1,17 +1,26 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import type { MyProgramApplicationRows } from '@/types/applicant/applicationStatus'
 import type { SpesFormRow } from '@/types/common/spesForm'
+import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
+
+type VacancyApplicationLookupRow = {
+  id: string
+  job_vacancy_id: string
+  stage: JobApplicationStage
+  status_remarks: string | null
+  created_at: string
+  updated_at: string
+  job_vacancies: { position_title: string } | null
+}
 
 /**
- * The signed-in applicant's applications across PESO programs, for the Application Status page.
- * Every query goes through the applicant's own-row RLS (migration 034).
- *
- * Job vacancies are not read yet: jobs.job_applications.applicant_id is int4 while
- * applicants.applicants.id is uuid, so applicants can't own those rows (034, "Not owner-scoped yet").
+ * The signed-in applicant's applications across PESO programs and job vacancies, for the Application
+ * Status page. Every query goes through the applicant's own-row RLS (migrations 034 / 087).
  */
 export const applicationStatusService = {
   async fetchMyProgramApplications(applicantId: string, profileId: string): Promise<MyProgramApplicationRows> {
-    const [gip, spes, tupad] = await Promise.all([
+    const [gip, spes, tupad, vacancies] = await Promise.all([
       supabase
         .schema('esmdd')
         .from('gip_applicants')
@@ -28,11 +37,18 @@ export const applicationStatusService = {
         .from('tupad_applicants')
         .select('id, status, status_remarks, created_at, updated_at, tupad(id)')
         .eq('applicant_id', applicantId),
+      // job_vacancy_applications (087) is not in database.types.ts until `npm run types:gen`
+      (supabase as unknown as SupabaseClient)
+        .schema('esmdd')
+        .from('job_vacancy_applications')
+        .select('id, job_vacancy_id, stage, status_remarks, created_at, updated_at, job_vacancies(position_title)')
+        .eq('applicant_id', applicantId),
     ])
 
     if (gip.error) throw new Error(gip.error.message || 'Failed to load your GIP application')
     if (spes.error) throw new Error(spes.error.message || 'Failed to load your SPES application')
     if (tupad.error) throw new Error(tupad.error.message || 'Failed to load your TUPAD application')
+    if (vacancies.error) throw new Error(vacancies.error.message || 'Failed to load your job applications')
 
     // PostgREST can't embed across schemas (spes_form is in applicants, spes in esmdd).
     // One form carries every SPES round (067), so only an appointment from the round's year counts.
@@ -76,6 +92,10 @@ export const applicationStatusService = {
         }
       }),
       tupad: (tupad.data ?? []).map(({ tupad: batches, ...row }) => ({ ...row, isDeployed: (batches ?? []).length > 0 })),
+      vacancies: ((vacancies.data ?? []) as unknown as VacancyApplicationLookupRow[]).map(({ job_vacancies, ...row }) => ({
+        ...row,
+        position_title: job_vacancies?.position_title ?? 'Job vacancy',
+      })),
     }
   },
 }

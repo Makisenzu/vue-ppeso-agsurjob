@@ -1,4 +1,5 @@
 import type { RouteLocationRaw } from 'vue-router'
+import type { JobApplicationStage } from '@/types/common/jobVacancyApplication'
 
 /** PESO programs (GIP, SPES, TUPAD, ...) or job vacancies */
 export type ApplicationKind = 'program' | 'vacancy'
@@ -54,5 +55,15 @@ export interface MyProgramApplicationRows {
     created_at: string
     updated_at: string
     isDeployed: boolean
+  }[]
+  /** esmdd.job_vacancy_applications (migration 087) with the vacancy's title */
+  vacancies: {
+    id: string
+    job_vacancy_id: string
+    stage: JobApplicationStage
+    status_remarks: string | null
+    created_at: string
+    updated_at: string
+    position_title: string
   }[]
 }
