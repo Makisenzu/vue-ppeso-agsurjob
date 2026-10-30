@@ -31,13 +31,6 @@ export interface EmployerNavItem {
 const navItems: EmployerNavItem[] = [
   { title: 'Dashboard', to: { name: 'employer-dashboard' } },
   {
-    title: 'Company',
-    children: [
-      { title: 'Company Profile', to: { name: 'company-profile' } },
-      { title: 'Team', to: { name: 'employer-team' } },
-    ],
-  },
-  {
     title: 'Jobs',
     children: [
       { title: 'Job Posts', to: { name: 'job-postings' } },
@@ -46,6 +39,13 @@ const navItems: EmployerNavItem[] = [
     ],
   },
   { title: 'Chats', to: { name: 'employer-dashboard' } },
+  {
+    title: 'Company',
+    children: [
+      { title: 'Company Profile', to: { name: 'company-profile' } },
+      { title: 'Team', to: { name: 'employer-team' } },
+    ],
+  },
 ]
 
 // Members invited by the owner (migration 081): the owner-only pages (company profile, team) are left out
