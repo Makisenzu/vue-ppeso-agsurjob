@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ApplicantHeader from '@/components/applicant/ApplicantHeader.vue'
-import LandingFooter from '@/components/landing/LandingFooter.vue'
+import AppFooter from '@/components/AppFooter.vue'
 import { usePrefetchApplicantPages } from '@/composables/applicant/useApplicantNavigation'
 
 usePrefetchApplicantPages()
@@ -16,7 +16,7 @@ usePrefetchApplicantPages()
       <RouterView />
     </main>
 
-    <!-- Same footer as the public pages -->
-    <LandingFooter />
+    <!-- Compact footer for signed-in pages; the public pages keep LandingFooter -->
+    <AppFooter />
   </div>
 </template>

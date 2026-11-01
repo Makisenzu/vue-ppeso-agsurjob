@@ -37,7 +37,8 @@ const FacebookIcon: FunctionalComponent = () =>
     }),
   ])
 
-const CONTACTS: LandingFooterContact[] = [
+/** The office's email and Facebook page; the signed-in footer (AppFooter.vue) shows them too */
+export const CONTACTS: LandingFooterContact[] = [
   { type: 'Email', icon: Mail, label: 'peso.agusandelsur13@gmail.com', href: 'mailto:peso.agusandelsur13@gmail.com' },
   { type: 'Facebook', icon: FacebookIcon, label: 'Agusan del Sur PESO', href: 'https://www.facebook.com/ProvincialPESOAgusandelSurPage' },
 ]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EmployerHeader from '@/components/employer/EmployerHeader.vue'
-import LandingFooter from '@/components/landing/LandingFooter.vue'
+import AppFooter from '@/components/AppFooter.vue'
 </script>
 
 <template>
@@ -12,7 +12,7 @@ import LandingFooter from '@/components/landing/LandingFooter.vue'
       <RouterView />
     </main>
 
-    <!-- Same footer as the public pages -->
-    <LandingFooter />
+    <!-- Compact footer for signed-in pages; the public pages keep LandingFooter -->
+    <AppFooter />
   </div>
 </template>
