@@ -2,6 +2,8 @@ import {
   COURSE_LEVEL_BY_EDUCATION_LEVEL,
   type CourseLevel,
   type CourseRow,
+  type EligibilityKind,
+  type EligibilityRow,
   type ReferenceOption,
   type ReligionRow,
 } from '@/types/common/referenceList'
@@ -55,6 +57,21 @@ export function toVacancyCourseOptions(rows: CourseRow[]): ReferenceOption[] {
       group: [COURSE_LEVEL_LABEL[row.level as CourseLevel], row.field].filter(Boolean).join(' · ') || null,
       requiresSpecify: false,
     }))
+  return withOthersFallback([none, ...listed])
+}
+
+/** Stored on job_vacancies.eligibility / .license when a vacancy needs none (the form asks for "None") */
+export const NOT_REQUIRED = 'None'
+
+/**
+ * Eligibilities or licenses for a vacancy (core.eligibilities, migration 094): "None" first, the listed
+ * ones grouped by who issues them, "Others" (typed) last.
+ */
+export function toVacancyEligibilityOptions(rows: EligibilityRow[], kind: EligibilityKind): ReferenceOption[] {
+  const none: ReferenceOption = { name: NOT_REQUIRED, abbreviation: null, group: 'Not required', requiresSpecify: false }
+  const listed = rows
+    .filter((row) => row.kind === kind && !row.requires_specify)
+    .map((row) => ({ name: row.name, abbreviation: row.abbreviation, group: row.issuer, requiresSpecify: false }))
   return withOthersFallback([none, ...listed])
 }
 

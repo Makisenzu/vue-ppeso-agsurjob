@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import SearchSelect from '@/components/SearchSelect.vue'
+import ReferencePicker from '@/components/ReferencePicker.vue'
+import { useReferenceLists } from '@/composables/common/useReferenceLists'
 import JobVacancyCourseFields from '@/components/JobVacancyCourseFields.vue'
 import JobVacancySkillsField from '@/components/JobVacancySkillsField.vue'
 import {
@@ -37,12 +39,29 @@ const toggleDisability = (option: DisabilityType, checked: boolean) => {
   setPwdDisabilities(checked ? [...new Set([...current, option])] : current.filter((item) => item !== option))
 }
 
-const qualificationFields = [
-  { name: 'educationalLevel', label: 'Educational Level', placeholder: 'e.g. College Graduate' },
-  { name: 'eligibility', label: 'Eligibility', placeholder: 'e.g. CSC Professional, or None' },
-  { name: 'license', label: 'License', placeholder: 'e.g. Professional Driver’s License, or None' },
-  { name: 'certification', label: 'Certification', placeholder: 'e.g. TESDA NC II, or None' },
-] as const
+// Eligibility and license pick from core.eligibilities (migration 094); "Others" lets the user type one
+const { vacancyEligibilityOptions, vacancyLicenseOptions, isLoadingReferenceLists } = useReferenceLists()
+
+const qualificationFields = computed(() => [
+  { name: 'educationalLevel', label: 'Educational Level', placeholder: 'e.g. College Graduate', options: null },
+  {
+    name: 'eligibility',
+    label: 'Eligibility',
+    placeholder: 'Select eligibility, or None',
+    options: vacancyEligibilityOptions.value,
+    searchPlaceholder: 'Search name or abbreviation (e.g. CSE-PRO)...',
+    specifyPlaceholder: 'Specify eligibility',
+  },
+  {
+    name: 'license',
+    label: 'License',
+    placeholder: 'Select license, or None',
+    options: vacancyLicenseOptions.value,
+    searchPlaceholder: 'Search name or abbreviation (e.g. RN, LPT)...',
+    specifyPlaceholder: 'Specify license',
+  },
+  { name: 'certification', label: 'Certification', placeholder: 'e.g. TESDA NC II, or None', options: null },
+])
 </script>
 
 <template>
@@ -132,7 +151,17 @@ const qualificationFields = [
           <FormItem>
             <FormLabel>{{ field.label }}</FormLabel>
             <FormControl>
-              <Input v-bind="componentField" :placeholder="field.placeholder" :disabled="disabled" />
+              <ReferencePicker
+                v-if="field.options"
+                v-bind="componentField"
+                :options="field.options"
+                :loading="isLoadingReferenceLists"
+                :disabled="disabled"
+                :placeholder="field.placeholder"
+                :search-placeholder="field.searchPlaceholder"
+                :specify-placeholder="field.specifyPlaceholder"
+              />
+              <Input v-else v-bind="componentField" :placeholder="field.placeholder" :disabled="disabled" />
             </FormControl>
             <FormMessage />
           </FormItem>

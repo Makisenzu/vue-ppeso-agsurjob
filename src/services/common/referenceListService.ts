@@ -1,5 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
-import type { CourseRow, ReligionRow } from '@/types/common/referenceList'
+import type { CourseRow, EligibilityRow, ReligionRow } from '@/types/common/referenceList'
 
 export const referenceListService = {
   /** Active religions in display order ("None" and "Others" last). */
@@ -28,5 +29,22 @@ export const referenceListService = {
 
     if (error) throw new Error(error.message || 'Failed to load courses.')
     return data ?? []
+  },
+
+  /**
+   * Active eligibilities and licenses (migration 094), "Others" last. Not in database.types.ts until
+   * `npm run types:gen` is re-run, so read through the untyped client.
+   */
+  async fetchEligibilities(): Promise<EligibilityRow[]> {
+    const { data, error } = await (supabase as unknown as SupabaseClient)
+      .schema('core')
+      .from('eligibilities')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true })
+
+    if (error) throw new Error(error.message || 'Failed to load eligibilities.')
+    return (data ?? []) as EligibilityRow[]
   },
 }

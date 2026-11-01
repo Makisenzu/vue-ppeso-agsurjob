@@ -6,13 +6,14 @@ import {
   toCourseOptions,
   toReligionOptions,
   toVacancyCourseOptions,
+  toVacancyEligibilityOptions,
 } from '@/helpers/common/referenceListHelper'
 import type { CourseLevel, ReferenceOption } from '@/types/common/referenceList'
 
 /** Religion and course choices for ReferencePicker (core.religions / core.courses). */
 export function useReferenceLists() {
   const store = useReferenceListStore()
-  const { religions, courses, isLoading } = storeToRefs(store)
+  const { religions, courses, eligibilities, isLoading } = storeToRefs(store)
 
   onMounted(() => {
     void store.loadReferenceLists()
@@ -39,5 +40,17 @@ export function useReferenceLists() {
   /** Every level for job vacancies, with "None (not required)" */
   const vacancyCourseOptions = computed(() => toVacancyCourseOptions(courses.value))
 
-  return { religionOptions, getCourseOptions, trainingOptions, vacancyCourseOptions, isLoadingReferenceLists: isLoading }
+  /** Eligibility and license choices for job vacancies (core.eligibilities), with "None" */
+  const vacancyEligibilityOptions = computed(() => toVacancyEligibilityOptions(eligibilities.value, 'eligibility'))
+  const vacancyLicenseOptions = computed(() => toVacancyEligibilityOptions(eligibilities.value, 'license'))
+
+  return {
+    religionOptions,
+    getCourseOptions,
+    trainingOptions,
+    vacancyCourseOptions,
+    vacancyEligibilityOptions,
+    vacancyLicenseOptions,
+    isLoadingReferenceLists: isLoading,
+  }
 }

@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { referenceListService } from '@/services/common/referenceListService'
-import type { CourseRow, ReligionRow } from '@/types/common/referenceList'
+import type { CourseRow, EligibilityRow, ReligionRow } from '@/types/common/referenceList'
 
 export const useReferenceListStore = defineStore('referenceList', () => {
   // ─── State ───
   const religions = ref<ReligionRow[]>([])
   const courses = ref<CourseRow[]>([])
+  const eligibilities = ref<EligibilityRow[]>([])
   const isLoading = ref(false)
   const isLoaded = ref(false)
 
@@ -17,12 +18,18 @@ export const useReferenceListStore = defineStore('referenceList', () => {
     if (isLoaded.value || isLoading.value) return
     isLoading.value = true
     try {
-      const [religionRows, courseRows] = await Promise.all([
+      // Eligibilities fail on their own (e.g. before migration 094) without emptying the other lists
+      const [religionRows, courseRows, eligibilityRows] = await Promise.all([
         referenceListService.fetchReligions(),
         referenceListService.fetchCourses(),
+        referenceListService.fetchEligibilities().catch((error) => {
+          console.error(error)
+          return []
+        }),
       ])
       religions.value = religionRows
       courses.value = courseRows
+      eligibilities.value = eligibilityRows
       isLoaded.value = true
     } catch (error) {
       console.error(error)
@@ -31,5 +38,5 @@ export const useReferenceListStore = defineStore('referenceList', () => {
     }
   }
 
-  return { religions, courses, isLoading, loadReferenceLists }
+  return { religions, courses, eligibilities, isLoading, loadReferenceLists }
 })
