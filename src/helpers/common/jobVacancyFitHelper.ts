@@ -73,6 +73,7 @@ export const FIT_APPLICANT_DISCLAIMER =
 export const FIT_METHOD_NOTE =
   'Each requirement the posting asks for is weighed: must-have skills 30, education 15, course 15, work experience 15, ' +
   'eligibility 10, license 10, training 5, nice-to-have skills 5, language 5. Partly met earns its share. ' +
+  'Training given in days, weeks or months counts as 8, 40 or 160 hours. ' +
   'Sex, age, civil status, religion, disability and OFW status are never scored.'
 
 const toList = (value: string | string[] | undefined): string[] =>

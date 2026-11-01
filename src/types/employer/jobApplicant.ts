@@ -91,5 +91,7 @@ export interface VacancyApplicationDetails {
   status_remarks: string | null
   created_at: string
   updated_at: string
+  /** Latest profile picture (migration 101); null shows initials */
+  avatar_path?: string | null
   applicant: GipApplicantSummarySource
 }

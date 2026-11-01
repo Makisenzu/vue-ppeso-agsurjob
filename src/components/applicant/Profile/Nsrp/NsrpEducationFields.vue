@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Trash2 } from '@lucide/vue'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
+import { TRAINING_HOURS_MAX } from '@/helpers/common/trainingDurationHelper'
 import SkillTextPicker from '@/components/SkillTextPicker.vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -190,10 +192,23 @@ const optional = '(optional)'
           </FormField>
           <FormField v-slot="{ componentField }" :name="`vocational_trainings[${index}].duration`">
             <FormItem>
-              <FormLabel>Duration <span class="font-normal text-muted-foreground">{{ optional }}</span></FormLabel>
-              <FormControl>
-                <Input v-bind="componentField" placeholder="268 hours" />
-              </FormControl>
+              <FormLabel>Duration in hours <span class="font-normal text-muted-foreground">{{ optional }}</span></FormLabel>
+              <InputGroup>
+                <FormControl>
+                  <InputGroupInput
+                    v-bind="componentField"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    maxlength="4"
+                    placeholder="268"
+                    :aria-description="`Whole hours, up to ${TRAINING_HOURS_MAX}`"
+                  />
+                </FormControl>
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>hours</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
               <FormMessage />
             </FormItem>
           </FormField>

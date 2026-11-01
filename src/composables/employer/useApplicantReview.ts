@@ -68,8 +68,9 @@ export function useApplicantReview() {
     if (!application) return null
     const applicant = application.applicant
     const name = [applicant.first_name, applicant.middle_name, applicant.surname, applicant.suffix].filter(Boolean).join(' ')
-    // The list row carries the profile picture (migration 092); opened directly, the avatar shows initials
-    const avatarPath = applicants.value.find((row) => row.id === application.id)?.avatar_path
+    // The application carries the profile picture (migration 101), so a reload keeps it; the list row is the fallback
+    const avatarPath =
+      application.avatar_path ?? applicants.value.find((row) => row.id === application.id)?.avatar_path ?? null
     const stepName = steps.value.find((step) => step.id === application.stage_id)?.stage_name ?? null
     return {
       name,

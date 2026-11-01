@@ -138,6 +138,38 @@ export type Database = {
           },
         ]
       }
+      applicant_skill_index: {
+        Row: {
+          applicant_id: string
+          skill_id: number | null
+          skill_key: string
+          skill_text: string
+          source: string
+        }
+        Insert: {
+          applicant_id: string
+          skill_id?: number | null
+          skill_key: string
+          skill_text: string
+          source: string
+        }
+        Update: {
+          applicant_id?: string
+          skill_id?: number | null
+          skill_key?: string
+          skill_text?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_skill_index_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applicant_skill_media: {
         Row: {
           alt_text: string | null
@@ -647,6 +679,16 @@ export type Database = {
           tupad: number
         }[]
       }
+      applicant_skill_sources: {
+        Args: {
+          p_applicant: Database["applicants"]["Tables"]["applicants"]["Row"]
+        }
+        Returns: {
+          skill_key: string
+          skill_text: string
+          source: string
+        }[]
+      }
       assert_entries_have_documents: {
         Args: {
           p_entries: Json
@@ -750,6 +792,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rebuild_applicant_skill_index: {
+        Args: { p_applicant_id: string }
+        Returns: undefined
       }
       search_applicant_registry: {
         Args: {
@@ -1237,12 +1283,108 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_aliases: {
+        Row: {
+          alias: string
+          alias_key: string | null
+          created_at: string
+          created_by: string | null
+          id: number
+          skill_id: number
+        }
+        Insert: {
+          alias: string
+          alias_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          skill_id: number
+        }
+        Update: {
+          alias?: string
+          alias_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          skill_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_aliases_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_ignored_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          key: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          key?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: number
+          is_active: boolean
+          name: string
+          skill_key: string | null
+          sort_order: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          is_active?: boolean
+          name: string
+          skill_key?: string | null
+          sort_order?: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          is_active?: boolean
+          name?: string
+          skill_key?: string | null
+          sort_order?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       accept_privacy_notice: { Args: { p_purposes: string[] }; Returns: Json }
+      add_skill_from_wording: {
+        Args: { p_category: string; p_name: string; p_wording: string }
+        Returns: number
+      }
       admin_delete_account: {
         Args: { p_profile_id: string }
         Returns: undefined
@@ -1288,16 +1430,60 @@ export type Database = {
       }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
       is_authorship_column: { Args: { p_column: string }; Returns: boolean }
+      merge_skills: {
+        Args: { p_from: number; p_into: number }
+        Returns: undefined
+      }
       my_privacy_status: { Args: never; Returns: Json }
+      normalize_skill_key: { Args: { p_value: string }; Returns: string }
       privacy_notice_version: { Args: never; Returns: string }
       purge_rows: {
         Args: { p_depth?: number; p_table: unknown; p_where: string }
         Returns: undefined
       }
+      refresh_skill_links: { Args: never; Returns: undefined }
+      relink_skill_keys: { Args: { p_keys: string[] }; Returns: undefined }
       required_privacy_purposes: { Args: { p_role: string }; Returns: string[] }
+      resolve_skill_id: { Args: { p_value: string }; Returns: number }
+      resolve_skill_names: {
+        Args: { p_names: string[] }
+        Returns: {
+          name: string
+          skill_id: number
+          skill_name: string
+        }[]
+      }
+      search_skills: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          category: string
+          id: number
+          matched_alias: string
+          name: string
+        }[]
+      }
+      skill_link_coverage: {
+        Args: never
+        Returns: {
+          applicant_linked: number
+          applicant_total: number
+          vacancy_linked: number
+          vacancy_total: number
+        }[]
+      }
       submit_data_subject_request: {
         Args: { p_details?: string; p_type: string }
         Returns: string
+      }
+      unmapped_skill_keys: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          applicant_count: number
+          example_text: string
+          total_count: number
+          vacancy_count: number
+          wording_key: string
+        }[]
       }
       withdraw_privacy_consent: { Args: { p_purpose: string }; Returns: Json }
     }
@@ -2741,6 +2927,7 @@ export type Database = {
           id: string
           is_required: boolean
           job_vacancy_id: string
+          skill_id: number | null
           skill_key: string | null
           skill_name: string
         }
@@ -2749,6 +2936,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           job_vacancy_id: string
+          skill_id?: number | null
           skill_key?: string | null
           skill_name: string
         }
@@ -2757,6 +2945,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           job_vacancy_id?: string
+          skill_id?: number | null
           skill_key?: string | null
           skill_name?: string
         }
@@ -3656,6 +3845,10 @@ export type Database = {
       }
       fit_ratio_status: { Args: { p_ratio: number }; Returns: string }
       fit_requirement_text: { Args: { p_value: string }; Returns: string }
+      fit_skill_matches: {
+        Args: { p_ids: number[]; p_keys: string[]; p_skill: Json }
+        Returns: boolean
+      }
       get_job_vacancy_application: {
         Args: { p_application_id: string }
         Returns: Json

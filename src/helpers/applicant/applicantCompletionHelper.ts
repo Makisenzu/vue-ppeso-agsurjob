@@ -15,6 +15,12 @@ import type {
 } from '@/types/applicant/applicantCompletion'
 import { calculateAge, MIN_SIGNUP_AGE } from '@/helpers/common/signupHelper'
 import { NSRP_SKILL_OPTIONS } from '@/helpers/common/skillHelper'
+import {
+  TRAINING_HOURS_MAX,
+  formatTrainingDuration,
+  isValidTrainingHoursInput,
+  toTrainingHoursInput,
+} from '@/helpers/common/trainingDurationHelper'
 import { DATE_RULE_MESSAGES, birthdateIssue, isFutureDay } from '@/helpers/common/dateRuleHelper'
 
 // ─── Steps ───
@@ -327,7 +333,11 @@ const educationEntrySchema = z.object({
 
 const trainingEntrySchema = z.object({
   course_training_title: requiredText('Enter the training title.'),
-  duration: text(100),
+  /** Number of hours, stored as "40 hours" (vacancies ask for training in hours) */
+  duration: z
+    .string()
+    .trim()
+    .refine(isValidTrainingHoursInput, `Enter the number of hours, from 1 to ${TRAINING_HOURS_MAX}.`),
   training_institution: requiredText('Enter the institution.'),
   skills_acquired: text(300),
   certificates_received: text(200),
@@ -486,7 +496,8 @@ export function toCompletionValues(
     })),
     vocational_trainings: jsonList(row?.vocational_trainings).map((item) => ({
       course_training_title: str(item.course_training_title),
-      duration: str(item.duration),
+      // "5 days" or "3 months" from before become hours; text that isn't a duration is dropped
+      duration: toTrainingHoursInput(str(item.duration)),
       training_institution: str(item.training_institution),
       skills_acquired: str(item.skills_acquired),
       certificates_received: str(item.certificates_received),
@@ -570,7 +581,7 @@ export function buildCompletionPatch(values: ApplicantCompletionValues, reachedS
         .filter((entry) => entry.course_training_title.trim())
         .map((entry) => ({
           course_training_title: entry.course_training_title.trim(),
-          duration: entry.duration.trim(),
+          duration: formatTrainingDuration(entry.duration),
           training_institution: entry.training_institution.trim(),
           skills_acquired: entry.skills_acquired.trim(),
           certificates_received: entry.certificates_received.trim(),
