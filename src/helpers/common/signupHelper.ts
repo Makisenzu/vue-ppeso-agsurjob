@@ -15,6 +15,7 @@ import type {
 } from '@/types/common/signup'
 import { UserSearch, Building2 } from '@lucide/vue'
 import { TIN_FORMAT_MESSAGE, TIN_PATTERN } from '@/helpers/common/establishmentHelper'
+import { birthdateIssue } from '@/helpers/common/dateRuleHelper'
 
 // ─── Constants ───
 
@@ -123,6 +124,10 @@ const personalSchema = z.object({
   date_of_birth: z
     .string()
     .min(1, 'Date of birth is required.')
+    .superRefine((value, ctx) => {
+      const issue = birthdateIssue(value)
+      if (issue) ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue })
+    })
     .refine((value) => calculateAge(value) !== null, 'Enter a valid date of birth.')
     .refine(
       (value) => (calculateAge(value) ?? 0) >= MIN_SIGNUP_AGE,

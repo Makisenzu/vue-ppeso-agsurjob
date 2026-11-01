@@ -7,6 +7,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
 import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
 import { useReferenceLists } from '@/composables/common/useReferenceLists'
+import { birthdateIssue, isFutureDay, minBirthdateIso, todayIso } from '@/helpers/common/dateRuleHelper'
 import type { ApplicantEntryRecord, ApplicantUpdate } from '@/types/peso/provincialPeso/applicantEntry'
 import type {
   EducationalBackgroundItem,
@@ -543,6 +544,11 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         toastAlert.error('Validation Error', 'Date of Birth is required.')
         return false
       }
+      const birthIssue = birthdateIssue(editDateOfBirth.value)
+      if (birthIssue) {
+        toastAlert.error('Validation Error', birthIssue)
+        return false
+      }
       if (!editSelectedCity.value?.name?.trim()) {
         toastAlert.error('Validation Error', 'Permanent Municipality / City is required.')
         return false
@@ -555,6 +561,14 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
         toastAlert.error('Validation Error', 'Primary Contact Number is required.')
         return false
       }
+    }
+    if (section === 'doleStatus' && editIsFormerOfw.value && isFutureDay(editFormerOfwReturnDate.value)) {
+      toastAlert.error('Validation Error', 'Date of return to the Philippines cannot be in the future.')
+      return false
+    }
+    if (section === 'eligibility' && editEligibilities.value.some((el) => isFutureDay(el.date_of_examination))) {
+      toastAlert.error('Validation Error', 'Date of examination cannot be in the future.')
+      return false
     }
     return true
   }
@@ -786,6 +800,9 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     skillOptions: SKILL_OPTIONS,
     eligibilityTitleOptions,
     isLoadingReferenceLists,
+    // Date pickers: birthdates up to today and at most 100 years back; past events up to today
+    birthdateMin: minBirthdateIso(),
+    todayMax: todayIso(),
 
     // ─── Section I: Personal Information edit refs ───
     editFirstName,

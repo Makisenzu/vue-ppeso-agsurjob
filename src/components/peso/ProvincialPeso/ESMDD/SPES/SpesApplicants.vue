@@ -112,6 +112,7 @@ const {
   onReviewDialogOpenChange,
   openEditDetails,
   submitReview,
+  orientationDateMin,
 } = useSpesApplicantForm()
 const { selectedYear } = storeToRefs(useSpesStore())
 const {
@@ -455,7 +456,7 @@ const previousAvailments = computed(() => {
                 <FormItem>
                   <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
                   <FormControl>
-                    <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
+                    <Input v-bind="componentField" type="date" :min="orientationDateMin" :disabled="isSubmitting" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

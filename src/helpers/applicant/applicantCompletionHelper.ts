@@ -15,6 +15,7 @@ import type {
 } from '@/types/applicant/applicantCompletion'
 import { calculateAge, MIN_SIGNUP_AGE } from '@/helpers/common/signupHelper'
 import { NSRP_SKILL_OPTIONS } from '@/helpers/common/skillHelper'
+import { DATE_RULE_MESSAGES, birthdateIssue, isFutureDay } from '@/helpers/common/dateRuleHelper'
 
 // ─── Steps ───
 
@@ -279,7 +280,9 @@ function createPersonalSchema(requiredPersonal: readonly CompletionPersonalField
 
       if (needs('date_of_birth')) {
         const age = calculateAge(values.date_of_birth)
-        require(['date_of_birth'], age !== null, 'Enter a valid date of birth.')
+        const birthIssue = birthdateIssue(values.date_of_birth)
+        require(['date_of_birth'], !birthIssue, birthIssue ?? '')
+        require(['date_of_birth'], !!birthIssue || age !== null, 'Enter a valid date of birth.')
         require(['date_of_birth'], age === null || age >= MIN_SIGNUP_AGE, `You must be at least ${MIN_SIGNUP_AGE} years old.`)
       }
       if (needs('sex')) require(['sex'], !!values.sex, 'Select your sex.')
@@ -308,6 +311,7 @@ function createPersonalSchema(requiredPersonal: readonly CompletionPersonalField
       if (values.is_former_ofw) {
         require(['former_ofw_country'], !!values.former_ofw_country.trim(), 'Enter the country where you worked.')
         require(['former_ofw_return_date'], !!values.former_ofw_return_date, 'Enter the date you returned.')
+        require(['former_ofw_return_date'], !isFutureDay(values.former_ofw_return_date), DATE_RULE_MESSAGES.future)
       }
     })
 }
@@ -334,7 +338,7 @@ const trainingEntrySchema = z.object({
 const eligibilityEntrySchema = z.object({
   eligibility_title: requiredText('Enter the eligibility or license.'),
   rating: text(20),
-  date_of_examination: z.string(),
+  date_of_examination: z.string().refine((value) => !isFutureDay(value), DATE_RULE_MESSAGES.future),
   place_of_examination: text(150),
   document_path: z.string().min(1, 'Upload your license or certificate of eligibility.'),
   document_name: z.string(),

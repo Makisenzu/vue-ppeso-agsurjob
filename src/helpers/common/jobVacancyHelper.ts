@@ -9,6 +9,7 @@ import {
 import type { JobVacancyFormValues, JobVacancyMatching } from '@/types/common/jobVacancy'
 import { MAX_VACANCY_SKILLS, SKILL_NAME_MAX_LENGTH } from '@/helpers/common/skillHelper'
 import { NO_COURSE_REQUIRED } from '@/helpers/common/referenceListHelper'
+import { isNewPastDay } from '@/helpers/common/dateRuleHelper'
 
 const requiredText = (label: string) => z.string().trim().min(1, `${label} is required.`)
 const NONE_HINT = 'Type "None" if not required.'
@@ -73,6 +74,25 @@ export function refineCompleteJobVacancyForm(values: Partial<JobVacancyFormValue
   // ISO yyyy-mm-dd strings compare correctly as plain strings
   if (values.postingDate && values.validUntil && values.validUntil < values.postingDate) {
     issue('validUntil', 'Valid until cannot be before the posting date.')
+  }
+}
+
+/** The posting period as saved, so editing an older vacancy can keep its dates */
+export type JobVacancySavedDates = { postingDate?: string | null; validUntil?: string | null }
+
+/**
+ * Scheduling rule of a vacancy form: a new or changed posting date / deadline can't be in the past (the
+ * saved ones may stay). Add after refineCompleteJobVacancyForm, which already keeps the deadline on or
+ * after the posting date.
+ */
+export function refineJobVacancySchedule(saved: JobVacancySavedDates = {}) {
+  return (values: Partial<JobVacancyFormValues>, ctx: z.RefinementCtx) => {
+    if (isNewPastDay(values.postingDate, saved.postingDate)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['postingDate'], message: 'Posting date cannot be in the past.' })
+    }
+    if (isNewPastDay(values.validUntil, saved.validUntil)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['validUntil'], message: 'Valid until cannot be in the past.' })
+    }
   }
 }
 

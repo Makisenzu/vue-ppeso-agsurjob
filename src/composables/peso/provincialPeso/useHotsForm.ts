@@ -4,6 +4,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { watchDebounced } from '@vueuse/core'
 import { format } from 'date-fns'
+import { isFutureDay } from '@/helpers/common/dateRuleHelper'
 import * as z from 'zod'
 import { useHotsStore } from '@/stores/peso/provincialPeso/hotsStore'
 import { getRegistryPhone, getVacancySlotsLeft } from '@/helpers/peso/provincialPeso/jobFairHelper'
@@ -26,7 +27,10 @@ const hotsSchema = toTypedSchema(
       lastName: z.string().trim().optional(),
       contactPhone: z.string().trim().optional(),
       email: z.union([z.literal(''), z.string().trim().email('Enter a valid email address.')]).optional(),
-      hiredDate: z.string().min(1, 'Hired date is required.'),
+      hiredDate: z
+        .string()
+        .min(1, 'Hired date is required.')
+        .refine((value) => !isFutureDay(value), 'Hired date cannot be in the future.'),
       remarks: z.string().trim().optional(),
     })
     .superRefine((values, ctx) => {
@@ -258,6 +262,8 @@ export function useHotsForm() {
   })
 
   return {
+    // Hired date picker stops at today
+    todayMax: today(),
     isFormDialogOpen,
     isSubmitting,
     isEditMode,

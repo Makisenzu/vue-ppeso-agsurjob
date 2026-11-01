@@ -62,6 +62,7 @@ const {
   personalSummary,
   contactSummary,
   maxBirthDate,
+  minBirthDate,
   minPasswordLength,
   isSubmitting,
   isCheckingEmail,
@@ -265,7 +266,7 @@ const {
                   <FormItem>
                     <FormLabel>Date of birth</FormLabel>
                     <FormControl>
-                      <Input v-bind="componentField" type="date" :max="maxBirthDate" autocomplete="bday" class="block" />
+                      <Input v-bind="componentField" type="date" :min="minBirthDate" :max="maxBirthDate" autocomplete="bday" class="block" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

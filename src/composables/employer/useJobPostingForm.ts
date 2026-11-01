@@ -13,6 +13,7 @@ import {
   formatTrainingHours,
   jobVacancyFormShape,
   refineCompleteJobVacancyForm,
+  refineJobVacancySchedule,
   toJobVacancyFields,
   toJobVacancyFormValues,
   toJobVacancyMatching,
@@ -28,6 +29,8 @@ import {
   toJobVacancyRequirements,
   toJobVacancyStages,
 } from '@/helpers/employer/jobPostingHelper'
+import { laterIsoDay, scheduledMinIso, todayIso } from '@/helpers/common/dateRuleHelper'
+import type { JobVacancySavedDates } from '@/helpers/common/jobVacancyHelper'
 import type { JobPostingFormValues } from '@/types/employer/jobPosting'
 
 /**
@@ -35,7 +38,7 @@ import type { JobPostingFormValues } from '@/types/employer/jobPosting'
  * applicants submit (088) and the hiring steps (089) — employer postings only. Languages and other
  * qualifications are optional here: left blank, they're saved as empty.
  */
-const jobPostingSchema = toTypedSchema(
+const createJobPostingSchema = (saved: JobVacancySavedDates = {}) => toTypedSchema(
   z
     .object({
       ...jobVacancyFormShape,
@@ -54,7 +57,8 @@ const jobPostingSchema = toTypedSchema(
       requirements: jobPostingRequirementsSchema,
       stages: jobPostingStagesSchema,
     })
-    .superRefine(refineCompleteJobVacancyForm),
+    .superRefine(refineCompleteJobVacancyForm)
+    .superRefine(refineJobVacancySchedule(saved)),
 )
 
 /** Steps of the posting page; each is checked before moving on */
@@ -75,7 +79,6 @@ const STEP_FIELDS: Record<JobPostingFormStepKey, readonly string[]> = {
   review: [],
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
 const plural = (count: number, unit: string) => `${count} ${unit}${count === 1 ? '' : 's'}`
 
 /**
@@ -100,8 +103,16 @@ export function useJobPostingForm() {
   )
 
   // ─── Form ───
+  /** The posting period as saved (editing): those dates may stay even once they're past */
+  const savedDates = computed<JobVacancySavedDates>(() =>
+    isEditMode.value && editingPosting.value
+      ? { postingDate: editingPosting.value.posting_date, validUntil: editingPosting.value.valid_until }
+      : {},
+  )
+  const validationSchema = computed(() => createJobPostingSchema(savedDates.value))
+
   const { handleSubmit, resetForm, validateField, values } = useForm<JobPostingFormValues>({
-    validationSchema: jobPostingSchema,
+    validationSchema,
     initialValues: {
       ...EMPTY_JOB_VACANCY_FORM_VALUES,
       trainingHours: null,
@@ -259,6 +270,12 @@ export function useJobPostingForm() {
   /** Before the last step (e.g. Enter in a field) the form moves on instead of saving */
   const onSubmit = () => (isLastStep.value ? save() : nextStep())
 
+  // ─── Date pickers: no past days (the saved ones excepted); the deadline not before the posting date ───
+  const postingDateMin = computed(() => scheduledMinIso(savedDates.value.postingDate))
+  const validUntilMin = computed(() =>
+    laterIsoDay(values.postingDate, scheduledMinIso(savedDates.value.validUntil)) || todayIso(),
+  )
+
   onMounted(load)
 
   return {
@@ -269,6 +286,8 @@ export function useJobPostingForm() {
     loadError,
     reload: load,
     isSaving,
+    postingDateMin,
+    validUntilMin,
     // Steps
     steps: JOB_POSTING_FORM_STEPS,
     currentStep,

@@ -62,6 +62,7 @@ const emit = defineEmits<{ (e: 'submit'): void }>()
 // The form object is created once by the parent, so destructuring keeps its refs reactive.
 const {
   values,
+  birthdateRange,
   steps,
   hasRequirements,
   currentStep,
@@ -273,7 +274,7 @@ const onFormSubmit = () => (currentStep.value < steps.length ? nextStep() : emit
                 <FormField v-slot="{ componentField }" name="date_of_birth">
                   <FormItem>
                     <FormLabel>Date of Birth <span class="text-destructive">*</span></FormLabel>
-                    <FormControl><Input v-bind="componentField" type="date" /></FormControl>
+                    <FormControl><Input v-bind="componentField" type="date" :min="birthdateRange.min" :max="birthdateRange.max" /></FormControl>
                     <FormDescription v-if="values.age !== null && values.age !== undefined">
                       Age: {{ values.age }}
                     </FormDescription>

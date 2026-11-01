@@ -66,6 +66,7 @@ const {
   confirmDelete,
   getRowSwipeActions,
   getRowCard,
+  orientationDateMin,
 } = useTupadApplicants()
 </script>
 
@@ -355,7 +356,7 @@ const {
                   <FormItem>
                     <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
                     <FormControl>
-                      <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
+                      <Input v-bind="componentField" type="date" :min="orientationDateMin" :disabled="isSubmitting" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -6,6 +6,7 @@ import {
   createEmptySpesFormValues,
   SPES_FORM_STEP_FIELDS,
   SPES_MUNICIPALITY_OPTIONS,
+  spesBirthdateRange,
   spesFormSchema,
   type SpesFormDraft,
   type SpesFormField,
@@ -246,6 +247,8 @@ export function useSpesFormSteps(options: {
   return {
     values,
     errors,
+    /** Date of birth picker limits: SPES ages only */
+    birthdateRange: spesBirthdateRange(),
     setFieldValue,
     loadValues,
     createSubmitHandler,

@@ -576,7 +576,7 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent class="w-auto p-0" align="start">
-                  <Calendar v-model="deploymentEndDate" initial-focus />
+                  <Calendar v-model="deploymentEndDate" :min-value="deploymentStartDate ?? undefined" initial-focus />
                 </PopoverContent>
               </Popover>
             </div>

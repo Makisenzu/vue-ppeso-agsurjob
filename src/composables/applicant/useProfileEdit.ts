@@ -5,7 +5,10 @@ import { updateApplicantProfile, type UpdateProfileInput } from '@/services/appl
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import type { ApplicantRecordRow } from '@/types/applicant/applicantCompletion'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
+import { getLocalTimeZone, parseDate } from '@internationalized/date'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
+import { minBirthdateIso, yearsAgoIso } from '@/helpers/common/dateRuleHelper'
+import { MIN_SIGNUP_AGE } from '@/helpers/common/signupHelper'
 
 export function useProfileEdit() {
   const authStore = useAuthStore()
@@ -35,14 +38,14 @@ export function useProfileEdit() {
       : undefined
   )
 
-  const df = new DateFormatter('en-US', {
-    dateStyle: 'long',
-  })
-
   const birthdateLabel = computed(() => {
     if (!date.value) return 'Select birthdate'
-    return df.format(date.value.toDate(getLocalTimeZone()))
+    return formatDisplayDate(date.value.toDate(getLocalTimeZone()))
   })
+
+  /** Calendar limits: at least MIN_SIGNUP_AGE and at most 100 years ago */
+  const birthdateMinValue = parseDate(minBirthdateIso())
+  const birthdateMaxValue = parseDate(yearsAgoIso(MIN_SIGNUP_AGE))
 
   const isLoading = ref(false)
   const isOpen = ref(false)
@@ -184,6 +187,8 @@ export function useProfileEdit() {
     formData,
     date,
     birthdateLabel,
+    birthdateMinValue,
+    birthdateMaxValue,
     isLoading,
     isOpen,
     errors,

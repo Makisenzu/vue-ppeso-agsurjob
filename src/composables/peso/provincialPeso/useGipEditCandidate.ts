@@ -6,6 +6,7 @@ import {
   inferLpiiCategory,
 } from '@/helpers/peso/provincialPeso/excelImportHelper'
 import { GIP_DOCUMENT_OPTIONS } from '@/helpers/peso/provincialPeso/gipHelper'
+import { birthdateIssue, minBirthdateIso, todayIso } from '@/helpers/common/dateRuleHelper'
 
 const LPII_OPTIONS: LpiiCategory[] = ['LOWLAND', 'UPLAND', 'WETLAND']
 
@@ -125,6 +126,8 @@ export function useGipEditCandidate({ isOpen, candidate, index, onSave }: EditCa
     if (!form.value.course || !form.value.course.trim()) {
       errors.push('Academic Course / Degree is required')
     }
+    const birthIssue = birthdateIssue(form.value.dateOfBirth)
+    if (birthIssue) errors.push(birthIssue)
     return errors
   })
 
@@ -161,6 +164,9 @@ export function useGipEditCandidate({ isOpen, candidate, index, onSave }: EditCa
 
   return {
     form,
+    // Date of birth picker: up to today, at most 100 years back
+    birthdateMin: minBirthdateIso(),
+    birthdateMax: todayIso(),
     skillsInput,
     validationErrors,
     isValid,

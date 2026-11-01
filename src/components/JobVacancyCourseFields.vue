@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import ReferencePicker from '@/components/ReferencePicker.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
 import { useJobVacancyCourseFields } from '@/composables/common/useJobVacancyCourseFields'

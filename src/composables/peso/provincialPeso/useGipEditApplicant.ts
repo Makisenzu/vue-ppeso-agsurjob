@@ -1,3 +1,4 @@
+import { isNewPastDay, todayIso } from '@/helpers/common/dateRuleHelper'
 import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useForm } from 'vee-validate'
@@ -21,6 +22,8 @@ const editApplicantSchema = toTypedSchema(
         .refine((docs) => docs.includes(LOCKED_DOCUMENT), { message: 'NSRP must be included.' }),
       remarks: z.string().trim().optional(),
       orientationDate: z.string().optional(),
+      /** The orientation day as saved, so editing doesn't force moving a past one */
+      savedOrientationDate: z.string().optional(),
       orientationTime: z.string().optional(),
       orientationNote: z.string().trim().max(500, 'Keep the note under 500 characters.').optional(),
     })
@@ -31,6 +34,9 @@ const editApplicantSchema = toTypedSchema(
       if (values.status !== 'Approved') return
       if (!values.orientationDate) {
         ctx.addIssue({ code: 'custom', path: ['orientationDate'], message: 'Set the orientation date.' })
+      } else if (isNewPastDay(values.orientationDate, values.savedOrientationDate)) {
+        // A new or moved orientation can't be in the past; the one already saved may stay
+        ctx.addIssue({ code: 'custom', path: ['orientationDate'], message: 'Orientation date cannot be in the past.' })
       }
       if (!values.orientationTime) {
         ctx.addIssue({ code: 'custom', path: ['orientationTime'], message: 'Set the orientation time.' })
@@ -41,11 +47,13 @@ const editApplicantSchema = toTypedSchema(
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** A saved orientation_at as the date and time inputs' values, in the staff's local time */
-function toOrientationInputs(value: unknown): { orientationDate: string; orientationTime: string } {
+function toOrientationInputs(value: unknown): { orientationDate: string; orientationTime: string; savedOrientationDate: string } {
   const date = typeof value === 'string' ? new Date(value) : null
-  if (!date || Number.isNaN(date.getTime())) return { orientationDate: '', orientationTime: '' }
+  if (!date || Number.isNaN(date.getTime())) return { orientationDate: '', orientationTime: '', savedOrientationDate: '' }
+  const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
   return {
-    orientationDate: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    orientationDate: day,
+    savedOrientationDate: day,
     orientationTime: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
   }
 }
@@ -77,6 +85,7 @@ export function useGipEditApplicant() {
       documentsSubmitted: [LOCKED_DOCUMENT],
       remarks: '',
       orientationDate: '',
+      savedOrientationDate: '',
       orientationTime: '',
       orientationNote: '',
     },
@@ -176,6 +185,8 @@ export function useGipEditApplicant() {
   })
 
   return {
+    /** Orientation picker: no past days */
+    orientationDateMin: todayIso(),
     applicantToEdit,
     isEditApplicantDialogOpen,
     isSavingApplicantReview,

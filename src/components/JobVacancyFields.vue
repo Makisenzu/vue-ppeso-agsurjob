@@ -28,7 +28,14 @@ import {
  * other qualifications "(optional)" for forms whose schema allows them blank (employer postings).
  * `withTraining` adds the Training hours field (job_vacancies.training_hours, migration 096) for forms that save it.
  */
-defineProps<{ disabled?: boolean; optionalExtras?: boolean; withTraining?: boolean }>()
+defineProps<{
+  disabled?: boolean
+  optionalExtras?: boolean
+  withTraining?: boolean
+  /** Earliest day the Posting Date / Valid Until pickers offer (yyyy-MM-dd); the schema enforces it */
+  postingDateMin?: string
+  validUntilMin?: string
+}>()
 
 const acceptsPwdValue = useFieldValue<boolean>('acceptsPwd')
 const pwdDisabilities = useFieldValue<DisabilityType[]>('pwdDisabilities')
@@ -320,7 +327,7 @@ const qualificationFields = computed(() => [
         <FormItem>
           <FormLabel>Posting Date</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" type="date" :disabled="disabled" />
+            <Input v-bind="componentField" type="date" :min="postingDateMin" :disabled="disabled" />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -330,7 +337,7 @@ const qualificationFields = computed(() => [
         <FormItem>
           <FormLabel>Valid Until</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" type="date" :disabled="disabled" />
+            <Input v-bind="componentField" type="date" :min="validUntilMin" :disabled="disabled" />
           </FormControl>
           <FormMessage />
         </FormItem>

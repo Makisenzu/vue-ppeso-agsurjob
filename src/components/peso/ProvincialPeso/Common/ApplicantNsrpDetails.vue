@@ -82,6 +82,8 @@ const {
   // Eligibility picker (core.eligibilities)
   eligibilityTitleOptions,
   isLoadingReferenceLists,
+  birthdateMin,
+  todayMax,
   // Section I: Personal Information
   editFirstName,
   editMiddleName,
@@ -599,7 +601,7 @@ const {
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div class="space-y-1">
                 <span class="text-[11px] text-muted-foreground">Date of Birth <span class="text-destructive">*</span></span>
-                <Input v-model="editDateOfBirth" type="date" class="h-9 text-xs" />
+                <Input v-model="editDateOfBirth" type="date" :min="birthdateMin" :max="todayMax" class="h-9 text-xs" />
               </div>
               <div class="space-y-1">
                 <span class="text-[11px] text-muted-foreground">Age</span>
@@ -1214,7 +1216,7 @@ const {
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Date of Examination</span>
-                    <Input v-model="el.date_of_examination" type="date" class="h-8 text-xs" />
+                    <Input v-model="el.date_of_examination" type="date" :max="todayMax" class="h-8 text-xs" />
                   </div>
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Place of Examination</span>
@@ -1653,7 +1655,7 @@ const {
                 </div>
                 <div v-if="editIsFormerOfw" class="space-y-1.5 pt-1">
                   <Input v-model="editFormerOfwCountry" placeholder="Previous country" class="h-8 text-xs" />
-                  <Input v-model="editFormerOfwReturnDate" type="date" class="h-8 text-xs" />
+                  <Input v-model="editFormerOfwReturnDate" type="date" :max="todayMax" class="h-8 text-xs" />
                 </div>
               </div>
             </div>

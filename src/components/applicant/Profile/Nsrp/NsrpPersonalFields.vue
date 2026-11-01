@@ -21,6 +21,8 @@ const {
   isSelfEmployed,
   needsPersonal,
   maxDate,
+  birthdateMin,
+  birthdateMax,
   toggleDisability,
   sexOptions,
   civilStatusOptions,
@@ -47,7 +49,7 @@ const checkRow =
         <FormItem class="col-span-2 sm:col-span-1">
           <FormLabel>Date of birth</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" type="date" :max="maxDate" class="block" />
+            <Input v-bind="componentField" type="date" :min="birthdateMin" :max="birthdateMax" class="block" />
           </FormControl>
           <FormDescription v-if="age !== null">Age: {{ age }}</FormDescription>
           <FormMessage />

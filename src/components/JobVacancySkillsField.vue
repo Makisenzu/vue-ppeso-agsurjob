@@ -3,7 +3,7 @@ import { Plus, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useJobVacancySkillsField } from '@/composables/common/useJobVacancySkillsField'
 
 /**

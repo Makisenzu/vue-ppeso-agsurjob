@@ -13,6 +13,10 @@ import {
 } from '@/types/common/spesForm'
 import { AGUSAN_DEL_SUR_MUNICIPALITIES } from '@/helpers/common/mapboxHelpers'
 import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
+import { birthdateIssue, yearsAgoIso } from '@/helpers/common/dateRuleHelper'
+
+/** Date-of-birth picker limits for SPES (aged SPES_MIN_AGE to SPES_MAX_AGE) */
+export const spesBirthdateRange = () => ({ min: yearsAgoIso(SPES_MAX_AGE + 1), max: yearsAgoIso(SPES_MIN_AGE) })
 
 /** Agusan del Sur municipalities an applicant can belong to — the randomizer draws per municipality. */
 export const SPES_MUNICIPALITY_OPTIONS: readonly string[] = AGUSAN_DEL_SUR_MUNICIPALITIES.map((entry) => entry.municipality)
@@ -52,7 +56,11 @@ export const spesFormSchema = z.object({
   date_of_birth: z
     .string()
     .min(1, 'Date of birth is required.')
-    .refine((v) => isValid(parseISO(v)) && parseISO(v) < new Date(), 'Enter a valid date of birth.')
+    .refine((v) => isValid(parseISO(v)), 'Enter a valid date of birth.')
+    .superRefine((v, ctx) => {
+      const issue = birthdateIssue(v)
+      if (issue) ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue })
+    })
     .refine(
       (v) => {
         const age = calculateSpesAge(v)

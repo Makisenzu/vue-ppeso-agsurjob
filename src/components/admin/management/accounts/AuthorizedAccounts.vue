@@ -8,6 +8,7 @@ import { ChevronDown, MoreHorizontal,RefreshCw,Plus, Loader2, Trash2 } from '@lu
 import HoldButton from '@/components/HoldButton.vue'
 
 import { useUserAccounts } from '@/composables/admin/useUserAccounts'
+import { birthdateIssue, minBirthdateIso, todayIso } from '@/helpers/common/dateRuleHelper'
 import type { CreateAccountPayload } from '@/types/admin/userAccounts'
 import {
   formatDate,
@@ -233,10 +234,16 @@ const handleOpenAddSheet = () => {
   openAddAccountSheet()
 }
 
+// Birthdate: optional, but not in the future nor more than 100 years ago
+const birthdateMin = minBirthdateIso()
+const birthdateMax = todayIso()
+const birthdateError = computed(() => birthdateIssue(formData.value.birthdate))
+
 const handleCreateAccount = async () => {
   if (!formData.value.email || !formData.value.password || !formData.value.firstname || !formData.value.lastname || !formData.value.username || !formData.value.role) {
     return
   }
+  if (birthdateError.value) return
   try {
     await createAccount(formData.value)
     resetForm()
@@ -721,7 +728,8 @@ const handleCreateAccount = async () => {
               </div>
               <div class="space-y-2">
                 <Label for="add-birthdate">Birthdate</Label>
-                <Input id="add-birthdate" type="date" v-model="formData.birthdate" />
+                <Input id="add-birthdate" type="date" v-model="formData.birthdate" :min="birthdateMin" :max="birthdateMax" :aria-invalid="!!birthdateError" />
+                <p v-if="birthdateError" class="text-sm text-destructive">{{ birthdateError }}</p>
               </div>
             </div>
 

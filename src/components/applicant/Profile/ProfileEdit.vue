@@ -64,6 +64,8 @@ const {
   formData,
   date,
   birthdateLabel,
+  birthdateMinValue,
+  birthdateMaxValue,
   isLoading,
   isOpen,
   errors,
@@ -205,6 +207,8 @@ onMounted(() => {
             <PopoverContent class="w-auto p-0" align="start">
               <Calendar
                 v-model="date"
+                :min-value="birthdateMinValue"
+                :max-value="birthdateMaxValue"
                 layout="month-and-year"
                 initial-focus
                 @update:model-value="close"

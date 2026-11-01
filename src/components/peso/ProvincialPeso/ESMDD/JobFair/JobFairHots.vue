@@ -86,6 +86,7 @@ const {
   setApplicantSource,
   onFormDialogOpenChange,
   submitHire,
+  todayMax,
 } = useHotsForm()
 
 const walkInFields = [
@@ -452,7 +453,7 @@ const walkInFields = [
               <FormItem>
                 <FormLabel>Hired Date</FormLabel>
                 <FormControl>
-                  <Input v-bind="componentField" type="date" :disabled="isSubmitting" />
+                  <Input v-bind="componentField" type="date" :max="todayMax" :disabled="isSubmitting" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

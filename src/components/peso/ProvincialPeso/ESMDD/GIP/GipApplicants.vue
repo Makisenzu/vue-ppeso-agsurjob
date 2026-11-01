@@ -211,6 +211,8 @@ const {
 
 const {
   form: candidateForm,
+  birthdateMin: candidateBirthdateMin,
+  birthdateMax: candidateBirthdateMax,
   skillsInput: candidateSkillsInput,
   validationErrors: candidateValidationErrors,
   isValid: isCandidateValid,
@@ -246,6 +248,7 @@ const {
   onEditDialogOpenChange,
   closeEditApplicantDialog,
   saveApplicantReview,
+  orientationDateMin,
 } = useGipEditApplicant()
 
 const {
@@ -1351,7 +1354,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
               <FormItem>
                 <FormLabel>Date <span class="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Input v-bind="componentField" type="date" :disabled="isSavingApplicantReview" />
+                  <Input v-bind="componentField" type="date" :min="orientationDateMin" :disabled="isSavingApplicantReview" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1554,7 +1557,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             </div>
             <div class="grid gap-2">
               <Label for="ec-dob">Date of Birth</Label>
-              <Input id="ec-dob" v-model="candidateForm.dateOfBirth" type="date" />
+              <Input id="ec-dob" v-model="candidateForm.dateOfBirth" type="date" :min="candidateBirthdateMin" :max="candidateBirthdateMax" />
             </div>
             <div class="grid gap-2">
               <Label for="ec-civil">Civil Status</Label>

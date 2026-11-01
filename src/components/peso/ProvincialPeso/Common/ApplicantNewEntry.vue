@@ -99,6 +99,7 @@ const {
   eligibilityTitleOptions,
   isLoadingReferenceLists,
   formResetCount,
+  todayMax,
   heightFt,
   tin,
   primaryContactNumber,
@@ -724,7 +725,7 @@ const confirmDuplicateResolution = () => {
                   </div>
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Date of Return to Philippines</span>
-                    <Input v-model="formerOfwReturnDate" type="date" class="h-8 text-xs" />
+                    <Input v-model="formerOfwReturnDate" type="date" :max="todayMax" class="h-8 text-xs" />
                   </div>
                 </div>
               </div>
@@ -1088,7 +1089,7 @@ const confirmDuplicateResolution = () => {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Date of Examination</span>
-                      <Input v-model="el.date_of_examination" type="date" class="h-8 text-xs" />
+                      <Input v-model="el.date_of_examination" type="date" :max="todayMax" class="h-8 text-xs" />
                     </div>
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Place of Examination</span>
@@ -1440,7 +1441,7 @@ const confirmDuplicateResolution = () => {
                 </div>
                 <div class="space-y-1">
                   <span class="text-[11px] text-muted-foreground">Assessment Date</span>
-                  <Input v-model="assessmentDate" type="date" class="h-9 text-xs" />
+                  <Input v-model="assessmentDate" type="date" :max="todayMax" class="h-9 text-xs" />
                 </div>
               </div>
               <div class="space-y-1 pt-1">

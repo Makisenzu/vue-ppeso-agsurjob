@@ -1,8 +1,9 @@
 import { computed, inject, provide, type InjectionKey, type Ref } from 'vue'
 import { useFieldArray, useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
-import { calculateAge, todayIsoDate } from '@/helpers/common/signupHelper'
+import { calculateAge, MIN_SIGNUP_AGE, todayIsoDate } from '@/helpers/common/signupHelper'
 import { useReferenceLists } from '@/composables/common/useReferenceLists'
+import { minBirthdateIso, yearsAgoIso } from '@/helpers/common/dateRuleHelper'
 import {
   APPOINTMENT_STATUS_OPTIONS,
   COMPLETION_CIVIL_STATUS_OPTIONS,
@@ -108,6 +109,9 @@ export function useNsrpForm(stepKey: Ref<CompletionStepKey>, requiredPersonal: R
     needsPersonal,
     listError,
     maxDate: todayIsoDate(),
+    // Date of birth: at least MIN_SIGNUP_AGE and at most 100 years ago
+    birthdateMin: minBirthdateIso(),
+    birthdateMax: yearsAgoIso(MIN_SIGNUP_AGE),
     // Field arrays
     educationFields,
     addEducation: () => pushEducation(createEducationEntry()),

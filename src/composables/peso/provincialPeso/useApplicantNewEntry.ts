@@ -12,6 +12,7 @@ import {
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
 import { useReferenceLists } from '@/composables/common/useReferenceLists'
+import { birthdateIssue, isFutureDay, todayIso } from '@/helpers/common/dateRuleHelper'
 import { useApplicantEntryStore } from '@/stores/peso/provincialPeso/applicantEntryStore'
 import type {
   ApplicantInsert,
@@ -523,7 +524,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   }
 
   const assessedByName = ref('Denmark Rivera')
-  const assessmentDate = ref(new Date().toISOString().split('T')[0])
+  const assessmentDate = ref(todayIso())
   const profileId = ref('')
 
   // ─── Step Navigation & Validation ───
@@ -553,6 +554,11 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
           toastAlert.error('Validation Error', 'Please enter a valid Date of Birth in MM/DD/YYYY format.')
           return false
         }
+      }
+      const birthIssue = birthdateIssue(dateOfBirth.value)
+      if (birthIssue) {
+        toastAlert.error('Validation Error', birthIssue)
+        return false
       }
       if (!selectedCity.value) {
         toastAlert.error('Validation Error', 'Municipality / City is required.')
@@ -825,7 +831,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     referredPrograms.value = []
     documentsSubmitted.value = ['NSRP']
     assessedByName.value = 'Denmark Rivera'
-    assessmentDate.value = new Date().toISOString().split('T')[0]
+    assessmentDate.value = todayIso()
     profileId.value = ''
     duplicateMatch.value = null
     pendingPayload.value = null
@@ -837,7 +843,24 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const isDuplicateModalOpen = ref<boolean>(false)
   const pendingPayload = shallowRef<ApplicantInsert | null>(null)
 
+  /** Dates of things that already happened can't be in the future */
+  const futureDateError = (): string | null => {
+    if (isFormerOfw.value && isFutureDay(formerOfwReturnDate.value)) {
+      return 'Date of return to the Philippines cannot be in the future.'
+    }
+    if (eligibilities.value.some((el) => isFutureDay(el.date_of_examination))) {
+      return 'Date of examination cannot be in the future.'
+    }
+    if (isFutureDay(assessmentDate.value)) return 'Assessment date cannot be in the future.'
+    return null
+  }
+
   const handleSubmit = async () => {
+    const dateError = futureDateError()
+    if (dateError) {
+      toastAlert.error('Validation Error', dateError)
+      return null
+    }
     const payload = buildPayload()
     if (!payload) return null
 
@@ -970,6 +993,8 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     isFormerOfw,
     formerOfwCountry,
     formerOfwReturnDate,
+    // Pickers of past events stop at today
+    todayMax: todayIso(),
     toggleDisability,
     disabilityOptions: DISABILITY_OPTIONS,
 

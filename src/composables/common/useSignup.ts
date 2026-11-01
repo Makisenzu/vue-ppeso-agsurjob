@@ -20,9 +20,10 @@ import {
   normalizeSignupValues,
   getSignupStepSchema,
   getSignupSteps,
-  todayIsoDate,
+  MIN_SIGNUP_AGE,
 } from '@/helpers/common/signupHelper'
 import { getPrivacyConsentStatement, getRequiredPrivacyPurposes } from '@/helpers/common/privacyHelper'
+import { minBirthdateIso, yearsAgoIso } from '@/helpers/common/dateRuleHelper'
 import type { PrivacyPurpose } from '@/types/common/privacy'
 
 interface PsgcOption {
@@ -229,7 +230,9 @@ export function useSignup() {
     passwordStrength,
     personalSummary,
     contactSummary,
-    maxBirthDate: todayIsoDate(),
+    // Born at least MIN_SIGNUP_AGE and at most MAX_BIRTHDATE_AGE years ago (dateRuleHelper)
+    maxBirthDate: yearsAgoIso(MIN_SIGNUP_AGE),
+    minBirthDate: minBirthdateIso(),
     minPasswordLength: MIN_PASSWORD_LENGTH,
     // Submit
     isSubmitting,
