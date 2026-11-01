@@ -107,8 +107,8 @@ const INDICATOR_CLASS =
     </Alert>
 
     <template v-else-if="job">
-      <!-- ─── The job: hidden while filling in the wizard, collapsed once applied ─── -->
-      <Collapsible v-if="!isApplying || hasApplied" :default-open="!hasApplied" class="flex flex-col gap-3">
+      <!-- ─── The job: hidden while filling in the wizard, open by default (applied or not) ─── -->
+      <Collapsible v-if="!isApplying || hasApplied" default-open class="flex flex-col gap-3">
         <CollapsibleTrigger as-child>
           <button
             type="button"

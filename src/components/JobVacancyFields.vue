@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import SearchSelect from '@/components/SearchSelect.vue'
 import ReferencePicker from '@/components/ReferencePicker.vue'
+import DatePickerField from '@/components/DatePickerField.vue'
 import { useReferenceLists } from '@/composables/common/useReferenceLists'
 import { toVacancyEducationOptions } from '@/helpers/common/referenceListHelper'
 import JobVacancyCourseFields from '@/components/JobVacancyCourseFields.vue'
@@ -327,7 +328,7 @@ const qualificationFields = computed(() => [
         <FormItem>
           <FormLabel>Posting Date</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" type="date" :min="postingDateMin" :disabled="disabled" />
+            <DatePickerField v-bind="componentField" :min="postingDateMin" :disabled="disabled" />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -337,7 +338,7 @@ const qualificationFields = computed(() => [
         <FormItem>
           <FormLabel>Valid Until</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" type="date" :min="validUntilMin" :disabled="disabled" />
+            <DatePickerField v-bind="componentField" :min="validUntilMin" :disabled="disabled" />
           </FormControl>
           <FormMessage />
         </FormItem>

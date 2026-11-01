@@ -119,6 +119,9 @@ Dark tokens mirror light but shift toward `oklch` values with lower lightness. K
 >    (`yyyy-MM-dd`), `<input type="date">` values stay ISO, and generated file names keep `yyyy-MM-dd`.
 > 4. Text the app saves and reads back (e.g. a GIP deployment period) is written MM/DD/YYYY and its parser
 >    still accepts the older formats already stored.
+> 5. Date **inputs** use `src/components/DatePickerField.vue` (shows MM/DD/YYYY, binds an ISO day, takes
+>    `min` / `max`), not `<Input type="date">` — a native date input shows the browser's locale order
+>    (e.g. dd/mm/yyyy) and can't be changed.
 
 ---
 
