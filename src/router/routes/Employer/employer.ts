@@ -56,38 +56,40 @@ export const employerRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/employer/Team/EmployerNoCompany.vue'),
         meta: { breadcrumb: false, role: 'company_member' },
       },
+      // ─── Job Posting (breadcrumb hierarchy: Job Posting > Post a Job / Edit / Applicants) ───
       {
         path: 'job-postings',
-        name: 'job-postings',
-        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPosting.vue'),
-        // RLS (migration 039) lets only the owner write their establishment's vacancies
-        meta: { breadcrumb: 'Job Posting', role: 'company_owner' },
-      },
-      {
-        // Posting form as its own page with a stepper (details, requirements, hiring steps, review)
-        path: 'job-postings/new',
-        name: 'job-posting-new',
-        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
-        meta: { breadcrumb: 'Post a Job', role: 'company_owner' },
-      },
-      {
-        path: 'job-postings/:vacancyId/edit',
-        name: 'job-posting-edit',
-        component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
-        meta: { breadcrumb: 'Edit Job Posting', role: 'company_owner' },
-      },
-      {
-        // Owner and members review applicants (esmdd.can_review_job_vacancy, migration 087)
-        path: 'job-applicants',
-        name: 'job-applicants',
-        component: () => import('@/components/employer/CompanyManagement/JobApplicant/JobApplicant.vue'),
-        meta: { breadcrumb: 'Job Applicants' },
-      },
-      {
-        path: 'job-applicants/:vacancyId',
-        name: 'vacancy-applicants',
-        component: () => import('@/components/employer/CompanyManagement/JobApplicant/VacancyApplicants.vue'),
-        meta: { breadcrumb: 'Applicants' },
+        meta: { breadcrumb: 'Job Posting', breadcrumbTo: { name: 'job-postings' } },
+        children: [
+          {
+            path: '',
+            name: 'job-postings',
+            component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPosting.vue'),
+            // RLS (migration 039) lets only the owner write their establishment's vacancies
+            meta: { breadcrumb: false, role: 'company_owner' },
+          },
+          {
+            // Posting form as its own page with a stepper (details, requirements, hiring steps, review)
+            path: 'new',
+            name: 'job-posting-new',
+            component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
+            meta: { breadcrumb: 'Post a Job', role: 'company_owner' },
+          },
+          {
+            path: ':vacancyId/edit',
+            name: 'job-posting-edit',
+            component: () => import('@/components/employer/CompanyManagement/JobPosting/JobPostingForm.vue'),
+            meta: { breadcrumb: 'Edit Job Posting', role: 'company_owner' },
+          },
+          {
+            // Opened from a posting's "View applicants" action. Owner and members review applicants
+            // (esmdd.can_review_job_vacancy, migration 087)
+            path: ':vacancyId/applicants',
+            name: 'vacancy-applicants',
+            component: () => import('@/components/employer/CompanyManagement/JobApplicant/VacancyApplicants.vue'),
+            meta: { breadcrumb: 'Applicants' },
+          },
+        ],
       },
     ]
   },

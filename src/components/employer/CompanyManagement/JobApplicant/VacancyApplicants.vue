@@ -59,10 +59,10 @@ const {
 
     <div class="flex flex-col gap-3">
       <AppLink
-        :to="{ name: 'job-applicants' }"
+        :to="{ name: 'job-postings' }"
         class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft class="size-4" /> Job Applicants
+        <ArrowLeft class="size-4" /> Job Posting
       </AppLink>
       <div v-if="vacancyHeader" class="space-y-1">
         <h1 class="text-2xl font-bold tracking-tight text-pretty sm:text-3xl">{{ vacancyHeader.title }}</h1>
@@ -80,19 +80,19 @@ const {
     </Alert>
 
     <template v-else>
-      <!-- Hiring steps: click to filter. Pills wrap, so any number of steps fits at 360px -->
-      <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by hiring step">
+      <!-- Hiring steps: click to filter. Same stat cards as the Job Posting page; the grid wraps for any number of steps -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" role="group" aria-label="Filter by hiring step">
         <button
           v-for="card in stageCards"
           :key="card.key"
           type="button"
-          class="inline-flex h-10 items-center gap-2 rounded-full border bg-card px-3 text-sm transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9"
-          :class="stageFilter === card.key ? 'border-primary bg-primary/5 text-foreground' : 'text-muted-foreground'"
+          class="min-w-0 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          :class="stageFilter === card.key && card.key !== 'all' ? 'border-primary' : ''"
           :aria-pressed="stageFilter === card.key"
           @click="selectStage(card.key)"
         >
-          <span class="max-w-48 truncate">{{ card.label }}</span>
-          <span class="rounded-full bg-muted px-1.5 text-xs font-semibold text-foreground tabular-nums">{{ card.value }}</span>
+          <p class="truncate text-xs text-muted-foreground" :title="card.label">{{ card.label }}</p>
+          <p class="mt-1 text-2xl font-semibold tabular-nums">{{ card.value }}</p>
         </button>
       </div>
 

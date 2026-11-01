@@ -3,7 +3,6 @@ import type { JobVacancyStage } from '@/types/common/jobVacancyApplication'
 import type { SearchSelectOption } from '@/types/common/searchSelect'
 
 export const JOB_APPLICANT_PAGE_SIZE = 10
-export const APPLICANT_VACANCY_PAGE_SIZE = 9
 
 /**
  * "Move to" dropdown of the review sheet: the vacancy's hiring steps in order, from Paper Screening (where

@@ -10,6 +10,7 @@ import {
 } from '@/services/employer/jobPostingService'
 import { jobVacancyAttachmentService } from '@/services/common/jobVacancyAttachmentService'
 import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
+import { jobApplicantService } from '@/services/employer/jobApplicantService'
 import { useAuthStore } from '@/stores/common/auth'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import {
@@ -26,6 +27,7 @@ import type {
   JobPostingStats,
   JobPostingStatusFilter,
 } from '@/types/employer/jobPosting'
+import type { ApplicantStageCounts } from '@/types/employer/jobApplicant'
 
 const EMPTY_STATS: JobPostingStats = { all: 0, open: 0, filled: 0, closed: 0, cancelled: 0 }
 
@@ -41,6 +43,7 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
   const rows = ref<JobPostingListRow[]>([])
   const total = ref(0)
   const stats = ref<JobPostingStats>({ ...EMPTY_STATS })
+  const applicantCounts = ref<Map<string, ApplicantStageCounts>>(new Map())
   const search = ref('')
   const statusFilter = ref<JobPostingStatusFilter>('all')
   const page = ref(0)
@@ -82,8 +85,12 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
         await fetchPostings()
         return
       }
+      // Applicants per posting, for the Applicants column; the list still shows if the counts fail
+      const counts = await jobApplicantService.fetchStageCounts(result.rows.map((row) => row.id)).catch(() => null)
+      if (current !== requestId) return
       rows.value = result.rows
       total.value = result.total
+      applicantCounts.value = counts ?? new Map()
     } catch (error: unknown) {
       if (current === requestId) toastAlert.error('Error', toJobPostingErrorMessage(error, 'Failed to load your job postings.'))
     } finally {
@@ -251,6 +258,7 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
     rows,
     total,
     stats,
+    applicantCounts,
     search,
     statusFilter,
     page,

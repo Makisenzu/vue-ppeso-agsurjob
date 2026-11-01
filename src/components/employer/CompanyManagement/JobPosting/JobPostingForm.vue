@@ -69,7 +69,7 @@ const INDICATOR_CLASS =
       </AppLink>
       <div class="space-y-1">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ pageTitle }}</h1>
-        <p class="text-sm text-muted-foreground">Applicants and PESO see every detail you enter here.</p>
+        <p class="text-sm text-muted-foreground">Everyone can see every detail you enter here.</p>
       </div>
     </div>
 

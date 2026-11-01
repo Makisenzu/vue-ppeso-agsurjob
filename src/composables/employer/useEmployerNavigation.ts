@@ -33,8 +33,8 @@ const navItems: EmployerNavItem[] = [
   {
     title: 'Jobs',
     children: [
+      // Applicants open from each posting's "View applicants" action
       { title: 'Job Posts', to: { name: 'job-postings' } },
-      { title: 'Applicants', to: { name: 'job-applicants' } },
       { title: 'Interviews' },
     ],
   },

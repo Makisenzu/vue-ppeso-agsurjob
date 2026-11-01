@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef, RowSelectionState } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
-import { CheckCircle2, MoreHorizontal, Pencil, RotateCcw, Trash2, XCircle } from '@lucide/vue'
+import { CheckCircle2, MoreHorizontal, Pencil, RotateCcw, Trash2, Users, XCircle } from '@lucide/vue'
 import { valueUpdater } from '@/components/ui/table/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,6 +49,7 @@ export function useJobPostings() {
     rows,
     total,
     stats,
+    applicantCounts,
     statusFilter,
     page,
     pageSize,
@@ -105,6 +106,8 @@ export function useJobPostings() {
     postingToDelete.value = row
   }
   const editPosting = (row: JobPostingListRow) => router.push({ name: 'job-posting-edit', params: { vacancyId: row.id } })
+  const viewApplicants = (row: JobPostingListRow) => router.push({ name: 'vacancy-applicants', params: { vacancyId: row.id } })
+  const applicantCount = (row: JobPostingListRow) => applicantCounts.value.get(row.id)?.all ?? 0
   const setStatus = (row: JobPostingListRow, status: JobVacancyStatus) => store.setPostingStatus(row, status)
 
   /** Open postings can be filled or closed; any other status can be reopened */
@@ -122,6 +125,7 @@ export function useJobPostings() {
   const getRowSwipeActions = (row: JobPostingListRow): SwipeAction[] => [
     { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => requestDelete(row) },
     { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => editPosting(row) },
+    { id: 'applicants', label: 'Applicants', icon: Users, dismiss: false, onSelect: () => viewApplicants(row) },
     ...getStatusActions(row).map((action) => ({
       id: action.id,
       label: action.id === 'filled' ? 'Filled' : action.id === 'closed' ? 'Close' : 'Reopen',
@@ -131,12 +135,13 @@ export function useJobPostings() {
     })),
   ]
 
-  /** Mobile card: position, then status · openings · skills */
+  /** Mobile card: position, then status · openings · applicants · skills */
   const getRowCard = (row: JobPostingListRow): SwipeCard => ({
     title: row.position_title,
     subtitle: [
       getJobPostingStatusLabel(row.status),
       `${row.vacancy_count ?? 1} opening${(row.vacancy_count ?? 1) === 1 ? '' : 's'}`,
+      `${applicantCount(row)} applicant${applicantCount(row) === 1 ? '' : 's'}`,
       summarizeSkills(row),
     ].join(' · '),
   })
@@ -194,6 +199,17 @@ export function useJobPostings() {
       cell: ({ row }) => h('div', { class: 'text-sm tabular-nums' }, String(row.original.vacancy_count ?? 1)),
     },
     {
+      id: 'applicants',
+      header: 'Applicants',
+      cell: ({ row }) => {
+        const counts = applicantCounts.value.get(row.original.id)
+        return h('div', { class: 'whitespace-nowrap text-sm' }, [
+          h('p', { class: 'tabular-nums' }, String(counts?.all ?? 0)),
+          counts?.applied ? h('p', { class: 'text-xs text-muted-foreground' }, `${counts.applied} new`) : null,
+        ])
+      },
+    },
+    {
       id: 'period',
       header: 'Posting period',
       cell: ({ row }) => {
@@ -233,7 +249,11 @@ export function useJobPostings() {
                 () => h(MoreHorizontal, { class: 'size-4' }),
               ),
             ),
-            h(DropdownMenuContent, { align: 'end' }, () => [
+            h(DropdownMenuContent, { align: 'end', class: 'min-w-48 whitespace-nowrap' }, () => [
+              h(DropdownMenuItem, { onSelect: () => viewApplicants(row.original) }, () => [
+                h(Users, { class: 'size-4' }),
+                'View applicants',
+              ]),
               h(DropdownMenuItem, { onSelect: () => editPosting(row.original) }, () => [
                 h(Pencil, { class: 'size-4' }),
                 'Edit',
