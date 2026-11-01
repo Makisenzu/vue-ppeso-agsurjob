@@ -1,22 +1,17 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { ArrowLeft, Eye, FileText, Loader2, Search, Users } from '@lucide/vue'
+import { ArrowLeft, Search, Users } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
-import SearchSelect from '@/components/SearchSelect.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useVacancyApplicants } from '@/composables/employer/useVacancyApplicants'
 
-/** Applicants of one job posting, with a review sheet to read their details and files and move their stage */
+/** Applicants of one job posting; Review opens the applicant's own page (ApplicantReview.vue) */
 const {
   vacancyHeader,
   errorMessage,
@@ -39,17 +34,6 @@ const {
   canNextPage,
   previousPage,
   nextPage,
-  isDetailOpen,
-  review,
-  stage,
-  stageOptions,
-  remarks,
-  remarksError,
-  isRemarksRequired,
-  hasStageChange,
-  isSavingStage,
-  onDetailOpenChange,
-  saveStage,
 } = useVacancyApplicants()
 </script>
 
@@ -185,96 +169,4 @@ const {
       </section>
     </template>
   </div>
-
-  <!-- Review (stage field appears with remarks: Sheet, DESIGN.md 5.1) -->
-  <Sheet :open="isDetailOpen" @update:open="onDetailOpenChange">
-    <SheetContent class="flex h-full w-full flex-col p-0 sm:max-w-lg">
-      <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
-        <SheetTitle>{{ review?.name ?? 'Applicant' }}</SheetTitle>
-        <SheetDescription>{{ review?.reference }} · Applied {{ review?.appliedOn }}</SheetDescription>
-      </SheetHeader>
-
-      <form class="contents" @submit.prevent="saveStage">
-        <div v-if="review" class="grid flex-1 grid-cols-1 content-start gap-6 overflow-y-auto px-6 py-4">
-          <section class="space-y-3" aria-labelledby="applicant-details-title">
-            <h3 id="applicant-details-title" class="text-sm font-semibold">Details</h3>
-            <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div v-for="detail in review.details" :key="detail.label" class="min-w-0">
-                <span class="text-xs text-muted-foreground">{{ detail.label }}</span>
-                <p class="text-sm font-medium break-words">{{ detail.value }}</p>
-              </div>
-            </div>
-          </section>
-
-          <Separator />
-
-          <section class="space-y-2" aria-labelledby="applicant-documents-title">
-            <h3 id="applicant-documents-title" class="text-sm font-semibold">Documents</h3>
-            <ul class="flex flex-col">
-              <li
-                v-for="doc in review.documents"
-                :key="doc.name"
-                class="flex items-center justify-between gap-3 border-t border-border py-3 text-sm last:border-b"
-              >
-                <div class="flex min-w-0 flex-col">
-                  <span class="text-foreground">
-                    {{ doc.name }}<span v-if="doc.isOptional" class="text-muted-foreground"> (optional)</span>
-                  </span>
-                  <span v-if="doc.fileName" class="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-                    <FileText class="size-3.5 shrink-0" />
-                    <span class="truncate">{{ doc.fileName }}</span>
-                  </span>
-                  <span v-else class="text-xs text-muted-foreground">Not attached</span>
-                </div>
-                <Button v-if="doc.url" variant="outline" size="sm" as-child class="shrink-0">
-                  <AppLink :href="doc.url" target="_blank" :aria-label="`View ${doc.name}`">
-                    <Eye class="size-4" /> View
-                  </AppLink>
-                </Button>
-              </li>
-            </ul>
-          </section>
-
-          <Separator />
-
-          <section class="space-y-4" aria-labelledby="applicant-stage-title">
-            <h3 id="applicant-stage-title" class="text-sm font-semibold">Hiring step</h3>
-            <div class="space-y-2">
-              <Label for="applicant-stage">Move to</Label>
-              <SearchSelect
-                id="applicant-stage"
-                v-model="stage"
-                :options="stageOptions"
-                placeholder="Select step"
-                class="w-full"
-                :disabled="isSavingStage"
-              />
-              <p class="text-xs text-muted-foreground">The applicant is notified of every change.</p>
-            </div>
-            <div v-if="isRemarksRequired" class="space-y-2">
-              <Label for="applicant-remarks">Remarks</Label>
-              <Textarea
-                id="applicant-remarks"
-                v-model="remarks"
-                rows="3"
-                maxlength="1000"
-                placeholder="Tell the applicant why"
-                :aria-invalid="!!remarksError"
-                :disabled="isSavingStage"
-              />
-              <p v-if="remarksError" class="text-sm text-destructive">{{ remarksError }}</p>
-            </div>
-          </section>
-        </div>
-
-        <div class="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
-          <Button type="button" variant="outline" :disabled="isSavingStage" @click="onDetailOpenChange(false)">Close</Button>
-          <Button type="submit" :disabled="isSavingStage || !hasStageChange">
-            <Loader2 v-if="isSavingStage" class="size-4 animate-spin" />
-            {{ isSavingStage ? 'Saving...' : 'Move applicant' }}
-          </Button>
-        </div>
-      </form>
-    </SheetContent>
-  </Sheet>
 </template>

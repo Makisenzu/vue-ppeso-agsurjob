@@ -16,8 +16,8 @@ import type {
 const EMPTY_STEP_COUNTS = (): ApplicantStepCounts => ({ all: 0, applied: 0, rejected: 0, byStep: {} })
 
 /**
- * One job posting's applicants (opened from its "View applicants" action) and the review sheet. One page is held at a time; search, filters and counts run on the
- * server (BACKEND.md §19).
+ * One job posting's applicants (opened from its "View applicants" action) and the review page of one
+ * application. One page is held at a time; search, filters and counts run on the server (BACKEND.md §19).
  */
 export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const toastAlert = useToastAlert()
@@ -34,16 +34,27 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const isLoading = ref(false)
   const errorMessage = ref<string | null>(null)
 
-  // ─── Review sheet ───
-  const isDetailOpen = ref(false)
+  // ─── Review page ───
   const selectedApplication = ref<VacancyApplicationDetails | null>(null)
   const documents = ref<JobApplicationDocumentMap>({})
   const isLoadingDetail = ref(false)
+  const detailError = ref<string | null>(null)
   const isSavingStage = ref(false)
-  const busyId = ref<string | null>(null)
 
   /** Ignore a slower, older response that lands after a newer one */
   let applicantRequestId = 0
+  let detailRequestId = 0
+
+  /** Another vacancy: start its list over (search, step filter, page) */
+  function resetVacancy() {
+    vacancy.value = null
+    applicants.value = []
+    total.value = 0
+    stageCounts.value = EMPTY_STEP_COUNTS()
+    search.value = ''
+    stageFilter.value = 'all'
+    page.value = 0
+  }
 
   // ─── Applicant actions ───
 
@@ -81,17 +92,9 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     }
   }
 
-  /** Opens a vacancy's applicants: its title, the counts and the first page */
+  /** Opens a vacancy's applicants: its title, the counts and the current page */
   async function openVacancy(vacancyId: string): Promise<void> {
-    if (vacancy.value?.id !== vacancyId) {
-      vacancy.value = null
-      applicants.value = []
-      total.value = 0
-      stageCounts.value = EMPTY_STEP_COUNTS()
-      search.value = ''
-      stageFilter.value = 'all'
-      page.value = 0
-    }
+    if (vacancy.value?.id !== vacancyId) resetVacancy()
     errorMessage.value = null
     isLoading.value = true
     try {
@@ -126,30 +129,50 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     return fetchApplicants()
   }
 
-  // ─── Review sheet ───
+  // ─── Review page ───
 
-  /** Loads the applicant's summary (logged as a view) and their files before the sheet opens */
-  async function openApplication(applicationId: string): Promise<void> {
-    busyId.value = applicationId
+  /**
+   * Loads one application for its page: the vacancy (its documents and hiring steps) when not loaded yet,
+   * the applicant's summary (logged as a view) and their files.
+   */
+  async function openApplication(vacancyId: string, applicationId: string): Promise<void> {
+    const current = ++detailRequestId
+    if (selectedApplication.value?.id !== applicationId) closeApplication()
+    detailError.value = null
     isLoadingDetail.value = true
     try {
+      if (vacancy.value?.id !== vacancyId) {
+        const summary = await jobApplicantService.fetchVacancy(vacancyId)
+        if (current !== detailRequestId) return
+        if (!summary) {
+          detailError.value = 'This job posting could not be found.'
+          return
+        }
+        resetVacancy()
+        vacancy.value = summary
+      }
       const [details, files] = await Promise.all([
         jobApplicantService.fetchApplication(applicationId),
         jobApplicationDocumentService.fetchDocuments(applicationId),
       ])
+      if (current !== detailRequestId) return
+      if (details.job_vacancy_id !== vacancyId) {
+        detailError.value = 'This application is not for this job posting.'
+        return
+      }
       selectedApplication.value = details
       documents.value = files
-      isDetailOpen.value = true
     } catch (error: unknown) {
-      toastAlert.error('Error', toJobApplicantErrorMessage(error, 'Failed to open the application.'))
+      if (current === detailRequestId) {
+        detailError.value = toJobApplicantErrorMessage(error, 'Failed to open the application.')
+      }
     } finally {
-      isLoadingDetail.value = false
-      busyId.value = null
+      if (current === detailRequestId) isLoadingDetail.value = false
     }
   }
 
+  /** Drops the applicant's details and files once their page is left */
   function closeApplication() {
-    isDetailOpen.value = false
     selectedApplication.value = null
     documents.value = {}
   }
@@ -162,8 +185,6 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     try {
       await jobApplicantService.moveApplication(application.id, target, remarks)
       toastAlert.success('Applicant moved', `The applicant is now at ${label}.`)
-      closeApplication()
-      await Promise.all([fetchApplicants(), fetchStageCounts()])
       return true
     } catch (error: unknown) {
       toastAlert.error('Error', toJobApplicantErrorMessage(error, 'Failed to update the stage.'))
@@ -189,13 +210,12 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     setSearch,
     setStageFilter,
     setPage,
-    // Review sheet
-    isDetailOpen,
+    // Review page
     selectedApplication,
     documents,
     isLoadingDetail,
+    detailError,
     isSavingStage,
-    busyId,
     openApplication,
     closeApplication,
     updateStage,

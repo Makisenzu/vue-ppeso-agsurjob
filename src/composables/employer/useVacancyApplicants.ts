@@ -1,6 +1,6 @@
 import { computed, h, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
@@ -13,51 +13,18 @@ import { getInitials } from '@/helpers/peso/provincialPeso/gipHelper'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useJobApplicantStore } from '@/stores/employer/jobApplicantStore'
-import { useStatusRemarks } from '@/composables/common/useStatusRemarks'
-import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
+import { formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { formatJobPostingDate, getJobPostingStatusLabel } from '@/helpers/employer/jobPostingHelper'
-import {
-  JOB_APPLICATION_STAGE_BADGE_CLASS,
-  getJobApplicationStageLabel,
-  jobApplicationCode,
-  toJobApplicationRequirements,
-} from '@/helpers/common/jobVacancyApplicationHelper'
-import { toApplicantMoveOptions } from '@/helpers/employer/jobApplicantHelper'
-import type { ApplicantStageFilter, VacancyApplicantRow, VacancyApplicationDetails } from '@/types/employer/jobApplicant'
+import { JOB_APPLICATION_STAGE_BADGE_CLASS, getJobApplicationStageLabel } from '@/helpers/common/jobVacancyApplicationHelper'
+import type { ApplicantStageFilter, VacancyApplicantRow } from '@/types/employer/jobApplicant'
 
-/**
- * Where an application sits, as the "Move to" dropdown names it: 'rejected' or the step id. An application
- * from before migration 091 without a step reads as the first step (Paper Screening).
- */
-const currentTarget = (
-  application: Pick<VacancyApplicationDetails, 'stage' | 'stage_id'>,
-  firstStepId: string | null,
-): ApplicantStageFilter =>
-  application.stage === 'rejected' ? 'rejected' : (application.stage_id ?? firstStepId ?? 'applied')
-
-/**
- * Applicants of one job posting: stage counts, server-paged list, review sheet with the applicant's
- * summary, files and stage. Opening the sheet is logged in the database (PRIVACY.md §5.2).
- */
+/** Applicants of one job posting: step counts and the server-paged list; Review opens the applicant's page */
 export function useVacancyApplicants() {
   const route = useRoute()
+  const router = useRouter()
   const store = useJobApplicantStore()
-  const {
-    vacancy,
-    applicants,
-    total,
-    stageCounts,
-    stageFilter,
-    page,
-    pageSize,
-    isLoading,
-    errorMessage,
-    isDetailOpen,
-    selectedApplication,
-    documents,
-    isSavingStage,
-    busyId,
-  } = storeToRefs(store)
+  const { vacancy, applicants, total, stageCounts, stageFilter, page, pageSize, isLoading, errorMessage } =
+    storeToRefs(store)
 
   const vacancyId = computed(() => String(route.params.vacancyId ?? ''))
 
@@ -106,7 +73,8 @@ export function useVacancyApplicants() {
   }
 
   // ─── Rows (same handler for the desktop button and the mobile swipe) ───
-  const viewApplicant = (row: VacancyApplicantRow) => store.openApplication(row.id)
+  const viewApplicant = (row: VacancyApplicantRow) =>
+    router.push({ name: 'vacancy-applicant-review', params: { vacancyId: vacancyId.value, applicationId: row.id } })
 
   const getRowSwipeActions = (row: VacancyApplicantRow): SwipeAction[] => [
     { id: 'view', label: 'Review', icon: Eye, dismiss: false, onSelect: () => viewApplicant(row) },
@@ -178,7 +146,6 @@ export function useVacancyApplicants() {
             {
               variant: 'outline',
               size: 'sm',
-              disabled: busyId.value === row.original.id,
               'aria-label': `Review ${row.original.full_name}`,
               onClick: () => viewApplicant(row.original),
             },
@@ -219,66 +186,12 @@ export function useVacancyApplicants() {
   const previousPage = () => store.setPage(page.value - 1)
   const nextPage = () => store.setPage(page.value + 1)
 
-  // ─── Review sheet ───
-  /** A hiring step id or 'rejected'; Not selected needs remarks */
-  const stage = ref<ApplicantStageFilter>('applied')
-  const stageOptions = computed(() => toApplicantMoveOptions(steps.value))
-  const stageModel = computed({
-    get: () => stage.value,
-    set: (value: unknown) => {
-      if (typeof value === 'string' && stageOptions.value.some((option) => option.value === value)) stage.value = value
-    },
-  })
-  const { remarks, remarksError, isRemarksRequired, remarksToSave, validateRemarks, resetRemarks } =
-    useStatusRemarks(stage)
-
-  // Load the opened application's stage and remarks each time the sheet opens
-  watch(isDetailOpen, (open) => {
-    if (!open || !selectedApplication.value) return
-    stage.value = currentTarget(selectedApplication.value, steps.value[0]?.id ?? null)
-    resetRemarks(selectedApplication.value.status_remarks)
-  })
-
-  const review = computed(() => {
-    const application = selectedApplication.value
-    if (!application) return null
-    const applicant = application.applicant
-    return {
-      name: [applicant.first_name, applicant.middle_name, applicant.surname, applicant.suffix].filter(Boolean).join(' '),
-      reference: jobApplicationCode(application.id, application.created_at),
-      appliedOn: formatGipDate(application.created_at),
-      details: describeGipApplicant(applicant),
-      documents: toJobApplicationRequirements(vacancy.value?.requirements ?? [], documents.value).map(({ name, isOptional }) => {
-        const file = documents.value[name]
-        return { name, isOptional, fileName: file?.file_name ?? null, url: file?.url ?? null }
-      }),
-    }
-  })
-
-  const hasStageChange = computed(
-    () =>
-      !!selectedApplication.value &&
-      (stage.value !== currentTarget(selectedApplication.value, steps.value[0]?.id ?? null) ||
-        (stage.value === 'rejected' && remarksToSave.value !== (selectedApplication.value.status_remarks ?? null))),
-  )
-
-  const onDetailOpenChange = (open: boolean) => {
-    if (open || isSavingStage.value) return
-    store.closeApplication()
-  }
-
-  async function saveStage() {
-    if (!hasStageChange.value || !validateRemarks()) return
-    const label = String(stageOptions.value.find((option) => option.value === stage.value)?.label ?? 'the new step')
-    await store.updateStage(stage.value, label.replace(/^\d+\. /, ''), remarksToSave.value)
-  }
-
-  // Another posting reuses the page: load its applicants
+  // Load the applicants; another posting starts its search over, coming back from a review keeps it
   watch(
     vacancyId,
     (id) => {
       if (!id) return
-      searchInput.value = ''
+      if (vacancy.value?.id !== id) searchInput.value = ''
       void store.openVacancy(id)
     },
     { immediate: true },
@@ -308,17 +221,5 @@ export function useVacancyApplicants() {
     canNextPage,
     previousPage,
     nextPage,
-    // Review sheet
-    isDetailOpen,
-    review,
-    stage: stageModel,
-    stageOptions,
-    remarks,
-    remarksError,
-    isRemarksRequired,
-    hasStageChange,
-    isSavingStage,
-    onDetailOpenChange,
-    saveStage,
   }
 }
