@@ -2,7 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
-import { ACCOUNT_REQUIREMENTS_LINK, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
+import { toAccountRequirementsLink, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useSpesFormStore } from '@/stores/applicant/spesFormStore'
 import { useSpesFormSteps } from '@/composables/common/useSpesFormSteps'
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
@@ -84,11 +84,11 @@ export function useSpesApplicationForm() {
 
   // ─── Verification rule (migration 103): a new application needs a verified account ───
   const mustVerifyAccount = computed(() => !hasApplied.value && !isAccountVerified.value)
-  const verificationNotice = {
+  const verificationNotice = computed(() => ({
     title: UNVERIFIED_APPLICANT_TITLE,
     message: UNVERIFIED_APPLICANT_MESSAGE,
-    link: ACCOUNT_REQUIREMENTS_LINK,
-  } as const
+    link: toAccountRequirementsLink(authStore.username),
+  }))
   const status = computed(() => myForm.value?.status || 'Pending')
   const appliedAt = computed(() => myForm.value?.applied_at ?? myForm.value?.created_at ?? null)
   const appliedYear = computed(() => (appliedAt.value ? new Date(appliedAt.value).getFullYear() : new Date().getFullYear()))

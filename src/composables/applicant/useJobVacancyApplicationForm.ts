@@ -2,7 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
-import { ACCOUNT_REQUIREMENTS_LINK, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
+import { toAccountRequirementsLink, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useJobVacancyApplicationStore } from '@/stores/applicant/jobVacancyApplicationStore'
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
@@ -290,18 +290,18 @@ export function useJobVacancyApplicationForm() {
     }
   })
   /** Missing skills or courses are often just not on the profile yet */
-  const profileLink = { name: 'profile' } as const
+  const profileLink = computed(() => toAccountRequirementsLink(authStore.username))
 
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
 
   // ─── Verification rule (migration 103): a new application needs a verified account ───
   const mustVerifyAccount = computed(() => !hasApplied.value && !isAccountVerified.value)
-  const verificationNotice = {
+  const verificationNotice = computed(() => ({
     title: UNVERIFIED_APPLICANT_TITLE,
     message: UNVERIFIED_APPLICANT_MESSAGE,
-    link: ACCOUNT_REQUIREMENTS_LINK,
-  } as const
+    link: toAccountRequirementsLink(authStore.username),
+  }))
   const stage = computed(() => myApplication.value?.stage ?? 'applied')
   /** Name of the hiring step the applicant is at */
   const stepName = computed(
