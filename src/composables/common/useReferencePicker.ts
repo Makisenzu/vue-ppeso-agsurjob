@@ -28,7 +28,16 @@ export function useReferencePicker(props: ReferencePickerProps, emit: ReferenceP
 
   const selectedLabel = computed(() => selectedOption.value?.name ?? '')
 
-  const filteredOptions = computed(() => filterReferenceOptions(props.options, searchTerm.value))
+  /**
+   * Matches of the search, led by what was typed when the list allows "Others" and nothing listed has
+   * that exact name: picking it stores the text as typed (e.g. "Bachelor's degree in any field").
+   */
+  const filteredOptions = computed(() => {
+    const matches = filterReferenceOptions(props.options, searchTerm.value)
+    const typed = searchTerm.value.trim()
+    if (!typed || !othersOption.value || findReferenceOption(props.options, typed)) return matches
+    return [{ name: typed, abbreviation: null, group: 'Use what you typed', requiresSpecify: false }, ...matches]
+  })
 
   const otherText = computed({
     get: () => (isSpecifying.value ? (props.modelValue ?? '') : ''),

@@ -49,6 +49,8 @@ export type JobPostingStats = Record<JobPostingStatusFilter, number>
 
 /** A posting being edited: every vacancy field, its skills, related courses, requirements and attachments */
 export type JobPostingDetails = JobVacancyRow & {
+  /** Migration 095; typed by hand until types are regenerated */
+  training: string | null
   skills: JobPostingSkill[]
   related_courses: string[]
   requirements: JobVacancyRequirement[]
@@ -72,6 +74,8 @@ export type JobPostingStageValue = {
 
 /** The posting page: the shared vacancy fields, the documents applicants submit (088) and the hiring steps (089) */
 export type JobPostingFormValues = JobVacancyFormValues & {
+  /** e.g. "8 hours of relevant training"; blank when none (migration 095) */
+  training: string
   requirements: JobPostingRequirementValue[]
   stages: JobPostingStageValue[]
 }
@@ -88,6 +92,7 @@ export type JobPostingPayload = {
     vacancy_count: number
     status: JobVacancyStatus
     related_courses: string[]
+    training: string | null
   }
   skills: JobPostingSkill[]
   requirements: JobVacancyRequirement[]

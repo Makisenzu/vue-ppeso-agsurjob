@@ -49,6 +49,13 @@ const COURSE_LEVEL_LABEL: Record<CourseLevel, string> = {
  */
 export function toVacancyCourseOptions(rows: CourseRow[]): ReferenceOption[] {
   const none: ReferenceOption = { name: NO_COURSE_REQUIRED, abbreviation: null, group: 'Not required', requiresSpecify: false }
+  // Postings often ask for a kind of degree rather than one course
+  const general: ReferenceOption[] = VACANCY_GENERAL_COURSES.map((name) => ({
+    name,
+    abbreviation: null,
+    group: 'General',
+    requiresSpecify: false,
+  }))
   const listed = rows
     .filter((row) => !row.requires_specify)
     .map((row) => ({
@@ -57,7 +64,33 @@ export function toVacancyCourseOptions(rows: CourseRow[]): ReferenceOption[] {
       group: [COURSE_LEVEL_LABEL[row.level as CourseLevel], row.field].filter(Boolean).join(' · ') || null,
       requiresSpecify: false,
     }))
-  return withOthersFallback([none, ...listed])
+  return withOthersFallback([none, ...general, ...listed])
+}
+
+/** Course requirements that name a kind of degree instead of one course */
+export const VACANCY_GENERAL_COURSES = [
+  "Bachelor's degree relevant to the job",
+  "Any bachelor's degree",
+  'Vocational course relevant to the job',
+] as const
+
+/** Educational levels a vacancy can ask for, lowest first */
+export const VACANCY_EDUCATION_LEVELS = [
+  'Elementary Graduate',
+  'High School Graduate',
+  'Senior High School Graduate',
+  'Technical-Vocational / TESDA Graduate',
+  'College Level',
+  'College Graduate',
+  'Post-Graduate / Masteral',
+  'Doctorate',
+] as const
+
+/** Educational level choices for a vacancy: "None" first, the levels, "Others" (typed) last */
+export function toVacancyEducationOptions(): ReferenceOption[] {
+  const none: ReferenceOption = { name: NO_COURSE_REQUIRED, abbreviation: null, group: 'Not required', requiresSpecify: false }
+  const levels = VACANCY_EDUCATION_LEVELS.map((name) => ({ name, abbreviation: null, group: null, requiresSpecify: false }))
+  return withOthersFallback([none, ...levels])
 }
 
 /** Stored on job_vacancies.eligibility / .license when a vacancy needs none (the form asks for "None") */

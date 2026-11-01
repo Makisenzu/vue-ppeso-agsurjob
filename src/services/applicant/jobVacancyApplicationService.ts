@@ -22,7 +22,7 @@ const APPLICATION_COLUMNS = 'id, job_vacancy_id, applicant_id, stage, stage_id, 
 
 /** Requirements shown before applying; long text is fine here, it's one vacancy */
 const VACANCY_DETAIL_COLUMNS =
-  'job_description, educational_level, course_shs_strand, work_experience_months, eligibility, license, certification, language_dialect_spoken, other_qualifications, accepts_pwd'
+  'job_description, educational_level, course_shs_strand, work_experience_months, eligibility, license, certification, training, language_dialect_spoken, other_qualifications, accepts_pwd'
 
 /** Open vacancies and the signed-in applicant's own applications to them (RLS limits rows to their own) */
 export const jobVacancyApplicationService = {
@@ -55,7 +55,9 @@ export const jobVacancyApplicationService = {
     ])
     if (detailsErr) throw new Error(detailsErr.message || 'Failed to load the job vacancy')
 
-    return { ...summary, ...details, skills: skills.get(vacancyId) ?? [], attachments, requirements, stages }
+    // training (migration 095) isn't in database.types.ts until types are regenerated
+    const row = details as unknown as Omit<VacancyDetails, keyof OpenVacancyRow | 'skills' | 'attachments' | 'requirements' | 'stages'>
+    return { ...summary, ...row, skills: skills.get(vacancyId) ?? [], attachments, requirements, stages }
   },
 
   /** The applicant's application to this vacancy, or null when they haven't applied */

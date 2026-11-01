@@ -38,11 +38,14 @@ const {
             :loading="isLoadingCourses"
             :disabled="disabled"
             placeholder="Select course, or None"
-            search-placeholder="Search name or abbreviation (e.g. BSIT)..."
+            search-placeholder="Search or type, e.g. BSIT or Bachelor's degree relevant to the job..."
             specify-placeholder="Specify course / strand / qualification"
           />
         </FormControl>
-        <FormDescription>Pick "None" if no particular course is needed.</FormDescription>
+        <FormDescription>
+          Pick a course, a general requirement (e.g. "Bachelor's degree relevant to the job"), or type your own. Pick
+          "None" if no particular course is needed.
+        </FormDescription>
         <FormMessage />
       </FormItem>
     </FormField>

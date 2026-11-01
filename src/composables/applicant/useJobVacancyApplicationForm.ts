@@ -266,6 +266,7 @@ export function useJobVacancyApplicationForm() {
         { label: 'Eligibility', value: row.eligibility ?? '' },
         { label: 'License', value: orNotRequired(row.license) },
         { label: 'Certification', value: orNotRequired(row.certification) },
+        { label: 'Training', value: orNotRequired(row.training) },
         { label: 'Other qualifications', value: orNotRequired((row.other_qualifications ?? []).join(', ')) },
         { label: 'Open to PWD', value: row.accepts_pwd ? 'Yes' : '' },
       ].filter((detail) => detail.value),

@@ -11,6 +11,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import SearchSelect from '@/components/SearchSelect.vue'
 import ReferencePicker from '@/components/ReferencePicker.vue'
 import { useReferenceLists } from '@/composables/common/useReferenceLists'
+import { toVacancyEducationOptions } from '@/helpers/common/referenceListHelper'
 import JobVacancyCourseFields from '@/components/JobVacancyCourseFields.vue'
 import JobVacancySkillsField from '@/components/JobVacancySkillsField.vue'
 import {
@@ -25,8 +26,9 @@ import {
  * `JobVacancyFormValues` (see jobVacancyHelper for the schema and payload). The `position` slot adds
  * fields to the position grid (e.g. a job order's jobsite country). `optionalExtras` labels languages and
  * other qualifications "(optional)" for forms whose schema allows them blank (employer postings).
+ * `withTraining` adds the Training field (job_vacancies.training, migration 095) for forms that save it.
  */
-defineProps<{ disabled?: boolean; optionalExtras?: boolean }>()
+defineProps<{ disabled?: boolean; optionalExtras?: boolean; withTraining?: boolean }>()
 
 const acceptsPwdValue = useFieldValue<boolean>('acceptsPwd')
 const pwdDisabilities = useFieldValue<DisabilityType[]>('pwdDisabilities')
@@ -43,8 +45,17 @@ const toggleDisability = (option: DisabilityType, checked: boolean) => {
 // Eligibility and license pick from core.eligibilities (migration 094); "Others" lets the user type one
 const { vacancyEligibilityOptions, vacancyLicenseOptions, isLoadingReferenceLists } = useReferenceLists()
 
+const educationOptions = toVacancyEducationOptions()
+
 const qualificationFields = computed(() => [
-  { name: 'educationalLevel', label: 'Educational Level', placeholder: 'e.g. College Graduate', options: null },
+  {
+    name: 'educationalLevel',
+    label: 'Educational Level',
+    placeholder: 'Select educational level, or None',
+    options: educationOptions,
+    searchPlaceholder: 'Search or type a level...',
+    specifyPlaceholder: 'Specify educational level',
+  },
   {
     name: 'eligibility',
     label: 'Eligibility',
@@ -175,6 +186,22 @@ const qualificationFields = computed(() => [
               <Input v-bind="componentField" type="number" min="0" step="1" :disabled="disabled" />
             </FormControl>
             <FormDescription>Use 0 if no experience is required.</FormDescription>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField v-if="withTraining" v-slot="{ componentField }" name="training">
+          <FormItem>
+            <FormLabel>Training <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
+            <FormControl>
+              <Input
+                v-bind="componentField"
+                maxlength="300"
+                placeholder="e.g. 8 hours of relevant training"
+                :disabled="disabled"
+              />
+            </FormControl>
+            <FormDescription>Leave blank if no training is required.</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
