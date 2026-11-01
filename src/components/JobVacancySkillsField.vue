@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import SkillSuggestionList from '@/components/SkillSuggestionList.vue'
 import { useJobVacancySkillsField } from '@/composables/common/useJobVacancySkillsField'
 
 /**
  * Skills a vacancy needs (`esmdd.job_vacancy_skills`, migration 084), used to match applicants.
  * Renders inside a parent vee-validate form with a `skills: JobVacancySkillValue[]` field.
  */
-defineProps<{ disabled?: boolean }>()
+const props = defineProps<{ disabled?: boolean }>()
 
 const {
   skills,
@@ -22,10 +23,20 @@ const {
   maxLength,
   addSkill,
   addDraft,
-  onDraftKeydown,
   removeSkill,
   setRequired,
-} = useJobVacancySkillsField()
+  isUnknown,
+  listId,
+  skillSuggestions,
+  typedOption,
+  isSuggestionsOpen,
+  activeIndex,
+  activeOptionId,
+  selectSuggestion,
+  onDraftKeydown,
+  onDraftFocus,
+  onDraftBlur,
+} = useJobVacancySkillsField({ disabled: () => !!props.disabled })
 </script>
 
 <template>
@@ -36,14 +47,32 @@ const {
       <FormItem>
         <FormLabel>Skills needed</FormLabel>
         <div class="flex gap-2">
-          <Input
-            v-model="draft"
-            placeholder="e.g. Forklift operation"
-            :maxlength="maxLength"
-            :disabled="disabled || isFull"
-            aria-label="Skill name"
-            @keydown="onDraftKeydown"
-          />
+          <SkillSuggestionList
+            :id="listId"
+            :open="isSuggestionsOpen"
+            :suggestions="skillSuggestions"
+            :typed-option="typedOption"
+            :active-index="activeIndex"
+            @select="selectSuggestion"
+          >
+            <Input
+              v-model="draft"
+              placeholder="Search skills, e.g. Forklift operation"
+              class="min-w-0 flex-1"
+              :maxlength="maxLength"
+              :disabled="disabled || isFull"
+              aria-label="Skill name"
+              role="combobox"
+              autocomplete="off"
+              aria-autocomplete="list"
+              :aria-expanded="isSuggestionsOpen"
+              :aria-controls="listId"
+              :aria-activedescendant="activeOptionId"
+              @keydown="onDraftKeydown"
+              @focus="onDraftFocus"
+              @blur="onDraftBlur"
+            />
+          </SkillSuggestionList>
           <Button
             type="button"
             variant="outline"
@@ -61,7 +90,10 @@ const {
 
     <ul v-if="skills.length" class="divide-y rounded-md border">
       <li v-for="(skill, index) in skills" :key="skill.name" class="flex items-center gap-3 px-3 py-2">
-        <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ skill.name }}</span>
+        <span class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate text-sm font-medium">{{ skill.name }}</span>
+          <span v-if="isUnknown(skill.name)" class="text-xs text-muted-foreground">Not on the skill list yet; PESO will review it</span>
+        </span>
         <label class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           <Switch
             :model-value="skill.isRequired"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Trash2 } from '@lucide/vue'
 import { Input } from '@/components/ui/input'
+import SkillTextPicker from '@/components/SkillTextPicker.vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -200,7 +201,7 @@ const optional = '(optional)'
             <FormItem>
               <FormLabel>Skills acquired <span class="font-normal text-muted-foreground">{{ optional }}</span></FormLabel>
               <FormControl>
-                <Input v-bind="componentField" placeholder="SMAW, gas welding" />
+                <SkillTextPicker v-bind="componentField" placeholder="Search skills, e.g. SMAW, gas welding" />
               </FormControl>
               <FormMessage />
             </FormItem>

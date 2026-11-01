@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
+import SkillTextPicker from '@/components/SkillTextPicker.vue'
 import {
   Table,
   TableBody,
@@ -1066,7 +1067,7 @@ const {
                   </div>
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Skills Acquired</span>
-                    <Input v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" class="h-8 text-xs" />
+                    <SkillTextPicker v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" size="sm" />
                   </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2209,7 +2210,7 @@ const {
 
               <div class="pt-1 space-y-1">
                 <span class="text-[10px] text-muted-foreground">Others (Specify)</span>
-                <Input v-model="editOtherSkillsSpecified" placeholder="Specialized skills" class="h-7 text-xs" />
+                <SkillTextPicker v-model="editOtherSkillsSpecified" placeholder="Specialized skills" size="sm" />
               </div>
             </div>
           </CardContent>

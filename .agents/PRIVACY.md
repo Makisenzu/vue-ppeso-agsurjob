@@ -81,6 +81,7 @@ Organizational duties outside the code (the agent should remind the user, not in
 | OCR scans of paper forms                      | `applicant-forms` bucket + `public.applicant_forms`                   | **Yes** |
 | Program records (GIP, SPES, TUPAD, job fairs) | `esmdd.*`, `applicants.spes_form`                                     | Partly |
 | Job vacancy applications (stage, employer remarks, the files the employer asks for — never the NSRP Form) | `esmdd.job_vacancy_applications`, `esmdd.job_vacancy_application_documents` + `documents` bucket (087 / 088); shared only with the vacancy's company | Partly (e.g. a birth certificate or TOR if asked) |
+| Skill index for matching (derived copy of the NSRP skills, rebuilt on every change; no new data) | `applicants.applicant_skill_index` (100); FK to `applicants.applicants`, so export and erasure cover it | No |
 | Profile pictures                              | `media` bucket (readable by signed-in users only, see §4)             | No |
 | Face data                                    | `core.biometrics` (unused by the app; consent-guarded)                | **Yes** |
 | Consents, requests                            | `core.privacy_consents`, `core.data_subject_requests`                 | No |

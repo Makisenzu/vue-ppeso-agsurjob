@@ -27,6 +27,12 @@ export const pesoRoutes: RouteRecordRaw[] = [
         meta: { breadcrumb: 'Dashboard' },
       },
       {
+        path: 'skill-list',
+        name: 'provincial-peso-skill-list',
+        component: () => import('@/components/peso/ProvincialPeso/Common/SkillList/SkillList.vue'),
+        meta: { breadcrumb: 'Skill List' },
+      },
+      {
         path: 'skills-repository',
         meta: { breadcrumb: 'Skill Tagging', breadcrumbTo: { name: 'provincial-peso-skills-repository' } },
         children: [

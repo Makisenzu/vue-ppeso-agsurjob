@@ -59,6 +59,12 @@ export const adminRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/admin/management/company/CompanyOverview.vue'),
       },
       {
+        path: 'skill-list',
+        name: 'admin-skill-list',
+        component: () => import('@/components/peso/ProvincialPeso/Common/SkillList/SkillList.vue'),
+        meta: { breadcrumb: 'Skill List' },
+      },
+      {
         path: 'posting',
         name: 'posting',
         component: () => import('@/components/admin/management/posting/PostingModeration.vue'),

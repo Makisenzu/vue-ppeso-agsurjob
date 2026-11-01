@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BetweenHorizontalEnd, Database, Home, Settings2, ChevronUp, ChevronRight, LayoutDashboard, UserRound } from '@lucide/vue'
+import { BetweenHorizontalEnd, Database, Home, ListChecks, Settings2, ChevronUp, ChevronRight, LayoutDashboard, UserRound } from '@lucide/vue'
 
 import {
   Sidebar,
@@ -139,6 +139,12 @@ const {
                   <AppLink :to="{ name: 'provincial-peso-skills-repository' }" @click="collapseSidebar">
                     <Database />
                     <span>Skill Tagging</span>
+                  </AppLink>
+              </SidebarMenuButton>
+              <SidebarMenuButton as-child :tooltip="'Skill List'" :is-active="isActive('provincial-peso-skill-list')">
+                  <AppLink :to="{ name: 'provincial-peso-skill-list' }" @click="collapseSidebar">
+                    <ListChecks />
+                    <span>Skill List</span>
                   </AppLink>
               </SidebarMenuButton>
           </SidebarMenuItem>

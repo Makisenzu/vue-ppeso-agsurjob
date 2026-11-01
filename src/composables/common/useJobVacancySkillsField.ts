@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useFieldValue, useSetFieldValue } from 'vee-validate'
 import {
   MAX_VACANCY_SKILLS,
@@ -8,12 +8,15 @@ import {
   toSkillKey,
 } from '@/helpers/common/skillHelper'
 import type { JobVacancySkillValue } from '@/types/common/jobVacancy'
+import { useSkillCombobox } from '@/composables/common/useSkillCombobox'
+import { useUnknownSkillNames } from '@/composables/common/useSkillSearch'
 
 /**
- * The `skills` field of a vacancy form (JobVacancySkillsField.vue): add by typing or from the NSRP
- * checklist, mark must-haves, remove. Duplicates are compared the way migration 084 keys them.
+ * The `skills` field of a vacancy form (JobVacancySkillsField.vue): add from the skill list's suggestions
+ * (migration 099), by typing, or from the NSRP checklist; mark must-haves, remove. Duplicates are compared
+ * the way migration 084 keys them. Typed skills the list doesn't know are allowed and flagged; PESO reviews them.
  */
-export function useJobVacancySkillsField() {
+export function useJobVacancySkillsField(options: { disabled?: () => boolean } = {}) {
   const value = useFieldValue<JobVacancySkillValue[]>('skills')
   const setValue = useSetFieldValue<JobVacancySkillValue[]>('skills')
 
@@ -43,12 +46,16 @@ export function useJobVacancySkillsField() {
     draft.value = ''
   }
 
-  /** Enter or comma adds what was typed instead of submitting the form */
-  function onDraftKeydown(event: KeyboardEvent) {
-    if (event.key !== 'Enter' && event.key !== ',') return
-    event.preventDefault()
-    addDraft()
-  }
+  // Suggestions from the skill list; Enter picks the highlighted one (or adds what's typed), comma adds what's typed
+  const combobox = useSkillCombobox({
+    query: draft,
+    takenKeys,
+    disabled: toRef(() => !!options.disabled?.() || isFull.value),
+    pick: addSkill,
+  })
+
+  const skillNames = computed(() => skills.value.map((skill) => skill.name))
+  const { isUnknown } = useUnknownSkillNames(skillNames)
 
   function removeSkill(index: number) {
     setValue(skills.value.filter((_, i) => i !== index))
@@ -68,8 +75,18 @@ export function useJobVacancySkillsField() {
     maxLength: SKILL_NAME_MAX_LENGTH,
     addSkill,
     addDraft,
-    onDraftKeydown,
     removeSkill,
+    isUnknown,
+    listId: combobox.listId,
+    skillSuggestions: combobox.suggestions,
+    typedOption: combobox.typedOption,
+    isSuggestionsOpen: combobox.isOpen,
+    activeIndex: combobox.activeIndex,
+    activeOptionId: combobox.activeOptionId,
+    selectSuggestion: combobox.select,
+    onDraftKeydown: combobox.onKeydown,
+    onDraftFocus: combobox.onFocus,
+    onDraftBlur: combobox.onBlur,
     setRequired,
   }
 }

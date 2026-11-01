@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import SkillTextPicker from '@/components/SkillTextPicker.vue'
 import {
   Dialog,
   DialogContent,
@@ -1002,7 +1003,7 @@ const confirmDuplicateResolution = () => {
                     </div>
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Skills Acquired</span>
-                      <Input v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" class="h-8 text-xs" />
+                      <SkillTextPicker v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" size="sm" />
                     </div>
                   </div>
 
@@ -1160,7 +1161,7 @@ const confirmDuplicateResolution = () => {
 
               <div class="pt-2 space-y-1">
                 <span class="text-[11px] text-muted-foreground">Others (Specify)</span>
-                <Input v-model="otherSkillsSpecified" placeholder="Additional specialized talents, tools, or machinery operated" class="h-8 text-xs" />
+                <SkillTextPicker v-model="otherSkillsSpecified" placeholder="Additional specialized talents, tools, or machinery operated" size="sm" />
               </div>
             </div>
 

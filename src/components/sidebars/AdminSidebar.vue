@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map, ShieldCheck} from '@lucide/vue'
+import { Mail, Inbox, Search, Settings2, ChevronUp, ChevronRight, Phone, LayoutDashboard, SquareTerminal, BookOpenCheck, ShieldUser, FileText, UserRound, FolderKanban, MessageCircle, Star, Settings, Keyboard, Map, ShieldCheck, ListChecks} from '@lucide/vue'
 
 import {
   Sidebar,
@@ -57,6 +57,7 @@ const managementItems = [
   { title: 'Document Templates', to: {name: 'document-templates'}, icon: FileText },
   { title: 'Company Overview', to: {name: 'company'}, icon: FolderKanban },
   { title: 'Posting Moderation', to: {name: 'posting'}, icon: Keyboard },
+  { title: 'Skill List', to: {name: 'admin-skill-list'}, icon: ListChecks },
 ]
 </script>
 
