@@ -25,7 +25,7 @@ const {
   fit,
   isLoadingFit,
   fitDisclaimer,
-  fitMethodNote,
+  fitMethod,
   stage,
   stageOptions,
   remarks,
@@ -114,33 +114,6 @@ const {
             </dl>
           </section>
 
-          <!-- Requirements fit: advisory, the employer still decides from the documents -->
-          <section class="rounded-lg border bg-card p-4 sm:p-6" aria-labelledby="applicant-fit-title">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h2 id="applicant-fit-title" class="text-base font-semibold">Requirements fit</h2>
-              <div v-if="fit?.bandLabel" class="flex items-center gap-2">
-                <span class="text-sm text-muted-foreground tabular-nums">{{ fit.score }}%</span>
-                <Badge variant="outline" :class="fit.bandClass">{{ fit.bandLabel }}</Badge>
-              </div>
-            </div>
-            <div v-if="isLoadingFit && !fit" class="mt-4 space-y-3" aria-busy="true">
-              <Skeleton v-for="i in 3" :key="i" class="h-10 w-full" />
-            </div>
-            <p v-else-if="!fit" class="mt-2 text-sm text-muted-foreground">The fit could not be computed for this application.</p>
-            <p v-else-if="!fit.hasCriteria" class="mt-2 text-sm text-muted-foreground">
-              This posting has no requirements to compare. Add skills, education or experience to the posting to see a fit.
-            </p>
-            <template v-else>
-              <p v-if="fit.counts" class="mt-1 text-sm text-muted-foreground">{{ fit.counts }}</p>
-              <JobVacancyFitCriteria :criteria="fit.criteria" class="mt-2" />
-              <p class="mt-3 text-xs text-muted-foreground">{{ fitDisclaimer }}</p>
-              <details class="mt-1 text-xs text-muted-foreground">
-                <summary class="w-fit cursor-pointer hover:text-foreground">How is this computed?</summary>
-                <p class="mt-1 text-pretty">{{ fitMethodNote }}</p>
-              </details>
-            </template>
-          </section>
-
           <section class="rounded-lg border bg-card p-4 sm:p-6" aria-labelledby="applicant-documents-title">
             <h2 id="applicant-documents-title" class="text-base font-semibold">Documents</h2>
             <ul class="mt-2 flex flex-col">
@@ -169,43 +142,83 @@ const {
           </section>
         </div>
 
-        <!-- Hiring step -->
-        <form
-          class="space-y-4 rounded-lg border bg-card p-4 sm:p-6 lg:sticky lg:top-6"
-          aria-labelledby="applicant-stage-title"
-          @submit.prevent="saveStage"
-        >
-          <h2 id="applicant-stage-title" class="text-base font-semibold">Hiring step</h2>
-          <div class="space-y-2">
-            <Label for="applicant-stage">Move to</Label>
-            <SearchSelect
-              id="applicant-stage"
-              v-model="stage"
-              :options="stageOptions"
-              placeholder="Select step"
-              class="w-full"
-              :disabled="isSavingStage"
-            />
-            <p class="text-xs text-muted-foreground">The applicant is notified of every change.</p>
-          </div>
-          <div v-if="isRemarksRequired" class="space-y-2">
-            <Label for="applicant-remarks">Remarks</Label>
-            <Textarea
-              id="applicant-remarks"
-              v-model="remarks"
-              rows="3"
-              maxlength="1000"
-              placeholder="Tell the applicant why"
-              :aria-invalid="!!remarksError"
-              :disabled="isSavingStage"
-            />
-            <p v-if="remarksError" class="text-sm text-destructive">{{ remarksError }}</p>
-          </div>
-          <Button type="submit" class="h-10 w-full sm:h-9" :disabled="isSavingStage || !hasStageChange">
-            <Loader2 v-if="isSavingStage" class="size-4 animate-spin" />
-            {{ isSavingStage ? 'Saving...' : 'Move applicant' }}
-          </Button>
-        </form>
+        <!-- Hiring step, then the requirements fit that informs it -->
+        <div class="space-y-6">
+          <!-- Hiring step -->
+          <form
+            class="space-y-4 rounded-lg border bg-card p-4 sm:p-6"
+            aria-labelledby="applicant-stage-title"
+            @submit.prevent="saveStage"
+          >
+            <h2 id="applicant-stage-title" class="text-base font-semibold">Hiring step</h2>
+            <div class="space-y-2">
+              <Label for="applicant-stage">Move to</Label>
+              <SearchSelect
+                id="applicant-stage"
+                v-model="stage"
+                :options="stageOptions"
+                placeholder="Select step"
+                class="w-full"
+                :disabled="isSavingStage"
+              />
+              <p class="text-xs text-muted-foreground">The applicant is notified of every change.</p>
+            </div>
+            <div v-if="isRemarksRequired" class="space-y-2">
+              <Label for="applicant-remarks">Remarks</Label>
+              <Textarea
+                id="applicant-remarks"
+                v-model="remarks"
+                rows="3"
+                maxlength="1000"
+                placeholder="Tell the applicant why"
+                :aria-invalid="!!remarksError"
+                :disabled="isSavingStage"
+              />
+              <p v-if="remarksError" class="text-sm text-destructive">{{ remarksError }}</p>
+            </div>
+            <Button type="submit" class="h-10 w-full sm:h-9" :disabled="isSavingStage || !hasStageChange">
+              <Loader2 v-if="isSavingStage" class="size-4 animate-spin" />
+              {{ isSavingStage ? 'Saving...' : 'Move applicant' }}
+            </Button>
+          </form>
+          <!-- Requirements fit: advisory, the employer still decides from the documents -->
+          <section class="rounded-lg border bg-card p-4 sm:p-6" aria-labelledby="applicant-fit-title">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="applicant-fit-title" class="text-base font-semibold">Requirements fit</h2>
+              <div v-if="fit?.bandLabel" class="flex items-center gap-2">
+                <span class="text-sm text-muted-foreground tabular-nums">{{ fit.score }}%</span>
+                <Badge variant="outline" :class="fit.bandClass">{{ fit.bandLabel }}</Badge>
+              </div>
+            </div>
+            <div v-if="isLoadingFit && !fit" class="mt-4 space-y-3" aria-busy="true">
+              <Skeleton v-for="i in 3" :key="i" class="h-10 w-full" />
+            </div>
+            <p v-else-if="!fit" class="mt-2 text-sm text-muted-foreground">The fit could not be computed for this application.</p>
+            <p v-else-if="!fit.hasCriteria" class="mt-2 text-sm text-muted-foreground">
+              This posting has no requirements to compare. Add skills, education or experience to the posting to see a fit.
+            </p>
+            <template v-else>
+              <p v-if="fit.counts" class="mt-1 text-sm text-muted-foreground">{{ fit.counts }}</p>
+              <JobVacancyFitCriteria :criteria="fit.criteria" class="mt-2" />
+              <p class="mt-3 text-xs text-muted-foreground">{{ fitDisclaimer }}</p>
+              <details class="mt-1 text-xs text-muted-foreground">
+                <summary class="w-fit cursor-pointer hover:text-foreground">How is this computed?</summary>
+                <div class="mt-2 space-y-2">
+                  <p class="text-pretty">{{ fitMethod.intro }}</p>
+                  <ul class="space-y-0.5">
+                    <li v-for="weight in fitMethod.weights" :key="weight.label" class="flex justify-between gap-3">
+                      <span>{{ weight.label }}</span>
+                      <span class="tabular-nums text-foreground">{{ weight.points }}</span>
+                    </li>
+                  </ul>
+                  <ul class="list-disc space-y-0.5 pl-4">
+                    <li v-for="rule in fitMethod.rules" :key="rule" class="text-pretty">{{ rule }}</li>
+                  </ul>
+                </div>
+              </details>
+            </template>
+          </section>
+        </div>
       </div>
     </template>
   </div>

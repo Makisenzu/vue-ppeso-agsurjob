@@ -70,11 +70,26 @@ export const FIT_APPLICANT_DISCLAIMER =
   'Based on your NSRP profile. The employer decides from your application and documents.'
 
 /** How the score is computed, for the "How is this computed?" note */
-export const FIT_METHOD_NOTE =
-  'Each requirement the posting asks for is weighed: must-have skills 30, education 15, course 15, work experience 15, ' +
-  'eligibility 10, license 10, training 5, nice-to-have skills 5, language 5. Partly met earns its share. ' +
-  'Training given in days, weeks or months counts as 8, 40 or 160 hours. ' +
-  'Sex, age, civil status, religion, disability and OFW status are never scored.'
+export const FIT_METHOD = {
+  intro: 'Only the requirements this posting asks for are scored. Points per requirement:',
+  /** Same weights as esmdd.job_vacancy_fit_for (migration 098) */
+  weights: [
+    { label: 'Must-have skills', points: 30 },
+    { label: 'Education', points: 15 },
+    { label: 'Course / strand', points: 15 },
+    { label: 'Work experience', points: 15 },
+    { label: 'Eligibility', points: 10 },
+    { label: 'License', points: 10 },
+    { label: 'Training', points: 5 },
+    { label: 'Nice-to-have skills', points: 5 },
+    { label: 'Language', points: 5 },
+  ],
+  rules: [
+    'Partly met earns part of the points, e.g. 2 of 4 skills earns half.',
+    'Training in days, weeks or months counts as 8, 40 or 160 hours.',
+    'Sex, age, civil status, religion, disability and OFW status are never scored.',
+  ],
+} as const
 
 const toList = (value: string | string[] | undefined): string[] =>
   Array.isArray(value) ? value : value ? [value] : []

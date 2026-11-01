@@ -17,7 +17,7 @@ import {
   FIT_BAND_BADGE_CLASS,
   FIT_BAND_LABEL,
   FIT_DISCLAIMER,
-  FIT_METHOD_NOTE,
+  FIT_METHOD,
   formatFitCounts,
   toFitCriterionViews,
 } from '@/helpers/common/jobVacancyFitHelper'
@@ -174,7 +174,7 @@ export function useApplicantReview() {
     fit,
     isLoadingFit,
     fitDisclaimer: FIT_DISCLAIMER,
-    fitMethodNote: FIT_METHOD_NOTE,
+    fitMethod: FIT_METHOD,
     // Hiring step form
     stage: stageModel,
     stageOptions,
