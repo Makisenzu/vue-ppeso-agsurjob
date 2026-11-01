@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 const GENDER_LABELS: Record<string, string> = {
   man: 'Man',
@@ -13,7 +14,7 @@ export function formatGender(gender?: string | null): string {
 }
 
 export function formatBirthdate(birthdate?: string | null): string {
-  return birthdate ? format(parseISO(birthdate.slice(0, 10)), 'MMMM d, yyyy') : ''
+  return birthdate ? format(parseISO(birthdate.slice(0, 10)), DISPLAY_DATE_FORMAT) : ''
 }
 
 /** Barangay, city / municipality, province (core.profiles stores PSGC names) */

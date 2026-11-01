@@ -12,6 +12,7 @@ import {
   type SpesOwnAppointment,
 } from '@/types/common/spesForm'
 import { AGUSAN_DEL_SUR_MUNICIPALITIES } from '@/helpers/common/mapboxHelpers'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 /** Agusan del Sur municipalities an applicant can belong to — the randomizer draws per municipality. */
 export const SPES_MUNICIPALITY_OPTIONS: readonly string[] = AGUSAN_DEL_SUR_MUNICIPALITIES.map((entry) => entry.municipality)
@@ -238,11 +239,11 @@ export function formatSpesAssignment(
   return parts.length ? parts.join(', ') : '—'
 }
 
-/** "MMM d, yyyy", or an em dash when the date is missing or invalid. */
+/** MM/DD/YYYY, or an em dash when the date is missing or invalid. */
 export function formatSpesFormDate(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return isValid(date) ? format(date, 'MMM d, yyyy') : '—'
+  return isValid(date) ? format(date, DISPLAY_DATE_FORMAT) : '—'
 }
 
 /** "SPES-APP-2026-1A2B": same shape as GIP's reference (gipApplicationCode); the year is the round's. */

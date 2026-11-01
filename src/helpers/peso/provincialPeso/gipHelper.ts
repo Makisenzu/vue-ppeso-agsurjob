@@ -23,6 +23,7 @@ import {
   removePersistentCacheValue,
   setPersistentCacheValue,
 } from '@/helpers/common/persistentCache'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 // ─── GIP Cache Keys & Invalidation Helper ───
 export const GIP_CACHE_TTL_MS = 1000 * 60 * 15 // 15 minutes
@@ -903,18 +904,7 @@ export const GIP_MONTH_OPTIONS: MonthOption[] = [
 ]
 
 export function formatDateDisplay(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'N/A'
-  try {
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return dateStr
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return dateStr
-  }
+  return formatDisplayDate(dateStr, dateStr || 'N/A')
 }
 
 // ─── GIP Standard Document Options ───

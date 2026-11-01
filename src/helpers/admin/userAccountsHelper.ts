@@ -1,29 +1,10 @@
+import { formatDisplayDate, formatDisplayDateTime } from '@/helpers/common/dateFormatHelper'
 export const formatDate = (dateString: string | null): string => {
-  if (!dateString) return 'N/A'
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return dateString
-  }
+  return formatDisplayDate(dateString, dateString || 'N/A')
 }
 
 export const formatDateTime = (dateString: string | null): string => {
-  if (!dateString) return 'Never'
-  try {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return dateString
-  }
+  return formatDisplayDateTime(dateString, dateString || 'Never')
 }
 
 export const getRoleBadgeVariant = (

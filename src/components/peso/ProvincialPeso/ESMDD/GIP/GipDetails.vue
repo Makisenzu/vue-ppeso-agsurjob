@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import { computed } from 'vue'
 import {
   AlertTriangle,
@@ -262,11 +263,7 @@ const internDetailFields = computed(() => {
 const percentOf = (count: number, total: number) => (total ? ((count / total) * 100).toFixed(1) : '0')
 
 const formatCalendarDate = (date: { year: number; month: number; day: number }) =>
-  new Date(date.year, date.month - 1, date.day).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  formatDisplayDate(new Date(date.year, date.month - 1, date.day))
 
 const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-label-text-color:var(--foreground)] [--vis-donut-central-sub-label-text-color:var(--muted-foreground)]'
 </script>

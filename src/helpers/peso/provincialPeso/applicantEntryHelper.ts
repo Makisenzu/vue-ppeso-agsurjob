@@ -8,6 +8,7 @@ import type {
   VocationalTrainingItem,
   WorkExperienceItem,
 } from '@/types/peso/provincialPeso/applicantEntry'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 // ─── Address Parsing ───
 export function parseApplicantAddress(addressJson: any): ParsedAddress {
@@ -255,18 +256,7 @@ export function getInitials(fullName: string): string {
 }
 
 export function formatDateDisplay(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'N/A'
-  try {
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return dateStr
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return dateStr
-  }
+  return formatDisplayDate(dateStr, dateStr || 'N/A')
 }
 
 // ─── CSV Export Utility ───

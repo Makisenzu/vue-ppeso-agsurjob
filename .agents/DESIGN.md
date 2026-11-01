@@ -104,6 +104,22 @@ Dark tokens mirror light but shift toward `oklch` values with lower lightness. K
 > 2. Use Tailwind's `font-sans` class, which maps to the Nunito Sans family.
 > 3. Heading hierarchy must use proper `<h1>` through `<h6>` tags — one `<h1>` per page.
 
+### 3.1 Dates — MM/DD/YYYY — MANDATORY
+
+> [!IMPORTANT]
+> Every date shown in the frontend reads **MM/DD/YYYY** (e.g. `10/30/2026`), and a date with time reads
+> **MM/DD/YYYY h:mm a** (e.g. `10/30/2026 2:05 PM`). This is the users' preference.
+>
+> 1. Format through `src/helpers/common/dateFormatHelper.ts`: `formatDisplayDate(value, fallback)`,
+>    `formatDisplayDateTime(value, fallback)`, or `format(date, DISPLAY_DATE_FORMAT)` with date-fns.
+> 2. **Never** use month names or other orders for a date (`'MMM d, yyyy'`, `toLocaleDateString(...)`, "Oct 30").
+>    A weekday may lead the date: `Monday, 11/03/2026`. Times alone (`2:05 PM`), relative times ("5m ago") and
+>    chart axes grouped by month are not dates and stay as they are.
+> 3. **Display only.** The database keeps its own types (`date`, `timestamptz`), payloads send ISO strings
+>    (`yyyy-MM-dd`), `<input type="date">` values stay ISO, and generated file names keep `yyyy-MM-dd`.
+> 4. Text the app saves and reads back (e.g. a GIP deployment period) is written MM/DD/YYYY and its parser
+>    still accepts the older formats already stored.
+
 ---
 
 ## 4. Border Radius System

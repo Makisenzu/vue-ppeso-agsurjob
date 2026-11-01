@@ -3,6 +3,7 @@ import type {
   RegisteredCompanyEstablishment,
   RegisteredCompanyListItem,
 } from '@/types/peso/provincialPeso/registeredCompany'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 /** A company account has at most one Form 2 (register_company_establishment, migration 074) */
 export function getCompanyEstablishment(row: RegisteredCompanyListItem): RegisteredCompanyEstablishment | null {
@@ -20,5 +21,5 @@ export function getCompanyLocation(row: RegisteredCompanyListItem): string {
 }
 
 export function formatRegisteredDate(value: string): string {
-  return format(parseISO(value), 'MMM d, yyyy')
+  return format(parseISO(value), DISPLAY_DATE_FORMAT)
 }

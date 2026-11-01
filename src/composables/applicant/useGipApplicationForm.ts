@@ -28,6 +28,7 @@ import {
   listReusableProfileDocuments,
   normalizeRequirementLabel,
 } from '@/helpers/applicant/applicantRequirementDocuments'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 export const GIP_STATUS_DESCRIPTIONS: Record<string, string> = {
   Pending: 'PESO is reviewing your requirements. You can still replace a file until then.',
@@ -36,8 +37,7 @@ export const GIP_STATUS_DESCRIPTIONS: Record<string, string> = {
   Hired: 'You are a GIP intern. Your appointments are listed below.',
 }
 
-const formatDate = (value?: string | null) =>
-  value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+const formatDate = (value?: string | null) => formatDisplayDate(value, '—')
 
 /** Steps of applying; once applied, the page shows the progress tracker instead */
 export const GIP_WIZARD_STEPS = [
@@ -284,7 +284,7 @@ export function useGipApplicationForm() {
     const date = at ? new Date(at) : null
     if (!date || Number.isNaN(date.getTime())) return null
     return {
-      date: date.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      date: `${date.toLocaleDateString('en-PH', { weekday: 'long' })}, ${formatDisplayDate(date)}`,
       time: date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }),
       note: myApplication.value?.orientation_note?.trim() || null,
     }

@@ -1,5 +1,6 @@
 import { GIP_ATTACHMENT_MAX_BYTES, GIP_ATTACHMENT_MIME_TYPES } from '@/types/common/gipProgram'
 import { formatNsrpDate, formatProfileLocation } from '@/helpers/applicant/nsrpDisplayHelper'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 // Older GIP records use longer labels; map them onto the review checklist names (same rule as useGipEditApplicant.ts)
 export function normalizeGipDocumentName(doc: string): string {
@@ -57,13 +58,9 @@ export function latestGipCourse(educationalBackground: unknown): string {
   return ''
 }
 
-/** "Oct 26, 2026"; '—' when missing. */
+/** "10/26/2026"; '—' when missing. */
 export function formatGipDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? '—'
-    : date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  return formatDisplayDate(value, '—')
 }
 
 /**

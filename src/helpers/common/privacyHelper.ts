@@ -6,6 +6,7 @@ import type {
   PrivacyRequestOption,
   PrivacyStatus,
 } from '@/types/common/privacy'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 export const PRIVACY_PURPOSE_LABELS: Record<PrivacyPurpose, string> = {
   privacy_notice: 'Processing of my personal information as described in the Privacy Notice',
@@ -67,7 +68,7 @@ export function getRequiredPrivacyPurposes(role: string | null): PrivacyPurpose[
 export function formatPrivacyDate(value?: string | null): string {
   if (!value) return '—'
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy')
+  return Number.isNaN(date.getTime()) ? '—' : format(date, DISPLAY_DATE_FORMAT)
 }
 
 /** "agsurjobs-my-data-2026-10-27.json" */

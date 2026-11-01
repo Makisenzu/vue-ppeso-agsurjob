@@ -1,13 +1,14 @@
 import { format, isValid, parseISO } from 'date-fns'
 import { LANGUAGE_ABILITIES } from '@/helpers/applicant/applicantCompletionHelper'
 import type { LanguageEntryForm } from '@/types/applicant/applicantCompletion'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 /** Read-only formatting for the applicant profile's NSRP details. Blank values return ''. */
 
 export function formatNsrpDate(value: string): string {
   if (!value) return ''
   const date = parseISO(value)
-  return isValid(date) ? format(date, 'MMMM d, yyyy') : value
+  return isValid(date) ? format(date, DISPLAY_DATE_FORMAT) : value
 }
 
 export function formatNsrpPeso(value: string): string {

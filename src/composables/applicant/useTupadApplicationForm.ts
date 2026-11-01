@@ -28,6 +28,7 @@ import {
   type TupadReusedDocumentMap,
 } from '@/types/common/tupadProgram'
 import type { GipProgressStep, GipRequirementRow } from '@/composables/applicant/useGipApplicationForm'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 export const TUPAD_STATUS_DESCRIPTIONS: Record<string, string> = {
   Pending: 'PESO is reviewing your requirements. You can still change them until then.',
@@ -35,8 +36,7 @@ export const TUPAD_STATUS_DESCRIPTIONS: Record<string, string> = {
   Rejected: 'Your application was not approved this time.',
 }
 
-const formatDate = (value?: string | null) =>
-  value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+const formatDate = (value?: string | null) => formatDisplayDate(value, '—')
 
 /** "TUPAD-APP-2026-1A2B", same shape as the GIP reference (and Application Status) */
 const tupadApplicationCode = (id: string, createdAt: string | null | undefined) => {
@@ -350,7 +350,7 @@ export function useTupadApplicationForm() {
     const date = at ? new Date(at) : null
     if (!date || Number.isNaN(date.getTime())) return null
     return {
-      date: date.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      date: `${date.toLocaleDateString('en-PH', { weekday: 'long' })}, ${formatDisplayDate(date)}`,
       time: date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }),
       note: myApplication.value?.orientation_note?.trim() || null,
     }

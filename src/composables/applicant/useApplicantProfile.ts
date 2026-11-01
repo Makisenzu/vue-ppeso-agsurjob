@@ -9,6 +9,7 @@ import {
 } from '@/helpers/applicant/applicantRequirementDocuments'
 import { isApplicantRecordComplete } from '@/helpers/applicant/applicantCompletionHelper'
 import { formatProfileLocation } from '@/helpers/applicant/nsrpDisplayHelper'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 /** Stepper name of the NSRP record step — completed by the NSRP form, not by an uploaded file. */
 export const NSRP_FORM = 'NSRP Form'
@@ -103,9 +104,7 @@ export function useApplicantProfile() {
   /** Own profile: the auth account's creation date; other profiles: their `core.profiles` row. */
   const displayJoinedDate = computed(() => {
     const createdAt = fullProfileData.value?.created_at || (isOwnProfile.value ? authStore.user?.created_at : null)
-    return createdAt
-      ? new Date(createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      : ''
+    return formatDisplayDate(createdAt)
   })
 
   const displayEmploymentStatus = computed(() => applicantData.value?.employment_status || 'Available for Work')

@@ -1,7 +1,8 @@
 import type { Component } from 'vue'
-import { format, formatDistanceToNowStrict, isThisYear, isToday } from 'date-fns'
+import { format, formatDistanceToNowStrict, isToday } from 'date-fns'
 import { Bell, Building2, BriefcaseBusiness, CalendarClock, CalendarX, FileCheck, Megaphone, ShieldAlert, ShieldCheck, Share2, UserRoundCheck, UsersRound, Workflow } from '@lucide/vue'
 import type { NotificationRow, NotificationType } from '@/types/common/notification'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 const TYPE_META: Record<NotificationType, { label: string; icon: Component }> = {
   application_status: { label: 'Application', icon: BriefcaseBusiness },
@@ -49,12 +50,11 @@ export function splitNotificationRemarks(item: Pick<NotificationRow, 'message' |
   }
 }
 
-/** Gmail-style list date: "11:46 AM" today, "Oct 25" this year, "10/25/25" before that. */
+/** List date: "11:46 AM" today, "10/25/2026" before that (MM/DD/YYYY). */
 export function formatNotificationListDate(createdAt: string): string {
   const date = new Date(createdAt)
   if (isToday(date)) return format(date, 'h:mm a')
-  if (isThisYear(date)) return format(date, 'MMM d')
-  return format(date, 'M/d/yy')
+  return format(date, DISPLAY_DATE_FORMAT)
 }
 
 /** Full date on the opened notification: "Mon, Oct 26, 2026, 11:46 AM (5 minutes ago)". */

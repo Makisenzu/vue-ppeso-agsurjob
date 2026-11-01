@@ -5,6 +5,7 @@ import type {
   RecruitmentActivityRow,
   RecruitmentActivityStatus,
 } from '@/types/peso/provincialPeso/recruitmentActivity'
+import { DISPLAY_DATE_TIME_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   pending: 'bg-warning/10 text-warning border-warning/30',
@@ -72,7 +73,7 @@ export function getTerminalReportDueLabel(row: Pick<RecruitmentActivityRow, 'sta
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return Number.isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy h:mm a')
+  return Number.isNaN(date.getTime()) ? '—' : format(date, DISPLAY_DATE_TIME_FORMAT)
 }
 
 /** Accepts names one per line or comma-separated. */

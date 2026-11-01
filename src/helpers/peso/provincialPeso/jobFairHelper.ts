@@ -6,6 +6,7 @@ import type {
   JobFairStatus,
   JobFairWithCounts,
 } from '@/types/peso/provincialPeso/jobFair'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 /**
  * Status the database assigns from the dates (esmdd.job_fair_status_for, migration 026).
@@ -33,8 +34,8 @@ export function formatJobFairSchedule(startDate: string, endDate: string): strin
   const start = parseISO(startDate)
   const end = parseISO(endDate)
   if (Number.isNaN(start.getTime())) return 'N/A'
-  if (Number.isNaN(end.getTime()) || isSameDay(start, end)) return format(start, 'MMM d, yyyy')
-  return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`
+  if (Number.isNaN(end.getTime()) || isSameDay(start, end)) return format(start, DISPLAY_DATE_FORMAT)
+  return `${format(start, DISPLAY_DATE_FORMAT)} – ${format(end, DISPLAY_DATE_FORMAT)}`
 }
 
 const PARTICIPANT_STATUS_BADGE_CLASS: Record<string, string> = {
@@ -76,7 +77,7 @@ export function formatParticipantAddress(parts: {
 export function formatOptionalDate(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return Number.isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy')
+  return Number.isNaN(date.getTime()) ? '—' : format(date, DISPLAY_DATE_FORMAT)
 }
 
 export function formatWorkExperience(months?: number | null): string {

@@ -2,6 +2,7 @@ import * as z from 'zod'
 import { format, parseISO } from 'date-fns'
 import { MIN_PASSWORD_LENGTH, PH_MOBILE_PATTERN } from '@/helpers/common/signupHelper'
 import { COMPANY_MEMBER_ROLE_OPTIONS, type CompanyMemberRole } from '@/types/employer/companyAccess'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 export const inviteMemberSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
@@ -31,5 +32,5 @@ export function getMemberRoleLabel(role: CompanyMemberRole | null | undefined): 
 }
 
 export function formatAccessDate(value: string): string {
-  return format(parseISO(value), 'MMM d, yyyy')
+  return format(parseISO(value), DISPLAY_DATE_FORMAT)
 }

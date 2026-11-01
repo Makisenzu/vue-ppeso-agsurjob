@@ -12,6 +12,7 @@ import type {
   TupadMember,
   TupadRegistryApplicant,
 } from '@/types/peso/provincialPeso/tupad'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 const FALLBACK_BADGE_CLASS = 'bg-muted text-muted-foreground border-border'
 
@@ -87,7 +88,7 @@ export function formatTupadContact(applicant?: TupadRegistryApplicant | null): s
 export function formatTupadDate(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return Number.isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy')
+  return Number.isNaN(date.getTime()) ? '—' : format(date, DISPLAY_DATE_FORMAT)
 }
 
 export function formatTupadPeriod(batch?: Pick<TupadBatchRow, 'start_date' | 'end_date'> | null): string {

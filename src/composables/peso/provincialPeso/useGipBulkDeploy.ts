@@ -8,6 +8,7 @@ import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { directoryService } from '@/services/common/directoryService'
 import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
 import type { DirectoryRow } from '@/types/common/directory'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 
@@ -26,7 +27,6 @@ type GipProgram = (typeof GIP_PROGRAM_OPTIONS)[number]['value']
 
 // Hired applicants are already deployed; Rejected applicants are not eligible for deployment
 const NON_DEPLOYABLE_STATUSES = ['Hired', 'Rejected']
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const bulkDeployZodSchema = z
   .object({
@@ -46,18 +46,15 @@ const bulkDeployZodSchema = z
 
 type BulkDeployFormValues = z.infer<typeof bulkDeployZodSchema>
 
-function formatShortDate(d: DateValue): string {
-  return `${MONTHS[d.month - 1]} ${d.day}`
-}
-
+/** "09/01/2026" (MM/DD/YYYY) */
 export function formatDeploymentDate(d?: DateValue | null): string {
-  return d ? `${formatShortDate(d)}, ${d.year}` : ''
+  return d ? formatDisplayDate(new Date(d.year, d.month - 1, d.day)) : ''
 }
 
+/** "09/01/2026 - 02/28/2027"; saved as the intern's period text and read back by useGipDetails */
 export function formatDeploymentPeriod(start?: DateValue | null, end?: DateValue | null): string {
   if (!start || !end) return ''
-  if (start.year === end.year) return `${formatShortDate(start)} - ${formatShortDate(end)}, ${end.year}`
-  return `${formatShortDate(start)}, ${start.year} - ${formatShortDate(end)}, ${end.year}`
+  return `${formatDeploymentDate(start)} - ${formatDeploymentDate(end)}`
 }
 
 // Program affiliation only swaps the stipend when it is still a program default

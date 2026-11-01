@@ -27,6 +27,7 @@ import {
   parseEducationalBackground,
   parseVocationalTrainings,
 } from '@/helpers/peso/provincialPeso/applicantEntryHelper'
+import { DISPLAY_DATE_FORMAT, DISPLAY_DATE_TIME_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 const FALLBACK_BADGE_CLASS = 'bg-muted text-muted-foreground border-border'
 
@@ -88,7 +89,7 @@ export function getSpesBeneficiaryType(form?: SpesFormRow | null): SpesBeneficia
 export function formatSpesDate(value?: string | null): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return Number.isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy')
+  return Number.isNaN(date.getTime()) ? '—' : format(date, DISPLAY_DATE_FORMAT)
 }
 
 export function formatSpesDays(value?: string | null): string {
@@ -247,7 +248,7 @@ export function drawRandomSpesCandidates<T>(pool: readonly T[], count: number, r
 
 /** Remark stored on a form approved through the randomizer. */
 export function buildSpesDrawRemark(municipality: string, drawnAt: Date = new Date()): string {
-  return `Selected through the SPES randomizer draw for ${municipality} on ${format(drawnAt, 'MMM d, yyyy h:mm a')}.`
+  return `Selected through the SPES randomizer draw for ${municipality} on ${format(drawnAt, DISPLAY_DATE_TIME_FORMAT)}.`
 }
 
 // ─── Completion reports ───

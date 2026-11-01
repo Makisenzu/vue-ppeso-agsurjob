@@ -224,3 +224,6 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 >     in the Privacy Notice and under recorded consent; applicant files stay in private buckets behind signed URLs;
 >     changes and staff views of personal data are audited; people can download, correct and delete their data; nothing
 >     is kept longer than its retention period or sent to a new third party unannounced. See [`PRIVACY.md`](.agents/PRIVACY.md) §0.
+> 19. **DO NOT show a date in any format but MM/DD/YYYY** (`10/30/2026`; with time `10/30/2026 2:05 PM`). Use
+>     `formatDisplayDate` / `formatDisplayDateTime` from `src/helpers/common/dateFormatHelper.ts`. Display only —
+>     the database, payloads and date inputs keep ISO dates. See [`DESIGN.md`](.agents/DESIGN.md) §3.1.

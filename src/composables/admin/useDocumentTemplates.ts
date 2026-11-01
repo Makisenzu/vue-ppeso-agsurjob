@@ -2,6 +2,7 @@ import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDocumentTemplateStore } from '@/stores/admin/documentTemplateStore'
 import type { DocumentTemplateRow } from '@/types/admin/documentTemplate'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 export function useDocumentTemplates() {
   const store = useDocumentTemplateStore()
@@ -234,12 +235,7 @@ export function useDocumentTemplates() {
   }
 
   function formatDate(dateStr?: string | null): string {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+    return formatDisplayDate(dateStr, '-')
   }
 
   onMounted(() => {

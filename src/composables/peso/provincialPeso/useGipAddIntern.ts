@@ -10,6 +10,7 @@ import type { GipApplicantRecord } from '@/types/peso/provincialPeso/gip'
 import type { DirectoryRow } from '@/types/common/directory'
 import { LPII_CONFIG, getInitials } from '@/helpers/peso/provincialPeso/gipHelper'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
+import { formatDeploymentPeriod } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
 
@@ -78,30 +79,8 @@ export function useGipAddIntern() {
   }
   initEndDate()
 
-  /**
-   * Format a date value as "MMM D" (e.g., "Sep 1")
-   */
-  function formatShortDate(d: any): string {
-    if (!d || typeof d.month !== 'number' || typeof d.day !== 'number') return ''
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    return `${months[d.month - 1]} ${d.day}`
-  }
-
-  const formattedPeriod = computed<string>(() => {
-    const start = deploymentStartDate.value
-    const end = deploymentEndDate.value
-    if (!start || !end) return ''
-
-    const startStr = formatShortDate(start)
-    const endStr = formatShortDate(end)
-
-    // If same year, show year once at the end
-    if (start.year === end.year) {
-      return `${startStr} - ${endStr}, ${end.year}`
-    }
-    // Different years
-    return `${startStr}, ${start.year} - ${endStr}, ${end.year}`
-  })
+  /** "09/01/2026 - 02/28/2027" (MM/DD/YYYY); saved as the intern's period text */
+  const formattedPeriod = computed<string>(() => formatDeploymentPeriod(deploymentStartDate.value, deploymentEndDate.value))
 
   // Step management: 'select-applicant' | 'configure-deployment'
   const activeStep = ref<'select-applicant' | 'configure-deployment'>('select-applicant')

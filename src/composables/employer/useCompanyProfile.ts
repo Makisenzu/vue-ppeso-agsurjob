@@ -14,6 +14,7 @@ import {
 } from '@/helpers/employer/companyProfileHelpers'
 import { getCompanyStatusBadge } from '@/helpers/common/companyRequirementHelper'
 import type { EmployerRecord, ProfileRecord } from '@/types/employer/companyProfile'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 export function useCompanyProfile() {
   const authStore = useAuthStore()
@@ -112,12 +113,7 @@ export function useCompanyProfile() {
   // ─── Date display ───
 
   const displayCreatedDate = computed(() => {
-    const raw = employer.value?.created_at
-    if (!raw) return ''
-    return new Date(raw).toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric',
-    })
+    return formatDisplayDate(employer.value?.created_at)
   })
 
   /** Website as a link (adds https:// when the owner left it out) */

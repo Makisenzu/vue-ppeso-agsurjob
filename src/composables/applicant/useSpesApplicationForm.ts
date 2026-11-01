@@ -30,6 +30,7 @@ import {
 } from '@/types/common/spesForm'
 import { SPES_PROFILE_DOCUMENT_MATCHES } from '@/types/common/spesProgram'
 import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 /** Steps of applying; once applied, the page shows the progress tracker instead (same as GIP_WIZARD_STEPS) */
 export const SPES_WIZARD_STEPS = [
@@ -443,7 +444,7 @@ export function useSpesApplicationForm() {
     const date = at ? new Date(at) : null
     if (!date || Number.isNaN(date.getTime())) return null
     return {
-      date: date.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      date: `${date.toLocaleDateString('en-PH', { weekday: 'long' })}, ${formatDisplayDate(date)}`,
       time: date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }),
       note: myForm.value?.orientation_note?.trim() || null,
     }

@@ -7,6 +7,7 @@ import {
   type EmployerRequirementWithFiles,
   type RequirementTemplate,
 } from '@/types/employer/companyRequirement'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 /** Files companies may submit: PDF or a photo / scan */
 export const COMPANY_REQUIREMENT_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -171,5 +172,5 @@ export function formatFileSize(bytes: number | null | undefined): string {
 }
 
 export function formatSubmittedDate(value: string | null | undefined): string {
-  return value ? format(parseISO(value), 'MMM d, yyyy') : ''
+  return value ? format(parseISO(value), DISPLAY_DATE_FORMAT) : ''
 }

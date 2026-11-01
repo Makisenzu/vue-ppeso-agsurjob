@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import {
   AlertCircle,
   ArrowLeft,
@@ -120,11 +121,7 @@ function getScoreClass(score?: number | null) {
 }
 
 const formatCalendarDate = (date: { year: number; month: number; day: number }) =>
-  new Date(date.year, date.month - 1, date.day).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  formatDisplayDate(new Date(date.year, date.month - 1, date.day))
 </script>
 
 <template>

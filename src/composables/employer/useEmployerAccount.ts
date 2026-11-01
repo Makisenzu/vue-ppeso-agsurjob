@@ -6,6 +6,7 @@ import {
   formatGender,
 } from '@/helpers/employer/employerAccountHelper'
 import { getCompanyStatusBadge } from '@/helpers/common/companyRequirementHelper'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 
 /**
  * Employer "Account" page: the owner's own account details (core.profiles), laid out like the
@@ -24,7 +25,7 @@ export function useEmployerAccount() {
   const location = computed(() => formatAccountAddress(profile.value))
   const joinedDate = computed(() => {
     const createdAt = authStore.user?.created_at
-    return createdAt ? new Date(createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''
+    return formatDisplayDate(createdAt)
   })
 
   /** Rows of the Account Details card; empty values show as "—" */

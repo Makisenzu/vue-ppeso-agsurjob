@@ -17,6 +17,7 @@ import {
   type JobVacancyStageInput,
 } from '@/types/common/jobVacancyApplication'
 import type { SearchSelectOption } from '@/types/common/searchSelect'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 
 export const JOB_POSTING_PAGE_SIZE = 10
 
@@ -56,7 +57,7 @@ export const isJobPostingStatusFilter = (value: unknown): value is JobPostingSta
 export function formatJobPostingDate(value: string | null | undefined): string {
   if (!value) return '—'
   const date = parseISO(value)
-  return isValid(date) ? format(date, 'MMM d, yyyy') : '—'
+  return isValid(date) ? format(date, DISPLAY_DATE_FORMAT) : '—'
 }
 
 /** A posting is past its period when "valid until" is before today (yyyy-mm-dd compares as text) */

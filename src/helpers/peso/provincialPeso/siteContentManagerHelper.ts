@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns'
+import { DISPLAY_DATE_FORMAT } from '@/helpers/common/dateFormatHelper'
 import { formatFileSize } from '@/helpers/common/uploadHelpers'
 import {
   SITE_CONTENT_IMAGE_MAX_MB,
@@ -31,9 +32,9 @@ export function getSiteContentStateBadgeClass(state: SiteContentState): string {
   return STATE_BADGE_CLASS[state]
 }
 
-/** "Oct 22, 2026 → Nov 30, 2026", "From Oct 22, 2026", or "—" for unpublished drafts. */
+/** "10/22/2026 → 11/30/2026", "From 10/22/2026", or "—" for unpublished drafts. */
 export function formatSiteContentSchedule(publishedAt: string | null, expiresAt: string | null): string {
-  const fmt = (iso: string) => format(parseISO(iso), 'MMM d, yyyy')
+  const fmt = (iso: string) => format(parseISO(iso), DISPLAY_DATE_FORMAT)
   if (publishedAt && expiresAt) return `${fmt(publishedAt)} → ${fmt(expiresAt)}`
   if (publishedAt) return `From ${fmt(publishedAt)}`
   if (expiresAt) return `Until ${fmt(expiresAt)}`

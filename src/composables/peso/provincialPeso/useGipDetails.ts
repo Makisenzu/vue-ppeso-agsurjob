@@ -15,6 +15,7 @@ import {
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import { GIP_OFFICE_PRESETS } from '@/composables/peso/provincialPeso/useGipAddIntern'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
+import { formatDeploymentPeriod } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
 
 export function useGipDetails() {
   const route = useRoute()
@@ -158,39 +159,25 @@ export function useGipDetails() {
   const deploymentStartDate = ref<any>(null)
   const deploymentEndDate = ref<any>(null)
 
-  /**
-   * Format a CalendarDate-like value as "MMM D" (e.g., "Sep 1")
-   */
-  function formatShortDate(d: any): string {
-    if (!d || typeof d.month !== 'number' || typeof d.day !== 'number') return ''
-    return `${MONTH_NAMES[d.month - 1]} ${d.day}`
-  }
-
-  const formattedPeriod = computed<string>(() => {
-    const start = deploymentStartDate.value
-    const end = deploymentEndDate.value
-    if (!start || !end) return ''
-
-    const startStr = formatShortDate(start)
-    const endStr = formatShortDate(end)
-
-    // If same year, show year once at the end
-    if (start.year === end.year) {
-      return `${startStr} - ${endStr}, ${end.year}`
-    }
-    // Different years
-    return `${startStr}, ${start.year} - ${endStr}, ${end.year}`
-  })
+  /** "09/01/2026 - 02/28/2027" (MM/DD/YYYY); saved as the intern's period text */
+  const formattedPeriod = computed<string>(() => formatDeploymentPeriod(deploymentStartDate.value, deploymentEndDate.value))
 
   /**
-   * Parse a human-readable period string into CalendarDate start/end values.
+   * Parse a period string into CalendarDate start/end values.
    * Supports patterns like:
-   *   - "Jan 1 - Jun 30, 2026"
-   *   - "Jan 1, 2026 - Jun 30, 2027"
+   *   - "01/01/2026 - 06/30/2026" (MM/DD/YYYY, how periods are saved now)
+   *   - "Jan 1 - Jun 30, 2026" and "Jan 1, 2026 - Jun 30, 2027" (older records)
    *   - "Jan 2026 - Jun 2026" (day defaults to 1 and last-day-of-month)
    */
   function parsePeriodToDates(period: string): { start: any; end: any } | null {
     if (!period || !period.trim()) return null
+
+    // Pattern: "MM/DD/YYYY - MM/DD/YYYY"
+    const numericMatch = period.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[-–]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+    if (numericMatch) {
+      const [, sm, sd, sy, em, ed, ey] = numericMatch.map(Number)
+      return { start: new CalendarDate(sy!, sm!, sd!), end: new CalendarDate(ey!, em!, ed!) }
+    }
 
     const monthMap: Record<string, number> = {}
     MONTH_NAMES.forEach((m, i) => { monthMap[m.toLowerCase()] = i + 1 })
