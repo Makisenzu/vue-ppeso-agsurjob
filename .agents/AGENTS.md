@@ -227,3 +227,10 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 > 19. **DO NOT show a date in any format but MM/DD/YYYY** (`10/30/2026`; with time `10/30/2026 2:05 PM`). Use
 >     `formatDisplayDate` / `formatDisplayDateTime` from `src/helpers/common/dateFormatHelper.ts`. Display only —
 >     the database, payloads and date inputs keep ISO dates. See [`DESIGN.md`](.agents/DESIGN.md) §3.1.
+> 20. **DO NOT let an unverified account apply or post.** An **applicant** must have a verified account
+>     (`core.profiles.status = 'approved'`, `authStore.isVerified`) before applying to anything — job vacancies, GIP,
+>     TUPAD, SPES (new form or re-application). An **employer** must have a verified company
+>     (`employers.companies.verification_status = 'approved'`) before posting a job. Enforce it in the database
+>     (migration `103_require_verified_account.sql` triggers) **and** in the UI (disabled action + "Verify … first"
+>     alert; messages in `src/helpers/applicant/accountVerificationHelper.ts`). Every new application or posting flow
+>     must follow this rule. Staff (PESO / admin) encoding on someone's behalf are exempt. See [`SECURITY.md`](.agents/SECURITY.md) §4.

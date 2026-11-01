@@ -2,6 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
+import { ACCOUNT_REQUIREMENTS_LINK, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useJobVacancyApplicationStore } from '@/stores/applicant/jobVacancyApplicationStore'
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
@@ -59,7 +60,7 @@ const orNotRequired = (value: string | null | undefined) => value?.trim() || NOT
 export function useJobVacancyApplicationForm() {
   const route = useRoute()
   const authStore = useAuthStore()
-  const { user, applicantProfile } = storeToRefs(authStore)
+  const { user, applicantProfile, isVerified: isAccountVerified } = storeToRefs(authStore)
   const store = useJobVacancyApplicationStore()
   const {
     vacancy,
@@ -293,6 +294,14 @@ export function useJobVacancyApplicationForm() {
 
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
+
+  // ─── Verification rule (migration 103): a new application needs a verified account ───
+  const mustVerifyAccount = computed(() => !hasApplied.value && !isAccountVerified.value)
+  const verificationNotice = {
+    title: UNVERIFIED_APPLICANT_TITLE,
+    message: UNVERIFIED_APPLICANT_MESSAGE,
+    link: ACCOUNT_REQUIREMENTS_LINK,
+  } as const
   const stage = computed(() => myApplication.value?.stage ?? 'applied')
   /** Name of the hiring step the applicant is at */
   const stepName = computed(
@@ -329,6 +338,7 @@ export function useJobVacancyApplicationForm() {
   /** The page first shows only the job; "Apply now" opens the wizard */
   const isApplying = ref(false)
   const startApplying = () => {
+    if (mustVerifyAccount.value) return
     isApplying.value = true
     currentStep.value = 0
   }
@@ -399,6 +409,8 @@ export function useJobVacancyApplicationForm() {
   )
 
   return {
+    mustVerifyAccount,
+    verificationNotice,
     backLink,
     job,
     match,

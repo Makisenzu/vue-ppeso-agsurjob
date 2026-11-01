@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Hammer, Loader2, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Hammer, Loader2, ShieldAlert, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +30,8 @@ const {
   hasChanges,
   isSubmitting,
   hasApplied,
+  mustVerifyAccount,
+  verificationNotice,
   status,
   statusDescription,
   statusRemarks,
@@ -133,6 +135,16 @@ const INDICATOR_CLASS =
 
     <!-- ═══ Applying: three-step wizard ═══ -->
     <form v-else-if="!hasApplied" class="flex flex-col gap-8" @submit.prevent="submit">
+      <Alert v-if="mustVerifyAccount">
+        <ShieldAlert />
+        <AlertTitle>{{ verificationNotice.title }}</AlertTitle>
+        <AlertDescription class="flex flex-col items-start gap-2">
+          <p>{{ verificationNotice.message }}</p>
+          <RouterLink :to="verificationNotice.link" class="font-medium text-primary underline-offset-4 hover:underline">
+            Go to my profile
+          </RouterLink>
+        </AlertDescription>
+      </Alert>
       <Stepper :model-value="currentStep + 1" class="flex w-full items-start gap-1 sm:gap-2">
         <StepperItem
           v-for="(step, index) in wizardSteps"
@@ -270,7 +282,7 @@ const INDICATOR_CLASS =
         <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingNsrp || isGeneratingTupadForm" @click="nextStep">
           Next <ArrowRight class="size-4" />
         </Button>
-        <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingTupadForm">
+        <Button v-else type="submit" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingTupadForm || mustVerifyAccount">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Submitting...' : 'Submit application' }}
         </Button>

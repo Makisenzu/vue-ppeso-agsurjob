@@ -5,6 +5,8 @@ import { spesAttachmentService } from '@/services/common/spesAttachmentService'
 import { spesCompletionReportService } from '@/services/common/spesCompletionReportService'
 import { mediaService } from '@/services/common/mediaService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useAuthStore } from '@/stores/common/auth'
+import { UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import {
   SPES_COMPLETION_REPORTS,
   type SpesApplicationRecord,
@@ -127,6 +129,10 @@ export const useSpesFormStore = defineStore('applicantSpesForm', () => {
     reused: SpesReusedAttachmentMap
   }): Promise<boolean> {
     const { profileId, details, isReapplying, checked, pending, reused } = options
+    if ((!myForm.value || isReapplying) && !useAuthStore().isVerified) {
+      toastAlert.error(UNVERIFIED_APPLICANT_TITLE, UNVERIFIED_APPLICANT_MESSAGE)
+      return false
+    }
     isSubmitting.value = true
     try {
       const isNew = !myForm.value

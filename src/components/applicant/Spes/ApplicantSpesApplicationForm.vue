@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Loader2, Pencil, RotateCcw, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Loader2, Pencil, RotateCcw, ShieldAlert, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,6 +25,8 @@ const {
   errorMessage,
   isSubmitting,
   hasApplied,
+  mustVerifyAccount,
+  verificationNotice,
   isReapplying,
   canReapply,
   startReapply,
@@ -140,6 +142,16 @@ const INDICATOR_CLASS =
 
     <!-- ═══ Applying: three-step wizard ═══ -->
     <div v-else-if="!hasApplied" class="flex flex-col gap-8">
+      <Alert v-if="mustVerifyAccount">
+        <ShieldAlert />
+        <AlertTitle>{{ verificationNotice.title }}</AlertTitle>
+        <AlertDescription class="flex flex-col items-start gap-2">
+          <p>{{ verificationNotice.message }}</p>
+          <RouterLink :to="verificationNotice.link" class="font-medium text-primary underline-offset-4 hover:underline">
+            Go to my profile
+          </RouterLink>
+        </AlertDescription>
+      </Alert>
       <Stepper :model-value="currentStep + 1" class="mx-auto flex w-full max-w-3xl items-start gap-1 sm:gap-2">
         <StepperItem
           v-for="(step, index) in wizardSteps"
@@ -262,7 +274,7 @@ const INDICATOR_CLASS =
         <Button v-if="!isLastStep" type="button" size="lg" class="cursor-pointer" :disabled="isGeneratingSpesForm" @click="nextStep">
           Next <ArrowRight class="size-4" />
         </Button>
-        <Button v-else type="button" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingSpesForm" @click="submit">
+        <Button v-else type="button" size="lg" class="cursor-pointer" :disabled="isSubmitting || isGeneratingSpesForm || mustVerifyAccount" @click="submit">
           <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
           {{ isSubmitting ? 'Submitting...' : 'Submit application' }}
         </Button>

@@ -4,6 +4,8 @@ import { jobVacancyApplicationService } from '@/services/applicant/jobVacancyApp
 import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
 import { jobVacancyFitService } from '@/services/common/jobVacancyFitService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useAuthStore } from '@/stores/common/auth'
+import { UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import type { VacancyDetails } from '@/types/applicant/jobVacancyApplication'
 import type { JobVacancyFit } from '@/types/common/jobVacancyFit'
 import type {
@@ -87,6 +89,11 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
     const { vacancyId, applicantId, uploaderId, pending, reused = {} } = options
     if (isLocked.value) {
       toastAlert.error('Application locked', 'The employer has already reviewed your application.')
+      return false
+    }
+
+    if (!myApplication.value && !useAuthStore().isVerified) {
+      toastAlert.error(UNVERIFIED_APPLICANT_TITLE, UNVERIFIED_APPLICANT_MESSAGE)
       return false
     }
 

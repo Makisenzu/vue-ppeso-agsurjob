@@ -4,6 +4,8 @@ import { tupadApplicationService } from '@/services/applicant/tupadApplicationSe
 import { tupadDocumentService } from '@/services/common/tupadDocumentService'
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useAuthStore } from '@/stores/common/auth'
+import { UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import type {
   MyTupadEngagement,
   TupadApplicationPatch,
@@ -82,6 +84,11 @@ export const useTupadApplicationStore = defineStore('applicantTupadApplication',
     const { applicantId, uploaderId, details, pending, reused = {} } = options
     if (isLocked.value) {
       toastAlert.error('Application locked', 'Your TUPAD application has already been reviewed by PESO.')
+      return false
+    }
+
+    if (!myApplication.value && !useAuthStore().isVerified) {
+      toastAlert.error(UNVERIFIED_APPLICANT_TITLE, UNVERIFIED_APPLICANT_MESSAGE)
       return false
     }
 

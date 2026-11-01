@@ -5,6 +5,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useAuthStore } from '@/stores/common/auth'
+import { ACCOUNT_REQUIREMENTS_LINK, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useTupadApplicationStore } from '@/stores/applicant/tupadApplicationStore'
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
@@ -66,7 +67,7 @@ const detailsSchema = toTypedSchema(
  */
 export function useTupadApplicationForm() {
   const authStore = useAuthStore()
-  const { user, applicantProfile } = storeToRefs(authStore)
+  const { user, applicantProfile, isVerified: isAccountVerified } = storeToRefs(authStore)
   const store = useTupadApplicationStore()
   const {
     myApplication,
@@ -337,6 +338,14 @@ export function useTupadApplicationForm() {
 
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
+
+  // ─── Verification rule (migration 103): a new application needs a verified account ───
+  const mustVerifyAccount = computed(() => !hasApplied.value && !isAccountVerified.value)
+  const verificationNotice = {
+    title: UNVERIFIED_APPLICANT_TITLE,
+    message: UNVERIFIED_APPLICANT_MESSAGE,
+    link: ACCOUNT_REQUIREMENTS_LINK,
+  } as const
   const status = computed(() => myApplication.value?.status ?? 'Pending')
   const isDeployed = computed(() => engagements.value.length > 0)
   const statusDescription = computed(() =>
@@ -481,6 +490,8 @@ export function useTupadApplicationForm() {
   )
 
   return {
+    mustVerifyAccount,
+    verificationNotice,
     backLink,
     requirements,
     attachmentAccept: TUPAD_ATTACHMENT_ACCEPT,

@@ -214,6 +214,12 @@ const { data: emailRows } = await (supabase.schema('core') as any).rpc('get_user
 > 2. **NEVER create database functions with `SECURITY DEFINER`** without explicit approval — they bypass all RLS.
 > 3. **Always test with a non-admin user** to verify RLS policies work correctly.
 > 4. For new admin-only queries that need cross-user access, create a `SECURITY DEFINER` function in the database.
+> 5. **Verification rule** (AGENTS.md rule 20, migration `103_require_verified_account.sql`): applicants need a verified
+>    account (`core.profiles.status = 'approved'`) to apply to anything; employers need a verified company
+>    (`companies.verification_status = 'approved'`) to post a job. BEFORE INSERT triggers on `esmdd.job_vacancy_applications`,
+>    `esmdd.gip_applicants`, `esmdd.tupad_applicants`, `applicants.spes_form` (also SPES re-application) and
+>    `esmdd.job_vacancies` raise `42501` for unverified applicant / employer callers. New application or posting tables
+>    must get the same trigger.
 
 ---
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, FileText, Loader2, Paperclip, Send, X } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, FileText, Loader2, Paperclip, Send, ShieldAlert, X } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -41,6 +41,8 @@ const {
   applicantDetails,
   isApplying,
   startApplying,
+  mustVerifyAccount,
+  verificationNotice,
   wizardSteps,
   currentStep,
   reachedStep,
@@ -200,9 +202,19 @@ const INDICATOR_CLASS =
       </section>
 
       <!-- ═══ Not applied: only the Apply now button under the job ═══ -->
+      <Alert v-if="mustVerifyAccount && !isApplying">
+        <ShieldAlert />
+        <AlertTitle>{{ verificationNotice.title }}</AlertTitle>
+        <AlertDescription class="flex flex-col items-start gap-2">
+          <p>{{ verificationNotice.message }}</p>
+          <RouterLink :to="verificationNotice.link" class="font-medium text-primary underline-offset-4 hover:underline">
+            Go to my profile
+          </RouterLink>
+        </AlertDescription>
+      </Alert>
       <div v-if="!hasApplied && !isApplying" class="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-sm text-muted-foreground">Have the documents above ready as PDF files.</p>
-        <Button type="button" size="lg" class="w-full cursor-pointer sm:w-auto" @click="startApplying">
+        <Button type="button" size="lg" class="w-full cursor-pointer sm:w-auto" :disabled="mustVerifyAccount" @click="startApplying">
           <Send class="size-4" /> Apply now
         </Button>
       </div>

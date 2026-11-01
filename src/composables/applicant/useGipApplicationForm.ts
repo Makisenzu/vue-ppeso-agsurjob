@@ -2,6 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
+import { ACCOUNT_REQUIREMENTS_LINK, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import {
@@ -87,7 +88,7 @@ export interface GipRequirementRow {
  */
 export function useGipApplicationForm() {
   const authStore = useAuthStore()
-  const { user, applicantProfile } = storeToRefs(authStore)
+  const { user, applicantProfile, isVerified: isAccountVerified } = storeToRefs(authStore)
   const store = useGipApplicationStore()
   const {
     myApplication,
@@ -271,6 +272,14 @@ export function useGipApplicationForm() {
 
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
+
+  // ─── Verification rule (migration 103): a new application needs a verified account ───
+  const mustVerifyAccount = computed(() => !hasApplied.value && !isAccountVerified.value)
+  const verificationNotice = {
+    title: UNVERIFIED_APPLICANT_TITLE,
+    message: UNVERIFIED_APPLICANT_MESSAGE,
+    link: ACCOUNT_REQUIREMENTS_LINK,
+  } as const
   const status = computed(() => normalizeGipStatus(myApplication.value?.status))
   const statusDescription = computed(() => GIP_STATUS_DESCRIPTIONS[status.value] ?? '')
   const statusRemarks = computed(() => (status.value === 'Rejected' ? (myApplication.value?.status_remarks ?? null) : null))
@@ -404,6 +413,8 @@ export function useGipApplicationForm() {
   )
 
   return {
+    mustVerifyAccount,
+    verificationNotice,
     backLink,
     requirements,
     attachmentAccept: GIP_ATTACHMENT_ACCEPT,

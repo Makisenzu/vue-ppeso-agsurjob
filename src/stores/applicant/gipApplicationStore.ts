@@ -4,6 +4,8 @@ import { gipApplicationService } from '@/services/applicant/gipApplicationServic
 import { gipDocumentService } from '@/services/common/gipDocumentService'
 import { applicantCompletionService } from '@/services/applicant/applicantCompletionService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
+import { useAuthStore } from '@/stores/common/auth'
+import { UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import type { GipApplicationRow, MyGipInternship } from '@/types/applicant/gipApplication'
 import type {
   GipApplicantDocumentMap,
@@ -74,6 +76,11 @@ export const useGipApplicationStore = defineStore('applicantGipApplication', () 
   ): Promise<boolean> {
     if (isLocked.value) {
       toastAlert.error('Application locked', 'Your GIP application has already been reviewed by PESO.')
+      return false
+    }
+
+    if (!myApplication.value && !useAuthStore().isVerified) {
+      toastAlert.error(UNVERIFIED_APPLICANT_TITLE, UNVERIFIED_APPLICANT_MESSAGE)
       return false
     }
 
