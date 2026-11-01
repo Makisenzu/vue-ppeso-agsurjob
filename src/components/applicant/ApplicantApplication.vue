@@ -94,17 +94,19 @@ const STAGE_BADGE_CLASS: Record<string, string> = {
             <h2 class="text-base font-semibold text-pretty text-foreground transition-colors group-hover:text-primary sm:text-lg">
               {{ item.title }}
             </h2>
-            <p class="text-xs text-muted-foreground">
-              {{ item.reference }} · Applied {{ item.appliedOn }} · Updated {{ item.updatedOn }}
-            </p>
+            <p class="text-xs text-muted-foreground">{{ item.reference }}</p>
           </div>
-          <div class="flex shrink-0 items-center gap-3">
-            <Badge variant="outline" :class="STAGE_BADGE_CLASS[item.stage]">{{ item.status }}</Badge>
-            <Button as-child variant="ghost" size="sm" class="relative z-10">
-              <AppLink :to="item.to">
-                View <ArrowRight class="size-4" />
-              </AppLink>
-            </Button>
+          <!-- Status and View on top, the date applied under them at the bottom right -->
+          <div class="flex shrink-0 flex-col gap-2 sm:items-end sm:justify-between sm:self-stretch">
+            <div class="flex items-center gap-3">
+              <Badge variant="outline" :class="STAGE_BADGE_CLASS[item.stage]">{{ item.status }}</Badge>
+              <Button as-child variant="ghost" size="sm" class="relative z-10">
+                <AppLink :to="item.to">
+                  View <ArrowRight class="size-4" />
+                </AppLink>
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground">Applied {{ item.appliedOn }}</p>
           </div>
         </div>
 

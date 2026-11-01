@@ -40,7 +40,6 @@ export function useApplicationStatus() {
         stageLabel: APPLICATION_STAGE_LABELS[item.stage],
         progress: applicationProgress(item.stage),
         appliedOn: formatGipDate(item.appliedAt),
-        updatedOn: formatGipDate(item.updatedAt),
       }))
   )
 
