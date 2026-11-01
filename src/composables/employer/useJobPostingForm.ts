@@ -29,7 +29,7 @@ import {
   toJobVacancyRequirements,
   toJobVacancyStages,
 } from '@/helpers/employer/jobPostingHelper'
-import { laterIsoDay, scheduledMinIso, todayIso } from '@/helpers/common/dateRuleHelper'
+import { isPastDay, laterIsoDay, scheduledMinIso, todayIso } from '@/helpers/common/dateRuleHelper'
 import type { JobVacancySavedDates } from '@/helpers/common/jobVacancyHelper'
 import type { JobPostingFormValues } from '@/types/employer/jobPosting'
 
@@ -58,7 +58,17 @@ const createJobPostingSchema = (saved: JobVacancySavedDates = {}) => toTypedSche
       stages: jobPostingStagesSchema,
     })
     .superRefine(refineCompleteJobVacancyForm)
-    .superRefine(refineJobVacancySchedule(saved)),
+    .superRefine(refineJobVacancySchedule(saved))
+    // An open posting past its deadline is closed again on save (migration 097): reopening needs a new deadline
+    .superRefine((values, ctx) => {
+      if (values.status === 'open' && isPastDay(values.validUntil)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: 'Move the deadline to today or later to reopen this posting.',
+        })
+      }
+    }),
 )
 
 /** Steps of the posting page; each is checked before moving on */
