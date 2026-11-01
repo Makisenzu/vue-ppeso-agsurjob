@@ -29,6 +29,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const stageCounts = ref<ApplicantStepCounts>(EMPTY_STEP_COUNTS())
   const search = ref('')
   const stageFilter = ref<ApplicantStageFilter>('all')
+  const shortlistedOnly = ref(false)
+  const shortlistCount = ref(0)
   const page = ref(0)
   const pageSize = ref(JOB_APPLICANT_PAGE_SIZE)
   const isLoading = ref(false)
@@ -40,6 +42,9 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const isLoadingDetail = ref(false)
   const detailError = ref<string | null>(null)
   const isSavingStage = ref(false)
+  const isSelectedShortlisted = ref(false)
+  /** Applications whose shortlist change is on its way */
+  const shortlistBusyIds = ref<Set<string>>(new Set())
 
   /** Ignore a slower, older response that lands after a newer one */
   let applicantRequestId = 0
@@ -53,6 +58,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     stageCounts.value = EMPTY_STEP_COUNTS()
     search.value = ''
     stageFilter.value = 'all'
+    shortlistedOnly.value = false
+    shortlistCount.value = 0
     page.value = 0
   }
 
@@ -67,6 +74,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
       const result = await jobApplicantService.searchApplicants(vacancyId, {
         search: search.value,
         stage: stageFilter.value,
+        shortlistedOnly: shortlistedOnly.value,
         page: page.value,
         pageSize: pageSize.value,
       })
@@ -86,7 +94,12 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     const vacancyId = vacancy.value?.id
     if (!vacancyId) return
     try {
-      stageCounts.value = await jobApplicantService.fetchStepCounts(vacancyId)
+      const [counts, shortlisted] = await Promise.all([
+        jobApplicantService.fetchStepCounts(vacancyId),
+        jobApplicantService.fetchShortlistCount(vacancyId),
+      ])
+      stageCounts.value = counts
+      shortlistCount.value = shortlisted
     } catch {
       // The list shows its own error; the counts just stay as they were
     }
@@ -124,9 +137,48 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     return fetchApplicants()
   }
 
+  function setShortlistedOnly(value: boolean) {
+    shortlistedOnly.value = value
+    page.value = 0
+    return fetchApplicants()
+  }
+
   function setPage(value: number) {
     page.value = Math.max(0, value)
     return fetchApplicants()
+  }
+
+  // ─── Shortlist ───
+
+  /** Applies a shortlist change to what's on screen (list row, count, review page) */
+  function applyShortlisted(applicationId: string, value: boolean) {
+    const row = applicants.value.find((item) => item.id === applicationId)
+    if (row && row.is_shortlisted !== value) {
+      row.is_shortlisted = value
+      shortlistCount.value = Math.max(0, shortlistCount.value + (value ? 1 : -1))
+    }
+    if (selectedApplication.value?.id === applicationId) isSelectedShortlisted.value = value
+  }
+
+  /** Adds or removes an applicant from the shortlist, shown at once and put back if it fails */
+  async function setShortlisted(applicationId: string, value: boolean): Promise<void> {
+    if (shortlistBusyIds.value.has(applicationId)) return
+    shortlistBusyIds.value = new Set(shortlistBusyIds.value).add(applicationId)
+    applyShortlisted(applicationId, value)
+    try {
+      await jobApplicantService.setShortlisted(applicationId, value)
+      toastAlert.success(value ? 'Added to shortlist' : 'Removed from shortlist')
+      // Counts of a page opened without the list, and the shortlisted-only list, come from the server
+      if (vacancy.value && !applicants.value.some((item) => item.id === applicationId)) void fetchStageCounts()
+      if (shortlistedOnly.value && !value) void fetchApplicants()
+    } catch (error: unknown) {
+      applyShortlisted(applicationId, !value)
+      toastAlert.error('Error', toJobApplicantErrorMessage(error, 'Failed to update the shortlist.'))
+    } finally {
+      const next = new Set(shortlistBusyIds.value)
+      next.delete(applicationId)
+      shortlistBusyIds.value = next
+    }
   }
 
   // ─── Review page ───
@@ -151,9 +203,10 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
         resetVacancy()
         vacancy.value = summary
       }
-      const [details, files] = await Promise.all([
+      const [details, files, shortlisted] = await Promise.all([
         jobApplicantService.fetchApplication(applicationId),
         jobApplicationDocumentService.fetchDocuments(applicationId),
+        jobApplicantService.isShortlisted(applicationId),
       ])
       if (current !== detailRequestId) return
       if (details.job_vacancy_id !== vacancyId) {
@@ -162,6 +215,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
       }
       selectedApplication.value = details
       documents.value = files
+      isSelectedShortlisted.value = shortlisted
     } catch (error: unknown) {
       if (current === detailRequestId) {
         detailError.value = toJobApplicantErrorMessage(error, 'Failed to open the application.')
@@ -175,6 +229,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   function closeApplication() {
     selectedApplication.value = null
     documents.value = {}
+    isSelectedShortlisted.value = false
   }
 
   /** target: 'applied', 'rejected' or a hiring step id; label: what it's called, for the toast */
@@ -202,6 +257,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     stageCounts,
     search,
     stageFilter,
+    shortlistedOnly,
+    shortlistCount,
     page,
     pageSize,
     isLoading,
@@ -209,13 +266,18 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     openVacancy,
     setSearch,
     setStageFilter,
+    setShortlistedOnly,
     setPage,
+    // Shortlist
+    shortlistBusyIds,
+    setShortlisted,
     // Review page
     selectedApplication,
     documents,
     isLoadingDetail,
     detailError,
     isSavingStage,
+    isSelectedShortlisted,
     openApplication,
     closeApplication,
     updateStage,

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
-import { Eye } from '@lucide/vue'
+import { Eye, Star } from '@lucide/vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,8 +23,20 @@ export function useVacancyApplicants() {
   const route = useRoute()
   const router = useRouter()
   const store = useJobApplicantStore()
-  const { vacancy, applicants, total, stageCounts, stageFilter, page, pageSize, isLoading, errorMessage } =
-    storeToRefs(store)
+  const {
+    vacancy,
+    applicants,
+    total,
+    stageCounts,
+    stageFilter,
+    shortlistedOnly,
+    shortlistCount,
+    shortlistBusyIds,
+    page,
+    pageSize,
+    isLoading,
+    errorMessage,
+  } = storeToRefs(store)
 
   const vacancyId = computed(() => String(route.params.vacancyId ?? ''))
 
@@ -66,9 +78,15 @@ export function useVacancyApplicants() {
   const searchInput = ref(store.search)
   watchDebounced(searchInput, (value) => store.setSearch(value), { debounce: 300 })
 
-  const hasFilters = computed(() => searchInput.value.trim() !== '' || stageFilter.value !== 'all')
+  // ─── Shortlisted only (combines with the step and search) ───
+  const toggleShortlistedOnly = () => store.setShortlistedOnly(!shortlistedOnly.value)
+
+  const hasFilters = computed(
+    () => searchInput.value.trim() !== '' || stageFilter.value !== 'all' || shortlistedOnly.value,
+  )
   function clearFilters() {
     searchInput.value = ''
+    shortlistedOnly.value = false
     store.setStageFilter('all')
   }
 
@@ -76,13 +94,21 @@ export function useVacancyApplicants() {
   const viewApplicant = (row: VacancyApplicantRow) =>
     router.push({ name: 'vacancy-applicant-review', params: { vacancyId: vacancyId.value, applicationId: row.id } })
 
+  const toggleShortlist = (row: VacancyApplicantRow) => store.setShortlisted(row.id, !row.is_shortlisted)
+
   const getRowSwipeActions = (row: VacancyApplicantRow): SwipeAction[] => [
     { id: 'view', label: 'Review', icon: Eye, dismiss: false, onSelect: () => viewApplicant(row) },
+    {
+      id: 'shortlist',
+      label: row.is_shortlisted ? 'Unlist' : 'Shortlist',
+      icon: Star,
+      onSelect: () => toggleShortlist(row),
+    },
   ]
 
-  /** Mobile card: name, then stage · municipality · date applied */
+  /** Mobile card: name (★ when shortlisted), then stage · municipality · date applied */
   const getRowCard = (row: VacancyApplicantRow): SwipeCard => ({
-    title: row.full_name,
+    title: row.is_shortlisted ? `★ ${row.full_name}` : row.full_name,
     subtitle: [getJobApplicationStageLabel(row.stage, row.stage_name), row.municipality, `Applied ${formatGipDate(row.created_at)}`]
       .filter(Boolean)
       .join(' · '),
@@ -140,7 +166,24 @@ export function useVacancyApplicants() {
       id: 'actions',
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       cell: ({ row }) =>
-        h('div', { class: 'flex justify-end' }, [
+        h('div', { class: 'flex items-center justify-end gap-1' }, [
+          h(
+            Button,
+            {
+              variant: 'ghost',
+              size: 'icon',
+              class: 'size-8',
+              disabled: shortlistBusyIds.value.has(row.original.id),
+              'aria-pressed': row.original.is_shortlisted,
+              'aria-label': `${row.original.is_shortlisted ? 'Remove' : 'Add'} ${row.original.full_name} ${row.original.is_shortlisted ? 'from' : 'to'} the shortlist`,
+              title: row.original.is_shortlisted ? 'Remove from shortlist' : 'Add to shortlist',
+              onClick: () => toggleShortlist(row.original),
+            },
+            () =>
+              h(Star, {
+                class: ['size-4', row.original.is_shortlisted ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'],
+              }),
+          ),
           h(
             Button,
             {
@@ -208,6 +251,9 @@ export function useVacancyApplicants() {
     searchInput,
     hasFilters,
     clearFilters,
+    shortlistedOnly,
+    shortlistCount,
+    toggleShortlistedOnly,
     // Table
     table,
     columns,

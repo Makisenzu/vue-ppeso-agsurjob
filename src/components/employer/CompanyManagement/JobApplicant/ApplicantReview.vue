@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Eye, FileText, Loader2 } from '@lucide/vue'
+import { ArrowLeft, Eye, FileText, Loader2, Star } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -18,6 +18,9 @@ const {
   isLoading,
   errorMessage,
   reload,
+  isShortlisted,
+  isShortlistBusy,
+  toggleShortlist,
   stage,
   stageOptions,
   remarks,
@@ -70,7 +73,7 @@ const {
           <AvatarImage v-if="review.avatarUrl" :src="review.avatarUrl" :alt="review.name" class="object-cover" />
           <AvatarFallback class="text-lg font-semibold">{{ review.initials }}</AvatarFallback>
         </Avatar>
-        <div class="min-w-0 space-y-1">
+        <div class="min-w-0 flex-1 space-y-1">
           <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight text-pretty sm:text-3xl">{{ review.name }}</h1>
             <Badge variant="outline" :class="review.stageClass">{{ review.stageLabel }}</Badge>
@@ -79,6 +82,19 @@ const {
             {{ review.position }} · {{ review.reference }} · Applied {{ review.appliedOn }}
           </p>
         </div>
+        <!-- Private to the company: the applicant isn't told -->
+        <Button
+          type="button"
+          variant="outline"
+          class="h-10 w-full shrink-0 sm:h-9 sm:w-auto"
+          :class="isShortlisted ? 'border-primary bg-primary/5' : ''"
+          :aria-pressed="isShortlisted"
+          :disabled="isShortlistBusy"
+          @click="toggleShortlist"
+        >
+          <Star class="size-4" :class="isShortlisted ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'" />
+          {{ isShortlisted ? 'Shortlisted' : 'Shortlist' }}
+        </Button>
       </header>
 
       <div class="grid items-start gap-6 lg:grid-cols-3">

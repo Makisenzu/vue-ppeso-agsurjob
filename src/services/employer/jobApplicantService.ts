@@ -80,6 +80,7 @@ export const jobApplicantService = {
       p_job_vacancy_id: vacancyId,
       p_search: query.search.trim() || null,
       ...toStageParams(query.stage),
+      p_shortlisted: query.shortlistedOnly,
       p_limit: query.pageSize,
       p_offset: query.page * query.pageSize,
     })
@@ -134,5 +135,39 @@ export const jobApplicantService = {
 
     if (error) throw error
     if (!data) throw new Error('You can only review the applicants of your own job postings.')
+  },
+
+  // ─── Shortlist (migration 093): the company's private mark, the applicant never sees it ───
+
+  /** How many of a vacancy's applicants are shortlisted */
+  async fetchShortlistCount(vacancyId: string): Promise<number> {
+    const { count, error } = await untypedEsmdd()
+      .from('job_vacancy_application_shortlists')
+      .select('application_id', { count: 'exact', head: true })
+      .eq('job_vacancy_id', vacancyId)
+
+    if (error) throw error
+    return count ?? 0
+  },
+
+  async isShortlisted(applicationId: string): Promise<boolean> {
+    const { data, error } = await untypedEsmdd()
+      .from('job_vacancy_application_shortlists')
+      .select('application_id')
+      .eq('application_id', applicationId)
+      .maybeSingle()
+
+    if (error) throw error
+    return !!data
+  },
+
+  /** Adds or removes the application; the database fills in the vacancy, applicant and who shortlisted */
+  async setShortlisted(applicationId: string, shortlisted: boolean): Promise<void> {
+    const table = untypedEsmdd().from('job_vacancy_application_shortlists')
+    const { error } = shortlisted
+      ? await table.upsert({ application_id: applicationId }, { onConflict: 'application_id', ignoreDuplicates: true })
+      : await table.delete().eq('application_id', applicationId)
+
+    if (error) throw error
   },
 }

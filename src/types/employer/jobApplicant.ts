@@ -46,6 +46,8 @@ export interface VacancyApplicantRow {
   avatar_path: string | null
   /** Latest course (or level) of the NSRP educational background (migration 092) */
   course: string | null
+  /** On the company's shortlist (migration 093) */
+  is_shortlisted: boolean
   stage: JobApplicationStage
   stage_id: string | null
   stage_name: string | null
@@ -58,6 +60,8 @@ export interface VacancyApplicantRow {
 export interface VacancyApplicantQuery {
   search: string
   stage: ApplicantStageFilter
+  /** Only the shortlisted ones (migration 093) */
+  shortlistedOnly: boolean
   page: number
   pageSize: number
 }

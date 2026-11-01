@@ -33,8 +33,17 @@ export function useApplicantReview() {
   const route = useRoute()
   const router = useRouter()
   const store = useJobApplicantStore()
-  const { vacancy, applicants, selectedApplication, documents, isLoadingDetail, detailError, isSavingStage } =
-    storeToRefs(store)
+  const {
+    vacancy,
+    applicants,
+    selectedApplication,
+    documents,
+    isLoadingDetail,
+    detailError,
+    isSavingStage,
+    isSelectedShortlisted,
+    shortlistBusyIds,
+  } = storeToRefs(store)
 
   const vacancyId = computed(() => String(route.params.vacancyId ?? ''))
   const applicationId = computed(() => String(route.params.applicationId ?? ''))
@@ -109,6 +118,10 @@ export function useApplicantReview() {
     }
   }
 
+  // ─── Shortlist (private to the company; the applicant isn't told) ───
+  const isShortlistBusy = computed(() => shortlistBusyIds.value.has(applicationId.value))
+  const toggleShortlist = () => store.setShortlisted(applicationId.value, !isSelectedShortlisted.value)
+
   const reload = () => store.openApplication(vacancyId.value, applicationId.value)
 
   watch(
@@ -128,6 +141,10 @@ export function useApplicantReview() {
     isLoading: isLoadingDetail,
     errorMessage: detailError,
     reload,
+    // Shortlist
+    isShortlisted: isSelectedShortlisted,
+    isShortlistBusy,
+    toggleShortlist,
     // Hiring step form
     stage: stageModel,
     stageOptions,

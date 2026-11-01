@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { ArrowLeft, Search, Users } from '@lucide/vue'
+import { ArrowLeft, Search, Star, Users } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,9 @@ const {
   searchInput,
   hasFilters,
   clearFilters,
+  shortlistedOnly,
+  shortlistCount,
+  toggleShortlistedOnly,
   table,
   columns,
   applicants,
@@ -87,6 +90,18 @@ const {
             <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input v-model="searchInput" type="search" placeholder="Search applicant" class="pl-9" aria-label="Search applicant" />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            class="h-10 sm:h-9"
+            :class="shortlistedOnly ? 'border-primary bg-primary/5' : ''"
+            :aria-pressed="shortlistedOnly"
+            @click="toggleShortlistedOnly"
+          >
+            <Star class="size-4" :class="shortlistedOnly ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'" />
+            Shortlisted
+            <span class="rounded-full bg-muted px-1.5 text-xs font-semibold tabular-nums">{{ shortlistCount }}</span>
+          </Button>
           <Button v-if="hasFilters" variant="ghost" size="sm" class="h-10 sm:h-8" @click="clearFilters">Clear filters</Button>
         </div>
 
@@ -95,7 +110,7 @@ const {
             <EmptyMedia variant="icon"><Users /></EmptyMedia>
             <EmptyTitle>{{ hasFilters ? 'No matching applicants' : 'No applicants yet' }}</EmptyTitle>
             <EmptyDescription>
-              {{ hasFilters ? 'Try another search or stage.' : 'Applicants show up here when they apply.' }}
+              {{ hasFilters ? 'Try another search, step or the shortlist.' : 'Applicants show up here when they apply.' }}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent v-if="hasFilters">
