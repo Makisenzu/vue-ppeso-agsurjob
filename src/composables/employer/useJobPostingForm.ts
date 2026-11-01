@@ -9,6 +9,8 @@ import { useJobPostingStore } from '@/stores/employer/jobPostingStore'
 import { useJobPostingAttachments } from '@/composables/employer/useJobPostingAttachments'
 import {
   EMPTY_JOB_VACANCY_FORM_VALUES,
+  MAX_TRAINING_HOURS,
+  formatTrainingHours,
   jobVacancyFormShape,
   refineCompleteJobVacancyForm,
   toJobVacancyFields,
@@ -39,7 +41,16 @@ const jobPostingSchema = toTypedSchema(
       ...jobVacancyFormShape,
       languages: z.string().trim(),
       otherQualifications: z.string().trim(),
-      training: z.string().trim().max(300, 'Up to 300 characters.'),
+      // Blank → null; otherwise whole hours (migration 096)
+      trainingHours: z.preprocess(
+        (value) => (value === '' || value === null || value === undefined ? null : Number(value)),
+        z
+          .number({ invalid_type_error: 'Enter the number of hours.' })
+          .int('Whole hours only.')
+          .min(1, 'At least 1 hour.')
+          .max(MAX_TRAINING_HOURS, `Up to ${MAX_TRAINING_HOURS} hours.`)
+          .nullable(),
+      ),
       requirements: jobPostingRequirementsSchema,
       stages: jobPostingStagesSchema,
     })
@@ -58,7 +69,7 @@ type JobPostingFormStepKey = (typeof JOB_POSTING_FORM_STEPS)[number]['key']
 
 /** Form fields validated on each step */
 const STEP_FIELDS: Record<JobPostingFormStepKey, readonly string[]> = {
-  details: [...Object.keys(jobVacancyFormShape), 'training'],
+  details: [...Object.keys(jobVacancyFormShape), 'trainingHours'],
   requirements: ['requirements'],
   stages: ['stages'],
   review: [],
@@ -93,7 +104,7 @@ export function useJobPostingForm() {
     validationSchema: jobPostingSchema,
     initialValues: {
       ...EMPTY_JOB_VACANCY_FORM_VALUES,
-      training: '',
+      trainingHours: null,
       requirements: toJobPostingRequirementValues(),
       stages: toJobPostingStageValues(),
     },
@@ -160,7 +171,7 @@ export function useJobPostingForm() {
         { label: 'Status', value: getJobPostingStatusLabel(values.status) },
         { label: 'Education', value: [values.educationalLevel, values.courseShsStrand].filter(Boolean).join(' · ') || '—' },
         { label: 'Work experience', value: experience ? plural(experience, 'month') : 'Not required' },
-        { label: 'Training', value: values.training?.trim() || 'Not required' },
+        { label: 'Training', value: formatTrainingHours(values.trainingHours) || 'Not required' },
         { label: 'Skills', value: (values.skills ?? []).map((skill) => skill.name).join(', ') || '—' },
       ],
       requirements: requirements.map((item) => ({ name: item.name, note: item.isRequired ? 'Required' : 'Optional' })),
@@ -186,7 +197,7 @@ export function useJobPostingForm() {
       resetForm({
         values: {
           ...toJobVacancyFormValues(posting, posting),
-          training: posting.training ?? '',
+          trainingHours: posting.training_hours ?? null,
           requirements: toJobPostingRequirementValues(posting.requirements),
           stages: toJobPostingStageValues(posting.stages),
         },
@@ -203,7 +214,7 @@ export function useJobPostingForm() {
         ...EMPTY_JOB_VACANCY_FORM_VALUES,
         postingDate: todayIso(),
         placeOfWork: authStore.employerProfile?.company_address ?? '',
-        training: '',
+        trainingHours: null,
         requirements: toJobPostingRequirementValues(),
         stages: toJobPostingStageValues(),
       },
@@ -223,7 +234,7 @@ export function useJobPostingForm() {
             vacancy_count: formValues.vacancyCount,
             status: formValues.status,
             related_courses: matching.related_courses,
-            training: formValues.training.trim() || null,
+            training_hours: formValues.trainingHours ?? null,
           },
           skills: matching.skills,
           requirements: toJobVacancyRequirements(formValues.requirements),

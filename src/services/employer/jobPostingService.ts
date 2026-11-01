@@ -72,11 +72,11 @@ export async function fetchJobPostingById(id: string): Promise<Omit<JobPostingDe
   ])
 
   if (error) throw error
-  // related_courses (085) and training (095) are read untyped until types are regenerated
-  const row = data as JobVacancyRow & { related_courses?: string[] | null; training?: string | null }
+  // related_courses (085) and training_hours (096) are read untyped until types are regenerated
+  const row = data as JobVacancyRow & { related_courses?: string[] | null; training_hours?: number | null }
   return {
     ...row,
-    training: row.training ?? null,
+    training_hours: row.training_hours ?? null,
     skills: skills.get(id) ?? [],
     related_courses: row.related_courses ?? [],
     requirements,

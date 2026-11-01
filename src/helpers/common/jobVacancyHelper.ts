@@ -143,6 +143,28 @@ export function toJobVacancyFormValues(
   }
 }
 
+// ─── Training hours (job_vacancies.training_hours, migration 096) ───
+
+export const MAX_TRAINING_HOURS = 1000
+
+const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
+  'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+/** 1–1000 in words, as civil service postings write them: 24 → "Twenty-Four", 120 → "One Hundred Twenty" */
+function numberToWords(value: number): string {
+  if (value >= 1000) return `${ONES[Math.floor(value / 1000)]} Thousand${value % 1000 ? ` ${numberToWords(value % 1000)}` : ''}`
+  if (value >= 100) return `${ONES[Math.floor(value / 100)]} Hundred${value % 100 ? ` ${numberToWords(value % 100)}` : ''}`
+  if (value >= 20) return `${TENS[Math.floor(value / 10)]}${value % 10 ? `-${ONES[value % 10]}` : ''}`
+  return ONES[value] ?? ''
+}
+
+/** 8 → "Eight (8) hours of relevant training"; '' when none */
+export function formatTrainingHours(hours?: number | null): string {
+  if (!hours || hours < 1) return ''
+  return `${numberToWords(hours)} (${hours}) hour${hours === 1 ? '' : 's'} of relevant training`
+}
+
 /** True when the vacancy asks for a course (anything but blank / "None") */
 export const requiresCourse = (course?: string | null) =>
   !!course?.trim() && course.trim().toLowerCase() !== NO_COURSE_REQUIRED.toLowerCase()

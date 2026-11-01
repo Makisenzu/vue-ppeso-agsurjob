@@ -42,10 +42,6 @@ const {
             specify-placeholder="Specify course / strand / qualification"
           />
         </FormControl>
-        <FormDescription>
-          Pick a course, a general requirement (e.g. "Bachelor's degree relevant to the job"), or type your own. Pick
-          "None" if no particular course is needed.
-        </FormDescription>
         <FormMessage />
       </FormItem>
     </FormField>
@@ -61,7 +57,6 @@ const {
           class="w-full"
           @update:model-value="addRelatedCourse"
         />
-        <FormDescription>Other courses you'd also accept for this job.</FormDescription>
         <FormMessage />
       </FormItem>
     </FormField>

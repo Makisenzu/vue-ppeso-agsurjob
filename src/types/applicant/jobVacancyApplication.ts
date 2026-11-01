@@ -50,8 +50,8 @@ export type VacancyDetails = OpenVacancyRow &
     | 'other_qualifications'
     | 'accepts_pwd'
   > & {
-    /** Training the vacancy asks for (migration 095) */
-    training: string | null
+    /** Hours of relevant training the vacancy asks for (migration 096) */
+    training_hours: number | null
     skills: Pick<JobVacancySkillRow, 'skill_name' | 'is_required'>[]
     attachments: JobVacancyAttachment[]
     /** Documents to submit (migration 088) */

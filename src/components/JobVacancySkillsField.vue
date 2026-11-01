@@ -55,7 +55,6 @@ const {
             Add
           </Button>
         </div>
-        <FormDescription>Applicants are matched on these. Turn off "Must have" for nice-to-haves.</FormDescription>
         <FormMessage />
       </FormItem>
     </FormField>
@@ -88,7 +87,6 @@ const {
     <p v-if="isFull" class="text-xs text-muted-foreground">Up to {{ maxSkills }} skills.</p>
 
     <div v-if="suggestions.length && !isFull" class="grid gap-2">
-      <p class="text-xs text-muted-foreground">From the NSRP skills list</p>
       <div class="flex flex-wrap gap-2">
         <Button
           v-for="name in suggestions"

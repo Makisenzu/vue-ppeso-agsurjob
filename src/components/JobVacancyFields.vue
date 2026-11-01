@@ -26,7 +26,7 @@ import {
  * `JobVacancyFormValues` (see jobVacancyHelper for the schema and payload). The `position` slot adds
  * fields to the position grid (e.g. a job order's jobsite country). `optionalExtras` labels languages and
  * other qualifications "(optional)" for forms whose schema allows them blank (employer postings).
- * `withTraining` adds the Training field (job_vacancies.training, migration 095) for forms that save it.
+ * `withTraining` adds the Training hours field (job_vacancies.training_hours, migration 096) for forms that save it.
  */
 defineProps<{ disabled?: boolean; optionalExtras?: boolean; withTraining?: boolean }>()
 
@@ -190,18 +190,22 @@ const qualificationFields = computed(() => [
           </FormItem>
         </FormField>
 
-        <FormField v-if="withTraining" v-slot="{ componentField }" name="training">
+        <FormField v-if="withTraining" v-slot="{ componentField }" name="trainingHours">
           <FormItem>
-            <FormLabel>Training <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
+            <FormLabel>Training (hours) <span class="font-normal text-muted-foreground">(optional)</span></FormLabel>
             <FormControl>
               <Input
                 v-bind="componentField"
-                maxlength="300"
-                placeholder="e.g. 8 hours of relevant training"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="1000"
+                step="1"
+                placeholder="e.g. 8"
                 :disabled="disabled"
               />
             </FormControl>
-            <FormDescription>Leave blank if no training is required.</FormDescription>
+            <FormDescription>Shown as "Eight (8) hours of relevant training". Leave blank if none.</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>

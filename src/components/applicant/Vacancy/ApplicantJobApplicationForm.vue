@@ -126,7 +126,8 @@ const INDICATOR_CLASS =
               <dd class="text-sm break-words text-foreground">{{ detail.value }}</dd>
             </div>
           </dl>
-          <div v-if="job.hiringSteps.length" class="flex flex-col gap-2">
+          <!-- Once applied, the progress stepper below shows the same steps -->
+          <div v-if="job.hiringSteps.length && !hasApplied" class="flex flex-col gap-2">
             <h3 class="text-xs font-medium text-muted-foreground uppercase">Hiring process</h3>
             <ol class="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-foreground">
               <li v-for="(step, index) in job.hiringSteps" :key="step" class="inline-flex items-center gap-1">

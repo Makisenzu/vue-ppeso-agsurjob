@@ -6,6 +6,7 @@ import { useJobVacancyApplicationStore } from '@/stores/applicant/jobVacancyAppl
 import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { formatJobPostingDate } from '@/helpers/employer/jobPostingHelper'
+import { formatTrainingHours } from '@/helpers/common/jobVacancyHelper'
 import {
   listReusableProfileDocuments,
   normalizeRequirementLabel,
@@ -266,7 +267,7 @@ export function useJobVacancyApplicationForm() {
         { label: 'Eligibility', value: row.eligibility ?? '' },
         { label: 'License', value: orNotRequired(row.license) },
         { label: 'Certification', value: orNotRequired(row.certification) },
-        { label: 'Training', value: orNotRequired(row.training) },
+        { label: 'Training', value: orNotRequired(formatTrainingHours(row.training_hours)) },
         { label: 'Other qualifications', value: orNotRequired((row.other_qualifications ?? []).join(', ')) },
         { label: 'Open to PWD', value: row.accepts_pwd ? 'Yes' : '' },
       ].filter((detail) => detail.value),
