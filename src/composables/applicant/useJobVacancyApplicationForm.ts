@@ -12,7 +12,6 @@ import {
 } from '@/helpers/applicant/applicantRequirementDocuments'
 import {
   JOB_APPLICATION_STAGE_BADGE_CLASS,
-  JOB_APPLICATION_STAGE_DESCRIPTIONS,
   getJobApplicationStageLabel,
   jobApplicationCode,
   toHiringProgress,
@@ -282,13 +281,12 @@ export function useJobVacancyApplicationForm() {
   )
   const stageLabel = computed(() => getJobApplicationStageLabel(stage.value, stepName.value))
   const stageClass = computed(() => JOB_APPLICATION_STAGE_BADGE_CLASS[stage.value])
-  const stageDescription = computed(() =>
-    stage.value === 'in_progress' && !isLocked.value
-      ? 'The employer is screening your application. You can still change your files until they move you on.'
-      : JOB_APPLICATION_STAGE_DESCRIPTIONS[stage.value],
-  )
   const statusRemarks = computed(() => (stage.value === 'rejected' ? (myApplication.value?.status_remarks ?? null) : null))
   const appliedOn = computed(() => formatGipDate(myApplication.value?.created_at))
+  /** Shown under the title, after the date applied */
+  const reference = computed(() =>
+    myApplication.value ? jobApplicationCode(myApplication.value.id, myApplication.value.created_at) : '',
+  )
 
   /** Details of the application, label → value */
   const applicationDetails = computed(() => {
@@ -296,8 +294,8 @@ export function useJobVacancyApplicationForm() {
     if (!application) return []
     const attached = requirements.value.filter((doc) => doc.savedFileName).length
     return [
-      { label: 'Reference no.', value: jobApplicationCode(application.id, application.created_at) },
       { label: 'Position', value: vacancy.value?.position_title ?? '—' },
+      { label: 'Salary rate / grade', value: vacancy.value?.salary?.trim() || '—' },
       { label: 'Date applied', value: formatGipDate(application.created_at) },
       { label: 'Last updated', value: formatGipDate(application.updated_at ?? application.created_at) },
       { label: 'Applied through', value: 'Online, through AGSURJOBS' },
@@ -396,9 +394,9 @@ export function useJobVacancyApplicationForm() {
     hasApplied,
     stageLabel,
     stageClass,
-    stageDescription,
     statusRemarks,
     appliedOn,
+    reference,
     applicationDetails,
     applicantDetails,
     isApplying,

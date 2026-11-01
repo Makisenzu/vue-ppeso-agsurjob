@@ -31,9 +31,9 @@ const {
   hasApplied,
   stageLabel,
   stageClass,
-  stageDescription,
   statusRemarks,
   appliedOn,
+  reference,
   applicationDetails,
   applicantDetails,
   isApplying,
@@ -78,7 +78,7 @@ const INDICATOR_CLASS =
           <span class="text-xs font-semibold tracking-wide text-primary uppercase">{{ job.company }}</span>
           <h1 class="text-2xl font-bold tracking-tight text-pretty text-foreground sm:text-3xl">{{ job.title }}</h1>
           <p class="text-sm text-pretty text-muted-foreground">
-            <template v-if="hasApplied">Applied {{ appliedOn }}. {{ stageDescription }}</template>
+            <template v-if="hasApplied">Applied {{ appliedOn }} · {{ reference }}</template>
             <template v-else>{{ job.summary }}</template>
           </p>
         </div>

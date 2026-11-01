@@ -38,14 +38,6 @@ export const JOB_APPLICATION_STAGE_LABELS: Record<JobApplicationStage, string> =
   rejected: 'Not selected',
 }
 
-/** What each status means to the applicant, under their status badge */
-export const JOB_APPLICATION_STAGE_DESCRIPTIONS: Record<JobApplicationStage, string> = {
-  applied: 'The employer has not reviewed it yet. You can still change your files until then.',
-  in_progress: 'The employer is going through your application. You will be notified at each step.',
-  hired: 'You were hired for this job.',
-  rejected: 'The employer did not select you this time.',
-}
-
 /** Badge colors per status (design tokens only) */
 export const JOB_APPLICATION_STAGE_BADGE_CLASS: Record<JobApplicationStage, string> = {
   applied: 'bg-primary/10 text-primary border-primary/30',
