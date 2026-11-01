@@ -23,9 +23,10 @@ import {
 /**
  * Every `esmdd.job_vacancies` field. Renders inside a parent vee-validate form whose values follow
  * `JobVacancyFormValues` (see jobVacancyHelper for the schema and payload). The `position` slot adds
- * fields to the position grid (e.g. a job order's jobsite country).
+ * fields to the position grid (e.g. a job order's jobsite country). `optionalExtras` labels languages and
+ * other qualifications "(optional)" for forms whose schema allows them blank (employer postings).
  */
-defineProps<{ disabled?: boolean }>()
+defineProps<{ disabled?: boolean; optionalExtras?: boolean }>()
 
 const acceptsPwdValue = useFieldValue<boolean>('acceptsPwd')
 const pwdDisabilities = useFieldValue<DisabilityType[]>('pwdDisabilities')
@@ -183,7 +184,10 @@ const qualificationFields = computed(() => [
 
       <FormField v-slot="{ componentField }" name="languages">
         <FormItem>
-          <FormLabel>Languages / Dialects Spoken</FormLabel>
+          <FormLabel>
+            Languages / Dialects Spoken
+            <span v-if="optionalExtras" class="font-normal text-muted-foreground">(optional)</span>
+          </FormLabel>
           <FormControl>
             <Input v-bind="componentField" placeholder="e.g. English, Filipino, Cebuano" :disabled="disabled" />
           </FormControl>
@@ -194,9 +198,16 @@ const qualificationFields = computed(() => [
 
       <FormField v-slot="{ componentField }" name="otherQualifications">
         <FormItem>
-          <FormLabel>Other Qualifications</FormLabel>
+          <FormLabel>
+            Other Qualifications
+            <span v-if="optionalExtras" class="font-normal text-muted-foreground">(optional)</span>
+          </FormLabel>
           <FormControl>
-            <Input v-bind="componentField" placeholder="e.g. Physically fit, Can work on shifts, or None" :disabled="disabled" />
+            <Input
+              v-bind="componentField"
+              :placeholder="optionalExtras ? 'e.g. Physically fit, Can work on shifts' : 'e.g. Physically fit, Can work on shifts, or None'"
+              :disabled="disabled"
+            />
           </FormControl>
           <FormDescription>Separate multiple entries with commas.</FormDescription>
           <FormMessage />

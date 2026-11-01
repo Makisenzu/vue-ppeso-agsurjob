@@ -29,12 +29,19 @@ import {
 import type { JobPostingFormValues } from '@/types/employer/jobPosting'
 
 /**
- * Every job_vacancies field is required, as on PESO's vacancy forms, including the skills used for matching,
- * plus the documents applicants submit (088) and the hiring steps (089) — employer postings only
+ * The job_vacancies fields of PESO's vacancy forms, including the skills used for matching, plus the documents
+ * applicants submit (088) and the hiring steps (089) — employer postings only. Languages and other
+ * qualifications are optional here: left blank, they're saved as empty.
  */
 const jobPostingSchema = toTypedSchema(
   z
-    .object({ ...jobVacancyFormShape, requirements: jobPostingRequirementsSchema, stages: jobPostingStagesSchema })
+    .object({
+      ...jobVacancyFormShape,
+      languages: z.string().trim(),
+      otherQualifications: z.string().trim(),
+      requirements: jobPostingRequirementsSchema,
+      stages: jobPostingStagesSchema,
+    })
     .superRefine(refineCompleteJobVacancyForm),
 )
 

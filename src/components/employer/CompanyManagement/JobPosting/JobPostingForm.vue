@@ -123,7 +123,7 @@ const INDICATOR_CLASS =
 
       <!-- Every step stays mounted (v-show) so its fields keep their state and can be checked from Review -->
       <section v-show="currentStepMeta.key === 'details'" class="grid grid-cols-1 gap-5" aria-label="Job details">
-        <JobVacancyFields :disabled="isSaving" />
+        <JobVacancyFields :disabled="isSaving" optional-extras />
       </section>
 
       <section v-show="currentStepMeta.key === 'requirements'" class="grid grid-cols-1 gap-6" aria-label="Requirements">
