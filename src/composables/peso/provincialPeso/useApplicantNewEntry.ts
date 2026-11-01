@@ -197,7 +197,8 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
   const religion = ref('')
 
   // Religion / course pick lists (core.religions, core.courses); values are still saved as text
-  const { religionOptions, getCourseOptions, trainingOptions, isLoadingReferenceLists } = useReferenceLists()
+  const { religionOptions, getCourseOptions, trainingOptions, eligibilityTitleOptions, isLoadingReferenceLists } =
+    useReferenceLists()
   // Bumped on reset so the pick lists forget a chosen "Others"
   const formResetCount = ref(0)
   const heightFt = ref<number | undefined>(undefined)
@@ -938,6 +939,7 @@ export function useApplicantNewEntry(options?: UseApplicantNewEntryOptions) {
     religionOptions,
     getCourseOptions,
     trainingOptions,
+    eligibilityTitleOptions,
     isLoadingReferenceLists,
     formResetCount,
     heightFt,

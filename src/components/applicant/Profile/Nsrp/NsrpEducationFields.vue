@@ -8,6 +8,7 @@ import { useNsrpFormContext } from '@/composables/applicant/useNsrpForm'
 import NsrpFieldGroup from '@/components/applicant/Profile/Nsrp/NsrpFieldGroup.vue'
 import NsrpSupportingDocField from '@/components/applicant/Profile/Nsrp/NsrpSupportingDocField.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
+import ReferencePicker from '@/components/ReferencePicker.vue'
 
 defineProps<{
   /** Groups render flat inside a parent card (profile editor) instead of as separate cards (wizard). */
@@ -27,6 +28,8 @@ const {
   addEligibility,
   removeEligibility,
   educationLevelOptions,
+  eligibilityTitleOptions,
+  isLoadingReferenceLists,
 } = useNsrpFormContext()
 
 const optional = '(optional)'
@@ -252,7 +255,14 @@ const optional = '(optional)'
             <FormItem class="col-span-2 sm:col-span-1">
               <FormLabel>Title / exam name</FormLabel>
               <FormControl>
-                <Input v-bind="componentField" placeholder="Career Service Professional" />
+                <ReferencePicker
+                  v-bind="componentField"
+                  :options="eligibilityTitleOptions"
+                  :loading="isLoadingReferenceLists"
+                  placeholder="Select eligibility / license"
+                  search-placeholder="Search name or abbreviation (e.g. CSE-PRO, LPT)..."
+                  specify-placeholder="Specify eligibility / license"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

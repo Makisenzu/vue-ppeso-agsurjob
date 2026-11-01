@@ -96,6 +96,7 @@ const {
   religionOptions,
   getCourseOptions,
   trainingOptions,
+  eligibilityTitleOptions,
   isLoadingReferenceLists,
   formResetCount,
   heightFt,
@@ -1067,7 +1068,16 @@ const confirmDuplicateResolution = () => {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Title / Exam Name</span>
-                      <Input v-model="el.eligibility_title" placeholder="e.g. Career Service Professional" class="h-8 text-xs" />
+                      <ReferencePicker
+                        :key="`eligibility-${formResetCount}-${idx}`"
+                        v-model="el.eligibility_title"
+                        :options="eligibilityTitleOptions"
+                        :loading="isLoadingReferenceLists"
+                        placeholder="Select eligibility / license"
+                        search-placeholder="Search name or abbreviation (e.g. CSE-PRO, LPT)..."
+                        specify-placeholder="Specify eligibility / license"
+                        class="h-8 text-xs"
+                      />
                     </div>
                     <div class="space-y-1">
                       <span class="text-[11px] text-muted-foreground">Rating Obtained (%)</span>

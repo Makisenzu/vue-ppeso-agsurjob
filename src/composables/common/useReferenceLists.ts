@@ -7,6 +7,7 @@ import {
   toReligionOptions,
   toVacancyCourseOptions,
   toVacancyEligibilityOptions,
+  toEligibilityTitleOptions,
 } from '@/helpers/common/referenceListHelper'
 import type { CourseLevel, ReferenceOption } from '@/types/common/referenceList'
 
@@ -44,8 +45,12 @@ export function useReferenceLists() {
   const vacancyEligibilityOptions = computed(() => toVacancyEligibilityOptions(eligibilities.value, 'eligibility'))
   const vacancyLicenseOptions = computed(() => toVacancyEligibilityOptions(eligibilities.value, 'license'))
 
+  /** Eligibilities and licenses together, for an applicant's NSRP eligibility rows */
+  const eligibilityTitleOptions = computed(() => toEligibilityTitleOptions(eligibilities.value))
+
   return {
     religionOptions,
+    eligibilityTitleOptions,
     getCourseOptions,
     trainingOptions,
     vacancyCourseOptions,

@@ -6,6 +6,7 @@ import { formatDateDisplay, getInitials } from '@/helpers/peso/provincialPeso/ap
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { usePsgc } from '@/composables/common/usePsgc'
 import { useProfileAvatar } from '@/composables/common/useProfileAvatar'
+import { useReferenceLists } from '@/composables/common/useReferenceLists'
 import type { ApplicantEntryRecord, ApplicantUpdate } from '@/types/peso/provincialPeso/applicantEntry'
 import type {
   EducationalBackgroundItem,
@@ -54,6 +55,8 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
   const store = useApplicantEntryStore()
   const toastAlert = useToastAlert()
   const { isLoading } = storeToRefs(store)
+  // Eligibility rows pick from core.eligibilities (migration 094); "Others" lets PESO type one
+  const { eligibilityTitleOptions, isLoadingReferenceLists } = useReferenceLists()
 
   const isGeneratingPdf = ref(false)
   const isPrintingPdf = ref(false)
@@ -781,6 +784,8 @@ export function useApplicantNsrpDetails(options?: UseApplicantNsrpDetailsOptions
     jobTypeOptions: JOB_TYPE_OPTIONS,
     programOptions: PROGRAM_OPTIONS,
     skillOptions: SKILL_OPTIONS,
+    eligibilityTitleOptions,
+    isLoadingReferenceLists,
 
     // ─── Section I: Personal Information edit refs ───
     editFirstName,

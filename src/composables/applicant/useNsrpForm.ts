@@ -2,6 +2,7 @@ import { computed, inject, provide, type InjectionKey, type Ref } from 'vue'
 import { useFieldArray, useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { calculateAge, todayIsoDate } from '@/helpers/common/signupHelper'
+import { useReferenceLists } from '@/composables/common/useReferenceLists'
 import {
   APPOINTMENT_STATUS_OPTIONS,
   COMPLETION_CIVIL_STATUS_OPTIONS,
@@ -41,6 +42,8 @@ import type {
  */
 export function useNsrpForm(stepKey: Ref<CompletionStepKey>, requiredPersonal: Ref<CompletionPersonalField[]>) {
   const validationSchema = computed(() => toTypedSchema(getCompletionStepSchema(stepKey.value, requiredPersonal.value)))
+  // Eligibility rows pick from core.eligibilities (migration 094); "Others" lets the applicant type one
+  const { eligibilityTitleOptions, isLoadingReferenceLists } = useReferenceLists()
 
   const { values: rawValues, errors, validate, resetForm, setFieldValue } = useForm<ApplicantCompletionValues>({
     validationSchema,
@@ -146,6 +149,8 @@ export function useNsrpForm(stepKey: Ref<CompletionStepKey>, requiredPersonal: R
     jobTypeOptions: JOB_TYPE_OPTIONS,
     skillOptions: SKILL_OPTIONS,
     languageAbilities: LANGUAGE_ABILITIES,
+    eligibilityTitleOptions,
+    isLoadingReferenceLists,
   }
 }
 

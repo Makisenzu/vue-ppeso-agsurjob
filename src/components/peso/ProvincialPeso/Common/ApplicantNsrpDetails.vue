@@ -36,6 +36,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import SupportingDocumentLink from '@/components/SupportingDocumentLink.vue'
+import ReferencePicker from '@/components/ReferencePicker.vue'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNsrpDetails } from '@/composables/peso/provincialPeso/useApplicantNsrpDetails'
 
@@ -78,6 +79,9 @@ const {
   programOptions,
   skillOptions,
 
+  // Eligibility picker (core.eligibilities)
+  eligibilityTitleOptions,
+  isLoadingReferenceLists,
   // Section I: Personal Information
   editFirstName,
   editMiddleName,
@@ -1192,7 +1196,15 @@ const {
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Title / Exam Name</span>
-                    <Input v-model="el.eligibility_title" placeholder="e.g. Career Service Professional, LET" class="h-8 text-xs" />
+                    <ReferencePicker
+                      v-model="el.eligibility_title"
+                      :options="eligibilityTitleOptions"
+                      :loading="isLoadingReferenceLists"
+                      placeholder="Select eligibility / license"
+                      search-placeholder="Search name or abbreviation (e.g. CSE-PRO, LPT)..."
+                      specify-placeholder="Specify eligibility / license"
+                      class="h-8 text-xs"
+                    />
                   </div>
                   <div class="space-y-1">
                     <span class="text-[11px] text-muted-foreground">Rating Obtained (%)</span>

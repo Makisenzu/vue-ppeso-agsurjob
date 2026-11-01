@@ -75,6 +75,27 @@ export function toVacancyEligibilityOptions(rows: EligibilityRow[], kind: Eligib
   return withOthersFallback([none, ...listed])
 }
 
+const ELIGIBILITY_KIND_LABEL: Record<EligibilityKind, string> = { eligibility: 'Eligibility', license: 'License' }
+
+/**
+ * Every eligibility and license for an applicant's NSRP record (core.eligibilities, migration 094), in one
+ * list since NSRP Form 1 has one "Eligibility / professional license" field. Group reads "License · PRC".
+ * "Others" (typed) last.
+ */
+export function toEligibilityTitleOptions(rows: EligibilityRow[]): ReferenceOption[] {
+  const listed = (['eligibility', 'license'] as const).flatMap((kind) =>
+    rows
+      .filter((row) => row.kind === kind && !row.requires_specify)
+      .map((row) => ({
+        name: row.name,
+        abbreviation: row.abbreviation,
+        group: [ELIGIBILITY_KIND_LABEL[kind], row.issuer].filter(Boolean).join(' · '),
+        requiresSpecify: false,
+      })),
+  )
+  return withOthersFallback(listed)
+}
+
 /** The course list for an NSRP education level, or null when that level has no courses (e.g. Elementary). */
 export function getCourseLevel(educationLevel?: string | null): CourseLevel | null {
   return (educationLevel && COURSE_LEVEL_BY_EDUCATION_LEVEL[educationLevel]) || null
