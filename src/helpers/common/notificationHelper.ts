@@ -17,6 +17,7 @@ const TYPE_META: Record<NotificationType, { label: string; icon: Component }> = 
   recruitment_activity: { label: 'Recruitment Activity', icon: UsersRound },
   job_fair: { label: 'Job Fair', icon: CalendarX },
   privacy_request: { label: 'Data Privacy', icon: ShieldCheck },
+  job_posting: { label: 'Job Posting', icon: BriefcaseBusiness },
 }
 
 /** Label and icon for a notification's type; `type` is free text in the table, so unknown ones get a plain bell. */

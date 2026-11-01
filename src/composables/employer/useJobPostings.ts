@@ -110,7 +110,10 @@ export function useJobPostings() {
   const applicantCount = (row: JobPostingListRow) => applicantCounts.value.get(row.id)?.all ?? 0
   const setStatus = (row: JobPostingListRow, status: JobVacancyStatus) => store.setPostingStatus(row, status)
 
-  /** Open postings can be filled or closed; any other status can be reopened */
+  /**
+   * Open postings can be filled or closed; any other status can be reopened, except one past its deadline:
+   * the database closes it again (migration 097), so it's reopened from Edit with a new deadline.
+   */
   function getStatusActions(row: JobPostingListRow) {
     if ((row.status ?? 'open') === 'open') {
       return [
@@ -118,6 +121,7 @@ export function useJobPostings() {
         { id: 'closed', label: 'Close posting', icon: XCircle, status: 'closed' as const },
       ]
     }
+    if (isJobPostingExpired(row.valid_until)) return []
     return [{ id: 'open', label: 'Reopen', icon: RotateCcw, status: 'open' as const }]
   }
 
@@ -213,10 +217,11 @@ export function useJobPostings() {
       id: 'period',
       header: 'Posting period',
       cell: ({ row }) => {
-        const expired = (row.original.status ?? 'open') === 'open' && isJobPostingExpired(row.original.valid_until)
+        // Closed by its deadline (migration 097): say how to reopen it
+        const expired = (row.original.status ?? 'open') === 'closed' && isJobPostingExpired(row.original.valid_until)
         return h('div', { class: 'whitespace-nowrap text-sm' }, [
           h('p', `${formatJobPostingDate(row.original.posting_date)} – ${formatJobPostingDate(row.original.valid_until)}`),
-          expired ? h('p', { class: 'text-xs text-destructive' }, 'Past its end date') : null,
+          expired ? h('p', { class: 'text-xs text-muted-foreground' }, 'Deadline passed · edit it to reopen') : null,
         ])
       },
     },
