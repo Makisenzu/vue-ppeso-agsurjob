@@ -42,6 +42,10 @@ export interface VacancyApplicantRow {
   id: string
   full_name: string
   municipality: string | null
+  /** Storage path of the applicant's profile picture (migration 092); null shows initials */
+  avatar_path: string | null
+  /** Latest course (or level) of the NSRP educational background (migration 092) */
+  course: string | null
   stage: JobApplicationStage
   stage_id: string | null
   stage_name: string | null

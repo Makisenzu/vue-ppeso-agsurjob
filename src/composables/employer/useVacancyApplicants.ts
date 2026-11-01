@@ -5,8 +5,11 @@ import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
 import { Eye } from '@lucide/vue'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { mediaService } from '@/services/common/mediaService'
+import { getInitials } from '@/helpers/peso/provincialPeso/gipHelper'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useJobApplicantStore } from '@/stores/employer/jobApplicantStore'
@@ -125,20 +128,37 @@ export function useVacancyApplicants() {
       id: 'applicant',
       header: 'Applicant',
       cell: ({ row }) =>
-        h('div', { class: 'min-w-0 max-w-xs' }, [
-          h('p', { class: 'truncate text-sm font-medium' }, row.original.full_name),
-          h('p', { class: 'truncate text-xs text-muted-foreground' }, row.original.municipality ?? '—'),
+        h('div', { class: 'flex min-w-0 max-w-xs items-center gap-3' }, [
+          h(Avatar, { class: 'size-8 shrink-0 border' }, () => [
+            row.original.avatar_path
+              ? h(AvatarImage, {
+                  src: mediaService.getPublicUrl(row.original.avatar_path),
+                  alt: row.original.full_name,
+                  class: 'object-cover',
+                })
+              : null,
+            h(AvatarFallback, { class: 'text-xs font-semibold' }, () => getInitials(row.original.full_name)),
+          ]),
+          h('div', { class: 'min-w-0' }, [
+            h('p', { class: 'truncate text-sm font-medium' }, row.original.full_name),
+            h('p', { class: 'truncate text-xs text-muted-foreground' }, row.original.municipality ?? '—'),
+          ]),
         ]),
+    },
+    {
+      id: 'course',
+      header: 'Course',
+      cell: ({ row }) =>
+        h(
+          'p',
+          { class: ['max-w-56 truncate text-sm', row.original.course ? '' : 'text-muted-foreground'], title: row.original.course ?? undefined },
+          row.original.course ?? '—',
+        ),
     },
     {
       id: 'applied',
       header: 'Applied',
       cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-sm' }, formatGipDate(row.original.created_at)),
-    },
-    {
-      id: 'updated',
-      header: 'Last updated',
-      cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-sm' }, formatGipDate(row.original.updated_at)),
     },
     {
       id: 'stage',
