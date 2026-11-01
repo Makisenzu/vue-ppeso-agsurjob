@@ -1,6 +1,7 @@
 import type { JobVacancyRow } from '@/types/peso/provincialPeso/jobFair'
 import type { JobApplicationStage, JobVacancyRequirement, JobVacancyStage } from '@/types/common/jobVacancyApplication'
 import type { GipApplicantSummarySource } from '@/helpers/applicant/gipApplicationHelper'
+import type { FitBand } from '@/types/common/jobVacancyFit'
 
 /**
  * Applicants of the company's job vacancies (esmdd.job_vacancy_applications, migration 087).
@@ -51,6 +52,12 @@ export interface VacancyApplicantRow {
   stage: JobApplicationStage
   stage_id: string | null
   stage_name: string | null
+  /** Vacancy fit (migration 098): 0–100, null when the posting asks for nothing to compare */
+  fit_score: number | null
+  fit_band: FitBand | null
+  fit_met_count: number | null
+  fit_required_count: number | null
+  fit_unknown_count: number | null
   created_at: string
   updated_at: string
   /** Matching applicants before paging */
@@ -62,6 +69,10 @@ export interface VacancyApplicantQuery {
   stage: ApplicantStageFilter
   /** Only the shortlisted ones (migration 093) */
   shortlistedOnly: boolean
+  /** Best fit first instead of newest first (migration 098) */
+  sortByFit: boolean
+  /** Only applicants with a strong fit */
+  strongFitOnly: boolean
   page: number
   pageSize: number
 }

@@ -83,6 +83,8 @@ export const jobApplicantService = {
       p_shortlisted: query.shortlistedOnly,
       p_limit: query.pageSize,
       p_offset: query.page * query.pageSize,
+      p_sort: query.sortByFit ? 'fit' : 'newest',
+      p_fit_band: query.strongFitOnly ? 'strong' : null,
     })
 
     if (error) throw error

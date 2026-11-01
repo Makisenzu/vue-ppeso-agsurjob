@@ -2,9 +2,11 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { jobApplicantService } from '@/services/employer/jobApplicantService'
 import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
+import { jobVacancyFitService } from '@/services/common/jobVacancyFitService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { JOB_APPLICANT_PAGE_SIZE, toJobApplicantErrorMessage } from '@/helpers/employer/jobApplicantHelper'
 import type { JobApplicationDocumentMap } from '@/types/common/jobVacancyApplication'
+import type { JobVacancyFit } from '@/types/common/jobVacancyFit'
 import type {
   ApplicantStepCounts,
   ApplicantStageFilter,
@@ -31,6 +33,9 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const stageFilter = ref<ApplicantStageFilter>('all')
   const shortlistedOnly = ref(false)
   const shortlistCount = ref(0)
+  /** Best fit first / strong fit only (migration 098) */
+  const sortByFit = ref(false)
+  const strongFitOnly = ref(false)
   const page = ref(0)
   const pageSize = ref(JOB_APPLICANT_PAGE_SIZE)
   const isLoading = ref(false)
@@ -43,6 +48,9 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
   const detailError = ref<string | null>(null)
   const isSavingStage = ref(false)
   const isSelectedShortlisted = ref(false)
+  /** The selected application's fit breakdown; null while loading or when it couldn't be computed */
+  const selectedFit = ref<JobVacancyFit | null>(null)
+  const isLoadingFit = ref(false)
   /** Applications whose shortlist change is on its way */
   const shortlistBusyIds = ref<Set<string>>(new Set())
 
@@ -60,6 +68,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     stageFilter.value = 'all'
     shortlistedOnly.value = false
     shortlistCount.value = 0
+    sortByFit.value = false
+    strongFitOnly.value = false
     page.value = 0
   }
 
@@ -75,6 +85,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
         search: search.value,
         stage: stageFilter.value,
         shortlistedOnly: shortlistedOnly.value,
+        sortByFit: sortByFit.value,
+        strongFitOnly: strongFitOnly.value,
         page: page.value,
         pageSize: pageSize.value,
       })
@@ -139,6 +151,18 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
 
   function setShortlistedOnly(value: boolean) {
     shortlistedOnly.value = value
+    page.value = 0
+    return fetchApplicants()
+  }
+
+  function setSortByFit(value: boolean) {
+    sortByFit.value = value
+    page.value = 0
+    return fetchApplicants()
+  }
+
+  function setStrongFitOnly(value: boolean) {
+    strongFitOnly.value = value
     page.value = 0
     return fetchApplicants()
   }
@@ -216,6 +240,7 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
       selectedApplication.value = details
       documents.value = files
       isSelectedShortlisted.value = shortlisted
+      void fetchSelectedFit(applicationId, current)
     } catch (error: unknown) {
       if (current === detailRequestId) {
         detailError.value = toJobApplicantErrorMessage(error, 'Failed to open the application.')
@@ -225,11 +250,26 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     }
   }
 
-  /** Drops the applicant's details and files once their page is left */
+  /** The fit card loads after the page; if it fails the card just says so, the review still works */
+  async function fetchSelectedFit(applicationId: string, requestId: number): Promise<void> {
+    isLoadingFit.value = true
+    try {
+      const fit = await jobVacancyFitService.fetchApplicationFit(applicationId)
+      if (requestId === detailRequestId) selectedFit.value = fit
+    } catch {
+      if (requestId === detailRequestId) selectedFit.value = null
+    } finally {
+      if (requestId === detailRequestId) isLoadingFit.value = false
+    }
+  }
+
+  /** Drops the applicant's details, files and fit once their page is left */
   function closeApplication() {
     selectedApplication.value = null
     documents.value = {}
     isSelectedShortlisted.value = false
+    selectedFit.value = null
+    isLoadingFit.value = false
   }
 
   /** target: 'applied', 'rejected' or a hiring step id; label: what it's called, for the toast */
@@ -259,6 +299,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     stageFilter,
     shortlistedOnly,
     shortlistCount,
+    sortByFit,
+    strongFitOnly,
     page,
     pageSize,
     isLoading,
@@ -267,6 +309,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     setSearch,
     setStageFilter,
     setShortlistedOnly,
+    setSortByFit,
+    setStrongFitOnly,
     setPage,
     // Shortlist
     shortlistBusyIds,
@@ -278,6 +322,8 @@ export const useJobApplicantStore = defineStore('employerJobApplicants', () => {
     detailError,
     isSavingStage,
     isSelectedShortlisted,
+    selectedFit,
+    isLoadingFit,
     openApplication,
     closeApplication,
     updateStage,

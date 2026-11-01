@@ -970,6 +970,45 @@ export type Database = {
           },
         ]
       }
+      eligibilities: {
+        Row: {
+          abbreviation: string | null
+          created_at: string
+          id: number
+          is_active: boolean
+          issuer: string | null
+          kind: string
+          name: string
+          requires_specify: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          issuer?: string | null
+          kind: string
+          name: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          issuer?: string | null
+          kind?: string
+          name?: string
+          requires_specify?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       privacy_consents: {
         Row: {
           granted_at: string
@@ -2113,6 +2152,24 @@ export type Database = {
           },
         ]
       }
+      job_application_file_cleanups: {
+        Row: {
+          created_at: string
+          path: string
+          requested_by: string
+        }
+        Insert: {
+          created_at?: string
+          path: string
+          requested_by: string
+        }
+        Update: {
+          created_at?: string
+          path?: string
+          requested_by?: string
+        }
+        Relationships: []
+      }
       job_fair_applicants: {
         Row: {
           applicant_id: string
@@ -2379,6 +2436,7 @@ export type Database = {
           related_courses: string[]
           salary: string | null
           status: string | null
+          training_hours: number | null
           updated_at: string | null
           vacancy_count: number | null
           valid_until: string | null
@@ -2410,6 +2468,7 @@ export type Database = {
           related_courses?: string[]
           salary?: string | null
           status?: string | null
+          training_hours?: number | null
           updated_at?: string | null
           vacancy_count?: number | null
           valid_until?: string | null
@@ -2441,12 +2500,161 @@ export type Database = {
           related_courses?: string[]
           salary?: string | null
           status?: string | null
+          training_hours?: number | null
           updated_at?: string | null
           vacancy_count?: number | null
           valid_until?: string | null
           work_experience_months?: number | null
         }
         Relationships: []
+      }
+      job_vacancy_application_documents: {
+        Row: {
+          application_id: string
+          created_at: string
+          document_name: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          path: string
+          size: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          document_name: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          document_name?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_application_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancy_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_vacancy_application_shortlists: {
+        Row: {
+          applicant_id: string
+          application_id: string
+          created_at: string
+          job_vacancy_id: string
+          shortlisted_by: string | null
+        }
+        Insert: {
+          applicant_id: string
+          application_id: string
+          created_at?: string
+          job_vacancy_id: string
+          shortlisted_by?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          application_id?: string
+          created_at?: string
+          job_vacancy_id?: string
+          shortlisted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_application_shortlists_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
+            foreignKeyName: "job_vacancy_application_shortlists_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "job_vacancy_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_vacancy_application_shortlists_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_vacancy_applications: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          id: string
+          job_vacancy_id: string
+          stage: string
+          stage_id: string | null
+          status_remarks: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          id?: string
+          job_vacancy_id: string
+          stage?: string
+          stage_id?: string | null
+          status_remarks?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          id?: string
+          job_vacancy_id?: string
+          stage?: string
+          stage_id?: string | null
+          status_remarks?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
+            foreignKeyName: "job_vacancy_applications_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_vacancy_applications_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancy_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_vacancy_attachments: {
         Row: {
@@ -2489,6 +2697,44 @@ export type Database = {
           },
         ]
       }
+      job_vacancy_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          job_vacancy_id: string
+          requirement_key: string | null
+          requirement_name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_vacancy_id: string
+          requirement_key?: string | null
+          requirement_name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_vacancy_id?: string
+          requirement_key?: string | null
+          requirement_name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_requirements_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_vacancy_skills: {
         Row: {
           created_at: string
@@ -2517,6 +2763,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_vacancy_skills_job_vacancy_id_fkey"
+            columns: ["job_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "job_vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_vacancy_stages: {
+        Row: {
+          created_at: string
+          id: string
+          job_vacancy_id: string
+          sort_order: number
+          stage_key: string | null
+          stage_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_vacancy_id: string
+          sort_order?: number
+          stage_key?: string | null
+          stage_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_vacancy_id?: string
+          sort_order?: number
+          stage_key?: string | null
+          stage_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_vacancy_stages_job_vacancy_id_fkey"
             columns: ["job_vacancy_id"]
             isOneToOne: false
             referencedRelation: "job_vacancies"
@@ -3192,6 +3473,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_default_job_vacancy_stages: {
+        Args: { p_job_vacancy_id: string }
+        Returns: undefined
+      }
       add_job_fair_participant: {
         Args: {
           p_establishment?: Json
@@ -3241,6 +3526,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      applicant_education_rank: {
+        Args: { p_level: string; p_year_graduated: string }
+        Returns: number
+      }
       apply_to_gip: {
         Args: never
         Returns: {
@@ -3258,6 +3547,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "gip_applicants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_to_job_vacancy: {
+        Args: { p_job_vacancy_id: string }
+        Returns: {
+          applicant_id: string
+          created_at: string
+          id: string
+          job_vacancy_id: string
+          stage: string
+          stage_id: string | null
+          status_remarks: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_vacancy_applications"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3285,12 +3593,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assert_job_vacancy_requirements: {
+        Args: { p_requirements: Json }
+        Returns: undefined
+      }
       assert_job_vacancy_skills: {
         Args: { p_skills: Json }
         Returns: undefined
       }
+      assert_job_vacancy_stages: {
+        Args: { p_stages: Json }
+        Returns: undefined
+      }
+      can_cleanup_job_application_file: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
       can_edit_own_gip_application: {
         Args: { p_gip_applicant_id: string }
+        Returns: boolean
+      }
+      can_edit_own_job_vacancy_application: {
+        Args: { p_application_id: string }
         Returns: boolean
       }
       can_edit_own_tupad_application: {
@@ -3305,27 +3629,176 @@ export type Database = {
         Args: { p_object_name: string }
         Returns: boolean
       }
+      can_read_job_vacancy_application: {
+        Args: { p_application_id: string }
+        Returns: boolean
+      }
+      can_review_job_vacancy: {
+        Args: { p_job_vacancy_id: string }
+        Returns: boolean
+      }
       clean_related_courses: {
         Args: { p_courses: string[] }
         Returns: string[]
+      }
+      compute_job_vacancy_fit: {
+        Args: { p_applicant_id: string; p_job_vacancy_id: string }
+        Returns: Json
+      }
+      eligibility_match_keys: { Args: { p_value: string }; Returns: string[] }
+      finish_job_application_file_cleanup: {
+        Args: { p_paths: string[] }
+        Returns: undefined
+      }
+      first_job_vacancy_stage: {
+        Args: { p_job_vacancy_id: string }
+        Returns: string
+      }
+      fit_ratio_status: { Args: { p_ratio: number }; Returns: string }
+      fit_requirement_text: { Args: { p_value: string }; Returns: string }
+      get_job_vacancy_application: {
+        Args: { p_application_id: string }
+        Returns: Json
+      }
+      get_job_vacancy_application_fit: {
+        Args: { p_application_id: string }
+        Returns: Json
+      }
+      is_job_vacancy_application_requirement: {
+        Args: { p_application_id: string; p_document_name: string }
+        Returns: boolean
       }
       job_fair_status_for: {
         Args: { p_end_date: string; p_start_date: string; p_status: string }
         Returns: string
       }
+      job_vacancy_application_stage_counts: {
+        Args: { p_job_vacancy_id: string }
+        Returns: {
+          stage: string
+          stage_id: string
+          total: number
+        }[]
+      }
+      job_vacancy_application_stats: {
+        Args: { p_job_vacancy_ids: string[] }
+        Returns: {
+          job_vacancy_id: string
+          stage: string
+          total: number
+        }[]
+      }
+      job_vacancy_fit_for: {
+        Args: {
+          p_applicant: Database["applicants"]["Tables"]["applicants"]["Row"]
+          p_req: Json
+        }
+        Returns: Json
+      }
+      job_vacancy_fit_requirements: {
+        Args: { p_job_vacancy_id: string }
+        Returns: Json
+      }
+      manila_today: { Args: never; Returns: string }
+      match_jsonb_array: { Args: { p_value: Json }; Returns: Json }
+      my_job_vacancy_fit: { Args: { p_job_vacancy_id: string }; Returns: Json }
+      normalize_match_key: { Args: { p_value: string }; Returns: string }
+      refresh_date_statuses: { Args: never; Returns: Json }
       refresh_job_fair_statuses: { Args: never; Returns: number }
+      replace_job_vacancy_requirements: {
+        Args: { p_job_vacancy_id: string; p_requirements: Json }
+        Returns: undefined
+      }
       replace_job_vacancy_skills: {
         Args: { p_job_vacancy_id: string; p_skills: Json }
         Returns: undefined
       }
-      save_job_vacancy: {
+      save_job_vacancy:
+        | {
+            Args: {
+              p_establishment_id: string
+              p_job_vacancy_id: string
+              p_skills: Json
+              p_vacancy: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_establishment_id: string
+              p_job_vacancy_id: string
+              p_requirements: Json
+              p_skills: Json
+              p_vacancy: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_establishment_id: string
+              p_job_vacancy_id: string
+              p_requirements: Json
+              p_skills: Json
+              p_stages: Json
+              p_vacancy: Json
+            }
+            Returns: string
+          }
+      search_job_vacancy_applications: {
         Args: {
-          p_establishment_id: string
+          p_fit_band?: string
           p_job_vacancy_id: string
-          p_skills: Json
-          p_vacancy: Json
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_shortlisted?: boolean
+          p_sort?: string
+          p_stage?: string
+          p_stage_id?: string
         }
-        Returns: string
+        Returns: {
+          avatar_path: string
+          course: string
+          created_at: string
+          fit_band: string
+          fit_met_count: number
+          fit_required_count: number
+          fit_score: number
+          fit_unknown_count: number
+          full_name: string
+          id: string
+          is_shortlisted: boolean
+          municipality: string
+          stage: string
+          stage_id: string
+          stage_name: string
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      search_open_job_vacancies: {
+        Args: {
+          p_job_vacancy_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+        }
+        Returns: {
+          company_name: string
+          id: string
+          my_application_id: string
+          my_stage: string
+          my_stage_name: string
+          nature_of_work: string
+          place_of_work: string
+          position_title: string
+          posting_date: string
+          salary: string
+          status: string
+          total_count: number
+          vacancy_count: number
+          valid_until: string
+        }[]
       }
       set_job_vacancy_matching: {
         Args: {
@@ -3335,6 +3808,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_job_vacancy_stages: {
+        Args: { p_job_vacancy_id: string; p_stages: Json }
+        Returns: undefined
+      }
+      tupad_batch_status_for: {
+        Args: { p_end: string; p_start: string; p_status: string }
+        Returns: string
+      }
+      vacancy_education_rank: { Args: { p_level: string }; Returns: number }
     }
     Enums: {
       disability_type_enum:

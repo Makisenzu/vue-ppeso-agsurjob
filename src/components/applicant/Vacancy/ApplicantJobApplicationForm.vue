@@ -14,11 +14,14 @@ import {
   StepperTrigger,
 } from '@/components/ui/stepper'
 import GipRequirementList from '@/components/applicant/Gip/GipRequirementList.vue'
+import JobVacancyFitCriteria from '@/components/JobVacancyFitCriteria.vue'
 import { useJobVacancyApplicationForm } from '@/composables/applicant/useJobVacancyApplicationForm'
 
 const {
   backLink,
   job,
+  match,
+  profileLink,
   requirements,
   attachmentAccept,
   attachmentMaxMb,
@@ -176,6 +179,25 @@ const INDICATOR_CLASS =
           </ul>
         </CollapsibleContent>
       </Collapsible>
+
+      <!-- ─── Your match: counts and gaps from the NSRP profile, never blocks applying ─── -->
+      <section
+        v-if="match && !hasApplied && !isApplying"
+        aria-labelledby="job-form-match-title"
+        class="flex flex-col gap-2 rounded-lg border border-border p-4"
+      >
+        <div class="flex flex-col gap-0.5">
+          <h2 id="job-form-match-title" class="text-lg font-semibold text-foreground">Your match</h2>
+          <p class="text-sm text-muted-foreground">{{ match.counts }}</p>
+        </div>
+        <JobVacancyFitCriteria :criteria="match.criteria" missing-label="Not on your profile" />
+        <p v-if="match.hasGaps" class="text-sm text-pretty text-muted-foreground">
+          Have these but they're not listed?
+          <AppLink :to="profileLink" class="font-medium text-primary underline-offset-4 hover:underline">Update your NSRP profile</AppLink>.
+          You can still apply either way.
+        </p>
+        <p class="text-xs text-muted-foreground">{{ match.disclaimer }}</p>
+      </section>
 
       <!-- ═══ Not applied: only the Apply now button under the job ═══ -->
       <div v-if="!hasApplied && !isApplying" class="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">

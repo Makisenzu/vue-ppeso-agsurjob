@@ -7,6 +7,7 @@ import { useSignedDocumentUrls } from '@/composables/common/usePrivateDocuments'
 import { describeGipApplicant, formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { formatJobPostingDate } from '@/helpers/employer/jobPostingHelper'
 import { formatTrainingHours } from '@/helpers/common/jobVacancyHelper'
+import { FIT_APPLICANT_DISCLAIMER, formatFitCounts, toFitCriterionViews, toFitGaps } from '@/helpers/common/jobVacancyFitHelper'
 import {
   listReusableProfileDocuments,
   normalizeRequirementLabel,
@@ -64,6 +65,7 @@ export function useJobVacancyApplicationForm() {
     vacancy,
     myApplication,
     documents,
+    myFit,
     isLoading,
     errorMessage,
     isSubmitting,
@@ -274,6 +276,21 @@ export function useJobVacancyApplicationForm() {
     }
   })
 
+  // ─── Your match (migration 098): counts and gaps, no score, so a number doesn't put anyone off applying ───
+  const match = computed(() => {
+    const fit = myFit.value
+    if (!fit || fit.required_count === 0) return null
+    const criteria = toFitCriterionViews(fit)
+    return {
+      counts: formatFitCounts(fit),
+      hasGaps: toFitGaps(criteria).length > 0,
+      criteria,
+      disclaimer: FIT_APPLICANT_DISCLAIMER,
+    }
+  })
+  /** Missing skills or courses are often just not on the profile yet */
+  const profileLink = { name: 'profile' } as const
+
   // ─── Status ───
   const hasApplied = computed(() => !!myApplication.value)
   const stage = computed(() => myApplication.value?.stage ?? 'applied')
@@ -384,6 +401,8 @@ export function useJobVacancyApplicationForm() {
   return {
     backLink,
     job,
+    match,
+    profileLink,
     requirements,
     attachmentAccept: JOB_APPLICATION_ATTACHMENT_ACCEPT,
     attachmentMaxMb: JOB_APPLICATION_ATTACHMENT_MAX_BYTES / 1024 / 1024,

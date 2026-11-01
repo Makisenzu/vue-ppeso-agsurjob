@@ -13,6 +13,14 @@ import {
   toJobApplicationRequirements,
 } from '@/helpers/common/jobVacancyApplicationHelper'
 import { toApplicantMoveOptions } from '@/helpers/employer/jobApplicantHelper'
+import {
+  FIT_BAND_BADGE_CLASS,
+  FIT_BAND_LABEL,
+  FIT_DISCLAIMER,
+  FIT_METHOD_NOTE,
+  formatFitCounts,
+  toFitCriterionViews,
+} from '@/helpers/common/jobVacancyFitHelper'
 import type { ApplicantStageFilter, VacancyApplicationDetails } from '@/types/employer/jobApplicant'
 
 /**
@@ -43,6 +51,8 @@ export function useApplicantReview() {
     isSavingStage,
     isSelectedShortlisted,
     shortlistBusyIds,
+    selectedFit,
+    isLoadingFit,
   } = storeToRefs(store)
 
   const vacancyId = computed(() => String(route.params.vacancyId ?? ''))
@@ -75,6 +85,20 @@ export function useApplicantReview() {
         const file = documents.value[name]
         return { name, isOptional, fileName: file?.file_name ?? null, url: file?.url ?? null }
       }),
+    }
+  })
+
+  // ─── Requirements fit (migration 098): advisory, from the NSRP profile ───
+  const fit = computed(() => {
+    const value = selectedFit.value
+    if (!value) return null
+    return {
+      hasCriteria: value.criteria.length > 0,
+      bandLabel: value.band ? FIT_BAND_LABEL[value.band] : null,
+      bandClass: value.band ? FIT_BAND_BADGE_CLASS[value.band] : '',
+      score: value.score,
+      counts: value.required_count > 0 ? formatFitCounts(value) : null,
+      criteria: toFitCriterionViews(value),
     }
   })
 
@@ -145,6 +169,11 @@ export function useApplicantReview() {
     isShortlisted: isSelectedShortlisted,
     isShortlistBusy,
     toggleShortlist,
+    // Requirements fit
+    fit,
+    isLoadingFit,
+    fitDisclaimer: FIT_DISCLAIMER,
+    fitMethodNote: FIT_METHOD_NOTE,
     // Hiring step form
     stage: stageModel,
     stageOptions,

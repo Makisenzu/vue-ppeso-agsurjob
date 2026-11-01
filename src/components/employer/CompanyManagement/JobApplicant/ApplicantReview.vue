@@ -2,6 +2,7 @@
 import { ArrowLeft, Eye, FileText, Loader2, Star } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
+import JobVacancyFitCriteria from '@/components/JobVacancyFitCriteria.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,10 @@ const {
   isShortlisted,
   isShortlistBusy,
   toggleShortlist,
+  fit,
+  isLoadingFit,
+  fitDisclaimer,
+  fitMethodNote,
   stage,
   stageOptions,
   remarks,
@@ -107,6 +112,33 @@ const {
                 <dd class="text-sm font-medium break-words">{{ detail.value }}</dd>
               </div>
             </dl>
+          </section>
+
+          <!-- Requirements fit: advisory, the employer still decides from the documents -->
+          <section class="rounded-lg border bg-card p-4 sm:p-6" aria-labelledby="applicant-fit-title">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="applicant-fit-title" class="text-base font-semibold">Requirements fit</h2>
+              <div v-if="fit?.bandLabel" class="flex items-center gap-2">
+                <span class="text-sm text-muted-foreground tabular-nums">{{ fit.score }}%</span>
+                <Badge variant="outline" :class="fit.bandClass">{{ fit.bandLabel }}</Badge>
+              </div>
+            </div>
+            <div v-if="isLoadingFit && !fit" class="mt-4 space-y-3" aria-busy="true">
+              <Skeleton v-for="i in 3" :key="i" class="h-10 w-full" />
+            </div>
+            <p v-else-if="!fit" class="mt-2 text-sm text-muted-foreground">The fit could not be computed for this application.</p>
+            <p v-else-if="!fit.hasCriteria" class="mt-2 text-sm text-muted-foreground">
+              This posting has no requirements to compare. Add skills, education or experience to the posting to see a fit.
+            </p>
+            <template v-else>
+              <p v-if="fit.counts" class="mt-1 text-sm text-muted-foreground">{{ fit.counts }}</p>
+              <JobVacancyFitCriteria :criteria="fit.criteria" class="mt-2" />
+              <p class="mt-3 text-xs text-muted-foreground">{{ fitDisclaimer }}</p>
+              <details class="mt-1 text-xs text-muted-foreground">
+                <summary class="w-fit cursor-pointer hover:text-foreground">How is this computed?</summary>
+                <p class="mt-1 text-pretty">{{ fitMethodNote }}</p>
+              </details>
+            </template>
           </section>
 
           <section class="rounded-lg border bg-card p-4 sm:p-6" aria-labelledby="applicant-documents-title">

@@ -16,6 +16,7 @@ import { useJobApplicantStore } from '@/stores/employer/jobApplicantStore'
 import { formatGipDate } from '@/helpers/applicant/gipApplicationHelper'
 import { formatJobPostingDate, getJobPostingStatusLabel } from '@/helpers/employer/jobPostingHelper'
 import { JOB_APPLICATION_STAGE_BADGE_CLASS, getJobApplicationStageLabel } from '@/helpers/common/jobVacancyApplicationHelper'
+import { FIT_BAND_BADGE_CLASS, FIT_BAND_LABEL, formatFitShort } from '@/helpers/common/jobVacancyFitHelper'
 import type { ApplicantStageFilter, VacancyApplicantRow } from '@/types/employer/jobApplicant'
 
 /** Applicants of one job posting: step counts and the server-paged list; Review opens the applicant's page */
@@ -32,6 +33,8 @@ export function useVacancyApplicants() {
     shortlistedOnly,
     shortlistCount,
     shortlistBusyIds,
+    sortByFit,
+    strongFitOnly,
     page,
     pageSize,
     isLoading,
@@ -81,13 +84,25 @@ export function useVacancyApplicants() {
   // ─── Shortlisted only (combines with the step and search) ───
   const toggleShortlistedOnly = () => store.setShortlistedOnly(!shortlistedOnly.value)
 
+  // ─── Fit (migration 098): best fit first, strong fit only. Sorting is not a filter, so Clear keeps it ───
+  const toggleSortByFit = () => store.setSortByFit(!sortByFit.value)
+  const toggleStrongFitOnly = () => store.setStrongFitOnly(!strongFitOnly.value)
+
   const hasFilters = computed(
-    () => searchInput.value.trim() !== '' || stageFilter.value !== 'all' || shortlistedOnly.value,
+    () => searchInput.value.trim() !== '' || stageFilter.value !== 'all' || shortlistedOnly.value || strongFitOnly.value,
   )
   function clearFilters() {
     searchInput.value = ''
     shortlistedOnly.value = false
+    strongFitOnly.value = false
     store.setStageFilter('all')
+  }
+
+  /** "Strong fit · 5/6", or null when the posting asks for nothing to compare */
+  const fitLabel = (row: VacancyApplicantRow) => {
+    if (!row.fit_band) return null
+    const short = formatFitShort(row.fit_met_count, row.fit_required_count)
+    return short ? `${FIT_BAND_LABEL[row.fit_band]} · ${short}` : FIT_BAND_LABEL[row.fit_band]
   }
 
   // ─── Rows (same handler for the desktop button and the mobile swipe) ───
@@ -106,10 +121,15 @@ export function useVacancyApplicants() {
     },
   ]
 
-  /** Mobile card: name (★ when shortlisted), then stage · municipality · date applied */
+  /** Mobile card: name (★ when shortlisted), then stage · fit · municipality · date applied */
   const getRowCard = (row: VacancyApplicantRow): SwipeCard => ({
     title: row.is_shortlisted ? `★ ${row.full_name}` : row.full_name,
-    subtitle: [getJobApplicationStageLabel(row.stage, row.stage_name), row.municipality, `Applied ${formatGipDate(row.created_at)}`]
+    subtitle: [
+      getJobApplicationStageLabel(row.stage, row.stage_name),
+      fitLabel(row),
+      row.municipality,
+      `Applied ${formatGipDate(row.created_at)}`,
+    ]
       .filter(Boolean)
       .join(' · '),
   })
@@ -148,6 +168,25 @@ export function useVacancyApplicants() {
           { class: ['max-w-56 truncate text-sm', row.original.course ? '' : 'text-muted-foreground'], title: row.original.course ?? undefined },
           row.original.course ?? '—',
         ),
+    },
+    {
+      id: 'fit',
+      header: 'Fit',
+      cell: ({ row }) => {
+        const { fit_band: band, fit_met_count: met, fit_required_count: required, fit_unknown_count: unknown } = row.original
+        if (!band) return h('span', { class: 'text-sm text-muted-foreground' }, '—')
+        const short = formatFitShort(met, required)
+        return h('div', { class: 'flex flex-col items-start gap-0.5' }, [
+          h(Badge, { variant: 'outline', class: FIT_BAND_BADGE_CLASS[band] }, () => FIT_BAND_LABEL[band]),
+          short
+            ? h(
+                'span',
+                { class: 'whitespace-nowrap text-xs text-muted-foreground tabular-nums' },
+                unknown ? `${short} met · ${unknown} to check` : `${short} met`,
+              )
+            : null,
+        ])
+      },
     },
     {
       id: 'applied',
@@ -254,6 +293,10 @@ export function useVacancyApplicants() {
     shortlistedOnly,
     shortlistCount,
     toggleShortlistedOnly,
+    sortByFit,
+    toggleSortByFit,
+    strongFitOnly,
+    toggleStrongFitOnly,
     // Table
     table,
     columns,

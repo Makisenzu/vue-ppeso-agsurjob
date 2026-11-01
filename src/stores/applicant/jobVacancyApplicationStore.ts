@@ -2,8 +2,10 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { jobVacancyApplicationService } from '@/services/applicant/jobVacancyApplicationService'
 import { jobApplicationDocumentService } from '@/services/common/jobApplicationDocumentService'
+import { jobVacancyFitService } from '@/services/common/jobVacancyFitService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import type { VacancyDetails } from '@/types/applicant/jobVacancyApplication'
+import type { JobVacancyFit } from '@/types/common/jobVacancyFit'
 import type {
   JobApplicationDocumentMap,
   JobApplicationPendingDocumentMap,
@@ -22,6 +24,8 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
   /** Null until the applicant applies */
   const myApplication = ref<JobVacancyApplicationRow | null>(null)
   const documents = ref<JobApplicationDocumentMap>({})
+  /** How the applicant's NSRP profile meets the vacancy (migration 098); null when it can't be computed */
+  const myFit = ref<JobVacancyFit | null>(null)
   const isLoading = ref(false)
   const isSubmitting = ref(false)
   /** Document whose saved file is being removed */
@@ -55,11 +59,14 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
     isLoading.value = true
     errorMessage.value = null
     try {
-      const [details] = await Promise.all([
+      const [details, fit] = await Promise.all([
         jobVacancyApplicationService.fetchVacancy(vacancyId),
+        // The match panel is a hint: when it fails the page still works without it
+        jobVacancyFitService.fetchMyFit(vacancyId).catch(() => null),
         refreshApplication(vacancyId, applicantId),
       ])
       vacancy.value = details
+      myFit.value = details ? fit : null
       if (!details) errorMessage.value = 'This vacancy is no longer accepting applications.'
     } catch (error: unknown) {
       errorMessage.value = errorMessageOf(error, 'Failed to load the job vacancy')
@@ -136,6 +143,7 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
     vacancy.value = null
     myApplication.value = null
     documents.value = {}
+    myFit.value = null
     errorMessage.value = null
   }
 
@@ -143,6 +151,7 @@ export const useJobVacancyApplicationStore = defineStore('applicantJobVacancyApp
     vacancy,
     myApplication,
     documents,
+    myFit,
     isLoading,
     isSubmitting,
     deletingDocument,

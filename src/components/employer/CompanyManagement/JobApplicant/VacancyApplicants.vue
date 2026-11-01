@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { ArrowLeft, Search, Star, Users } from '@lucide/vue'
+import { ArrowDownWideNarrow, ArrowLeft, Search, Star, Target, Users } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,10 @@ const {
   shortlistedOnly,
   shortlistCount,
   toggleShortlistedOnly,
+  sortByFit,
+  toggleSortByFit,
+  strongFitOnly,
+  toggleStrongFitOnly,
   table,
   columns,
   applicants,
@@ -85,7 +89,7 @@ const {
 
       <section class="space-y-4">
         <!-- Toolbar -->
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div class="relative w-full sm:max-w-xs">
             <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input v-model="searchInput" type="search" placeholder="Search applicant" class="pl-9" aria-label="Search applicant" />
@@ -102,6 +106,29 @@ const {
             Shortlisted
             <span class="rounded-full bg-muted px-1.5 text-xs font-semibold tabular-nums">{{ shortlistCount }}</span>
           </Button>
+          <!-- Fit (migration 098): advisory, from the NSRP profile against the posting's requirements -->
+          <Button
+            type="button"
+            variant="outline"
+            class="h-10 sm:h-9"
+            :class="strongFitOnly ? 'border-primary bg-primary/5' : ''"
+            :aria-pressed="strongFitOnly"
+            @click="toggleStrongFitOnly"
+          >
+            <Target class="size-4" :class="strongFitOnly ? 'text-primary' : 'text-muted-foreground'" />
+            Strong fit
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            class="h-10 sm:h-9"
+            :class="sortByFit ? 'border-primary bg-primary/5' : ''"
+            :aria-pressed="sortByFit"
+            @click="toggleSortByFit"
+          >
+            <ArrowDownWideNarrow class="size-4" :class="sortByFit ? 'text-primary' : 'text-muted-foreground'" />
+            Best fit first
+          </Button>
           <Button v-if="hasFilters" variant="ghost" size="sm" class="h-10 sm:h-8" @click="clearFilters">Clear filters</Button>
         </div>
 
@@ -110,7 +137,7 @@ const {
             <EmptyMedia variant="icon"><Users /></EmptyMedia>
             <EmptyTitle>{{ hasFilters ? 'No matching applicants' : 'No applicants yet' }}</EmptyTitle>
             <EmptyDescription>
-              {{ hasFilters ? 'Try another search, step or the shortlist.' : 'Applicants show up here when they apply.' }}
+              {{ hasFilters ? 'Try another search, step, the shortlist or the fit filter.' : 'Applicants show up here when they apply.' }}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent v-if="hasFilters">
