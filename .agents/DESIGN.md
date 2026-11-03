@@ -927,6 +927,7 @@ Every description in the UI (page header subtitles, `CardDescription`, `DialogDe
 4. **No implementation details.** Users don't need to know about storage buckets, RLS, or caching.
 5. **One idea per description.** If it needs two sentences, split it into a hint on the right field — or cut it.
 6. **Omit when it adds nothing.** A description is optional; a missing one beats a redundant one.
+7. **Use `FormDescription` sparingly.** Most fields need only a clear label and placeholder. Add a `FormDescription` only when the user would otherwise get it wrong: a format or file limit ("JPG or PNG, up to 5MB."), a non-obvious rule ("Must match your valid ID."), or a consequence ("Shown publicly on your job post."). Keep it to one short, precise phrase. Never add one just to fill space or to repeat the label.
 
 | ❌ Too long                                                                                                                     | ✅ Short and on-point                              |
 | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
