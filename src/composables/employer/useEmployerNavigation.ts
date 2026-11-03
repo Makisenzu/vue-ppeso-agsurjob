@@ -35,6 +35,7 @@ const navItems: EmployerNavItem[] = [
     children: [
       // Applicants open from each posting's "View applicants" action
       { title: 'Job Posts', to: { name: 'job-postings' } },
+      { title: 'Job Fairs', to: { name: 'employer-job-fairs' } },
       { title: 'Interviews' },
     ],
   },
@@ -47,8 +48,8 @@ const navItems: EmployerNavItem[] = [
   },
 ]
 
-// Members invited by the owner (migration 081): the owner-only pages (company profile, team, job posts) are left out
-const OWNER_ONLY_ROUTES = ['job-postings']
+// Members invited by the owner (migration 081): the owner-only pages (company profile, team, job posts, job fairs) are left out
+const OWNER_ONLY_ROUTES = ['job-postings', 'employer-job-fairs']
 const memberNavItems: EmployerNavItem[] = navItems
   .filter(item => item.title !== 'Company')
   .map(item => ({

@@ -6,6 +6,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useAuthStore } from '@/stores/common/auth'
 import { useJobPostingStore } from '@/stores/employer/jobPostingStore'
+import { useEmployerJobFairStore } from '@/stores/employer/jobFairStore'
 import { useJobPostingAttachments } from '@/composables/employer/useJobPostingAttachments'
 import {
   EMPTY_JOB_VACANCY_FORM_VALUES,
@@ -100,10 +101,13 @@ export function useJobPostingForm() {
   const router = useRouter()
   const authStore = useAuthStore()
   const store = useJobPostingStore()
+  const jobFairStore = useEmployerJobFairStore()
   const { editingPosting, isLoadingPosting, isSaving } = storeToRefs(store)
 
   const vacancyId = computed(() => (route.params.vacancyId ? String(route.params.vacancyId) : null))
   const isEditMode = computed(() => vacancyId.value !== null)
+  /** Opened from a job fair's "Post a new job": the new posting is offered there after saving */
+  const jobFairId = computed(() => (!isEditMode.value && route.query.jobFair ? String(route.query.jobFair) : null))
   const pageTitle = computed(() => (isEditMode.value ? 'Edit Job Posting' : 'Post a Job'))
   const loadError = ref<string | null>(null)
 
@@ -242,7 +246,10 @@ export function useJobPostingForm() {
     })
   }
 
-  const goBackToList = () => router.push({ name: 'job-postings' })
+  const goBackToList = () =>
+    jobFairId.value
+      ? router.push({ name: 'employer-job-fair-details', params: { jobFairId: jobFairId.value } })
+      : router.push({ name: 'job-postings' })
 
   const save = handleSubmit(
     async (formValues) => {
@@ -263,7 +270,9 @@ export function useJobPostingForm() {
         },
         attachments.attachmentChanges.value,
       )
-      if (saved) await goBackToList()
+      if (!saved) return
+      if (jobFairId.value && formValues.status === 'open') await jobFairStore.offerNewPosting(jobFairId.value, saved, formValues.vacancyCount)
+      await goBackToList()
     },
     // A field on an earlier step is invalid (e.g. edited after reaching Review): open the first such step
     async () => {

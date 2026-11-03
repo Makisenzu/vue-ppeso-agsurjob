@@ -179,9 +179,9 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
   async function savePosting(
     payload: JobPostingPayload,
     attachmentChanges: JobPostingAttachmentChanges = { add: [], remove: [] },
-  ): Promise<boolean> {
+  ): Promise<string | null> {
     const establishmentId = authStore.employerEstablishment?.id
-    if (!establishmentId) return false
+    if (!establishmentId) return null
 
     const existing = editingPosting.value
     isSaving.value = true
@@ -200,10 +200,10 @@ export const useJobPostingStore = defineStore('employerJobPosting', () => {
       editingPosting.value = null
       // The list reloads when the page returns to it; a new posting shows on the first page
       if (!existing) page.value = 0
-      return true
+      return vacancyId
     } catch (error: unknown) {
       toastAlert.error('Error', toJobPostingErrorMessage(error, 'Failed to save the job posting.'))
-      return false
+      return null
     } finally {
       isSaving.value = false
     }

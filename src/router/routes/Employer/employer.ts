@@ -56,6 +56,26 @@ export const employerRoutes: RouteRecordRaw[] = [
         component: () => import('@/components/employer/Team/EmployerNoCompany.vue'),
         meta: { breadcrumb: false, role: 'company_member' },
       },
+      // ─── Job Fairs (breadcrumb hierarchy: Job Fairs > Job Fair) ───
+      {
+        path: 'job-fairs',
+        meta: { breadcrumb: 'Job Fairs', breadcrumbTo: { name: 'employer-job-fairs' } },
+        children: [
+          {
+            path: '',
+            name: 'employer-job-fairs',
+            component: () => import('@/components/employer/CompanyManagement/JobFair/EmployerJobFairs.vue'),
+            // Joining and offering postings are the owner's (migration 105), like job posting
+            meta: { breadcrumb: false, role: 'company_owner' },
+          },
+          {
+            path: ':jobFairId',
+            name: 'employer-job-fair-details',
+            component: () => import('@/components/employer/CompanyManagement/JobFair/EmployerJobFairDetails.vue'),
+            meta: { breadcrumb: 'Job Fair', role: 'company_owner' },
+          },
+        ],
+      },
       // ─── Job Posting (breadcrumb hierarchy: Job Posting > Post a Job / Edit / Applicants) ───
       {
         path: 'job-postings',
