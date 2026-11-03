@@ -1,5 +1,7 @@
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
-import type { JobFairEventRow } from '@/types/common/jobFairEvent'
+import { formatTrainingHours, requiresCourse } from '@/helpers/common/jobVacancyHelper'
+import { toJobApplicationRequirements } from '@/helpers/common/jobVacancyApplicationHelper'
+import type { JobFairEventRow, JobFairPublicVacancy } from '@/types/common/jobFairEvent'
 
 /** "11/20/2026" or "11/20/2026 – 11/22/2026" */
 export function formatJobFairDateRange(startDate: string, endDate: string): string {
@@ -74,5 +76,32 @@ export function toJobFairEventCard(
     companies: `${row.company_count} compan${row.company_count === 1 ? 'y' : 'ies'}`,
     openings: formatOpenings(row.opening_count),
     badge: myStatus ? { label: myStatus, class: JOB_FAIR_PARTICIPANT_BADGE_CLASS[myStatus] ?? '' } : null,
+  }
+}
+
+/** Shown for a qualification the employer left blank, like the vacancy page */
+const NOT_REQUIRED = 'Not required'
+const orNotRequired = (value: string | null | undefined) => value?.trim() || NOT_REQUIRED
+
+/**
+ * What applicants need for a job fair vacancy: qualifications (label → value), skills and the
+ * documents to bring. Blank qualifications read "Not required"; education and eligibility are left
+ * out when blank, as on the vacancy page.
+ */
+export function toJobFairVacancyQualifications(vacancy: JobFairPublicVacancy) {
+  const course = requiresCourse(vacancy.course_shs_strand) ? vacancy.course_shs_strand : null
+  return {
+    description: vacancy.job_description?.trim() || null,
+    qualifications: [
+      { label: 'Education', value: [vacancy.educational_level, course].filter(Boolean).join(' · ') },
+      { label: 'Work experience', value: formatExperience(vacancy.work_experience_months) },
+      { label: 'Eligibility', value: vacancy.eligibility?.trim() ?? '' },
+      { label: 'License', value: orNotRequired(vacancy.license) },
+      { label: 'Certification', value: orNotRequired(vacancy.certification) },
+      { label: 'Training', value: orNotRequired(formatTrainingHours(vacancy.training_hours)) },
+      { label: 'Other qualifications', value: orNotRequired((vacancy.other_qualifications ?? []).join(', ')) },
+    ].filter((item) => item.value),
+    skills: vacancy.skills.map((skill) => ({ name: skill.skill_name, isRequired: skill.is_required })),
+    requirements: toJobApplicationRequirements(vacancy.requirements),
   }
 }

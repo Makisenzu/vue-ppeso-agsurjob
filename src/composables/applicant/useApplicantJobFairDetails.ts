@@ -6,10 +6,10 @@ import { useApplicantJobFairStore } from '@/stores/applicant/jobFairStore'
 import {
   JOB_FAIR_PARTICIPANT_BADGE_CLASS,
   JOB_FAIR_STATUS_BADGE_CLASS,
-  formatExperience,
   formatJobFairDateRange,
   formatOpenings,
   isJobFairOpen,
+  toJobFairVacancyQualifications,
 } from '@/helpers/common/jobFairEventHelper'
 import {
   UNVERIFIED_APPLICANT_TITLE,
@@ -85,10 +85,9 @@ export function useApplicantJobFairDetails() {
           natureOfWork: vacancy.nature_of_work,
           salary: vacancy.salary?.trim() || 'Not stated',
           location: vacancy.place_of_work?.trim() || 'Not stated',
-          education: vacancy.educational_level?.trim() || 'Not stated',
-          experience: formatExperience(vacancy.work_experience_months),
           openings: vacancy.opening_count == null ? 'No set limit' : formatOpenings(vacancy.opening_count),
           acceptsPwd: vacancy.accepts_pwd,
+          ...toJobFairVacancyQualifications(vacancy),
         })),
         }
       })

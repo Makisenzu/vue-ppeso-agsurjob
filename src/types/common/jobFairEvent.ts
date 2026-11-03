@@ -1,4 +1,6 @@
 import type { JobFairStatus, JobVacancyStatus } from '@/types/peso/provincialPeso/jobFair'
+import type { JobVacancyRequirement } from '@/types/common/jobVacancyApplication'
+import type { JobVacancyMatching } from '@/types/common/jobVacancy'
 
 // Rows returned by the job fair RPCs of migration 105. They are not in database.types.ts until
 // `npm run types:gen`; switch to Database['esmdd']['Functions'][…]['Returns'] after regenerating.
@@ -38,24 +40,39 @@ export type JobFairCompanyRow = {
   opening_count: number
 }
 
-/** esmdd.list_job_fair_vacancies: an open offer of a visible company */
+/** esmdd.list_job_fair_vacancies (106): an open offer of a visible company, with its qualifications */
 export type JobFairPublicVacancyRow = {
   /** job_fair_vacancies.id */
   id: string
   participant_id: string
+  /** The posting behind the offer (esmdd.job_vacancies.id) */
+  job_vacancy_id: string
   position_title: string
+  job_description: string | null
   nature_of_work: string | null
   salary: string | null
   place_of_work: string | null
   educational_level: string | null
+  course_shs_strand: string | null
   work_experience_months: number | null
+  eligibility: string | null
+  license: string | null
+  certification: string | null
+  training_hours: number | null
+  other_qualifications: string[] | null
   opening_count: number | null
   accepts_pwd: boolean
 }
 
+/** An offer with the posting's skills and the documents to submit */
+export type JobFairPublicVacancy = JobFairPublicVacancyRow & {
+  skills: JobVacancyMatching['skills']
+  requirements: JobVacancyRequirement[]
+}
+
 /** A company with its open vacancies, for the applicant's job fair page */
 export type JobFairCompanyWithVacancies = JobFairCompanyRow & {
-  vacancies: JobFairPublicVacancyRow[]
+  vacancies: JobFairPublicVacancy[]
 }
 
 /** One of the employer's own offers at a fair (job_fair_vacancies + its posting) */

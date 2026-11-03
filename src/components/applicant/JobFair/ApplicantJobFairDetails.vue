@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Building2, CalendarDays, Loader2, MapPin, Search, ShieldAlert, Users } from '@lucide/vue'
+import { Building2, CalendarDays, ChevronDown, FileText, Loader2, MapPin, Search, ShieldAlert, Users } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   AlertDialog,
@@ -169,7 +170,7 @@ const {
             <AccordionContent class="pb-4">
               <p class="mb-3 text-xs text-muted-foreground sm:hidden">{{ company.summary }}</p>
               <p v-if="!company.vacancies.length" class="text-sm text-muted-foreground">No open vacancies listed yet.</p>
-              <ul v-else class="grid gap-3 md:grid-cols-2">
+              <ul v-else class="grid items-start gap-3 md:grid-cols-2">
                 <li v-for="vacancy in company.vacancies" :key="vacancy.id" class="space-y-3 rounded-lg border p-4">
                   <div class="flex flex-wrap items-center gap-2">
                     <h3 class="font-semibold text-pretty">{{ vacancy.title }}</h3>
@@ -185,19 +186,62 @@ const {
                       <dt class="text-xs text-muted-foreground">Openings</dt>
                       <dd>{{ vacancy.openings }}</dd>
                     </div>
-                    <div class="min-w-0">
+                    <div class="col-span-2 min-w-0">
                       <dt class="text-xs text-muted-foreground">Place of work</dt>
                       <dd class="truncate" :title="vacancy.location">{{ vacancy.location }}</dd>
                     </div>
-                    <div class="min-w-0">
-                      <dt class="text-xs text-muted-foreground">Education</dt>
-                      <dd class="truncate" :title="vacancy.education">{{ vacancy.education }}</dd>
-                    </div>
-                    <div class="col-span-2 min-w-0">
-                      <dt class="text-xs text-muted-foreground">Experience</dt>
-                      <dd>{{ vacancy.experience }}</dd>
-                    </div>
                   </dl>
+
+                  <!-- Qualifications and documents to bring -->
+                  <Collapsible v-slot="{ open }" class="border-t pt-3">
+                    <CollapsibleTrigger
+                      class="flex w-full items-center justify-between gap-2 rounded-md text-sm font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      {{ open ? 'Hide qualifications' : 'Qualifications & requirements' }}
+                      <ChevronDown class="size-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent class="space-y-4 pt-3">
+                      <p v-if="vacancy.description" class="text-sm whitespace-pre-line text-muted-foreground">
+                        {{ vacancy.description }}
+                      </p>
+
+                      <div class="space-y-2">
+                        <h4 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Qualifications</h4>
+                        <dl class="grid gap-2 text-sm">
+                          <div v-for="item in vacancy.qualifications" :key="item.label" class="grid gap-0.5 sm:grid-cols-[9rem_1fr] sm:gap-3">
+                            <dt class="text-muted-foreground">{{ item.label }}</dt>
+                            <dd class="min-w-0 break-words">{{ item.value }}</dd>
+                          </div>
+                        </dl>
+                      </div>
+
+                      <div v-if="vacancy.skills.length" class="space-y-2">
+                        <h4 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Skills</h4>
+                        <ul class="flex flex-wrap gap-1.5">
+                          <li v-for="skill in vacancy.skills" :key="skill.name">
+                            <Badge :variant="skill.isRequired ? 'default' : 'outline'">
+                              {{ skill.name }}<span v-if="!skill.isRequired" class="sr-only"> (nice to have)</span>
+                            </Badge>
+                          </li>
+                        </ul>
+                        <p class="text-xs text-muted-foreground">Filled badges are must-haves.</p>
+                      </div>
+
+                      <div class="space-y-2">
+                        <h4 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Documents to bring</h4>
+                        <p v-if="!vacancy.requirements.length" class="text-sm text-muted-foreground">None listed.</p>
+                        <ul v-else class="space-y-1.5 text-sm">
+                          <li v-for="requirement in vacancy.requirements" :key="requirement.name" class="flex items-start gap-2">
+                            <FileText class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                            <span class="min-w-0">
+                              {{ requirement.name }}
+                              <span v-if="requirement.isOptional" class="text-muted-foreground">(optional)</span>
+                            </span>
+                          </li>
+                        </ul>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </li>
               </ul>
             </AccordionContent>

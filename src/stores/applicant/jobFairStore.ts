@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { jobFairEventService } from '@/services/common/jobFairEventService'
 import { jobFairRegistrationService } from '@/services/applicant/jobFairRegistrationService'
+import { jobVacancyMatchingService } from '@/services/common/jobVacancyMatchingService'
+import { jobVacancyRequirementService } from '@/services/common/jobVacancyRequirementService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { toJobFairErrorMessage } from '@/helpers/common/jobFairEventHelper'
 import type {
@@ -69,10 +71,22 @@ export const useApplicantJobFairStore = defineStore('applicantJobFairs', () => {
         jobFairEventService.fetchVacancies(jobFairId),
       ])
       if (current !== detailsRequestId) return
+      // Skills and documents to submit of the confirmed companies' postings only
+      const postingIds = [...new Set(vacancyRows.map((vacancy) => vacancy.job_vacancy_id))]
+      const [skills, requirements] = await Promise.all([
+        jobVacancyMatchingService.fetchSkillsByVacancy(postingIds),
+        jobVacancyRequirementService.fetchRequirementsByVacancy(postingIds),
+      ])
+      if (current !== detailsRequestId) return
+      const vacancies = vacancyRows.map((vacancy) => ({
+        ...vacancy,
+        skills: skills.get(vacancy.job_vacancy_id) ?? [],
+        requirements: requirements.get(vacancy.job_vacancy_id) ?? [],
+      }))
       event.value = fair
       companies.value = companyRows.map((company) => ({
         ...company,
-        vacancies: vacancyRows.filter((vacancy) => vacancy.participant_id === company.participant_id),
+        vacancies: vacancies.filter((vacancy) => vacancy.participant_id === company.participant_id),
       }))
     } catch (error: unknown) {
       if (current === detailsRequestId) detailsError.value = toJobFairErrorMessage(error, 'Failed to load the job fair.')
