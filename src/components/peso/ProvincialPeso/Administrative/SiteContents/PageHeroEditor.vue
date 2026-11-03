@@ -33,7 +33,7 @@ const {
     <section class="grid content-start gap-3">
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-sm font-semibold">{{ pageInfo.name }}</h3>
-        <Button variant="ghost" size="sm" as-child>
+        <Button v-if="pageInfo.path" variant="ghost" size="sm" as-child>
           <AppLink :to="pageInfo.path" target="_blank">
             View page
             <ExternalLink class="size-4" />

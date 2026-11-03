@@ -91,10 +91,6 @@ export function toJobFairEventCard(
   }
 }
 
-/** The newest post's picture is the backdrop of the Job Fairs hero; null shows the plain band */
-export const toJobFairHeroImage = (events: JobFairEvent[]) =>
-  events.find((row) => row.image_urls.length)?.image_urls[0] ?? null
-
 /** Shown for a qualification the employer left blank, like the vacancy page */
 const NOT_REQUIRED = 'Not required'
 const orNotRequired = (value: string | null | undefined) => value?.trim() || NOT_REQUIRED

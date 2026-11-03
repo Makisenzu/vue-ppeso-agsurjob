@@ -1,8 +1,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useApplicantJobFairStore } from '@/stores/applicant/jobFairStore'
-import { toJobFairEventCard, toJobFairHeroImage } from '@/helpers/common/jobFairEventHelper'
-import { JOB_FAIR_ABOUT, JOB_FAIR_FACTS, JOB_FAIR_HERO_EYEBROW, APPLICANT_JOB_FAIR_PAGE } from '@/types/common/jobFairProgram'
+import { toJobFairEventCard } from '@/helpers/common/jobFairEventHelper'
+import { JOB_FAIR_ABOUT, JOB_FAIR_FACTS, APPLICANT_JOB_FAIR_PAGE } from '@/types/common/jobFairProgram'
+import { useLandingPageHero } from '@/composables/landing/useLandingPageHero'
+import { toPageHero } from '@/helpers/common/siteContentHelper'
 import type { JobFairListScope } from '@/types/common/jobFairEvent'
 
 /** Job Fairs page (applicant): upcoming / ongoing fairs, or past ones, with the applicant's registration */
@@ -29,12 +31,13 @@ export function useApplicantJobFairs() {
   })
 
   // Hero, "What is a Job Fair?" and "How it works", like the GIP / SPES / TUPAD pages
-  const hero = computed(() => ({
-    eyebrow: JOB_FAIR_HERO_EYEBROW,
-    title: APPLICANT_JOB_FAIR_PAGE.heroTitle,
-    description: APPLICANT_JOB_FAIR_PAGE.heroDescription,
-    backgroundImage: toJobFairHeroImage(events.value),
-  }))
+  // Hero text and photo are PESO's, from Site Contents → Job Fairs page (108–109); built-in text
+  // and the plain band until PESO sets them
+  const { hero: pageHero } = useLandingPageHero('job_fairs_applicant')
+  const hero = computed(() => {
+    const { eyebrow, title, description, backgroundImage } = pageHero.value ?? toPageHero('job_fairs_applicant', null, null)
+    return { eyebrow, title, description, backgroundImage }
+  })
   const about = JOB_FAIR_ABOUT
   const facts = JOB_FAIR_FACTS
   const steps = APPLICANT_JOB_FAIR_PAGE.steps

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
-import { ArrowRight, Building2, CalendarDays, MapPin, Megaphone, Users } from '@lucide/vue'
+import { ArrowRight, Building2, CalendarDays, MapPin, Users } from '@lucide/vue'
+import pesoLogo from '@/assets/images/pesologo.png'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { JobFairEventCard } from '@/helpers/common/jobFairEventHelper'
@@ -18,9 +19,8 @@ defineProps<{
     <!-- Author -->
     <header class="flex items-start justify-between gap-3 px-4 pt-4 sm:px-5">
       <div class="flex min-w-0 items-center gap-3">
-        <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
-          <Megaphone class="size-5" />
-        </span>
+        <!-- PESO posts every job fair, so its logo is the author picture -->
+        <img :src="pesoLogo" alt="" class="size-10 shrink-0 rounded-full border bg-background object-contain p-0.5" />
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold text-foreground">Provincial PESO</p>
           <p class="text-xs text-muted-foreground">Posted {{ card.postedOn }}</p>

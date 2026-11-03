@@ -1,4 +1,5 @@
-// Content of the applicant / employer Job Fairs pages, laid out like the GIP / SPES / TUPAD pages
+// Content of the applicant / employer Job Fairs pages, laid out like the GIP / SPES / TUPAD pages.
+// The hero text and photo are PESO's, from Site Contents → Job Fairs page (108–109; defaults in PUBLIC_PAGES).
 
 export interface JobFairProgramFact {
   label: string
@@ -9,8 +10,6 @@ export interface JobFairProgramStep {
   title: string
   note: string
 }
-
-export const JOB_FAIR_HERO_EYEBROW = 'PESO Job Fairs'
 
 export const JOB_FAIR_ABOUT = {
   title: 'What is a Job Fair?',
@@ -27,8 +26,6 @@ export const JOB_FAIR_FACTS: readonly JobFairProgramFact[] = [
 ]
 
 export const APPLICANT_JOB_FAIR_PAGE = {
-  heroTitle: 'Meet hiring companies at PESO job fairs',
-  heroDescription: 'Register online, see who is hiring, and walk in ready on the day.',
   steps: [
     { title: 'Find a job fair', note: 'Browse the job fairs PESO posted below for the date and venue.' },
     { title: 'Register', note: 'Pre-register online. PESO must verify your account first.' },
@@ -38,8 +35,6 @@ export const APPLICANT_JOB_FAIR_PAGE = {
 }
 
 export const EMPLOYER_JOB_FAIR_PAGE = {
-  heroTitle: 'Find your next hires at PESO job fairs',
-  heroDescription: 'Join a fair, offer your openings, and meet jobseekers face to face.',
   steps: [
     { title: 'Join a job fair', note: 'Pick a job fair below and join. Your company must be verified by PESO.' },
     { title: 'Wait for confirmation', note: 'PESO confirms your participation. Applicants see your company after that.' },

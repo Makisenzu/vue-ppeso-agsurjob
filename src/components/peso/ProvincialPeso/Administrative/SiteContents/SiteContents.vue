@@ -79,7 +79,7 @@ const {
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Site Contents</h1>
-      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos, page banners, the organizational chart and achievements.</p>
+      <p class="text-sm text-muted-foreground">Landing page carousel slides, program photos, municipality logos, page banners, the Job Fairs page, the organizational chart and achievements.</p>
     </div>
 
     <!-- Each section can be hidden or shown (remembered per browser) -->
@@ -225,8 +225,21 @@ const {
     <!-- Logos of the landing page's municipalities section -->
     <MunicipalityLogos />
 
-    <!-- Banners of the public pages outside the landing page (What is PESO?) -->
-    <PageHeroes />
+    <!-- Banner of the What is PESO? page -->
+    <PageHeroes
+      section-id="page-heroes"
+      title="Page banners"
+      description="Banners at the top of the public pages outside the landing page."
+      :page-keys="['what_is_peso']"
+    />
+
+    <!-- Hero of the applicant and employer Job Fairs pages (108–109) -->
+    <PageHeroes
+      section-id="job-fairs-page"
+      title="Job Fairs page"
+      description="The banner at the top of the Job Fairs page, one for applicants and one for employers."
+      :page-keys="['job_fairs_applicant', 'job_fairs_employer']"
+    />
 
     <!-- Organizational chart of the What is PESO? page -->
     <OrgChart />

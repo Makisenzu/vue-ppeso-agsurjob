@@ -14,13 +14,21 @@ import {
 import SiteContentSection from '@/components/peso/ProvincialPeso/Administrative/SiteContents/SiteContentSection.vue'
 import PageHeroEditor from '@/components/peso/ProvincialPeso/Administrative/SiteContents/PageHeroEditor.vue'
 import { usePageHeroes } from '@/composables/peso/provincialPeso/usePageHeroes'
+import type { PublicPage } from '@/types/common/siteContent'
 
-const { pages, isLoading, errorMessage, isClearing, pageToClearName, isClearDialogOpen, confirmClear } = usePageHeroes()
+const props = defineProps<{
+  sectionId: string
+  title: string
+  description: string
+  pageKeys: readonly PublicPage[]
+}>()
+
+const { pages, isLoading, errorMessage, isClearing, pageToClearName, isClearDialogOpen, confirmClear } = usePageHeroes(props.pageKeys)
 </script>
 
 <template>
-  <SiteContentSection section-id="page-heroes" title="Page banners">
-    <template #description>Banners at the top of the public pages outside the landing page.</template>
+  <SiteContentSection :section-id="sectionId" :title="title">
+    <template #description>{{ description }}</template>
 
     <div
       v-if="errorMessage"

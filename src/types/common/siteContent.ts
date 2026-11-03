@@ -156,7 +156,7 @@ export const LANDING_MUNICIPALITIES: { key: AgsurMunicipality; name: string; isC
 // system.public_page_heroes is not in database.types.ts until `npm run types:gen` is re-run,
 // so its row is typed here; switch to the generated types once they include it.
 
-export type PublicPage = 'what_is_peso'
+export type PublicPage = 'what_is_peso' | 'job_fairs_applicant' | 'job_fairs_employer'
 
 export interface PageHeroRow {
   page: PublicPage
@@ -189,7 +189,8 @@ export type PageHeroText = Pick<PageHero, 'eyebrow' | 'title' | 'description'>
 export const PAGE_HERO_LIMITS = { eyebrow: 80, title: 120, description: 300, imageAlt: 200 }
 
 /** Public pages with a hero; the table only holds what PESO changed, these are the built-in texts. */
-export const PUBLIC_PAGES: { key: PublicPage; name: string; path: string; defaults: PageHeroText }[] = [
+/** `path` is null for signed-in pages PESO cannot open (the Job Fairs pages of applicants and employers, 108) */
+export const PUBLIC_PAGES: { key: PublicPage; name: string; path: string | null; defaults: PageHeroText }[] = [
   {
     key: 'what_is_peso',
     name: 'What is PESO?',
@@ -198,6 +199,26 @@ export const PUBLIC_PAGES: { key: PublicPage; name: string; path: string; defaul
       eyebrow: 'Provincial PESO Agusan del Sur',
       title: 'What is PESO?',
       description: 'Free employment services for every Agsurnon, from a first job to the next one.',
+    },
+  },
+  {
+    key: 'job_fairs_applicant',
+    name: 'Job Fairs (applicants)',
+    path: null,
+    defaults: {
+      eyebrow: 'PESO Job Fairs',
+      title: 'Meet hiring companies at PESO job fairs',
+      description: 'Register online, see who is hiring, and walk in ready on the day.',
+    },
+  },
+  {
+    key: 'job_fairs_employer',
+    name: 'Job Fairs (employers)',
+    path: null,
+    defaults: {
+      eyebrow: 'PESO Job Fairs',
+      title: 'Find your next hires at PESO job fairs',
+      description: 'Join a fair, offer your openings, and meet jobseekers face to face.',
     },
   },
 ]

@@ -863,7 +863,7 @@ Hero banners of the public pages outside the landing page (first: `/what-is-peso
 
 | Column        | Type          | Notes |
 | ------------- | ------------- | ----- |
-| `page`        | `public_page` | PK: `what_is_peso` |
+| `page`        | `public_page` | PK: `what_is_peso`, `job_fairs_applicant`, `job_fairs_employer` (108, rows seeded in 109) |
 | `eyebrow`     | `text`        | nullable, ≤ 80 chars. NULL shows the built-in label |
 | `title`       | `text`        | nullable, ≤ 120 chars. NULL shows the built-in title |
 | `description` | `text`        | nullable, ≤ 300 chars. NULL shows the built-in description |
