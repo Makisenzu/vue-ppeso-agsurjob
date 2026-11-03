@@ -703,6 +703,7 @@ export type Database = {
         Args: { p_profile_id: string }
         Returns: boolean
       }
+      is_verified_account: { Args: never; Returns: boolean }
       owns_applicant: { Args: { p_applicant_id: string }; Returns: boolean }
       owns_spes_form: { Args: { p_form_id: string }; Returns: boolean }
       reapply_spes_form: {
@@ -4005,6 +4006,7 @@ export type Database = {
         Args: { p_job_vacancy_id: string; p_stages: Json }
         Returns: undefined
       }
+      training_duration_hours: { Args: { p_duration: string }; Returns: number }
       tupad_batch_status_for: {
         Args: { p_end: string; p_start: string; p_status: string }
         Returns: string
@@ -4030,7 +4032,7 @@ export type Database = {
       location_type: "onsite" | "remote" | "hybrid"
       nature_of_work_enum:
         | "Permanent"
-        | "Contractual"
+        | "Contract of Service"
         | "Project-based"
         | "Internship / OJT"
         | "Part-time"
@@ -5500,7 +5502,7 @@ export const Constants = {
       location_type: ["onsite", "remote", "hybrid"],
       nature_of_work_enum: [
         "Permanent",
-        "Contractual",
+        "Contract of Service",
         "Project-based",
         "Internship / OJT",
         "Part-time",
