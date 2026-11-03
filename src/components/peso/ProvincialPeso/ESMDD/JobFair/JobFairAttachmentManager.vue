@@ -177,6 +177,7 @@ function onDrop(event: DragEvent) {
       @change="onReplaceInputChange"
     >
 
+    <p class="text-xs text-muted-foreground">Images appear on the job fair post. The first is the cover.</p>
     <p v-if="attachmentError" class="text-sm text-destructive">{{ attachmentError }}</p>
 
     <!-- Delete Confirmation -->

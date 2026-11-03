@@ -8,7 +8,7 @@ import { toJobFairErrorMessage } from '@/helpers/common/jobFairEventHelper'
 import type {
   EmployerJobFairOffer,
   EmployerOfferablePosting,
-  JobFairEventRow,
+  JobFairEvent,
   JobFairListScope,
 } from '@/types/common/jobFairEvent'
 
@@ -18,14 +18,14 @@ export const useEmployerJobFairStore = defineStore('employerJobFairs', () => {
   const toastAlert = useToastAlert()
 
   // ─── List ───
-  const events = ref<JobFairEventRow[]>([])
+  const events = ref<JobFairEvent[]>([])
   const scope = ref<JobFairListScope>('active')
   const isLoading = ref(false)
   const errorMessage = ref<string | null>(null)
   const busyEventId = ref<string | null>(null)
 
   // ─── Details ───
-  const event = ref<JobFairEventRow | null>(null)
+  const event = ref<JobFairEvent | null>(null)
   const offers = ref<EmployerJobFairOffer[]>([])
   const openPostings = ref<EmployerOfferablePosting[]>([])
   const isLoadingDetails = ref(false)

@@ -66,13 +66,13 @@ export const employerRoutes: RouteRecordRaw[] = [
             name: 'employer-job-fairs',
             component: () => import('@/components/employer/CompanyManagement/JobFair/EmployerJobFairs.vue'),
             // Joining and offering postings are the owner's (migration 105), like job posting
-            meta: { breadcrumb: false, role: 'company_owner' },
+            meta: { breadcrumb: false, role: 'company_owner', fullWidth: true },
           },
           {
             path: ':jobFairId',
             name: 'employer-job-fair-details',
             component: () => import('@/components/employer/CompanyManagement/JobFair/EmployerJobFairDetails.vue'),
-            meta: { breadcrumb: 'Job Fair', role: 'company_owner' },
+            meta: { breadcrumb: 'Job Fair', role: 'company_owner', fullWidth: true },
           },
         ],
       },

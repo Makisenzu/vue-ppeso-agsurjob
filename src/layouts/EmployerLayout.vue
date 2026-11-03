@@ -8,7 +8,8 @@ import AppFooter from '@/components/AppFooter.vue'
     <!-- Top navigation replaces the sidebar for employers (same pattern as the applicant layout) -->
     <EmployerHeader />
 
-    <main class="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
+    <!-- fullWidth pages (the Job Fairs pages) bring their own section padding -->
+    <main class="w-full flex-1" :class="{ 'mx-auto max-w-7xl p-4 sm:p-6': !$route.meta.fullWidth }">
       <RouterView />
     </main>
 

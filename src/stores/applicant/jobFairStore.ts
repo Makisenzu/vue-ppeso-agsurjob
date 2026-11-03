@@ -8,7 +8,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { toJobFairErrorMessage } from '@/helpers/common/jobFairEventHelper'
 import type {
   JobFairCompanyWithVacancies,
-  JobFairEventRow,
+  JobFairEvent,
   JobFairListScope,
 } from '@/types/common/jobFairEvent'
 
@@ -17,13 +17,13 @@ export const useApplicantJobFairStore = defineStore('applicantJobFairs', () => {
   const toastAlert = useToastAlert()
 
   // ─── List ───
-  const events = ref<JobFairEventRow[]>([])
+  const events = ref<JobFairEvent[]>([])
   const scope = ref<JobFairListScope>('active')
   const isLoading = ref(false)
   const errorMessage = ref<string | null>(null)
 
   // ─── Details ───
-  const event = ref<JobFairEventRow | null>(null)
+  const event = ref<JobFairEvent | null>(null)
   const companies = ref<JobFairCompanyWithVacancies[]>([])
   const isLoadingDetails = ref(false)
   const detailsError = ref<string | null>(null)

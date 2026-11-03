@@ -1,7 +1,7 @@
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import { formatTrainingHours, requiresCourse } from '@/helpers/common/jobVacancyHelper'
 import { toJobApplicationRequirements } from '@/helpers/common/jobVacancyApplicationHelper'
-import type { JobFairEventRow, JobFairPublicVacancy } from '@/types/common/jobFairEvent'
+import type { JobFairEvent, JobFairPublicVacancy } from '@/types/common/jobFairEvent'
 
 /** "11/20/2026" or "11/20/2026 – 11/22/2026" */
 export function formatJobFairDateRange(startDate: string, endDate: string): string {
@@ -49,10 +49,15 @@ export function toJobFairErrorMessage(error: unknown, fallback: string): string 
   return fallback
 }
 
-/** What a job fair card shows; `badge` is the viewer's own registration / participation */
+/** Pictures shown on a feed post; the rest are counted on the last one ("+3") */
+export const JOB_FAIR_POST_MAX_IMAGES = 4
+
+/** What a job fair feed post shows; `badge` is the viewer's own registration / participation */
 export type JobFairEventCard = {
   id: string
   title: string
+  description: string | null
+  postedOn: string
   dateRange: string
   location: string
   status: string
@@ -60,15 +65,20 @@ export type JobFairEventCard = {
   companies: string
   openings: string
   badge: { label: string; class: string } | null
+  images: string[]
+  /** Pictures beyond JOB_FAIR_POST_MAX_IMAGES */
+  extraImageCount: number
 }
 
 export function toJobFairEventCard(
-  row: JobFairEventRow,
+  row: JobFairEvent,
   myStatus: string | null,
 ): JobFairEventCard {
   return {
     id: row.id,
     title: row.title,
+    description: row.description?.trim() || null,
+    postedOn: formatDisplayDate(row.created_at),
     dateRange: formatJobFairDateRange(row.start_date, row.end_date),
     location: row.location,
     status: row.status,
@@ -76,8 +86,14 @@ export function toJobFairEventCard(
     companies: `${row.company_count} compan${row.company_count === 1 ? 'y' : 'ies'}`,
     openings: formatOpenings(row.opening_count),
     badge: myStatus ? { label: myStatus, class: JOB_FAIR_PARTICIPANT_BADGE_CLASS[myStatus] ?? '' } : null,
+    images: row.image_urls.slice(0, JOB_FAIR_POST_MAX_IMAGES),
+    extraImageCount: Math.max(row.image_urls.length - JOB_FAIR_POST_MAX_IMAGES, 0),
   }
 }
+
+/** The newest post's picture is the backdrop of the Job Fairs hero; null shows the plain band */
+export const toJobFairHeroImage = (events: JobFairEvent[]) =>
+  events.find((row) => row.image_urls.length)?.image_urls[0] ?? null
 
 /** Shown for a qualification the employer left blank, like the vacancy page */
 const NOT_REQUIRED = 'Not required'

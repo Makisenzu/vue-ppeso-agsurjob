@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import { useAuthStore } from '@/stores/common/auth'
 import { useApplicantJobFairStore } from '@/stores/applicant/jobFairStore'
 import {
@@ -34,6 +35,10 @@ export function useApplicantJobFairDetails() {
       statusClass: JOB_FAIR_STATUS_BADGE_CLASS[row.status] ?? '',
       companies: `${row.company_count} compan${row.company_count === 1 ? 'y' : 'ies'}`,
       openings: formatOpenings(row.opening_count),
+      postedOn: formatDisplayDate(row.created_at),
+      /** The first picture PESO attached is the hero backdrop; all of them show under it */
+      cover: row.image_urls[0] ?? null,
+      photos: row.image_urls,
     }
   })
 

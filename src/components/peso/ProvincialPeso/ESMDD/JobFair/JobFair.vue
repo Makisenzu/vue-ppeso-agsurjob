@@ -370,6 +370,7 @@ function onAttachmentDrop(event: DragEvent) {
               >
             </label>
 
+            <p class="text-xs text-muted-foreground">Images appear on the job fair post. The first is the cover.</p>
             <p v-if="attachmentError" class="text-sm text-destructive">{{ attachmentError }}</p>
 
             <div v-if="attachments.length" class="grid gap-2 sm:grid-cols-2">

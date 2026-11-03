@@ -58,13 +58,13 @@ export const applicantRoutes : RouteRecordRaw[] = [
         path: 'job-fairs',
         name: 'applicant-job-fairs',
         component: () => import('@/components/applicant/JobFair/ApplicantJobFairs.vue'),
-        meta: { breadcrumb: 'Job Fairs' }
+        meta: { breadcrumb: 'Job Fairs', fullWidth: true }
       },
       {
         path: 'job-fairs/:jobFairId',
         name: 'applicant-job-fair-details',
         component: () => import('@/components/applicant/JobFair/ApplicantJobFairDetails.vue'),
-        meta: { breadcrumb: 'Job Fair' }
+        meta: { breadcrumb: 'Job Fair', fullWidth: true }
       },
       {
         path: 'saved-job',

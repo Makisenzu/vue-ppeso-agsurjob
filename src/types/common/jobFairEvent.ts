@@ -26,6 +26,15 @@ export type JobFairEventRow = {
   /** Employer: their company's participant row, null if it hasn't joined */
   my_participant_id: string | null
   my_participant_status: string | null
+  /** When PESO posted the fair (107) */
+  created_at: string
+  /** Its image attachments, oldest first (107); storage paths in the job-fair-attachments bucket */
+  image_paths: string[]
+}
+
+/** A fair with the public URLs of its pictures, as the stores keep it */
+export type JobFairEvent = JobFairEventRow & {
+  image_urls: string[]
 }
 
 /** esmdd.list_job_fair_companies: a Confirmed / Attended participant as applicants see it */
