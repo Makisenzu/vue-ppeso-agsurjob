@@ -32,7 +32,7 @@ import {
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useJobFairParticipants } from '@/composables/peso/provincialPeso/useJobFairParticipants'
 import { useJobFairParticipantForm } from '@/composables/peso/provincialPeso/useJobFairParticipantForm'
-import JobFairMapPreview from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairMapPreview.vue'
+import JobFairMapPreview from '@/components/JobFairMapPreview.vue'
 import JobFairAttachmentManager from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttachmentManager.vue'
 import JobFairAttendees from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairAttendees.vue'
 import JobFairHots from '@/components/peso/ProvincialPeso/ESMDD/JobFair/JobFairHots.vue'

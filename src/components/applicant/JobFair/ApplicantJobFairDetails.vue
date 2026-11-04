@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Building2, CalendarDays, ChevronDown, FileText, Loader2, MapPin, Search, ShieldAlert, Users } from '@lucide/vue'
+import { Building2, ExternalLink, CalendarDays, ChevronDown, FileText, Loader2, MapPin, Search, ShieldAlert, Users } from '@lucide/vue'
 import CustomBreadcrumbs from '@/components/CustomBreadcrumbs.vue'
 import JobFairHero from '@/components/JobFairHero.vue'
+import JobFairMapPreview from '@/components/JobFairMapPreview.vue'
 import JobFairPhotoStrip from '@/components/JobFairPhotoStrip.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -105,6 +106,25 @@ const {
             Cancel registration
           </Button>
         </div>
+        <template v-if="fair.map" #aside>
+          <figure class="flex flex-col gap-3">
+            <JobFairMapPreview
+              class="h-64 shadow-lg sm:h-72 lg:h-80"
+              :latitude="fair.map.latitude"
+              :longitude="fair.map.longitude"
+              :label="fair.location"
+            />
+            <figcaption class="flex items-center justify-between gap-3 text-sm">
+              <span class="min-w-0 truncate text-muted-foreground" :title="fair.location">{{ fair.location }}</span>
+              <Button as-child variant="outline" size="sm" class="shrink-0">
+                <AppLink :href="fair.map.directionsUrl" target="_blank">
+                  Directions
+                  <ExternalLink class="size-4" />
+                </AppLink>
+              </Button>
+            </figcaption>
+          </figure>
+        </template>
       </JobFairHero>
 
       <div class="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

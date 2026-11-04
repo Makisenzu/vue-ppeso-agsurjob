@@ -58,6 +58,15 @@ export function useEmployerJobFairDetails() {
       /** The first picture PESO attached is the hero backdrop; all of them show under it */
       cover: row.image_urls[0] ?? null,
       photos: row.image_urls,
+      /** Pinned by PESO on the job fair form; null hides the map */
+      map:
+        row.latitude != null && row.longitude != null
+          ? {
+              latitude: row.latitude,
+              longitude: row.longitude,
+              directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${row.latitude},${row.longitude}`,
+            }
+          : null,
     }
   })
 
