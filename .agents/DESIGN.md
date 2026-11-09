@@ -450,7 +450,44 @@ Key features:
 | `EmployerLayout.vue`           | `EmployerSidebar.vue`     |
 | `ProvincialPesoLayout.vue`     | `ProvincialPesoSidebar.vue` |
 | `MunicipalPesoLayout.vue`      | `MunicipalPesoSidebar.vue`  |
+| `ProgramPortalLayout.vue`      | `ProgramPortalSidebar.vue` _(applicant program portals, §7.1)_ |
 | `AuthLayout.vue`               | _(no sidebar — public)_   |
+
+### 7.1 Applicant Program Portals — one per PESO program
+
+Each PESO program has its own section of the applicant side with its own sidebar, instead of living
+under `ApplicantHeader`. Status as of 11/09/2026: **GIP has been moved. TUPAD, SPES and FNPLP still use `ApplicantLayout`.**
+
+| Piece | File | Role |
+| --- | --- | --- |
+| Layout | `src/layouts/ProgramPortalLayout.vue` | Same shell as the staff layouts (sidebar + sticky header with breadcrumbs, bell, theme toggle). `meta.fullWidth` pages get no padding (overview heroes). |
+| Sidebar | `src/components/sidebars/ProgramPortalSidebar.vue` | One sidebar for every program: header with the program's name, the program's own pages only (no links to the rest of AGSURJOBS; the header and Overview lead back to the program page), and an account menu. Rendering only. |
+| Config | `src/helpers/applicant/programPortalHelper.ts` | `PROGRAM_PORTALS`: one entry per program (title, icon, sidebar items). Items with a `hash` link to a section of a page. |
+| Logic | `src/composables/applicant/useProgramPortal.ts` | `useProgramPortalLayout()` / `useProgramPortalSidebar()`: current program from `meta.program`, active item, mobile close, theme. |
+| Routes | `src/router/routes/Applicant/applicant.ts` | A parent record at `/app/programs/<key>` with `component: ProgramPortalLayout` and `meta: { requiresAuth, role: 'applicant', program: '<key>' }`. |
+
+**When an applicant enters a portal:** only from an existing application. The program page
+(`/app/gip-application`, `gip-application`) and the Apply wizard (`/app/gip-application/form`, `gip-application-form`)
+**stay in `ApplicantLayout`**, so the top-nav "GIP" link and "Apply now" never open the portal. The portal opens from
+**"View my application"** (LandingGip), the Application Tracker, and the sidebar. Its route is `/app/programs/gip/application`
+(`gip-my-application`, the same `ApplicantGipApplicationForm` component). `useGipApplicationForm` moves the applicant from the
+wizard route to `gip-my-application` once they have an application (right after submitting, or from an old link).
+
+**Who sees which item:** items with `requiresEnrollment: true` are hidden until the applicant is enrolled
+in the program. Each program defines "enrolled" in the `enrollment` map of `useProgramPortalSidebar()`, read
+from that program's store (no extra fetch, because the portal pages already load it). GIP counts as enrolled once
+the applicant has an appointment; until then the GIP group shows only **My Application**.
+
+**To move another program (TUPAD / SPES / FNPLP):**
+1. Add its key to `ProgramPortalKey` and its entry to `PROGRAM_PORTALS` (`home`, then items: Overview, Requirements as `#<program>-requirements`, My Application, plus pages it has, like SPES "My SPES Details"). Mark items only enrolled applicants need with `requiresEnrollment`, and add the program's rule to the `enrollment` map.
+2. Keep its program page and Apply form under `/app` (ApplicantLayout). Add a `/app/programs/<key>` parent record with an `application` child named `<key>-my-application` that renders the same form/details component (plus any enrolled-only pages). The parent sets `breadcrumb: '<SHORT>'` and `breadcrumbTo` the program page, and its `''` child redirects to `<key>-my-application`.
+3. Point "View my application" on its landing page and its entry in `applicationStatusHelper.ts` at `<key>-my-application`. In its form composable, `router.replace` from the Apply route to `<key>-my-application` once `hasApplied` is true (pass `route.query` through).
+4. Make sure the requirements section on its landing page has the `id` the sidebar hash uses, plus `scroll-mt-20`.
+5. Notifications that link to the application should use `<key>-my-application`.
+6. Update the status line above.
+
+Rules: portals are **applicant-only** (staff keep their role sidebars). Don't copy the layout or sidebar per program; add config instead.
+Program-specific logic stays in that program's own composables (`useGipApplicationForm`, …).
 
 ---
 

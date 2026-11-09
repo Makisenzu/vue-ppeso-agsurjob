@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { toAccountRequirementsLink, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
@@ -410,6 +410,20 @@ export function useGipApplicationForm() {
     route.query.from === 'application'
       ? { to: { name: 'application' }, label: 'Application Status' }
       : { to: { name: 'gip-application' }, label: 'Government Internship Program' }
+  )
+
+  const router = useRouter()
+
+  // The Apply wizard (gip-application-form) lives in the applicant layout; once there is an application
+  // (just submitted, or an old link) it opens in the GIP portal instead, keeping ?from=application
+  watch(
+    hasApplied,
+    (applied) => {
+      if (applied && route.name === 'gip-application-form') {
+        void router.replace({ name: 'gip-my-application', query: route.query })
+      }
+    },
+    { immediate: true }
   )
 
   return {

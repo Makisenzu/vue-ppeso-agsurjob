@@ -100,7 +100,7 @@ src/
 ├── assets/                  # Static assets (images, SVGs)
 ├── components/
 │   ├── ui/                  # shadcn-vue primitives (DO NOT edit manually)
-│   ├── sidebars/            # One sidebar per staff role: AdminSidebar, EmployerSidebar, etc. (applicants use ApplicantHeader)
+│   ├── sidebars/            # One sidebar per staff role: AdminSidebar, EmployerSidebar, etc. (applicants use ApplicantHeader; program portals use ProgramPortalSidebar, DESIGN.md §7.1)
 │   ├── admin/               # Admin-specific page components
 │   ├── applicant/           # Applicant-specific page components
 │   ├── employer/            # Employer-specific page components
@@ -172,6 +172,7 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 | Auth (public)   | `/login`, `/signup` | `AuthLayout`           | _(none)_            |
 | Admin           | `/admin`            | `AdminLayout`          | `'admin'`           |
 | Applicant       | `/app`              | `ApplicantLayout`      | `'applicant'`       |
+| Applicant program portal | `/app/programs/<key>` | `ProgramPortalLayout` | `'applicant'` (+ `program: '<key>'`) |
 | Employer        | `/employer`         | `EmployerLayout`       | `'company_owner'`   |
 | Provincial PESO | `/provincial-peso`  | `ProvincialPesoLayout` | `'provincial_peso'` |
 | Municipal PESO  | `/municipal-peso`   | `MunicipalPesoLayout`  | `'municipal_peso'`  |

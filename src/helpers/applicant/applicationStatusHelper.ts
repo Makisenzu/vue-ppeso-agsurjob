@@ -47,7 +47,8 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
         appliedAt: row.created_at,
         updatedAt: row.updated_at ?? row.created_at,
         // `from` points the form's back link here instead of the GIP page
-        to: { name: 'gip-application-form', query: { from: 'application' } },
+        // Opens the application in the GIP portal (ProgramPortalLayout)
+        to: { name: 'gip-my-application', query: { from: 'application' } },
       }
     }),
     ...rows.spes.map((row) => ({

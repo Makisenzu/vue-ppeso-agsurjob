@@ -126,6 +126,8 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/Tupad/ApplicantTupadApplicationForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'TUPAD Application Form' }
       },
+      // GIP page and the Apply wizard stay in the applicant layout; once they have an application,
+      // "View my application" opens it in the GIP portal (gip-my-application, below)
       {
         path: 'gip-application',
         name: 'gip-application',
@@ -150,6 +152,24 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/Profile/ApplicantProfile.vue'),
         props: true
       }
+    ]
+  },
+  // ─── Program portals: one per PESO program, each with its own sidebar (DESIGN.md §7.1) ───
+  // meta.program picks the sidebar items in programPortalHelper.ts. Applicants enter a portal only
+  // from their existing application ("View my application", Application Tracker); the program page
+  // and the Apply wizard stay in the applicant layout above
+  {
+    path: '/app/programs/gip',
+    component: () => import('@/layouts/ProgramPortalLayout.vue'),
+    meta: { requiresAuth: true, role: 'applicant', program: 'gip', breadcrumb: 'GIP', breadcrumbTo: { name: 'gip-application' } },
+    children: [
+      { path: '', redirect: { name: 'gip-my-application' } },
+      {
+        path: 'application',
+        name: 'gip-my-application',
+        component: () => import('@/components/applicant/Gip/ApplicantGipApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
+      },
     ]
   },
 ]

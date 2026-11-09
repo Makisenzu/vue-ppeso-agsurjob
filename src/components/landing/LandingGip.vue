@@ -101,7 +101,8 @@ const { hero, about, facts, requirements, letterGuide, cta, isLoading } = useLan
         </div>
         <div v-else-if="cta === 'applied' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" variant="outline" class="w-full sm:w-auto">
-            <AppLink :to="{ name: 'gip-application-form' }">View my application</AppLink>
+            <!-- Opens the GIP portal (its own sidebar); Apply now stays in the applicant layout -->
+            <AppLink :to="{ name: 'gip-my-application' }">View my application</AppLink>
           </Button>
         </div>
       </section>
