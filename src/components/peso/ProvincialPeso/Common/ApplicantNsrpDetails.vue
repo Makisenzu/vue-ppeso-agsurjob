@@ -1,45 +1,31 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
-  Award,
-  BookOpen,
-  Briefcase,
-  Building2,
   CheckCircle2,
   Download,
-  FileCheck,
-  Globe,
-  Languages,
   Loader2,
   Mail,
   MapPin,
-  Pencil,
   Phone,
-  Plus,
   Printer,
-  Save,
-  Trash2,
   UserX,
-  X,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Input } from '@/components/ui/input'
-import SkillTextPicker from '@/components/SkillTextPicker.vue'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import SupportingDocumentLink from '@/components/SupportingDocumentLink.vue'
-import ReferencePicker from '@/components/ReferencePicker.vue'
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import { useApplicantNsrpDetails } from '@/composables/peso/provincialPeso/useApplicantNsrpDetails'
+import { provideApplicantNsrpDetails } from '@/composables/peso/provincialPeso/applicantNsrpDetailsContext'
+import NsrpPersonalSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpPersonalSection.vue'
+import NsrpEducationSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpEducationSection.vue'
+import NsrpVocationalSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpVocationalSection.vue'
+import NsrpEligibilitySection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpEligibilitySection.vue'
+import NsrpWorkExperienceSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpWorkExperienceSection.vue'
+import NsrpEmploymentStatusSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpEmploymentStatusSection.vue'
+import NsrpJobPreferenceSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpJobPreferenceSection.vue'
+import NsrpLanguageSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpLanguageSection.vue'
+import NsrpSkillsSection from '@/components/peso/ProvincialPeso/Common/NsrpDetails/NsrpSkillsSection.vue'
 
 interface Props {
   applicant?: ApplicantEntryRecord
@@ -51,8 +37,13 @@ const emit = defineEmits<{
   (e: 'back'): void
 }>()
 
+const nsrp = useApplicantNsrpDetails({ props, emit })
+// The section components (NsrpDetails/*.vue) read and edit the same state
+provideApplicantNsrpDetails(nsrp)
+
 const {
-  applicant,
+  // Renamed: `applicant` is also a prop name (vue/no-dupe-keys); this one falls back to the store
+  applicant: record,
   isLoading,
   isGeneratingPdf,
   isPrintingPdf,
@@ -65,131 +56,12 @@ const {
   formattedAssessmentDate,
   getInitials,
   avatarUrl,
-  formatDateDisplay,
-
-  // Edit mode state & controls
-  editingSection,
   isSaving,
-  startEdit,
-  cancelEdit,
-  saveSection,
-
-  // Shared options
-  disabilityOptions,
-  jobTypeOptions,
-  programOptions,
-  skillOptions,
-
-  // Eligibility picker (core.eligibilities)
-  eligibilityTitleOptions,
-  isLoadingReferenceLists,
-  birthdateMin,
-  todayMax,
-  // Section I: Personal Information
-  editFirstName,
-  editMiddleName,
-  editSurname,
-  editSuffix,
-  editDateOfBirth,
-  editAge,
-  editSex,
-  editCivilStatus,
-  editReligion,
-  editHeightFt,
-  editTin,
-  editPrimaryContact,
-  editAdditionalContacts,
-  editNewAdditionalContact,
-  editEmail,
-  editHouseNumber,
-  editStreet,
-  editVillage,
-  editPsgcProvinces,
-  editPsgcCities,
-  editPsgcBarangays,
-  editSelectedRegion,
-  editSelectedProvince,
-  editSelectedCity,
-  editSelectedBarangay,
-  onEditProvinceChange,
-  onEditCityChange,
-  onEditBarangayChange,
-  addEditContactNumber,
-  removeEditContactNumber,
-
-  // Section II: DOLE Status
-  editEmploymentStatus,
-  editEmploymentType,
-  editUnemployedReason,
-  editMonthsLookingForWork,
-  editSelfEmployedType,
-  editIs4psBeneficiary,
-  editHouseholdId4ps,
-  editHasDisability,
-  editSelectedDisabilities,
-  editDisabilityOthers,
-  editIsOfw,
-  editOfwCountry,
-  editIsFormerOfw,
-  editFormerOfwCountry,
-  editFormerOfwReturnDate,
-  editReferredPrograms,
-  toggleEditDisability,
-  toggleEditProgram,
-
-  // Section III: Education
-  editCurrentlyInSchool,
-  editEducationalBackground,
-  addEditEducationRow,
-  removeEditEducationRow,
-
-  // Section IV: Work Experience
-  editWorkExperiences,
-  addEditWorkRow,
-  removeEditWorkRow,
-
-  // Section V: Vocational
-  editVocationalTrainings,
-  addEditVocationalRow,
-  removeEditVocationalRow,
-
-  // Section VI: Eligibility
-  editEligibilities,
-  addEditEligibilityRow,
-  removeEditEligibilityRow,
-
-  // Section VII: Skills & Languages
-  editOtherSkills,
-  editNewSkillTag,
-  editOtherSkillsSpecified,
-  editLanguageProficiencies,
-  editNewLanguageName,
-  toggleEditSkillOption,
-  addEditSkillTag,
-  removeEditSkillTag,
-  addEditLanguage,
-  removeEditLanguage,
-
-  // Section VIII: Preferences
-  editPreferredOccupations,
-  editNewOccupationTag,
-  editPreferredLocalLocations,
-  editNewLocalLocationTag,
-  editPreferredOverseasLocations,
-  editNewOverseasLocationTag,
-  editJobTypePreference,
-  addEditOccupation,
-  removeEditOccupation,
-  addEditLocalLocation,
-  removeEditLocalLocation,
-  addEditOverseasLocation,
-  removeEditOverseasLocation,
-  toggleEditJobType,
-} = useApplicantNsrpDetails({ props, emit })
+} = nsrp
 </script>
 
 <template>
-  <div v-if="applicant" class="flex flex-col gap-6 pb-16 print:p-0 print:gap-4">
+  <div v-if="record" class="flex flex-col gap-6 pb-16 print:p-0 print:gap-4">
     <!-- ─── Navigation & Actions Header ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
       <div class="flex items-center gap-3">
@@ -237,25 +109,25 @@ const {
           <!-- Avatar and Core Identity -->
           <div class="flex items-start sm:items-center gap-4">
             <Avatar class="h-16 w-16 sm:h-20 sm:w-20 border-2 border-primary/20 bg-muted shrink-0 shadow-xs">
-              <AvatarImage v-if="avatarUrl" :src="avatarUrl" :alt="applicant.fullName" class="object-cover" />
+              <AvatarImage v-if="avatarUrl" :src="avatarUrl" :alt="record.fullName" class="object-cover" />
               <AvatarFallback class="font-bold text-xl sm:text-2xl text-primary">
-                {{ getInitials(applicant.fullName) }}
+                {{ getInitials(record.fullName) }}
               </AvatarFallback>
             </Avatar>
 
             <div class="space-y-1.5 min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                  {{ applicant.fullName }}
+                  {{ record.fullName }}
                 </h2>
                 <!-- Employment Status Badge -->
                 <Badge
-                  v-if="applicant.employmentStatus.toLowerCase().includes('employed') && !applicant.employmentStatus.toLowerCase().includes('unemployed')"
+                  v-if="record.employmentStatus.toLowerCase().includes('employed') && !record.employmentStatus.toLowerCase().includes('unemployed')"
                   variant="outline"
                   class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1 py-0.5"
                 >
                   <CheckCircle2 class="h-3 w-3" />
-                  {{ applicant.employmentStatus }}
+                  {{ record.employmentStatus }}
                 </Badge>
                 <Badge
                   v-else
@@ -263,20 +135,20 @@ const {
                   class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs gap-1 py-0.5"
                 >
                   <UserX class="h-3 w-3" />
-                  {{ applicant.employmentStatus }}
+                  {{ record.employmentStatus }}
                 </Badge>
               </div>
 
               <!-- Demographics Line -->
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span class="font-medium text-foreground">{{ applicant.sex }}</span>
+                <span class="font-medium text-foreground">{{ record.sex }}</span>
                 <span>•</span>
-                <span>{{ applicant.age ? `${applicant.age} yrs old` : 'Age N/A' }} ({{ formattedDob }})</span>
+                <span>{{ record.age ? `${record.age} yrs old` : 'Age N/A' }} ({{ formattedDob }})</span>
                 <span>•</span>
-                <span>{{ applicant.civilStatus }}</span>
-                <template v-if="applicant.religion">
+                <span>{{ record.civilStatus }}</span>
+                <template v-if="record.religion">
                   <span>•</span>
-                  <span>{{ applicant.religion }}</span>
+                  <span>{{ record.religion }}</span>
                 </template>
               </div>
 
@@ -284,15 +156,15 @@ const {
               <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
                 <div class="flex items-center gap-1.5">
                   <MapPin class="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span class="text-foreground font-medium">{{ applicant.fullAddressString }}</span>
+                  <span class="text-foreground font-medium">{{ record.fullAddressString }}</span>
                 </div>
-                <div v-if="applicant.contactNumber && applicant.contactNumber !== 'N/A'" class="flex items-center gap-1.5 font-mono">
+                <div v-if="record.contactNumber && record.contactNumber !== 'N/A'" class="flex items-center gap-1.5 font-mono">
                   <Phone class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span>{{ applicant.contactNumber }}</span>
+                  <span>{{ record.contactNumber }}</span>
                 </div>
-                <div v-if="applicant.email" class="flex items-center gap-1.5 font-mono">
+                <div v-if="record.email" class="flex items-center gap-1.5 font-mono">
                   <Mail class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span>{{ applicant.email }}</span>
+                  <span>{{ record.email }}</span>
                 </div>
               </div>
             </div>
@@ -306,7 +178,7 @@ const {
             <div class="flex flex-wrap items-center gap-1.5">
               <!-- GIP -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('GIP'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('GIP'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-semibold"
               >
@@ -314,7 +186,7 @@ const {
               </Badge>
               <!-- TUPAD -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('TUPAD'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('TUPAD'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-semibold"
               >
@@ -322,7 +194,7 @@ const {
               </Badge>
               <!-- SPES -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('SPES'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('SPES'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-semibold"
               >
@@ -330,7 +202,7 @@ const {
               </Badge>
               <!-- JobStart -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('JOBSTART'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('JOBSTART'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 font-semibold"
               >
@@ -338,7 +210,7 @@ const {
               </Badge>
               <!-- DILEEP -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('DILEEP'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('DILEEP'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 font-semibold"
               >
@@ -346,7 +218,7 @@ const {
               </Badge>
               <!-- TESDA -->
               <Badge
-                v-if="applicant.referredPrograms.some((p) => p.toUpperCase().includes('TESDA'))"
+                v-if="record.referredPrograms.some((p) => p.toUpperCase().includes('TESDA'))"
                 variant="secondary"
                 class="text-xs px-2.5 py-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold"
               >
@@ -354,7 +226,7 @@ const {
               </Badge>
               <!-- 4Ps -->
               <Badge
-                v-if="applicant.is4psBeneficiary"
+                v-if="record.is4psBeneficiary"
                 variant="outline"
                 class="text-xs px-2 py-0.5 bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
               >
@@ -362,7 +234,7 @@ const {
               </Badge>
               <!-- PWD -->
               <Badge
-                v-if="applicant.hasDisability"
+                v-if="record.hasDisability"
                 variant="outline"
                 class="text-xs px-2 py-0.5 bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
               >
@@ -370,22 +242,22 @@ const {
               </Badge>
               <!-- OFW -->
               <Badge
-                v-if="applicant.isOfw || applicant.isFormerOfw"
+                v-if="record.isOfw || record.isFormerOfw"
                 variant="outline"
                 class="text-xs px-2 py-0.5 bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20"
               >
-                {{ applicant.isOfw ? 'Current OFW' : 'Former OFW' }}
+                {{ record.isOfw ? 'Current OFW' : 'Former OFW' }}
               </Badge>
               <!-- General -->
               <Badge
                 v-if="
-                  !applicant.referredPrograms.some((p) =>
+                  !record.referredPrograms.some((p) =>
                     ['SPES', 'GIP', 'TUPAD', 'JOBSTART', 'DILEEP', 'TESDA'].some((key) => p.toUpperCase().includes(key))
                   ) &&
-                  !applicant.is4psBeneficiary &&
-                  !applicant.hasDisability &&
-                  !applicant.isOfw &&
-                  !applicant.isFormerOfw
+                  !record.is4psBeneficiary &&
+                  !record.hasDisability &&
+                  !record.isOfw &&
+                  !record.isFormerOfw
                 "
                 variant="outline"
                 class="text-xs text-muted-foreground"
@@ -406,1815 +278,34 @@ const {
       <!-- ─── LEFT COLUMN (2 Columns on Large Screens) ─── -->
       <div class="lg:col-span-2 space-y-6">
         <!-- ─── Section I: Personal Information ─── -->
-        <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <span>I. Personal Information</span>
-              </CardTitle>
-              <Button
-                v-if="editingSection !== 'personal'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('personal')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('personal')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'personal'" class="p-4 space-y-4 text-xs">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">First Name</span>
-                <span class="font-semibold text-foreground mt-0.5 block text-sm">{{ applicant.firstName }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Middle Name</span>
-                <span class="font-semibold text-foreground mt-0.5 block text-sm">{{ applicant.middleName || 'N/A' }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Surname</span>
-                <span class="font-semibold text-foreground mt-0.5 block text-sm">{{ applicant.surname }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Suffix</span>
-                <span class="font-semibold text-foreground mt-0.5 block text-sm">{{ applicant.suffix || 'None' }}</span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Date of Birth</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ formattedDob }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Age</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ applicant.age ? `${applicant.age} years old` : 'N/A' }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Sex</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ applicant.sex }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Civil Status</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ applicant.civilStatus }}</span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Religion</span>
-                <span class="font-medium text-foreground mt-0.5 block">{{ applicant.religion || 'Not Specified' }}</span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Height</span>
-                <span class="font-medium text-foreground mt-0.5 block font-mono">
-                  {{ applicant.heightFt ? `${applicant.heightFt} ft` : 'Not Specified' }}
-                </span>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Tax Identification No. (TIN)</span>
-                <span class="font-medium text-foreground mt-0.5 block font-mono">{{ applicant.tin || 'N/A' }}</span>
-              </div>
-            </div>
-
-            <!-- Address Breakdown -->
-            <div class="p-3.5 rounded-lg border bg-muted/10 space-y-2">
-              <span class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
-                <MapPin class="h-3.5 w-3.5 text-primary" />
-                Permanent Residential Address Breakdown
-              </span>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs pt-1">
-                <div>
-                  <span class="text-muted-foreground text-[10px]">House / Street / Village</span>
-                  <p class="font-medium text-foreground">
-                    {{ [applicant.address.houseNumber, applicant.address.street, applicant.address.village].filter(Boolean).join(', ') || 'N/A' }}
-                  </p>
-                </div>
-                <div>
-                  <span class="text-muted-foreground text-[10px]">Barangay</span>
-                  <p class="font-medium text-foreground">{{ applicant.address.barangay }}</p>
-                </div>
-                <div>
-                  <span class="text-muted-foreground text-[10px]">Municipality / City</span>
-                  <p class="font-medium text-foreground">{{ applicant.address.municipality }}</p>
-                </div>
-                <div>
-                  <span class="text-muted-foreground text-[10px]">Province</span>
-                  <p class="font-medium text-foreground">{{ applicant.address.province }}</p>
-                </div>
-                <div>
-                  <span class="text-muted-foreground text-[10px]">Region</span>
-                  <p class="font-medium text-foreground">{{ applicant.address.region || 'Region XIII (Caraga)' }}</p>
-                </div>
-                <div>
-                  <span class="text-muted-foreground text-[10px]">Full Address</span>
-                  <p class="font-medium text-foreground truncate" :title="applicant.fullAddressString">
-                    {{ applicant.fullAddressString }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Contact Numbers & Email -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Primary Contact Number</span>
-                <span class="font-semibold text-foreground mt-0.5 block font-mono text-sm">
-                  {{ applicant.contactNumber }}
-                </span>
-                <div v-if="applicant.allContactNumbers.length > 1" class="mt-2 pt-2 border-t text-[11px]">
-                  <span class="text-muted-foreground block text-[10px]">Other Contact Numbers:</span>
-                  <div class="flex flex-wrap gap-1 mt-1">
-                    <Badge
-                      v-for="(cn, idx) in applicant.allContactNumbers"
-                      :key="idx"
-                      variant="outline"
-                      class="text-[10px] font-mono"
-                    >
-                      {{ cn }}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div class="p-3 rounded-lg border bg-card/60">
-                <span class="text-muted-foreground block text-[11px]">Email Address</span>
-                <span class="font-semibold text-foreground mt-0.5 block font-mono text-sm">
-                  {{ applicant.email || 'No email provided' }}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <!-- Full Name Section -->
-            <div class="space-y-1.5">
-              <span class="font-semibold text-foreground text-xs block">Full Name</span>
-              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">First Name <span class="text-destructive">*</span></span>
-                  <Input v-model="editFirstName" placeholder="First Name" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Middle Name</span>
-                  <Input v-model="editMiddleName" placeholder="Middle Name" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Surname <span class="text-destructive">*</span></span>
-                  <Input v-model="editSurname" placeholder="Surname" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Suffix</span>
-                  <Input v-model="editSuffix" placeholder="Suffix (Jr, III)" class="h-9 text-xs" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Birth & Demographics -->
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Date of Birth <span class="text-destructive">*</span></span>
-                <Input v-model="editDateOfBirth" type="date" :min="birthdateMin" :max="todayMax" class="h-9 text-xs" />
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Age</span>
-                <Input v-model.number="editAge" type="number" placeholder="Age" class="h-9 text-xs" />
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Sex</span>
-                <select
-                  v-model="editSex"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Civil Status</span>
-                <select
-                  v-model="editCivilStatus"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                >
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Widowed">Widowed</option>
-                  <option value="Separated">Separated</option>
-                  <option value="Solo Parent">Solo Parent</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Physical & Tax Info -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Religion</span>
-                <Input v-model="editReligion" placeholder="e.g. Roman Catholic, Christian" class="h-9 text-xs" />
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Height (feet)</span>
-                <Input v-model.number="editHeightFt" type="number" step="0.1" placeholder="e.g. 5.6" class="h-9 text-xs" />
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Tax Identification No. (TIN)</span>
-                <Input v-model="editTin" placeholder="e.g. 123-456-789-000" class="h-9 text-xs font-mono" />
-              </div>
-            </div>
-
-            <!-- Permanent Address Breakdown (PSGC) -->
-            <div class="p-3.5 rounded-xl border bg-muted/10 space-y-3">
-              <div class="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                <MapPin class="h-3.5 w-3.5 text-primary" />
-                <span>Permanent Residential Address</span>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Province <span class="text-destructive">*</span></span>
-                  <select
-                    :value="editSelectedProvince?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                    @change="onEditProvinceChange(($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="" disabled>{{ editPsgcProvinces.length === 0 ? 'Loading...' : 'Select province' }}</option>
-                    <option v-for="p in editPsgcProvinces" :key="p.code" :value="p.code">
-                      {{ p.name }}
-                    </option>
-                  </select>
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Municipality / City <span class="text-destructive">*</span></span>
-                  <select
-                    :value="editSelectedCity?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                    :disabled="!editSelectedProvince"
-                    @change="onEditCityChange(($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="" disabled>{{ !editSelectedProvince ? 'Select province first' : editPsgcCities.length === 0 ? 'Loading...' : 'Select municipality / city' }}</option>
-                    <option v-for="c in editPsgcCities" :key="c.code" :value="c.code">
-                      {{ c.name }}
-                    </option>
-                  </select>
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Barangay <span class="text-destructive">*</span></span>
-                  <select
-                    :value="editSelectedBarangay?.code ?? ''"
-                    class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                    :disabled="!editSelectedCity"
-                    @change="onEditBarangayChange(($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="" disabled>{{ !editSelectedCity ? 'Select municipality first' : editPsgcBarangays.length === 0 ? 'Loading...' : 'Select barangay' }}</option>
-                    <option v-for="b in editPsgcBarangays" :key="b.code" :value="b.code">
-                      {{ b.name }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">House No.</span>
-                  <Input v-model="editHouseNumber" placeholder="e.g. Blk 1 Lot 2" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Street</span>
-                  <Input v-model="editStreet" placeholder="e.g. Purok 4, Maharlika Hwy" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Village / Sitio</span>
-                  <Input v-model="editVillage" placeholder="Optional" class="h-9 text-xs" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Region</span>
-                  <span class="text-xs font-medium text-foreground h-9 flex items-center">{{ editSelectedRegion?.name || 'Region XIII (Caraga)' }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Contacts & Email -->
-            <div class="space-y-2">
-              <span class="font-semibold text-foreground text-xs block">Contact & Communication</span>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Primary Mobile Number <span class="text-destructive">*</span></span>
-                  <Input v-model="editPrimaryContact" placeholder="e.g. 09123456789" class="h-9 text-xs font-mono" />
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Email Address</span>
-                  <Input v-model="editEmail" type="email" placeholder="e.g. applicant@gmail.com" class="h-9 text-xs font-mono" />
-                </div>
-              </div>
-
-              <!-- Secondary contact numbers -->
-              <div class="pt-2 space-y-2">
-                <span class="text-[11px] text-muted-foreground">Secondary / Alternate Contact Numbers</span>
-                <div class="flex items-center gap-2 max-w-sm">
-                  <Input
-                    v-model="editNewAdditionalContact"
-                    placeholder="Add telephone or alt number"
-                    class="h-8 text-xs font-mono"
-                    @keyup.enter="addEditContactNumber"
-                  />
-                  <Button size="sm" variant="outline" class="h-8 text-xs cursor-pointer gap-1" @click="addEditContactNumber">
-                    <Plus class="h-3 w-3" />
-                    <span>Add</span>
-                  </Button>
-                </div>
-                <div v-if="editAdditionalContacts.length > 0" class="flex flex-wrap gap-1.5 pt-1">
-                  <Badge
-                    v-for="(cn, idx) in editAdditionalContacts"
-                    :key="idx"
-                    variant="secondary"
-                    class="text-[11px] font-mono gap-1"
-                  >
-                    <span>{{ cn }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeEditContactNumber(idx)" />
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <NsrpPersonalSection />
 
         <!-- ─── Section IV: Educational Background ─── -->
-      <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                  <span>IV. Educational Background</span>
-                </CardTitle>
-                <Badge variant="secondary" class="text-[10px] font-normal">
-                  Highest: {{ applicant.highestEducationalAttainment }}
-                </Badge>
-              </div>
-              <Button
-                v-if="editingSection !== 'education'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('education')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('education')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'education'" class="p-4 space-y-3">
-            <div v-if="applicant.currentlyInSchool" class="p-2.5 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2 text-xs text-primary font-medium">
-              <BookOpen class="h-4 w-4" />
-              <span>Applicant is currently enrolled in school.</span>
-            </div>
-            <div v-if="applicant.educationalBackground.length > 0" class="space-y-2.5">
-              <div
-                v-for="(edu, idx) in applicant.educationalBackground"
-                :key="idx"
-                class="p-3.5 rounded-lg border bg-card/60 space-y-1.5 transition-colors hover:bg-muted/20"
-              >
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <div class="flex items-center gap-2">
-                    <Badge variant="outline" class="text-[10px] uppercase bg-muted">
-                      {{ edu.level || 'Education' }}
-                    </Badge>
-                    <span class="font-bold text-xs sm:text-sm text-foreground">
-                      {{ edu.course && edu.course !== 'N/A' ? edu.course : edu.level }}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" class="text-[11px] font-mono w-fit">
-                    Year Graduated: {{ edu.year_graduated }}
-                  </Badge>
-                </div>
-                <p class="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Building2 class="h-3.5 w-3.5 shrink-0" />
-                  <span>{{ edu.school }}</span>
-                </p>
-                <div v-if="edu.awards" class="flex items-center gap-1.5 text-xs text-primary pt-1">
-                  <Award class="h-3.5 w-3.5 shrink-0" />
-                  <span>Honors / Awards: {{ edu.awards }}</span>
-                </div>
-                <div v-if="edu.undergraduate_level_reached" class="text-[11px] text-muted-foreground">
-                  Undergraduate Level Reached: <span class="font-medium text-foreground">{{ edu.undergraduate_level_reached }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">
-              No educational background records found for this applicant.
-            </div>
-          </CardContent>
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 p-2.5 rounded-lg border bg-muted/10">
-                <input
-                  type="checkbox"
-                  v-model="editCurrentlyInSchool"
-                  id="editInSchool"
-                  class="h-4 w-4 rounded accent-primary text-primary cursor-pointer"
-                />
-                <label for="editInSchool" class="font-medium text-foreground cursor-pointer">
-                  Applicant is currently enrolled in school / pursuing a degree
-                </label>
-              </div>
-              <Button size="sm" variant="outline" class="h-8 text-xs gap-1.5 cursor-pointer" @click="addEditEducationRow">
-                <Plus class="h-3.5 w-3.5" />
-                <span>Add Record</span>
-              </Button>
-            </div>
-            <div class="space-y-3">
-              <div
-                v-for="(edu, idx) in editEducationalBackground"
-                :key="idx"
-                class="p-3.5 rounded-xl border bg-card/60 space-y-2.5 relative group"
-              >
-                <div class="flex items-center justify-between border-b pb-1.5">
-                  <span class="font-semibold text-primary text-xs">Record #{{ idx + 1 }}</span>
-                  <Button
-                    v-if="editEducationalBackground.length > 1"
-                    variant="ghost"
-                    size="sm"
-                    class="h-6 w-6 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                    @click="removeEditEducationRow(idx)"
-                  >
-                    <Trash2 class="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Education Level</span>
-                    <select
-                      v-model="edu.level"
-                      class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <option value="Elementary">Elementary</option>
-                      <option value="Secondary / High School">Secondary / High School</option>
-                      <option value="Senior High School">Senior High School</option>
-                      <option value="Technical-Vocational">Technical-Vocational</option>
-                      <option value="College / Tertiary">College / Tertiary</option>
-                      <option value="Post-Graduate / Masteral">Post-Graduate / Masteral</option>
-                    </select>
-                  </div>
-                  <div class="space-y-1 sm:col-span-2">
-                    <span class="text-[11px] text-muted-foreground">School / University Name</span>
-                    <Input v-model="edu.school" placeholder="e.g. ASSCAT, Father Saturnino Urios University" class="h-8 text-xs" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div class="space-y-1 sm:col-span-2">
-                    <span class="text-[11px] text-muted-foreground">Course / Degree / Track</span>
-                    <Input v-model="edu.course" placeholder="e.g. BS in Information Technology" class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Year Graduated</span>
-                    <Input v-model="edu.year_graduated" placeholder="e.g. 2023" class="h-8 text-xs font-mono" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Awards / Honors</span>
-                    <Input v-model="edu.awards" placeholder="e.g. Cum Laude" class="h-8 text-xs" />
-                  </div>
-                </div>
-                <div class="space-y-1">
-                  <span class="text-[11px] text-muted-foreground">Undergraduate Level Reached (if non-graduate)</span>
-                  <Input v-model="edu.undergraduate_level_reached" placeholder="e.g. 3rd Year Completed" class="h-8 text-xs" />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <NsrpEducationSection />
 
         <!-- ─── Section V: Technical/Vocational ─── -->
-      <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                  <span>V. Technical/Vocational</span>
-                </CardTitle>
-                <Badge variant="outline" class="text-[10px] font-mono">
-                  {{ applicant.vocationalTrainings.length }} Training(s)
-                </Badge>
-              </div>
-              <Button
-                v-if="editingSection !== 'vocational'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('vocational')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('vocational')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'vocational'" class="p-4 space-y-3">
-            <div v-if="applicant.vocationalTrainings.length > 0" class="space-y-2.5">
-              <div
-                v-for="(voc, idx) in applicant.vocationalTrainings"
-                :key="idx"
-                class="p-3.5 rounded-lg border bg-card/60 space-y-1.5"
-              >
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span class="font-bold text-xs sm:text-sm text-foreground">
-                    {{ voc.course_training_title }}
-                  </span>
-                  <Badge variant="secondary" class="text-[10px] font-mono w-fit">
-                    {{ voc.duration || 'Duration N/A' }}
-                  </Badge>
-                </div>
-                <p class="text-xs text-muted-foreground">
-                  Institution: <span class="text-foreground font-medium">{{ voc.training_institution }}</span>
-                </p>
-                <p v-if="voc.skills_acquired" class="text-xs text-muted-foreground">
-                  Skills Acquired: <span class="text-foreground font-medium">{{ voc.skills_acquired }}</span>
-                </p>
-                <p v-if="voc.certificates_received" class="text-xs text-primary font-medium">
-                  Certificate: {{ voc.certificates_received }}
-                </p>
-                <SupportingDocumentLink
-                  v-if="voc.document_path"
-                  :path="voc.document_path"
-                  :label="voc.document_name || 'View certificate'"
-                />
-                <p v-else class="text-xs text-muted-foreground italic">No supporting document attached.</p>
-              </div>
-            </div>
-            <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">
-              No technical or vocational trainings recorded.
-            </div>
-          </CardContent>
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="flex items-center justify-between">
-              <span class="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                <Award class="h-3.5 w-3.5 text-primary" />
-                Technical / Vocational Trainings & Certifications (TESDA)
-              </span>
-              <Button size="sm" variant="outline" class="h-7 text-xs gap-1 cursor-pointer" @click="addEditVocationalRow">
-                <Plus class="h-3 w-3" />
-                <span>Add Training</span>
-              </Button>
-            </div>
-            <div v-if="editVocationalTrainings.length === 0" class="text-center py-4 text-muted-foreground italic border rounded-lg">
-              No technical or vocational trainings added. Click "Add Training" to add one.
-            </div>
-            <div v-else class="space-y-3">
-              <div
-                v-for="(voc, idx) in editVocationalTrainings"
-                :key="idx"
-                class="p-3.5 rounded-xl border bg-card/60 space-y-2.5"
-              >
-                <div class="flex items-center justify-between border-b pb-1.5">
-                  <span class="font-semibold text-primary text-xs">Training #{{ idx + 1 }}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-6 w-6 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                    @click="removeEditVocationalRow(idx)"
-                  >
-                    <Trash2 class="h-3 w-3" />
-                  </Button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Course / Training Title</span>
-                    <Input v-model="voc.course_training_title" placeholder="e.g. Shielded Metal Arc Welding (SMAW)" class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Training Institution</span>
-                    <Input v-model="voc.training_institution" placeholder="e.g. ASSCAT, TESDA Regional Training Center" class="h-8 text-xs" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Duration (Hours / Months)</span>
-                    <Input v-model="voc.duration" placeholder="e.g. 268 Hours" class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Skills Acquired</span>
-                    <SkillTextPicker v-model="voc.skills_acquired" placeholder="e.g. SMAW, Gas Welding" size="sm" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Certificates Received</span>
-                    <Input v-model="voc.certificates_received" placeholder="e.g. National Certificate II (NC II)" class="h-8 text-xs" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <NsrpVocationalSection />
 
         <!-- ─── Section VI: Eligibility ─── -->
-      <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                  <span>VI. Eligibility</span>
-                </CardTitle>
-                <Badge variant="outline" class="text-[10px] font-mono">
-                  {{ applicant.eligibilities.length }} Eligibility
-                </Badge>
-              </div>
-              <Button
-                v-if="editingSection !== 'eligibility'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('eligibility')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('eligibility')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'eligibility'" class="p-4 space-y-3">
-            <div v-if="applicant.eligibilities.length > 0" class="space-y-2.5">
-              <div
-                v-for="(el, idx) in applicant.eligibilities"
-                :key="idx"
-                class="p-3.5 rounded-lg border bg-card/60 space-y-1.5"
-              >
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span class="font-bold text-xs sm:text-sm text-foreground">
-                    {{ el.eligibility_title }}
-                  </span>
-                  <Badge variant="outline" class="text-[10px] font-mono bg-primary/10 text-primary border-primary/20 w-fit">
-                    Rating: {{ el.rating }}
-                  </Badge>
-                </div>
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span v-if="el.date_of_examination">
-                    Exam Date: <span class="text-foreground font-medium">{{ formatDateDisplay(el.date_of_examination) }}</span>
-                  </span>
-                  <span v-if="el.place_of_examination">
-                    Exam Place: <span class="text-foreground font-medium">{{ el.place_of_examination }}</span>
-                  </span>
-                </div>
-                <SupportingDocumentLink
-                  v-if="el.document_path"
-                  :path="el.document_path"
-                  :label="el.document_name || 'View license'"
-                />
-                <p v-else class="text-xs text-muted-foreground italic">No supporting document attached.</p>
-              </div>
-            </div>
-            <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">
-              No civil service or professional board eligibilities recorded.
-            </div>
-          </CardContent>
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="flex items-center justify-between">
-              <span class="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                <FileCheck class="h-3.5 w-3.5 text-primary" />
-                Civil Service & Professional Board Eligibilities
-              </span>
-              <Button size="sm" variant="outline" class="h-7 text-xs gap-1 cursor-pointer" @click="addEditEligibilityRow">
-                <Plus class="h-3 w-3" />
-                <span>Add Eligibility</span>
-              </Button>
-            </div>
-            <div v-if="editEligibilities.length === 0" class="text-center py-4 text-muted-foreground italic border rounded-lg">
-              No civil service or board eligibilities recorded. Click "Add Eligibility" to add one.
-            </div>
-            <div v-else class="space-y-3">
-              <div
-                v-for="(el, idx) in editEligibilities"
-                :key="idx"
-                class="p-3.5 rounded-xl border bg-card/60 space-y-2.5"
-              >
-                <div class="flex items-center justify-between border-b pb-1.5">
-                  <span class="font-semibold text-primary text-xs">Eligibility #{{ idx + 1 }}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-6 w-6 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                    @click="removeEditEligibilityRow(idx)"
-                  >
-                    <Trash2 class="h-3 w-3" />
-                  </Button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Title / Exam Name</span>
-                    <ReferencePicker
-                      v-model="el.eligibility_title"
-                      :options="eligibilityTitleOptions"
-                      :loading="isLoadingReferenceLists"
-                      placeholder="Select eligibility / license"
-                      search-placeholder="Search name or abbreviation (e.g. CSE-PRO, LPT)..."
-                      specify-placeholder="Specify eligibility / license"
-                      class="h-8 text-xs"
-                    />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Rating Obtained (%)</span>
-                    <Input v-model="el.rating" placeholder="e.g. 84.50" class="h-8 text-xs font-mono" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Date of Examination</span>
-                    <Input v-model="el.date_of_examination" type="date" :max="todayMax" class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Place of Examination</span>
-                    <Input v-model="el.place_of_examination" placeholder="e.g. Butuan City" class="h-8 text-xs" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <NsrpEligibilitySection />
 
         <!-- ─── Section VII: Work Experience ─── -->
-      <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                  <span>VII. Work Experience</span>
-                </CardTitle>
-                <Badge variant="outline" class="text-[10px] font-mono">
-                  {{ applicant.workExperiences.length }} Record(s)
-                </Badge>
-              </div>
-              <Button
-                v-if="editingSection !== 'workExperience'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('workExperience')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('workExperience')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'workExperience'" class="p-4 space-y-3">
-            <div v-if="applicant.workExperiences.length > 0" class="space-y-2.5">
-              <div
-                v-for="(work, idx) in applicant.workExperiences"
-                :key="idx"
-                class="p-3.5 rounded-lg border bg-card/60 space-y-1.5 transition-colors hover:bg-muted/20"
-              >
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span class="font-bold text-xs sm:text-sm text-foreground">
-                    {{ work.position || work.job_title || 'Position Not Specified' }}
-                  </span>
-                  <Badge variant="outline" class="text-[11px] font-mono w-fit bg-muted">
-                    {{ work.inclusive_dates || 'Dates N/A' }}
-                  </Badge>
-                </div>
-                <p class="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Building2 class="h-3.5 w-3.5 shrink-0" />
-                  <span class="font-medium text-foreground">{{ work.company_name }}</span>
-                </p>
-                <p v-if="work.address" class="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <MapPin class="h-3.5 w-3.5 shrink-0" />
-                  <span>{{ work.address }}</span>
-                </p>
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
-                  <span v-if="work.number_of_months">
-                    Duration: <span class="font-mono text-foreground font-medium">{{ work.number_of_months }} month(s)</span>
-                  </span>
-                  <span v-if="work.monthly_salary">
-                    Monthly Salary: <span class="font-mono text-foreground font-medium">₱{{ Number(work.monthly_salary).toLocaleString() }}</span>
-                  </span>
-                  <span v-if="work.status_of_appointment">
-                    Appointment: <span class="text-foreground font-medium">{{ work.status_of_appointment }}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center py-6 text-xs text-muted-foreground italic border rounded-lg bg-muted/10">
-              No previous work experiences recorded.
-            </div>
-          </CardContent>
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="flex items-center justify-between">
-              <span class="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                <Briefcase class="h-3.5 w-3.5 text-primary" />
-                Previous Work History
-              </span>
-              <Button size="sm" variant="outline" class="h-7 text-xs gap-1 cursor-pointer" @click="addEditWorkRow">
-                <Plus class="h-3 w-3" />
-                <span>Add Work Experience</span>
-              </Button>
-            </div>
-            <div v-if="editWorkExperiences.length === 0" class="text-center py-4 text-muted-foreground italic border rounded-lg">
-              No previous work experience added. Click "Add Work Experience" to add one.
-            </div>
-            <div v-else class="space-y-3">
-              <div
-                v-for="(work, idx) in editWorkExperiences"
-                :key="idx"
-                class="p-3.5 rounded-xl border bg-card/60 space-y-2.5"
-              >
-                <div class="flex items-center justify-between border-b pb-1.5">
-                  <span class="font-semibold text-primary text-xs">Experience #{{ idx + 1 }}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-6 w-6 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                    @click="removeEditWorkRow(idx)"
-                  >
-                    <Trash2 class="h-3 w-3" />
-                  </Button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Company / Employer Name</span>
-                    <Input v-model="work.company_name" placeholder="e.g. San Francisco Agro-Industrial Corp." class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Address (City / Municipality)</span>
-                    <Input v-model="work.address" placeholder="e.g. Prosperidad, Agusan del Sur" class="h-8 text-xs" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Job Position / Title</span>
-                    <Input v-model="work.position" placeholder="e.g. Administrative Officer" class="h-8 text-xs" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Inclusive Dates</span>
-                    <Input v-model="work.inclusive_dates" placeholder="e.g. Jan 2022 - Dec 2023" class="h-8 text-xs" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Number of Months</span>
-                    <Input v-model="work.number_of_months" type="number" min="0" placeholder="e.g. 24" class="h-8 text-xs font-mono" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Monthly Salary (PHP)</span>
-                    <Input v-model="work.monthly_salary" type="number" placeholder="e.g. 18000" class="h-8 text-xs font-mono" />
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-[11px] text-muted-foreground">Status of Appointment</span>
-                    <select
-                      v-model="work.status_of_appointment"
-                      class="w-full h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <option value="Permanent">Permanent</option>
-                      <option value="Contractual">Contractual</option>
-                      <option value="Casual">Casual</option>
-                      <option value="Job Order">Job Order</option>
-                      <option value="Part-Time">Part-Time</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <NsrpWorkExperienceSection />
       </div>
 
       <!-- ─── RIGHT COLUMN (1 Column on Large Screens) ─── -->
       <div class="space-y-6">
         <!-- ─── Employment Status & Special Classifications ─── -->
-        <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <span>Employment Status &amp; Classifications</span>
-                <Badge variant="outline" class="text-[10px] font-normal">Section I</Badge>
-              </CardTitle>
-
-              <Button
-                v-if="editingSection !== 'doleStatus'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('doleStatus')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('doleStatus')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'doleStatus'" class="p-4 space-y-3 text-xs">
-            <div class="p-3 rounded-lg border bg-card/60 space-y-1">
-              <span class="text-muted-foreground block text-[11px]">Employment Status</span>
-              <p class="font-semibold text-foreground text-sm">{{ applicant.employmentStatus }}</p>
-              <p v-if="applicant.employmentType" class="text-[11px] text-muted-foreground">
-                Type: <span class="font-medium text-foreground">{{ applicant.employmentType }}</span>
-              </p>
-            </div>
-
-            <div v-if="applicant.unemployedReason" class="p-3 rounded-lg border bg-card/60 space-y-1">
-              <span class="text-muted-foreground block text-[11px]">Unemployment Reason</span>
-              <p class="font-medium text-foreground">{{ applicant.unemployedReason }}</p>
-              <p v-if="applicant.monthsLookingForWork !== null" class="text-[11px] text-muted-foreground">
-                Looking for Work: <span class="font-medium text-foreground font-mono">{{ applicant.monthsLookingForWork }} month(s)</span>
-              </p>
-            </div>
-
-            <div v-if="applicant.selfEmployedType" class="p-3 rounded-lg border bg-card/60 space-y-1">
-              <span class="text-muted-foreground block text-[11px]">Self-Employed Category</span>
-              <p class="font-medium text-foreground">{{ applicant.selfEmployedType }}</p>
-            </div>
-
-            <!-- Beneficiary Badges Card -->
-            <div class="p-3 rounded-lg border bg-card/60 space-y-2">
-              <span class="text-muted-foreground block text-[11px] font-semibold">Special Classifications</span>
-              <div class="space-y-2 pt-1">
-                <!-- 4Ps -->
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">4Ps Beneficiary</span>
-                  <Badge :variant="applicant.is4psBeneficiary ? 'default' : 'outline'" class="text-[10px]">
-                    {{ applicant.is4psBeneficiary ? `Yes (ID: ${applicant.householdId4ps || 'N/A'})` : 'No' }}
-                  </Badge>
-                </div>
-
-                <!-- PWD -->
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">Person with Disability</span>
-                  <Badge :variant="applicant.hasDisability ? 'default' : 'outline'" class="text-[10px]">
-                    {{ applicant.hasDisability ? 'Yes' : 'No' }}
-                  </Badge>
-                </div>
-                <div v-if="applicant.hasDisability && applicant.disabilities.length > 0" class="pl-2 text-[11px] text-muted-foreground">
-                  Disabilities: <span class="font-medium text-foreground">{{ applicant.disabilities.join(', ') }}</span>
-                </div>
-
-                <!-- OFW -->
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">OFW Status</span>
-                  <Badge :variant="applicant.isOfw || applicant.isFormerOfw ? 'default' : 'outline'" class="text-[10px]">
-                    {{ applicant.isOfw ? 'Current OFW' : applicant.isFormerOfw ? 'Former OFW' : 'No' }}
-                  </Badge>
-                </div>
-                <div v-if="applicant.isOfw" class="pl-2 text-[11px] text-muted-foreground">
-                  Country: <span class="font-medium text-foreground">{{ applicant.ofwCountry || 'N/A' }}</span>
-                </div>
-                <div v-if="applicant.isFormerOfw" class="pl-2 text-[11px] text-muted-foreground">
-                  Former Country: <span class="font-medium text-foreground">{{ applicant.formerOfwCountry || 'N/A' }}</span>
-                  <span v-if="applicant.formerOfwReturnDate"> (Returned: {{ formatDateDisplay(applicant.formerOfwReturnDate) }})</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Referred Programs -->
-            <div class="p-3 rounded-lg border bg-card/60 space-y-1.5">
-              <span class="text-muted-foreground block text-[11px] font-semibold">Referred Programs</span>
-              <div v-if="applicant.referredPrograms.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="prog in applicant.referredPrograms"
-                  :key="prog"
-                  variant="secondary"
-                  class="text-[11px] font-medium"
-                >
-                  {{ prog }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">No specific program assigned</p>
-            </div>
-          </CardContent>
-
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <!-- Employment Status -->
-            <div class="space-y-1">
-              <span class="text-[11px] text-muted-foreground">Employment Status <span class="text-destructive">*</span></span>
-              <select
-                v-model="editEmploymentStatus"
-                class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-              >
-                <option value="Unemployed">Unemployed</option>
-                <option value="Employed">Employed</option>
-                <option value="Self-Employed">Self-Employed</option>
-              </select>
-            </div>
-
-            <div v-if="editEmploymentStatus === 'Employed'" class="space-y-1">
-              <span class="text-[11px] text-muted-foreground">Employment Type</span>
-              <select
-                v-model="editEmploymentType"
-                class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-              >
-                <option value="Wage employed">Wage Employed</option>
-                <option value="Self-employed">Self-Employed</option>
-              </select>
-            </div>
-
-            <div v-if="editEmploymentStatus === 'Unemployed'" class="p-3 rounded-xl border bg-muted/15 space-y-2.5">
-              <span class="font-semibold text-foreground text-xs block">Unemployment Background</span>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Reason for Unemployment</span>
-                <select
-                  v-model="editUnemployedReason"
-                  class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
-                >
-                  <option value="Fresh Graduate">Fresh Graduate</option>
-                  <option value="Finished Contract">Finished Contract</option>
-                  <option value="Resigned">Resigned</option>
-                  <option value="Laid Off / Terminated">Laid Off / Terminated</option>
-                  <option value="Retired">Retired</option>
-                  <option value="Family Responsibilities">Family Responsibilities</option>
-                  <option value="Other">Other Reasons</option>
-                </select>
-              </div>
-              <div class="space-y-1">
-                <span class="text-[11px] text-muted-foreground">Months Looking for Work</span>
-                <Input v-model.number="editMonthsLookingForWork" type="number" min="0" placeholder="e.g. 6" class="h-9 text-xs" />
-              </div>
-            </div>
-
-            <div v-if="editEmploymentStatus === 'Self-Employed' || (editEmploymentStatus === 'Employed' && editEmploymentType === 'Self-employed')" class="p-3 rounded-xl border bg-muted/15 space-y-1">
-              <span class="text-[11px] text-muted-foreground">Self-Employment Classification</span>
-              <Input v-model="editSelfEmployedType" placeholder="e.g. Sari-sari Store Vendor, Farmer" class="h-9 text-xs" />
-            </div>
-
-            <!-- 4Ps Beneficiary Section -->
-            <div class="p-3 rounded-xl border space-y-2.5">
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="font-semibold text-foreground text-xs block">4Ps Beneficiary</span>
-                  <span class="text-[10px] text-muted-foreground">Active 4Ps household member?</span>
-                </div>
-                <input
-                  type="checkbox"
-                  v-model="editIs4psBeneficiary"
-                  class="h-4 w-4 rounded accent-primary text-primary focus:ring-ring cursor-pointer"
-                />
-              </div>
-              <div v-if="editIs4psBeneficiary" class="pt-2 border-t space-y-1">
-                <span class="text-[11px] text-muted-foreground">Household ID No.</span>
-                <Input v-model="editHouseholdId4ps" placeholder="e.g. 4PS-CARAGA-ADS-12345" class="h-8 text-xs font-mono" />
-              </div>
-            </div>
-
-            <!-- Disability / PWD Section -->
-            <div class="p-3 rounded-xl border space-y-2.5">
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="font-semibold text-foreground text-xs block">Person with Disability (PWD)</span>
-                  <span class="text-[10px] text-muted-foreground">Physical or visual impairment?</span>
-                </div>
-                <input
-                  type="checkbox"
-                  v-model="editHasDisability"
-                  class="h-4 w-4 rounded accent-primary text-primary focus:ring-ring cursor-pointer"
-                />
-              </div>
-              <div v-if="editHasDisability" class="pt-2 border-t space-y-2">
-                <span class="text-[11px] text-muted-foreground block">Disability Types</span>
-                <div class="grid grid-cols-2 gap-1.5">
-                  <label
-                    v-for="d in disabilityOptions"
-                    :key="d"
-                    class="flex items-center gap-1.5 p-1.5 rounded-lg border cursor-pointer text-[10px]"
-                    :class="editSelectedDisabilities.includes(d) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="editSelectedDisabilities.includes(d)"
-                      class="h-3 w-3 rounded accent-primary text-primary"
-                      @change="toggleEditDisability(d)"
-                    />
-                    <span>{{ d }}</span>
-                  </label>
-                </div>
-                <div class="space-y-1 pt-1">
-                  <span class="text-[10px] text-muted-foreground">Other Disability</span>
-                  <Input v-model="editDisabilityOthers" placeholder="Specific condition" class="h-7 text-xs" />
-                </div>
-              </div>
-            </div>
-
-            <!-- OFW History Section -->
-            <div class="p-3 rounded-xl border space-y-3">
-              <span class="font-semibold text-foreground text-xs block">OFW Profile</span>
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground text-[11px]">Currently Active OFW?</span>
-                  <input type="checkbox" v-model="editIsOfw" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
-                </div>
-                <div v-if="editIsOfw">
-                  <Input v-model="editOfwCountry" placeholder="Country of deployment" class="h-8 text-xs mt-1" />
-                </div>
-              </div>
-
-              <div class="space-y-1.5 pt-2 border-t">
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground text-[11px]">Former / Returned OFW?</span>
-                  <input type="checkbox" v-model="editIsFormerOfw" class="h-4 w-4 rounded accent-primary text-primary cursor-pointer" />
-                </div>
-                <div v-if="editIsFormerOfw" class="space-y-1.5 pt-1">
-                  <Input v-model="editFormerOfwCountry" placeholder="Previous country" class="h-8 text-xs" />
-                  <Input v-model="editFormerOfwReturnDate" type="date" :max="todayMax" class="h-8 text-xs" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Referred DOLE Programs -->
-            <div class="p-3 rounded-xl border space-y-2">
-              <span class="font-semibold text-foreground text-xs block">Referred DOLE Programs</span>
-              <div class="flex flex-wrap gap-1.5">
-                <label
-                  v-for="prog in programOptions"
-                  :key="prog"
-                  class="flex items-center gap-1.5 p-1.5 rounded-lg border cursor-pointer text-xs"
-                  :class="editReferredPrograms.includes(prog) ? 'bg-primary/15 border-primary/40 font-bold text-primary' : ''"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="editReferredPrograms.includes(prog)"
-                    class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer"
-                    @change="toggleEditProgram(prog)"
-                  />
-                  <span>{{ prog }}</span>
-                </label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <NsrpEmploymentStatusSection />
 
         <!-- ─── Section II: Job Preference ─── -->
-        <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <span>II. Job Preference</span>
-              </CardTitle>
-
-              <Button
-                v-if="editingSection !== 'preferences'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('preferences')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('preferences')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'preferences'" class="p-4 space-y-3.5 text-xs">
-            <!-- Preferred Occupations -->
-            <div class="space-y-1.5">
-              <span class="text-muted-foreground block text-[11px] font-semibold">Preferred Occupations</span>
-              <div v-if="applicant.preferredOccupations.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="occ in applicant.preferredOccupations"
-                  :key="occ"
-                  variant="secondary"
-                  class="text-[11px]"
-                >
-                  {{ occ }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">None specified</p>
-            </div>
-
-            <!-- Preferred Local Locations -->
-            <div class="space-y-1.5 pt-2 border-t">
-              <span class="text-muted-foreground block text-[11px] font-semibold flex items-center gap-1">
-                <MapPin class="h-3 w-3 text-primary" />
-                Preferred Local Work Locations
-              </span>
-              <div v-if="applicant.preferredLocalLocations.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="loc in applicant.preferredLocalLocations"
-                  :key="loc"
-                  variant="outline"
-                  class="text-[11px]"
-                >
-                  {{ loc }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">Within Agusan del Sur</p>
-            </div>
-
-            <!-- Preferred Overseas Locations -->
-            <div class="space-y-1.5 pt-2 border-t">
-              <span class="text-muted-foreground block text-[11px] font-semibold flex items-center gap-1">
-                <Globe class="h-3 w-3 text-primary" />
-                Preferred Overseas Locations
-              </span>
-              <div v-if="applicant.preferredOverseasLocations.length > 0" class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="osLoc in applicant.preferredOverseasLocations"
-                  :key="osLoc"
-                  variant="outline"
-                  class="text-[11px] bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20"
-                >
-                  {{ osLoc }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">Local employment only</p>
-            </div>
-
-            <!-- Preferred Job Type -->
-            <div v-if="applicant.jobTypePreference.length > 0" class="space-y-1.5 pt-2 border-t">
-              <span class="text-muted-foreground block text-[11px] font-semibold">Job Type Preference</span>
-              <div class="flex flex-wrap gap-1">
-                <Badge
-                  v-for="jt in applicant.jobTypePreference"
-                  :key="jt"
-                  variant="secondary"
-                  class="text-[11px]"
-                >
-                  {{ jt }}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <!-- Preferred Occupations -->
-            <div class="space-y-1.5">
-              <span class="font-semibold text-foreground text-xs block">Preferred Occupations</span>
-              <div class="flex items-center gap-2">
-                <Input
-                  v-model="editNewOccupationTag"
-                  placeholder="e.g. Accounting Clerk, Driver"
-                  class="h-8 text-xs"
-                  @keyup.enter="addEditOccupation"
-                />
-                <Button size="sm" variant="outline" class="h-8 text-xs gap-1 cursor-pointer" @click="addEditOccupation">
-                  <Plus class="h-3 w-3" />
-                  <span>Add</span>
-                </Button>
-              </div>
-              <div class="flex flex-wrap gap-1 pt-1">
-                <Badge
-                  v-for="(occ, idx) in editPreferredOccupations"
-                  :key="idx"
-                  variant="secondary"
-                  class="text-[11px] gap-1 py-0.5"
-                >
-                  <span>{{ occ }}</span>
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
-                    @click.stop="removeEditOccupation(idx)"
-                  >
-                    <X class="h-3 w-3" />
-                  </button>
-                </Badge>
-              </div>
-            </div>
-
-            <!-- Preferred Local Locations -->
-            <div class="space-y-1.5 pt-3 border-t">
-              <span class="font-semibold text-foreground text-xs block flex items-center gap-1">
-                <MapPin class="h-3 w-3 text-primary" />
-                Preferred Local Locations
-              </span>
-              <div class="flex items-center gap-2">
-                <Input
-                  v-model="editNewLocalLocationTag"
-                  placeholder="e.g. Bayugan City, San Francisco"
-                  class="h-8 text-xs"
-                  @keyup.enter="addEditLocalLocation"
-                />
-                <Button size="sm" variant="outline" class="h-8 text-xs gap-1 cursor-pointer" @click="addEditLocalLocation">
-                  <Plus class="h-3 w-3" />
-                  <span>Add</span>
-                </Button>
-              </div>
-              <div class="flex flex-wrap gap-1 pt-1">
-                <Badge
-                  v-for="(loc, idx) in editPreferredLocalLocations"
-                  :key="idx"
-                  variant="outline"
-                  class="text-[11px] gap-1"
-                >
-                  <span>{{ loc }}</span>
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center text-muted-foreground hover:text-destructive cursor-pointer transition-colors focus:outline-none"
-                    @click.stop="removeEditLocalLocation(idx)"
-                  >
-                    <X class="h-3 w-3" />
-                  </button>
-                </Badge>
-              </div>
-            </div>
-
-            <!-- Preferred Overseas Locations -->
-            <div class="space-y-1.5 pt-3 border-t">
-              <span class="font-semibold text-foreground text-xs block flex items-center gap-1">
-                <Globe class="h-3 w-3 text-primary" />
-                Preferred Overseas Locations
-              </span>
-              <div class="flex items-center gap-2">
-                <Input
-                  v-model="editNewOverseasLocationTag"
-                  placeholder="e.g. Japan, Canada, UAE"
-                  class="h-8 text-xs"
-                  @keyup.enter="addEditOverseasLocation"
-                />
-                <Button size="sm" variant="outline" class="h-8 text-xs gap-1 cursor-pointer" @click="addEditOverseasLocation">
-                  <Plus class="h-3 w-3" />
-                  <span>Add</span>
-                </Button>
-              </div>
-              <div class="flex flex-wrap gap-1 pt-1">
-                <Badge
-                  v-for="(os, idx) in editPreferredOverseasLocations"
-                  :key="idx"
-                  variant="outline"
-                  class="text-[11px] bg-primary/10 text-primary border-primary/30 gap-1"
-                >
-                  <span>{{ os }}</span>
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center text-primary/70 hover:text-destructive cursor-pointer transition-colors focus:outline-none"
-                    @click.stop="removeEditOverseasLocation(idx)"
-                  >
-                    <X class="h-3 w-3" />
-                  </button>
-                </Badge>
-              </div>
-            </div>
-
-            <!-- Job Type Preferences -->
-            <div class="space-y-1.5 pt-3 border-t">
-              <span class="font-semibold text-foreground text-xs block">Employment Type Preferences</span>
-              <div class="flex flex-wrap gap-1.5">
-                <label
-                  v-for="jt in jobTypeOptions"
-                  :key="jt"
-                  class="flex items-center gap-1.5 p-1.5 rounded-lg border cursor-pointer text-xs"
-                  :class="editJobTypePreference.includes(jt) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="editJobTypePreference.includes(jt)"
-                    class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer"
-                    @change="toggleEditJobType(jt)"
-                  />
-                  <span>{{ jt }}</span>
-                </label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <NsrpJobPreferenceSection />
 
         <!-- ─── Section III: Language / Dialect ─── -->
-        <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <span>III. Language / Dialect</span>
-              </CardTitle>
-
-              <Button
-                v-if="editingSection !== 'language'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('language')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('language')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'language'" class="p-4 space-y-4 text-xs">
-            <div class="space-y-2">
-              <span class="text-muted-foreground block text-[11px] font-semibold flex items-center gap-1.5">
-                <Languages class="h-3.5 w-3.5 text-primary" />
-                Language &amp; Dialect Proficiencies
-              </span>
-              <div v-if="applicant.languageProficiencies.length > 0" class="overflow-x-auto border rounded-lg">
-                <Table>
-                  <TableHeader class="bg-muted/40">
-                    <TableRow>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1">Language / Dialect</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center">Read</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center">Write</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center">Speak</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center">Understand</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow
-                      v-for="(lang, idx) in applicant.languageProficiencies"
-                      :key="idx"
-                      class="text-xs"
-                    >
-                      <TableCell class="py-1.5 font-medium">{{ lang.language }}</TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <CheckCircle2 v-if="lang.read" class="h-3.5 w-3.5 text-emerald-500 mx-auto" />
-                        <span v-else class="text-muted-foreground text-[10px]">-</span>
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <CheckCircle2 v-if="lang.write" class="h-3.5 w-3.5 text-emerald-500 mx-auto" />
-                        <span v-else class="text-muted-foreground text-[10px]">-</span>
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <CheckCircle2 v-if="lang.speak" class="h-3.5 w-3.5 text-emerald-500 mx-auto" />
-                        <span v-else class="text-muted-foreground text-[10px]">-</span>
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <CheckCircle2 v-if="lang.understand" class="h-3.5 w-3.5 text-emerald-500 mx-auto" />
-                        <span v-else class="text-muted-foreground text-[10px]">-</span>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">No language proficiencies recorded</p>
-            </div>
-          </CardContent>
-
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-foreground text-xs flex items-center gap-1">
-                  <Languages class="h-3.5 w-3.5 text-primary" />
-                  Languages &amp; Dialects
-                </span>
-                <div class="flex items-center gap-1.5">
-                  <Input
-                    v-model="editNewLanguageName"
-                    placeholder="Language name"
-                    class="h-7 text-xs w-32"
-                    @keyup.enter="addEditLanguage"
-                  />
-                  <Button size="sm" variant="outline" class="h-7 text-xs px-2 cursor-pointer" @click="addEditLanguage">
-                    <Plus class="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-
-              <div class="overflow-x-auto border rounded-lg">
-                <Table>
-                  <TableHeader class="bg-muted/40">
-                    <TableRow>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1">Language</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center w-10">R</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center w-10">W</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center w-10">S</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-center w-10">U</TableHead>
-                      <TableHead class="text-[10px] font-semibold h-7 py-1 text-right w-8"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow v-for="(lang, idx) in editLanguageProficiencies" :key="idx">
-                      <TableCell class="py-1.5 font-medium text-xs">{{ lang.language }}</TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <input type="checkbox" v-model="lang.read" class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer" />
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <input type="checkbox" v-model="lang.write" class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer" />
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <input type="checkbox" v-model="lang.speak" class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer" />
-                      </TableCell>
-                      <TableCell class="py-1.5 text-center">
-                        <input type="checkbox" v-model="lang.understand" class="h-3.5 w-3.5 rounded accent-primary text-primary cursor-pointer" />
-                      </TableCell>
-                      <TableCell class="py-1.5 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          class="h-5 w-5 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                          @click="removeEditLanguage(idx)"
-                        >
-                          <Trash2 class="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <NsrpLanguageSection />
 
         <!-- ─── Section VIII: Other Skills Acquired ─── -->
-        <Card class="border shadow-xs">
-          <CardHeader class="pb-3 border-b bg-muted/20">
-            <div class="flex items-center justify-between">
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <span>VIII. Other Skills Acquired</span>
-              </CardTitle>
-
-              <Button
-                v-if="editingSection !== 'skills'"
-                variant="ghost"
-                size="sm"
-                class="gap-1.5 text-xs cursor-pointer print:hidden h-7 px-2 hover:bg-muted"
-                @click="startEdit('skills')"
-              >
-                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Edit</span>
-              </Button>
-              <div v-else class="flex items-center gap-1.5 print:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2 cursor-pointer"
-                  :disabled="isSaving"
-                  @click="cancelEdit"
-                >
-                  <X class="h-3.5 w-3.5" />
-                  <span>Cancel</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="gap-1 text-xs h-7 px-2.5 cursor-pointer shadow-xs"
-                  :disabled="isSaving"
-                  @click="saveSection('skills')"
-                >
-                  <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
-                  <Save v-else class="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <!-- VIEW MODE -->
-          <CardContent v-if="editingSection !== 'skills'" class="p-4 space-y-4 text-xs">
-            <div class="space-y-1.5">
-              <span class="text-muted-foreground block text-[11px] font-semibold">Skills Acquired Without Certificate</span>
-              <div v-if="applicant.otherSkills.length > 0" class="flex flex-wrap gap-1.5">
-                <Badge
-                  v-for="skill in applicant.otherSkills"
-                  :key="skill"
-                  variant="outline"
-                  class="text-[11px] bg-muted/40 font-normal"
-                >
-                  {{ skill }}
-                </Badge>
-              </div>
-              <p v-else class="text-[11px] text-muted-foreground italic">No skills specified</p>
-
-              <div v-if="applicant.otherSkillsSpecified" class="pt-2 border-t mt-2">
-                <span class="text-muted-foreground text-[10px]">Other Specified Skills:</span>
-                <p class="font-medium text-foreground text-xs mt-0.5">{{ applicant.otherSkillsSpecified }}</p>
-              </div>
-            </div>
-          </CardContent>
-
-          <!-- EDIT MODE -->
-          <CardContent v-else class="p-4 space-y-4 text-xs">
-            <div class="space-y-2">
-              <span class="font-semibold text-foreground text-xs block">Skills Acquired Without Certificate</span>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto pr-1">
-                <label
-                  v-for="skill in skillOptions"
-                  :key="skill"
-                  class="flex items-center gap-1.5 p-1.5 rounded-lg border cursor-pointer text-[10px]"
-                  :class="editOtherSkills.includes(skill) ? 'bg-primary/10 border-primary/40 font-medium' : ''"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="editOtherSkills.includes(skill)"
-                    class="h-3 w-3 rounded accent-primary text-primary"
-                    @change="toggleEditSkillOption(skill)"
-                  />
-                  <span>{{ skill }}</span>
-                </label>
-              </div>
-
-              <!-- Custom skill tags -->
-              <div class="pt-2 space-y-1.5 border-t">
-                <span class="text-[10px] text-muted-foreground">Additional Skills</span>
-                <div class="flex items-center gap-2">
-                  <Input
-                    v-model="editNewSkillTag"
-                    placeholder="e.g. Welding, Cooking"
-                    class="h-7 text-xs"
-                    @keyup.enter="addEditSkillTag"
-                  />
-                  <Button size="sm" variant="outline" class="h-7 text-xs gap-1 cursor-pointer" @click="addEditSkillTag">
-                    <Plus class="h-3 w-3" />
-                    <span>Add</span>
-                  </Button>
-                </div>
-                <div class="flex flex-wrap gap-1 pt-1">
-                  <Badge
-                    v-for="(skill, idx) in editOtherSkills.filter(s => s && !skillOptions.includes(s))"
-                    :key="idx"
-                    variant="secondary"
-                    class="text-[10px] gap-1 py-0.5"
-                  >
-                    <span>{{ skill }}</span>
-                    <X class="h-3 w-3 cursor-pointer hover:text-destructive" @click="removeEditSkillTag(editOtherSkills.indexOf(skill))" />
-                  </Badge>
-                </div>
-              </div>
-
-              <div class="pt-1 space-y-1">
-                <span class="text-[10px] text-muted-foreground">Others (Specify)</span>
-                <SkillTextPicker v-model="editOtherSkillsSpecified" placeholder="Specialized skills" size="sm" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <NsrpSkillsSection />
 
         <!-- ─── Registry Assessment Metadata ─── -->
         <Card class="border shadow-xs bg-muted/20 print:hidden">
@@ -2226,7 +317,7 @@ const {
           <CardContent class="p-4 pt-0 space-y-2 text-xs">
             <div class="flex items-center justify-between border-b pb-1.5">
               <span class="text-muted-foreground">Assessed By</span>
-              <span class="font-medium text-foreground">{{ applicant.assessedByName || "Provincial PESO Officer" }}</span>
+              <span class="font-medium text-foreground">{{ record.assessedByName || "Provincial PESO Officer" }}</span>
             </div>
             <div class="flex items-center justify-between border-b pb-1.5">
               <span class="text-muted-foreground">Assessment Date</span>
@@ -2234,7 +325,7 @@ const {
             </div>
             <div class="flex items-center justify-between border-b pb-1.5">
               <span class="text-muted-foreground">Registry System ID</span>
-              <span class="font-mono text-muted-foreground truncate max-w-45" :title="applicant.id">{{ applicant.id }}</span>
+              <span class="font-mono text-muted-foreground truncate max-w-45" :title="record.id">{{ record.id }}</span>
             </div>
             <div class="flex items-center justify-between text-[11px]">
               <span class="text-muted-foreground">Last Updated</span>
