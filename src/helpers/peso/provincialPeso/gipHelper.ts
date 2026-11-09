@@ -225,6 +225,24 @@ export function parsePeriodDates(
   }
 
   const p = period.trim()
+  const pad = (n: string | number) => String(n).padStart(2, '0')
+
+  // Pattern: "11/01/2026 - 12/31/2026" (MM/DD/YYYY, how periods are saved now)
+  const numericMatch = p.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[-–]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (numericMatch) {
+    const [, sm, sd, sy, em, ed, ey] = numericMatch
+    return {
+      startDate: `${sy}-${pad(sm)}-${pad(sd)}`,
+      endDate: `${ey}-${pad(em)}-${pad(ed)}`,
+    }
+  }
+
+  // Pattern: "2026-11-01 to 2026-12-31" (ISO, written on renewal)
+  const isoMatch = p.match(/^(\d{4}-\d{2}-\d{2})\s*(?:to|[-–])\s*(\d{4}-\d{2}-\d{2})$/i)
+  if (isoMatch) {
+    return { startDate: isoMatch[1], endDate: isoMatch[2] }
+  }
+
   // Pattern: "Jan 1 - Jun 30, 2026" or "Jan 1, 2026 - Jun 30, 2026"
   const rangeMatch = p.match(
     /^([A-Za-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?\s*[-–]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/,
