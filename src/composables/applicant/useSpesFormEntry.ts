@@ -21,13 +21,16 @@ export function useSpesFormEntry() {
 
   const form = useSpesFormSteps({ withRequirements: false })
   const profileId = computed(() => user.value?.id ?? null)
-  const backLink = { name: 'spes-application-form' } as const
+  // Back (and after saving) to the application in the SPES portal; without saved details the
+  // first application fills them in, so that case goes to the Apply wizard instead
+  const backLink = { name: 'spes-my-application' } as const
+  const applyLink = { name: 'spes-application-form' } as const
 
   const load = async () => {
     if (!profileId.value) return
     await store.fetchMyForm(profileId.value)
     if (myForm.value) form.loadValues(toSpesFormValues(myForm.value))
-    else if (!errorMessage.value) await router.replace(backLink)
+    else if (!errorMessage.value) await router.replace(applyLink)
   }
 
   watch(profileId, () => void load(), { immediate: true })

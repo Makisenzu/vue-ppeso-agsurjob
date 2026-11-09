@@ -17,7 +17,7 @@ const { form, backLink, isLoading, isSubmitting, errorMessage, reload, saveDetai
         :to="backLink"
         class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft class="size-4" /> SPES Application
+        <ArrowLeft class="size-4" /> My SPES Application
       </AppLink>
       <div class="flex flex-col gap-1">
         <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">My SPES Details</h1>

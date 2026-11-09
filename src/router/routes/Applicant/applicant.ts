@@ -96,6 +96,7 @@ export const applicantRoutes : RouteRecordRaw[] = [
         name: 'offer',
         component: () => import('@/components/applicant/ApplicantOffers.vue')
       },
+      // Like GIP: the SPES page and Apply wizard stay here; "View my application" opens the SPES portal
       {
         path: 'spes-application',
         name: 'spes-application',
@@ -108,11 +109,10 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/Spes/ApplicantSpesApplicationForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'SPES Application Form' }
       },
+      // My SPES Details moved into the SPES portal; old links still land there
       {
         path: 'spes-application/details',
-        name: 'spes-details',
-        component: () => import('@/components/applicant/Spes/ApplicantSpesForm.vue'),
-        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My SPES Details' }
+        redirect: { name: 'spes-details' }
       },
       // Like GIP: the TUPAD page and Apply wizard stay here; "View my application" opens the TUPAD portal
       {
@@ -184,6 +184,26 @@ export const applicantRoutes : RouteRecordRaw[] = [
         name: 'tupad-my-application',
         component: () => import('@/components/applicant/Tupad/ApplicantTupadApplicationForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
+      },
+    ]
+  },
+  {
+    path: '/app/programs/spes',
+    component: () => import('@/layouts/ProgramPortalLayout.vue'),
+    meta: { requiresAuth: true, role: 'applicant', program: 'spes', breadcrumb: 'SPES', breadcrumbTo: { name: 'spes-application' } },
+    children: [
+      { path: '', redirect: { name: 'spes-my-application' } },
+      {
+        path: 'application',
+        name: 'spes-my-application',
+        component: () => import('@/components/applicant/Spes/ApplicantSpesApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
+      },
+      {
+        path: 'details',
+        name: 'spes-details',
+        component: () => import('@/components/applicant/Spes/ApplicantSpesForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My SPES Details' }
       },
     ]
   },

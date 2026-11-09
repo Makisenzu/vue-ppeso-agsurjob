@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/common/auth'
 import { toAccountRequirementsLink, UNVERIFIED_APPLICANT_MESSAGE, UNVERIFIED_APPLICANT_TITLE } from '@/helpers/applicant/accountVerificationHelper'
 import { useSpesFormStore } from '@/stores/applicant/spesFormStore'
@@ -507,6 +507,21 @@ export function useSpesApplicationForm() {
     route.query.from === 'application'
       ? { to: { name: 'application' }, label: 'Application Status' }
       : { to: { name: 'spes-application' }, label: 'Special Program for Employment of Students' }
+  )
+
+  const router = useRouter()
+
+  // The Apply wizard (spes-application-form) lives in the applicant layout; once there is an application
+  // (just submitted, or an old link) it opens in the SPES portal instead, keeping ?from=application.
+  // Applying again (isReapplying) happens inside the portal, so it never sends anyone back
+  watch(
+    hasApplied,
+    (applied) => {
+      if (applied && route.name === 'spes-application-form') {
+        void router.replace({ name: 'spes-my-application', query: route.query })
+      }
+    },
+    { immediate: true }
   )
 
   // ─── Load ───

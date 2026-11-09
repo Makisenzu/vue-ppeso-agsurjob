@@ -63,7 +63,8 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
       appliedAt: row.created_at,
       updatedAt: row.updated_at ?? row.created_at,
       // `from` points the form's back link here instead of the SPES page
-      to: { name: 'spes-application-form', query: { from: 'application' } },
+      // Opens the application in the SPES portal (ProgramPortalLayout)
+      to: { name: 'spes-my-application', query: { from: 'application' } },
     })),
     ...rows.tupad.map((row) => ({
       key: `tupad:${row.id}`,

@@ -456,7 +456,7 @@ Key features:
 ### 7.1 Applicant Program Portals — one per PESO program
 
 Each PESO program has its own section of the applicant side with its own sidebar, instead of living
-under `ApplicantHeader`. Status as of 11/09/2026: **GIP and TUPAD have been moved. SPES and FNPLP still use `ApplicantLayout`.**
+under `ApplicantHeader`. Status as of 11/09/2026: **GIP, TUPAD and SPES have been moved. FNPLP still uses `ApplicantLayout`.**
 
 | Piece | File | Role |
 | --- | --- | --- |
@@ -482,7 +482,12 @@ group shows only **My Application**.
 **TUPAD routes (as built):** `tupad-application` and `tupad-application-form` stay in `ApplicantLayout`.
 The portal is `/app/programs/tupad/application` (`tupad-my-application`, the `ApplicantTupadApplicationForm` component), with `tupadLogo.png`.
 
-**To move another program (SPES / FNPLP):**
+**SPES routes (as built):** `spes-application` and `spes-application-form` stay in `ApplicantLayout`. The portal has
+`/app/programs/spes/application` (`spes-my-application`, `ApplicantSpesApplicationForm`) and `/app/programs/spes/details`
+(`spes-details`, My SPES Details, moved from `/app/spes-application/details`, which redirects). Enrolled = any SPES appointment
+(`myAppointments`). "Apply again" (`isReapplying`) runs inside the portal. No SPES logo yet, so the sidebar shows the `BookMarked` icon.
+
+**To move another program (FNPLP):**
 1. Add its key to `ProgramPortalKey` and its entry to `PROGRAM_PORTALS` (`home`, then items: Overview, Requirements as `#<program>-requirements`, My Application, plus pages it has, like SPES "My SPES Details"). Mark items only enrolled applicants need with `requiresEnrollment`, and add the program's rule to the `enrollment` map.
 2. Keep its program page and Apply form under `/app` (ApplicantLayout). Add a `/app/programs/<key>` parent record with an `application` child named `<key>-my-application` that renders the same form/details component (plus any enrolled-only pages). The parent sets `breadcrumb: '<SHORT>'` and `breadcrumbTo` the program page, and its `''` child redirects to `<key>-my-application`.
 3. Point "View my application" on its landing page and its entry in `applicationStatusHelper.ts` at `<key>-my-application`. In its form composable, `router.replace` from the Apply route to `<key>-my-application` once `hasApplied` is true (pass `route.query` through).

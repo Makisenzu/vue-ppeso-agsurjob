@@ -98,7 +98,8 @@ const { hero, about, facts, requirements, letterGuide, cta, isLoading } = useLan
         </div>
         <div v-else-if="cta === 'applied' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" variant="outline" class="w-full sm:w-auto">
-            <AppLink :to="{ name: 'spes-application-form' }">View my application</AppLink>
+            <!-- Opens the SPES portal (its own sidebar); Apply now stays in the applicant layout -->
+            <AppLink :to="{ name: 'spes-my-application' }">View my application</AppLink>
           </Button>
         </div>
       </section>

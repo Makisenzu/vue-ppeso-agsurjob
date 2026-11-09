@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { ClipboardList, FileText, GraduationCap, Hammer, Info } from '@lucide/vue'
+import { BookMarked, ClipboardList, FileText, GraduationCap, Hammer, Info, UserRoundPen } from '@lucide/vue'
 import gipLogo from '@/assets/images/gip.png'
 import tupadLogo from '@/assets/images/tupadLogo.png'
 
@@ -9,7 +9,7 @@ import tupadLogo from '@/assets/images/tupadLogo.png'
  * sidebar (ProgramPortalLayout.vue + ProgramPortalSidebar.vue). A portal is just an entry here plus a
  * route group whose parent record sets `meta.program` to the key. See DESIGN.md §7.1 to add a program.
  */
-export type ProgramPortalKey = 'gip' | 'tupad'
+export type ProgramPortalKey = 'gip' | 'tupad' | 'spes'
 
 export interface ProgramPortalLink {
   title: string
@@ -68,6 +68,21 @@ export const PROGRAM_PORTALS: Record<ProgramPortalKey, ProgramPortalConfig> = {
       { title: 'Overview', to: { name: 'tupad-application' }, icon: Info, requiresEnrollment: true },
       { title: 'Requirements', to: { name: 'tupad-application', hash: '#tupad-requirements' }, icon: ClipboardList, requiresEnrollment: true },
       { title: 'My Application', to: { name: 'tupad-my-application' }, icon: FileText },
+    ],
+  },
+  spes: {
+    key: 'spes',
+    shortTitle: 'SPES',
+    title: 'Special Program for Employment of Students',
+    // No SPES logo in src/assets/images yet: add `logo` here once there is one
+    icon: BookMarked,
+    home: { name: 'spes-application' },
+    // Not yet appointed: only My Application ("Edit details" on it still opens My SPES Details)
+    items: [
+      { title: 'Overview', to: { name: 'spes-application' }, icon: Info, requiresEnrollment: true },
+      { title: 'Requirements', to: { name: 'spes-application', hash: '#spes-requirements' }, icon: ClipboardList, requiresEnrollment: true },
+      { title: 'My Application', to: { name: 'spes-my-application' }, icon: FileText },
+      { title: 'My SPES Details', to: { name: 'spes-details' }, icon: UserRoundPen, requiresEnrollment: true },
     ],
   },
 }

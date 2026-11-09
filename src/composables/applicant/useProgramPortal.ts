@@ -9,6 +9,7 @@ import { useAuth } from '@/composables/common/useAuth'
 import { useProfileMedia } from '@/composables/applicant/useProfileMedia'
 import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
 import { useTupadApplicationStore } from '@/stores/applicant/tupadApplicationStore'
+import { useSpesFormStore } from '@/stores/applicant/spesFormStore'
 import {
   PROGRAM_PORTALS,
   isProgramPortalKey,
@@ -51,13 +52,16 @@ export function useProgramPortalSidebar() {
   const program = useCurrentProgram()
 
   // Enrollment per program, read from the program's store. Every portal page already loads it
-  // (useLandingGip / useGipApplicationForm, useTupadApplicationForm call fetchMyApplication), so the sidebar fetches nothing
+  // (useLandingGip / useGipApplicationForm, useTupadApplicationForm call fetchMyApplication; useSpesApplicationForm, useSpesFormEntry fetchMyForm), so the sidebar fetches nothing
   const { internships: gipInternships } = storeToRefs(useGipApplicationStore())
   const { engagements: tupadEngagements } = storeToRefs(useTupadApplicationStore())
+  const { myAppointments: spesAppointments } = storeToRefs(useSpesFormStore())
   const enrollment: Record<ProgramPortalKey, ComputedRef<boolean>> = {
     gip: computed(() => gipInternships.value.some((internship) => internship.appointments.length > 0)),
     // A TUPAD beneficiary is one PESO has added to a batch
     tupad: computed(() => tupadEngagements.value.length > 0),
+    // Any SPES appointment, this year's or a past one
+    spes: computed(() => spesAppointments.value.length > 0),
   }
 
   /** The program's items this applicant sees: enrolled-only items are hidden until they are enrolled */
