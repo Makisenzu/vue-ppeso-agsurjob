@@ -19,7 +19,6 @@ export function useSkillRepository() {
     filteredMunicipalityRows,
     filteredAgusanMunicipalityRows,
     filteredOutsideMunicipalityRows,
-    allApplicants,
     stats,
     isLoading,
     error,
@@ -66,7 +65,7 @@ export function useSkillRepository() {
   })
 
   function refreshRecords() {
-    return store.loadRepositoryData(true)
+    return store.loadRepositoryData()
   }
 
   function gotoMunicipality(name: string) {
@@ -133,7 +132,6 @@ export function useSkillRepository() {
     filteredMunicipalityRows,
     filteredAgusanMunicipalityRows,
     filteredOutsideMunicipalityRows,
-    allApplicants,
     stats,
     isLoading,
     error,

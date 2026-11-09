@@ -34,7 +34,13 @@ const {
   selectedLpii,
   filteredSkills,
   filteredBarangays,
-  filteredApplicants,
+  applicants,
+  applicantsTotal,
+  isApplicantsLoading,
+  applicantsPageNumber,
+  applicantsPageCount,
+  applicantsRange,
+  goToApplicantsPage,
   toggleSkillFilter,
   setLpiiFilter,
   setCategory,
@@ -414,7 +420,7 @@ const {
         <CardHeader class="border-b bg-muted/10 py-3">
           <div class="flex items-center justify-between">
             <CardTitle class="text-sm font-semibold">
-              Applicants from {{ municipalityName }} ({{ filteredApplicants.length }})
+              Applicants from {{ municipalityName }} ({{ applicantsTotal }})
             </CardTitle>
             <span class="text-xs text-muted-foreground">PESO Registry</span>
           </div>
@@ -422,11 +428,11 @@ const {
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
         <SwipeCardList
           class="p-3 md:hidden"
-          :items="filteredApplicants"
+          :items="applicants"
           :item-key="(applicant) => applicant.id"
           :card="getApplicantCard"
           :actions="getApplicantSwipeActions"
-          :loading="isLoading"
+          :loading="isApplicantsLoading && applicants.length === 0"
           primary-tone="primary"
           hint="Swipe left on an applicant to open the profile."
         >
@@ -447,14 +453,14 @@ const {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-if="isLoading">
+              <TableRow v-if="isApplicantsLoading && applicants.length === 0">
                 <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
                   Loading applicants...
                 </TableCell>
               </TableRow>
 
-              <template v-else-if="filteredApplicants.length > 0">
-                <TableRow v-for="app in filteredApplicants" :key="app.id">
+              <template v-else-if="applicants.length > 0">
+                <TableRow v-for="app in applicants" :key="app.id" :class="isApplicantsLoading ? 'opacity-60' : ''">
                   <TableCell>
                     <div class="font-medium text-foreground text-xs leading-tight">
                       {{ app.fullName }}
@@ -513,6 +519,29 @@ const {
               </TableRow>
             </TableBody>
           </Table>
+        </div>
+
+        <!-- Pagination: applicants load 25 at a time from the database -->
+        <div v-if="applicantsPageCount > 1" class="flex flex-col-reverse gap-3 border-t px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-center text-xs text-muted-foreground sm:text-left">{{ applicantsRange }}</p>
+          <div class="flex justify-center gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="applicantsPageNumber <= 1 || isApplicantsLoading"
+              @click="goToApplicantsPage(applicantsPageNumber - 1)"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="applicantsPageNumber >= applicantsPageCount || isApplicantsLoading"
+              @click="goToApplicantsPage(applicantsPageNumber + 1)"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

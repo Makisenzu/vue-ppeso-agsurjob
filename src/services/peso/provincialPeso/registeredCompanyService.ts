@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { CompanyVerification, RegisteredCompanyListItem } from '@/types/peso/provincialPeso/registeredCompany'
 
 const LIST_COLUMNS = `
@@ -12,12 +13,16 @@ const LIST_COLUMNS = `
  * it filed or linked at signup. PESO-encoded establishments without an account are not included.
  */
 export const registeredCompanyService = {
+  /** Every registered company; read 1,000 at a time so none are cut off past PostgREST's row limit */
   async fetchCompanies(): Promise<RegisteredCompanyListItem[]> {
-    const { data, error } = await supabase
-      .schema('employers')
-      .from('companies')
-      .select(LIST_COLUMNS)
-      .order('created_at', { ascending: false })
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('employers')
+        .from('companies')
+        .select(LIST_COLUMNS)
+        .order('created_at', { ascending: false })
+        .order('id'),
+    )
 
     if (error) throw new Error(error.message || 'Failed to load registered companies.')
     return (data ?? []) as RegisteredCompanyListItem[]

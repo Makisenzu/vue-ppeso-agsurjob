@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type {
   SkillFormValues,
   SkillLinkCoverage,
@@ -21,11 +22,14 @@ const toCategory = (value: string) => value.trim() || null
 export const skillListService = {
   /** Every skill with its other wordings (a reference list: hundreds of rows at most) */
   async fetchSkills(): Promise<SkillRow[]> {
-    const { data, error } = await untypedCore()
-      .from('skills')
-      .select('id, name, category, source, is_active, sort_order, skill_aliases(id, alias)')
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true })
+    const { data, error } = await fetchAllPages(() =>
+      untypedCore()
+        .from('skills')
+        .select('id, name, category, source, is_active, sort_order, skill_aliases(id, alias)')
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+        .order('id'),
+    )
     if (error) throw error
     return ((data ?? []) as SkillRow[]).map((row) => ({
       ...row,

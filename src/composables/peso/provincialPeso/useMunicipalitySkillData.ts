@@ -1,4 +1,5 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { refDebounced } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSkillRepositoryStore } from '@/stores/peso/provincialPeso/skillRepositoryStore'
@@ -12,7 +13,7 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
   const route = useRoute()
   const router = useRouter()
   const store = useSkillRepositoryStore()
-  const { currentDetail, isDetailLoading } = storeToRefs(store)
+  const { currentDetail, isDetailLoading, applicantsPage, applicantsTotal, isApplicantsLoading } = storeToRefs(store)
 
   const resolvedName =
     initialMunicipality ?? decodeURIComponent(((route?.params?.id as string) ?? '').trim())
@@ -23,11 +24,48 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
   const selectedSkill = ref<string>('')
   const selectedLpii = ref<LpiiCategory | 'ALL'>('ALL')
 
-  async function loadData(targetName?: string, options?: { forceRefresh?: boolean }) {
+  // ─── Applicants: filtered and paged in the database (migration 110) ───
+  const APPLICANTS_PAGE_SIZE = 25
+  const applicantsPageNumber = ref(1)
+  const debouncedSearch = refDebounced(searchQuery, 300)
+  const applicantsPageCount = computed(() => Math.max(Math.ceil(applicantsTotal.value / APPLICANTS_PAGE_SIZE), 1))
+  const applicantsRange = computed(() => {
+    if (!applicantsTotal.value) return ''
+    const from = (applicantsPageNumber.value - 1) * APPLICANTS_PAGE_SIZE + 1
+    const to = Math.min(applicantsPageNumber.value * APPLICANTS_PAGE_SIZE, applicantsTotal.value)
+    return `${from}–${to} of ${applicantsTotal.value}`
+  })
+
+  function loadApplicants() {
+    if (!municipalityName.value) return
+    void store.loadApplicantsPage({
+      municipality: municipalityName.value,
+      search: debouncedSearch.value.trim(),
+      skill: selectedSkill.value,
+      lpii: selectedLpii.value,
+      page: applicantsPageNumber.value,
+      pageSize: APPLICANTS_PAGE_SIZE,
+    })
+  }
+
+  // A filter change goes back to page 1; the page watcher then loads it
+  watch([debouncedSearch, selectedSkill, selectedLpii], () => {
+    if (applicantsPageNumber.value === 1) loadApplicants()
+    else applicantsPageNumber.value = 1
+  })
+  watch(applicantsPageNumber, loadApplicants)
+
+  function goToApplicantsPage(page: number) {
+    applicantsPageNumber.value = Math.min(Math.max(page, 1), applicantsPageCount.value)
+  }
+
+  async function loadData(targetName?: string) {
     const name = targetName || municipalityName.value
     if (!name) return
     municipalityName.value = name
-    await store.loadMunicipalityDetail(name, options?.forceRefresh)
+    applicantsPageNumber.value = 1
+    loadApplicants()
+    await store.loadMunicipalityDetail(name)
   }
 
   onMounted(() => {
@@ -39,7 +77,7 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
   }
 
   function handleRefresh() {
-    void loadData(undefined, { forceRefresh: true })
+    void loadData()
   }
 
   function viewApplicantEntry(id: string) {
@@ -75,29 +113,6 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
       }
       if (targetSkill && !b.allSkills.some((s) => normalizeText(s).includes(targetSkill))) {
         return false
-      }
-      return true
-    })
-  })
-
-  // Filter applicants based on search, LPII filter, and selected skill
-  const filteredApplicants = computed(() => {
-    if (!currentDetail.value) return []
-    const q = normalizeText(searchQuery.value)
-    const targetSkill = normalizeText(selectedSkill.value)
-
-    return currentDetail.value.applicants.filter((app) => {
-      if (selectedLpii.value !== 'ALL' && app.lpiiTag !== selectedLpii.value) {
-        return false
-      }
-      if (targetSkill && !app.skillNames.some((s) => normalizeText(s) === targetSkill)) {
-        return false
-      }
-      if (q) {
-        const matchesName = normalizeText(app.fullName).includes(q)
-        const matchesBrgy = normalizeText(app.barangay).includes(q)
-        const matchesSkill = app.skillNames.some((s) => normalizeText(s).includes(q))
-        if (!matchesName && !matchesBrgy && !matchesSkill) return false
       }
       return true
     })
@@ -166,7 +181,13 @@ export function useMunicipalitySkillData(initialMunicipality?: string) {
     selectedLpii,
     filteredSkills,
     filteredBarangays,
-    filteredApplicants,
+    applicants: applicantsPage,
+    applicantsTotal,
+    isApplicantsLoading,
+    applicantsPageNumber,
+    applicantsPageCount,
+    applicantsRange,
+    goToApplicantsPage,
     loadData,
     toggleSkillFilter,
     setLpiiFilter,

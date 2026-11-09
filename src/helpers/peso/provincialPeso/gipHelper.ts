@@ -548,90 +548,9 @@ export function mapToGipApplicantRecord(
   }
 }
 
-// ─── Demographic Aggregation Helpers ───
-export const GIP_CHART_START_YEAR = 2026
-
-// Charts start at 2026 and always show at least 2026–2028
-function buildChartYears(records: Array<{ batchYear: number }>): number[] {
-  const yearsSet = new Set<number>([
-    GIP_CHART_START_YEAR,
-    GIP_CHART_START_YEAR + 1,
-    GIP_CHART_START_YEAR + 2,
-  ])
-  for (const r of records) {
-    if (r.batchYear && r.batchYear >= GIP_CHART_START_YEAR) yearsSet.add(r.batchYear)
-  }
-  return Array.from(yearsSet).sort((a, b) => a - b)
-}
-
-export function computeYearlyDemographics(records: GipInternRecord[]): {
-  pgas: GenderDataPoint[]
-  dole: GenderDataPoint[]
-} {
-  const sortedYears = buildChartYears(records)
-
-  const pgasMap = new Map<number, { male: number; female: number }>()
-  const doleMap = new Map<number, { male: number; female: number }>()
-
-  for (const y of sortedYears) {
-    pgasMap.set(y, { male: 0, female: 0 })
-    doleMap.set(y, { male: 0, female: 0 })
-  }
-
-  for (const r of records) {
-    const targetMap = r.program === 'DOLE' ? doleMap : pgasMap
-    if (!targetMap.has(r.batchYear)) continue
-    const entry = targetMap.get(r.batchYear) || { male: 0, female: 0 }
-    if (r.gender === 'Female') {
-      entry.female += 1
-    } else {
-      entry.male += 1
-    }
-    targetMap.set(r.batchYear, entry)
-  }
-
-  const pgas: GenderDataPoint[] = sortedYears.map((year) => ({
-    year,
-    male: pgasMap.get(year)?.male ?? 0,
-    female: pgasMap.get(year)?.female ?? 0,
-  }))
-
-  const dole: GenderDataPoint[] = sortedYears.map((year) => ({
-    year,
-    male: doleMap.get(year)?.male ?? 0,
-    female: doleMap.get(year)?.female ?? 0,
-  }))
-
-  return { pgas, dole }
-}
-
-export function computeApplicantsDemographics(
-  records: Array<{ batchYear: number; gender: string }>
-): GenderDataPoint[] {
-  const sortedYears = buildChartYears(records)
-  const applicantsMap = new Map<number, { male: number; female: number }>()
-
-  for (const y of sortedYears) {
-    applicantsMap.set(y, { male: 0, female: 0 })
-  }
-
-  for (const r of records) {
-    if (!applicantsMap.has(r.batchYear)) continue
-    const entry = applicantsMap.get(r.batchYear) || { male: 0, female: 0 }
-    if (r.gender === 'Female') {
-      entry.female += 1
-    } else {
-      entry.male += 1
-    }
-    applicantsMap.set(r.batchYear, entry)
-  }
-
-  return sortedYears.map((year) => ({
-    year,
-    male: applicantsMap.get(year)?.male ?? 0,
-    female: applicantsMap.get(year)?.female ?? 0,
-  }))
-}
+// ─── Demographic Aggregation ───
+// The yearly charts are counted in the database: esmdd.gip_yearly_demographics (migration 111),
+// starting at 2026 and always showing at least 2026–2028.
 
 // ─── LPII Aggregation Helpers ───
 export function computeLpiiBreakdown(records: GipInternRecord[]): {

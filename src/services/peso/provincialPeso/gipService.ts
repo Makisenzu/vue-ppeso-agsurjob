@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { assertStatusRemarks, normalizeStatusRemarks } from '@/helpers/common/statusRemarksHelper'
@@ -32,8 +33,6 @@ import {
   mapToGipInternRecord,
   mapToGipApplicantRecord,
   mapToGipPriorityApplicantRecord,
-  computeYearlyDemographics,
-  computeApplicantsDemographics,
   computeLpiiBreakdown,
   computeApplicantLpiiBreakdown,
   parsePeriodDates,
@@ -492,7 +491,7 @@ export const gipService = {
   },
 
   /**
-   * Computes yearly demographics from live database intern records and applicant records.
+   * Yearly interns (PGAS / DOLE) and applicants by sex for the dashboard charts.
    */
   async fetchYearlyDemographics(forceRefresh = false): Promise<{
     pgas: GenderDataPoint[]
@@ -503,14 +502,13 @@ export const gipService = {
       removePersistentCacheValue(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY)
     }
 
+    // Counted in the database (migration 111) instead of downloading every intern and applicant
     return getOrSetPersistentCache(GIP_YEARLY_DEMOGRAPHICS_CACHE_KEY, GIP_CACHE_TTL_MS, async () => {
-      const [interns, applicants] = await Promise.all([
-        this.fetchInterns(forceRefresh),
-        this.fetchApplicants(forceRefresh),
-      ])
-      const { pgas, dole } = computeYearlyDemographics(interns)
-      const applicantsData = computeApplicantsDemographics(applicants)
-      return { pgas, dole, applicants: applicantsData }
+      const { data, error } = await (supabase as unknown as SupabaseClient)
+        .schema('esmdd')
+        .rpc('gip_yearly_demographics')
+      if (error) throw new Error(error.message || 'Failed to load the GIP charts.')
+      return data as { pgas: GenderDataPoint[]; dole: GenderDataPoint[]; applicants: GenderDataPoint[] }
     })
   },
 

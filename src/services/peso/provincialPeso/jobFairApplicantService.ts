@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import { jobFairService } from '@/services/peso/provincialPeso/jobFairService'
 import type {
   JobFairApplicantInsert,
@@ -17,12 +18,16 @@ async function withRegistry(rows: JobFairApplicantRow[]): Promise<JobFairAttende
 
 export const jobFairApplicantService = {
   async fetchAttendees(jobFairId: string): Promise<JobFairAttendee[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('job_fair_applicants')
-      .select('*')
-      .eq('job_fair_id', jobFairId)
-      .order('created_at', { ascending: false })
+    // A big fair can pass PostgREST's 1,000-row limit, so read every page
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('job_fair_applicants')
+        .select('*')
+        .eq('job_fair_id', jobFairId)
+        .order('created_at', { ascending: false })
+        .order('id'),
+    )
 
     if (error) throw new Error(error.message || 'Failed to load job fair attendees.')
     return withRegistry(data ?? [])

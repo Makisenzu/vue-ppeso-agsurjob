@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type {
   HotsInsert,
   HotsUpdate,
@@ -49,12 +50,16 @@ function withPositionTitles<T extends WithJobFairVacancy>(
 
 export const hotsService = {
   async fetchHots(jobFairId: string): Promise<HotsWithDetails[]> {
-    const { data, error } = await supabase
-      .schema('esmdd')
-      .from('hots')
-      .select(HOTS_SELECT)
-      .eq('job_fair_id', jobFairId)
-      .order('hired_date', { ascending: false })
+    // Read every page: a big fair's hires can pass PostgREST's 1,000-row limit
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('esmdd')
+        .from('hots')
+        .select(HOTS_SELECT)
+        .eq('job_fair_id', jobFairId)
+        .order('hired_date', { ascending: false })
+        .order('id'),
+    )
 
     if (error) throw new Error(error.message || 'Failed to load hired-on-the-spot records.')
     return (await withEmployerNames(withPositionTitles(data ?? []))) as HotsWithDetails[]

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { fetchAllPages } from '@/helpers/common/supabasePaging'
 import type { CourseRow, EligibilityRow, ReligionRow } from '@/types/common/referenceList'
 
 export const referenceListService = {
@@ -19,13 +20,17 @@ export const referenceListService = {
 
   /** Active courses of every level, alphabetical within a level ("Others" last). */
   async fetchCourses(): Promise<CourseRow[]> {
-    const { data, error } = await supabase
-      .schema('core')
-      .from('courses')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true })
+    // Read every page: the course list can grow past PostgREST's 1,000-row limit
+    const { data, error } = await fetchAllPages(() =>
+      supabase
+        .schema('core')
+        .from('courses')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+        .order('id'),
+    )
 
     if (error) throw new Error(error.message || 'Failed to load courses.')
     return data ?? []

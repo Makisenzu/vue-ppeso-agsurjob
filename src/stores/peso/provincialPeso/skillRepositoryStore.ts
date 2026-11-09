@@ -8,18 +8,22 @@ import type {
   SkillCountEntry,
   SkillRepositoryStats,
 } from '@/types/peso/provincialPeso/skillRepository'
-import {
-  computeRepositoryStats,
-  matchesGeographicLabel,
-  normalizeText,
-} from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
+import { matchesGeographicLabel, normalizeText } from '@/helpers/peso/provincialPeso/skillRepositoryHelper'
+import type { SkillRepositoryApplicantFilters } from '@/types/peso/provincialPeso/skillRepository'
 
 export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => {
   // ─── State ───
+  // Computed in the database (migration 110): summaries and skill counts, never every applicant
   const municipalityRows = ref<MunicipalitySkillSummaryRow[]>([])
-  const allApplicants = ref<ApplicantSkillProfile[]>([])
+  const allSkillsList = ref<SkillCountEntry[]>([])
   const stats = ref<SkillRepositoryStats | null>(null)
   const currentDetail = ref<MunicipalitySkillDetail | null>(null)
+
+  // One page of the open municipality's applicants
+  const applicantsPage = ref<ApplicantSkillProfile[]>([])
+  const applicantsTotal = ref(0)
+  const isApplicantsLoading = ref(false)
+  let applicantsRequestId = 0
 
   const isLoading = ref(false)
   const isDetailLoading = ref(false)
@@ -41,28 +45,6 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
   const outsideMunicipalityRows = computed(() =>
     municipalityRows.value.filter((row) => !row.isAgusanDelSur)
   )
-
-  const allSkillsList = computed<SkillCountEntry[]>(() => {
-    const counts = new Map<string, { count: number; category: string; originalName: string }>()
-    for (const app of allApplicants.value) {
-      for (const skill of app.skills) {
-        const key = normalizeText(skill.name)
-        const existing = counts.get(key)
-        if (existing) {
-          existing.count++
-        } else {
-          counts.set(key, { count: 1, category: skill.category, originalName: skill.name })
-        }
-      }
-    }
-    return Array.from(counts.values())
-      .map((item) => ({
-        name: item.originalName,
-        count: item.count,
-        category: item.category,
-      }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-  })
 
   const filteredMunicipalityRows = computed(() => {
     const query = normalizeText(searchQuery.value)
@@ -100,43 +82,16 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
     filteredMunicipalityRows.value.filter((row) => !row.isAgusanDelSur)
   )
 
-  const filteredApplicants = computed(() => {
-    return allApplicants.value.filter((app) => {
-      if (selectedMunicipality.value && !matchesGeographicLabel(app.municipality, selectedMunicipality.value)) {
-        return false
-      }
-      if (selectedBarangay.value && normalizeText(app.barangay) !== normalizeText(selectedBarangay.value)) {
-        return false
-      }
-      if (selectedSkillFilter.value) {
-        const target = normalizeText(selectedSkillFilter.value)
-        if (!app.skillNames.some((s) => normalizeText(s) === target)) return false
-      }
-      if (searchQuery.value) {
-        const q = normalizeText(searchQuery.value)
-        const nameMatches = normalizeText(app.fullName).includes(q)
-        const brgyMatches = normalizeText(app.barangay).includes(q)
-        const skillMatches = app.skillNames.some((s) => normalizeText(s).includes(q))
-        if (!nameMatches && !brgyMatches && !skillMatches) return false
-      }
-      return true
-    })
-  })
-
   // ─── Actions ───
 
-  async function loadRepositoryData(forceRefresh = false): Promise<void> {
+  async function loadRepositoryData(): Promise<void> {
     isLoading.value = true
     error.value = null
     try {
-      const [summaries, applicants] = await Promise.all([
-        skillRepositoryService.fetchMunicipalitySummaries(forceRefresh),
-        skillRepositoryService.fetchAllApplicantProfiles(forceRefresh),
-      ])
-
-      municipalityRows.value = summaries
-      allApplicants.value = applicants
-      stats.value = computeRepositoryStats(summaries, applicants)
+      const summary = await skillRepositoryService.fetchSummary()
+      municipalityRows.value = summary.municipalities
+      allSkillsList.value = summary.skills
+      stats.value = summary.stats
     } catch (err: any) {
       error.value = err?.message || 'Failed to load skill repository data'
       console.error('[useSkillRepositoryStore] Error loading repository data:', err)
@@ -145,11 +100,11 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
     }
   }
 
-  async function loadMunicipalityDetail(municipalityName: string, forceRefresh = false): Promise<MunicipalitySkillDetail | null> {
+  async function loadMunicipalityDetail(municipalityName: string): Promise<MunicipalitySkillDetail | null> {
     isDetailLoading.value = true
     error.value = null
     try {
-      const detail = await skillRepositoryService.fetchMunicipalityDetail(municipalityName, forceRefresh)
+      const detail = await skillRepositoryService.fetchMunicipalityDetail(municipalityName)
       currentDetail.value = detail
       return detail
     } catch (err: any) {
@@ -158,6 +113,25 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
       return null
     } finally {
       isDetailLoading.value = false
+    }
+  }
+
+  /** One page of a municipality's applicants; a newer request wins over a slower older one */
+  async function loadApplicantsPage(filters: SkillRepositoryApplicantFilters): Promise<void> {
+    const current = ++applicantsRequestId
+    isApplicantsLoading.value = true
+    try {
+      const { rows, total } = await skillRepositoryService.fetchApplicantsPage(filters)
+      if (current !== applicantsRequestId) return
+      applicantsPage.value = rows
+      applicantsTotal.value = total
+    } catch (err: any) {
+      if (current !== applicantsRequestId) return
+      error.value = err?.message || 'Failed to load the applicants'
+      applicantsPage.value = []
+      applicantsTotal.value = 0
+    } finally {
+      if (current === applicantsRequestId) isApplicantsLoading.value = false
     }
   }
 
@@ -199,8 +173,10 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
     municipalityRows,
     agusanMunicipalityRows,
     outsideMunicipalityRows,
-    allApplicants,
     stats,
+    applicantsPage,
+    applicantsTotal,
+    isApplicantsLoading,
     currentDetail,
     isLoading,
     isDetailLoading,
@@ -217,11 +193,11 @@ export const useSkillRepositoryStore = defineStore('pesoSkillRepository', () => 
     filteredMunicipalityRows,
     filteredAgusanMunicipalityRows,
     filteredOutsideMunicipalityRows,
-    filteredApplicants,
 
     // Actions
     loadRepositoryData,
     loadMunicipalityDetail,
+    loadApplicantsPage,
     setSelectedMunicipality,
     setSelectedBarangay,
     setSelectedSkillFilter,

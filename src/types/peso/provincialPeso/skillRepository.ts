@@ -67,7 +67,6 @@ export interface MunicipalitySkillDetail {
   skillsBreakdown: SkillCountEntry[]
   categories: string[]
   barangayRows: BarangaySkillRow[]
-  applicants: ApplicantSkillProfile[]
 }
 
 export interface SkillRepositoryStats {
@@ -80,4 +79,22 @@ export interface SkillRepositoryStats {
   agusanApplicants: number
   outsideApplicants: number
   outsideMunicipalitiesCount: number
+}
+
+/** skill_repository_summary (migration 110) with the counts the dashboard derives */
+export interface SkillRepositorySummary {
+  stats: SkillRepositoryStats
+  municipalities: MunicipalitySkillSummaryRow[]
+  /** Every skill with its applicant count, most common first (skill filter) */
+  skills: SkillCountEntry[]
+}
+
+/** Filters of a municipality's applicant list; paged on the server */
+export interface SkillRepositoryApplicantFilters {
+  municipality: string
+  search: string
+  skill: string
+  lpii: LpiiCategory | 'ALL'
+  page: number
+  pageSize: number
 }
