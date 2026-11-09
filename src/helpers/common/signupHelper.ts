@@ -88,7 +88,8 @@ export const SUFFIX_OPTIONS = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'] as const
 export function calculateAge(dateOfBirth: string | null | undefined): number | null {
   if (!dateOfBirth) return null
   const dob = parseISO(dateOfBirth)
-  if (!isValid(dob)) return null
+  // A future date is no age at all (differenceInYears returns -0 for it, which passes `>= 0`)
+  if (!isValid(dob) || dob > new Date()) return null
   const age = differenceInYears(new Date(), dob)
   return age >= 0 && age < 125 ? age : null
 }

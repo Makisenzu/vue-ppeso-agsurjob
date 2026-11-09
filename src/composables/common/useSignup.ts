@@ -24,6 +24,7 @@ import {
 } from '@/helpers/common/signupHelper'
 import { getPrivacyConsentStatement, getRequiredPrivacyPurposes } from '@/helpers/common/privacyHelper'
 import { minBirthdateIso, yearsAgoIso } from '@/helpers/common/dateRuleHelper'
+import { useCaptcha } from '@/composables/common/useCaptcha'
 import type { PrivacyPurpose } from '@/types/common/privacy'
 
 interface PsgcOption {
@@ -188,22 +189,31 @@ export function useSignup() {
   }
 
   // ─── Submission ───
+  // Bot protection (Turnstile) on the last step; a no-op until VITE_TURNSTILE_SITE_KEY is set
+  const captcha = useCaptcha()
+
   async function handleSubmit() {
-    if (!selectedRole.value || !hasGivenConsent.value) return
+    if (!selectedRole.value || !hasGivenConsent.value || !captcha.isReady.value) return
     try {
       await signupStore.submitSignup(
         selectedRole.value,
         values.value,
-        consentPurposes.value.map(({ purpose }) => purpose)
+        consentPurposes.value.map(({ purpose }) => purpose),
+        captcha.token.value ?? undefined,
       )
       // Navigating away unmounts the card, which discards the form (and the password) with it
       router.push('/login')
     } catch {
-      // submitError is set by the store
+      // submitError is set by the store; Turnstile tokens are single-use, so get a fresh one
+      captcha.reset()
     }
   }
 
   return {
+    // Bot protection
+    captchaToken: captcha.token,
+    captchaResetKey: captcha.resetKey,
+    isCaptchaReady: captcha.isReady,
     // Role
     roles: SIGNUP_ROLES,
     selectedRole,

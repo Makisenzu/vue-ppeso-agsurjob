@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CaptchaWidget from '@/components/CaptchaWidget.vue'
 import { useSignup } from '@/composables/common/useSignup'
 import { Check, ChevronRight, Loader2 } from '@lucide/vue'
 import agsurlogo from '@/assets/images/agsur.png'
@@ -68,6 +69,9 @@ const {
   isCheckingEmail,
   submitError,
   handleSubmit,
+  captchaToken,
+  captchaResetKey,
+  isCaptchaReady,
   consentPurposes,
   consentTicked,
   hasGivenConsent,
@@ -573,6 +577,9 @@ const {
               </label>
             </section>
 
+            <!-- Bot protection; renders nothing until Turnstile is configured -->
+            <CaptchaWidget :key="captchaResetKey" v-model="captchaToken" />
+
             <p v-if="submitError" class="text-sm text-destructive" role="alert">{{ submitError }}</p>
           </template>
         </form>
@@ -606,7 +613,7 @@ const {
         {{ isCheckingEmail ? 'Checking...' : 'Continue' }}
         <ChevronRight v-if="!isCheckingEmail" class="size-4 shrink-0" />
       </Button>
-      <Button v-else class="h-11 text-base sm:h-9 sm:text-sm" :disabled="isSubmitting || !hasGivenConsent" @click="handleSubmit">
+      <Button v-else class="h-11 text-base sm:h-9 sm:text-sm" :disabled="isSubmitting || !hasGivenConsent || !isCaptchaReady" @click="handleSubmit">
         <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
         {{ isSubmitting ? 'Creating account...' : 'Create account' }}
       </Button>

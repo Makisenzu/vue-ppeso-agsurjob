@@ -41,7 +41,13 @@ export const useSignupStore = defineStore('signup', () => {
    * metadata and the database stores them with the server's time when the profile is created
    * (core.record_signup_privacy_consent, migration 073).
    */
-  async function submitSignup(role: SignupRole, values: SignupFormValues, consentPurposes: PrivacyPurpose[]): Promise<void> {
+  async function submitSignup(
+    role: SignupRole,
+    values: SignupFormValues,
+    consentPurposes: PrivacyPurpose[],
+    /** Turnstile token (useCaptcha); omitted while CAPTCHA is off */
+    captchaToken?: string,
+  ): Promise<void> {
     isSubmitting.value = true
     submitError.value = ''
 
@@ -51,6 +57,7 @@ export const useSignupStore = defineStore('signup', () => {
         email: values.email.trim(),
         password: values.password,
         options: {
+          captchaToken,
           data: {
             role,
             firstname: values.first_name.trim(),

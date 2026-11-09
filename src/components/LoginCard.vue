@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLogin } from '@/composables/common/useLogin';
 import PasswordInput from '@/components/PasswordInput.vue';
+import CaptchaWidget from '@/components/CaptchaWidget.vue';
 
 const { agsurlogo, 
         pesologo,
@@ -11,6 +12,9 @@ const { agsurlogo,
         emailError, 
         passwordError, 
         handleLogin, 
+        captchaToken,
+        captchaResetKey,
+        isCaptchaReady,
         handleCreate ,
         Card,
         CardAction,
@@ -81,6 +85,8 @@ const { agsurlogo,
             />
             <p v-if="passwordError" class="text-xs text-destructive">{{ passwordError }}</p>
           </div>
+          <!-- Bot protection; renders nothing until Turnstile is configured -->
+          <CaptchaWidget :key="captchaResetKey" v-model="captchaToken" />
           <p v-if="loginError" class="text-sm text-destructive text-center">{{ loginError }}</p>
         </div>
       </form>
@@ -89,7 +95,7 @@ const { agsurlogo,
       <Button
         @click="handleLogin"
         class="w-full bg-(--button)"
-        :disabled="isLoading"
+        :disabled="isLoading || !isCaptchaReady"
       >
         {{ isLoading ? 'Logging in…' : 'Login' }}
       </Button>
