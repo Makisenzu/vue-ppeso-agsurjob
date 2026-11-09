@@ -645,7 +645,12 @@ totals — the browser never holds more than one page.
 >    template); routes stay lazy-loaded. No polling faster than every 30 s — prefer filtered Realtime subscriptions.
 > 8. **Uploads stay small.** Keep the per-file limits (10 MB) and file-type checks; images can be resized before upload.
 >
-> **Known full-table loads to migrate** to the registry pattern before the data grows: the admin user accounts list
+> **Migrated:** the skill repository (migration 110: `applicants.skill_repository_summary` / `_municipality` /
+> `_applicants`, an index kept by triggers, applicants paged 25 at a time) and the GIP dashboard charts (migration 111:
+> `esmdd.gip_yearly_demographics`). Lists that can pass 1,000 rows (registered companies, job fair attendees and hires,
+> the skill list, courses) read every page with `fetchAllPages`.
+>
+> **Known full-table loads still to migrate** to the registry pattern before the data grows: the admin user accounts list
 > (`userAccountService.fetchAllProfiles`: every profile and profile picture), the system directory
-> (`systemDirectoryService`), the skill repository (`skillRepositoryService`: every `applicant_skills` row), the admin
-> geographic map (`useGeographicMap`), and the GIP priority score list (`gipService`, `gip_applicant_priority_scores`).
+> (`systemDirectoryService`), the admin geographic map (`useGeographicMap`), and the GIP applicant / intern / priority
+> lists (`gipService`: bounded by GIP enrollment, but each row carries the full applicant record for the NSRP view).

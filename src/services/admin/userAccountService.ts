@@ -230,6 +230,7 @@ export const userAccountService = {
       email: payload.email,
       password: payload.password,
       options: {
+        captchaToken: payload.captchaToken,
         data: {
           role: payload.role,
           firstname: payload.firstname,

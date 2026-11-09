@@ -25,7 +25,7 @@ import type { DocumentFile } from '@/types/applicant/applicantProfile'
 import ProfileDocsUpload from './ProfileDocsUpload.vue'
 import { NSRP_FORM } from '@/composables/applicant/useApplicantProfile'
 
-const props = defineProps<{
+defineProps<{
   files: DocumentFile[]
   requirements: string[]
   hasRequirements: boolean

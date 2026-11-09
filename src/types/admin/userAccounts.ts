@@ -8,6 +8,8 @@ export type ProfileRow = Database['core']['Tables']['profiles']['Row'] & {
 
 export interface CreateAccountPayload {
   email: string
+  /** Turnstile token (useCaptcha): Supabase asks for one on every sign-up once CAPTCHA is on */
+  captchaToken?: string
   password: string
   firstname: string
   lastname: string

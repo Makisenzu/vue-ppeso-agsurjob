@@ -5,9 +5,9 @@
 - **Terminal Commands**: Always prefix CLI/terminal commands with `rtk` to reduce output token usage.
   - Use `rtk git status` instead of `git status`
   - Use `rtk git diff` instead of `git diff`
-  - Use `rtk npm test` or `rtk vitest` instead of plain test runners
+  - Use `rtk npm run <script>` instead of plain npm scripts
   - Use `rtk pnpm` / `rtk npm` for package listing or management tasks
-  - Use `rtk npx <command>` (e.g., `rtk npx eslint`, `rtk npx vitest`, `rtk npx tsc`) when running one-off executables
+  - Use `rtk npx <command>` (e.g., `rtk npx eslint`, `rtk npx tsc`) when running one-off executables
 
 - **Context & Workspace Limits**:
   - **No Broad Scans**: Never read whole directories, run workspace-wide `grep`, or scan unrequested folders.
@@ -234,3 +234,7 @@ Component (.vue) ──► Composable (useXxx) ──► Store (xxxStore) ──
 >     (migration `103_require_verified_account.sql` triggers) **and** in the UI (disabled action + "Verify … first"
 >     alert; messages in `src/helpers/applicant/accountVerificationHelper.ts`). Every new application or posting flow
 >     must follow this rule. Staff (PESO / admin) encoding on someone's behalf are exempt. See [`SECURITY.md`](.agents/SECURITY.md) §4.
+> 21. **DO NOT finish a change with failing checks.** Before handing work back run `npm run lint` (0 errors),
+>     and `npm run typecheck`; CI (`.github/workflows/ci.yml`) runs them plus the build on every push.
+>     Keep components under ~1,500 lines: split big pages into section components that share the page composable
+>     through provide / inject (`toPageContext`, e.g. `applicantNsrpDetailsContext.ts`).

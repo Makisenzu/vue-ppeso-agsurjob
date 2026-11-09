@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import CaptchaWidget from '@/components/CaptchaWidget.vue'
+import { useCaptcha } from '@/composables/common/useCaptcha'
 import {
   FlexRender,
 } from '@tanstack/vue-table'
@@ -239,16 +241,22 @@ const birthdateMin = minBirthdateIso()
 const birthdateMax = todayIso()
 const birthdateError = computed(() => birthdateIssue(formData.value.birthdate))
 
+// Bot protection: once Supabase CAPTCHA is on, admin-created sign-ups need a token too
+const captcha = useCaptcha()
+
 const handleCreateAccount = async () => {
   if (!formData.value.email || !formData.value.password || !formData.value.firstname || !formData.value.lastname || !formData.value.username || !formData.value.role) {
     return
   }
-  if (birthdateError.value) return
+  if (birthdateError.value || !captcha.isReady.value) return
   try {
-    await createAccount(formData.value)
+    await createAccount({ ...formData.value, captchaToken: captcha.token.value ?? undefined })
     resetForm()
   } catch {
     // Error is already set in store/composable
+  } finally {
+    // Turnstile tokens are single-use
+    captcha.reset()
   }
 }
 </script>
@@ -806,6 +814,11 @@ const handleCreateAccount = async () => {
             </div>
           </div>
 
+          <!-- Bot protection; renders nothing until Turnstile is configured -->
+          <div v-if="captcha.isEnabled" class="px-6 pb-2">
+            <CaptchaWidget :key="captcha.resetKey.value" v-model="captcha.token.value" />
+          </div>
+
           <!-- Sticky Footer -->
           <div class="flex justify-end gap-3 border-t border-border px-6 py-4 bg-transparent shrink-0">
             <Button type="button" variant="outline" @click="closeAddAccountSheet" :disabled="isSubmitting">
@@ -814,7 +827,7 @@ const handleCreateAccount = async () => {
             <Button
               type="submit"
               class="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-              :disabled="isSubmitting"
+              :disabled="isSubmitting || !captcha.isReady.value"
             >
               <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
               {{ isSubmitting ? 'Creating...' : 'Create Account' }}

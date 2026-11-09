@@ -28,7 +28,7 @@ export function cleanOcrText(text: string): string {
  */
 function cleanFieldValue(val: string): string {
   if (!val) return ''
-  let cleaned = val
+  const cleaned = val
     .replace(/\(e\.?g\.?[^)]*\)/gi, '')
     .replace(/\((?:Last|First|Given|Middle|Family)\s*Name\)/gi, '')
     .replace(/\((?:Jr\.?|Sr\.?|III|IV|Extension)\)/gi, '')
@@ -80,7 +80,7 @@ function normalizeDateOfBirth(rawDob: string): string {
   if (!rawDob) return ''
 
   // Clean OCR digits (e.g., O -> 0, l/I/| -> 1, S -> 5)
-  let clean = rawDob
+  const clean = rawDob
     .replace(/O(?=[0-9]|\b)|(?<=[0-9])O/gi, '0')
     .replace(/[lI|](?=[0-9]|\b)|(?<=[0-9])[lI|]/g, '1')
     .trim()

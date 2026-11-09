@@ -39,7 +39,6 @@ export function useAuth() {
       try {
         // clear session/user and other session data
         // use $patch to ensure reactive store values are updated
-        // @ts-ignore - Pinia store has $patch at runtime
         authStore.$patch({ session: null, user: null })
         authStore.clearSessionData()
       } catch (e) {
