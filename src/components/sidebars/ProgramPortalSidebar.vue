@@ -48,9 +48,18 @@ const {
         <SidebarMenuItem>
           <SidebarMenuButton v-if="program" as-child size="lg" :tooltip="program.title">
             <AppLink :to="program.home" @click="collapseSidebar">
-              <!-- The logo file has white margins around the seal; the scale trims them -->
-              <span v-if="program.logo" class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                <img :src="program.logo" :alt="`${program.shortTitle} logo`" class="size-full scale-125 object-contain" />
+              <!-- Seal logos have white margins around the circle; the scale trims them -->
+              <span
+                v-if="program.logo"
+                class="flex size-8 shrink-0 items-center justify-center overflow-hidden"
+                :class="{ 'rounded-full': program.isSealLogo }"
+              >
+                <img
+                  :src="program.logo"
+                  :alt="`${program.shortTitle} logo`"
+                  class="size-full object-contain"
+                  :class="{ 'scale-125': program.isSealLogo }"
+                />
               </span>
               <span
                 v-else

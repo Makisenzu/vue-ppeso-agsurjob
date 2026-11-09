@@ -114,6 +114,7 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/Spes/ApplicantSpesForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My SPES Details' }
       },
+      // Like GIP: the TUPAD page and Apply wizard stay here; "View my application" opens the TUPAD portal
       {
         path: 'tupad-application',
         name: 'tupad-application',
@@ -168,6 +169,20 @@ export const applicantRoutes : RouteRecordRaw[] = [
         path: 'application',
         name: 'gip-my-application',
         component: () => import('@/components/applicant/Gip/ApplicantGipApplicationForm.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
+      },
+    ]
+  },
+  {
+    path: '/app/programs/tupad',
+    component: () => import('@/layouts/ProgramPortalLayout.vue'),
+    meta: { requiresAuth: true, role: 'applicant', program: 'tupad', breadcrumb: 'TUPAD', breadcrumbTo: { name: 'tupad-application' } },
+    children: [
+      { path: '', redirect: { name: 'tupad-my-application' } },
+      {
+        path: 'application',
+        name: 'tupad-my-application',
+        component: () => import('@/components/applicant/Tupad/ApplicantTupadApplicationForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
       },
     ]

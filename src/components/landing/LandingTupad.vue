@@ -96,7 +96,8 @@ const { hero, about, facts, requirements, cta, isLoading } = useLandingTupad()
         </div>
         <div v-else-if="cta === 'applied' && !isLoading" class="flex justify-end">
           <Button as-child size="lg" variant="outline" class="w-full sm:w-auto">
-            <AppLink :to="{ name: 'tupad-application-form' }">View my application</AppLink>
+            <!-- Opens the TUPAD portal (its own sidebar); Apply now stays in the applicant layout -->
+            <AppLink :to="{ name: 'tupad-my-application' }">View my application</AppLink>
           </Button>
         </div>
       </section>

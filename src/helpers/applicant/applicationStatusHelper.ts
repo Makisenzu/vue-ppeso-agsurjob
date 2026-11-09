@@ -77,7 +77,8 @@ export function toApplicationSummaries(rows: MyProgramApplicationRows): Applicat
       appliedAt: row.created_at,
       updatedAt: row.updated_at ?? row.created_at,
       // `from` points the form's back link here instead of the TUPAD page
-      to: { name: 'tupad-application-form', query: { from: 'application' } },
+      // Opens the application in the TUPAD portal (ProgramPortalLayout)
+      to: { name: 'tupad-my-application', query: { from: 'application' } },
     })),
     ...rows.vacancies.map((row) => ({
       key: `vacancy:${row.id}`,

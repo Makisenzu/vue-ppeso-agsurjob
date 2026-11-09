@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
@@ -487,6 +487,20 @@ export function useTupadApplicationForm() {
     route.query.from === 'application'
       ? { to: { name: 'application' }, label: 'Application Status' }
       : { to: { name: 'tupad-application' }, label: 'TUPAD' }
+  )
+
+  const router = useRouter()
+
+  // The Apply wizard (tupad-application-form) lives in the applicant layout; once there is an application
+  // (just submitted, or an old link) it opens in the TUPAD portal instead, keeping ?from=application
+  watch(
+    hasApplied,
+    (applied) => {
+      if (applied && route.name === 'tupad-application-form') {
+        void router.replace({ name: 'tupad-my-application', query: route.query })
+      }
+    },
+    { immediate: true }
   )
 
   return {
