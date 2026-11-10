@@ -1,696 +1,455 @@
-import { computed, reactive, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useAuthStore } from '@/stores/common/auth'
-import { useGipApplicationStore } from '@/stores/applicant/gipApplicationStore'
+import { computed, h, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import type { ColumnDef, RowSelectionState, SortingState } from '@tanstack/vue-table'
+import { getCoreRowModel, getPaginationRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
+import { ArrowUpDown, ChevronRight, Download, Eye, FileText, Pencil, Printer, Trash2 } from '@lucide/vue'
+import { valueUpdater } from '@/components/ui/table/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import type { SwipeAction } from '@/components/SwipeRow.vue'
+import type { SwipeCard } from '@/types/common/swipeCard'
 import { gipAccomplishmentService } from '@/services/common/gipAccomplishmentService'
-import { directoryService } from '@/services/common/directoryService'
-import { usePrivateDocuments } from '@/composables/common/usePrivateDocuments'
-import { useToastAlert } from '@/composables/common/useToastAlert'
-import { todayIso } from '@/helpers/common/dateRuleHelper'
-import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
-import { formatFileSize } from '@/helpers/common/uploadHelpers'
-import { formatPesoAmount, pesoAmountInWords } from '@/helpers/common/amountInWordsHelper'
-import {
-  accomplishmentRequirement,
-  formatPeriodRange,
-  formatWeekday,
-  startedHalves,
-  weekdaysBetween,
-} from '@/helpers/common/gipAccomplishmentHelper'
-import {
-  downloadGipAccomplishmentPdf,
-  printGipAccomplishment,
-  type GipAccomplishmentPrintData,
-} from '@/helpers/common/gipAccomplishmentReportHelper'
+import { ALL_MONTHS, monthFilterOptions, periodInMonth } from '@/helpers/common/gipAccomplishmentHelper'
+import { errorMessageOf, useGipAccomplishmentData } from '@/composables/applicant/useGipAccomplishmentData'
 import type { MyGipAppointment } from '@/types/applicant/gipApplication'
-import type { DirectoryRow } from '@/types/common/directory'
-import {
-  GIP_ACCOMPLISHMENT_ACTIVITIES_MAX,
-  GIP_ACCOMPLISHMENT_ACTIVITY_MAX,
-  GIP_ACCOMPLISHMENT_BADGE_CLASS,
-  GIP_ACCOMPLISHMENT_DAY_STATUSES,
-  GIP_ACCOMPLISHMENT_DEFAULT_REMARKS,
-  GIP_ACCOMPLISHMENT_ENTRY_MAX,
-  GIP_ACCOMPLISHMENT_FILE_ACCEPT,
-  GIP_ACCOMPLISHMENT_FILE_MAX_BYTES,
-  GIP_ACCOMPLISHMENT_NAME_MAX,
-  GIP_ACCOMPLISHMENT_OUTPUT_MAX,
-  GIP_ACCOMPLISHMENT_REMARKS_MAX,
-  GIP_ACCOMPLISHMENT_WORDS_MAX,
-  type GipAccomplishmentActivity,
-  type GipAccomplishmentDay,
-  type GipAccomplishmentDayStatus,
-  type GipAccomplishmentDetails,
-  type GipAccomplishmentPrintContext,
-  type GipAccomplishmentProgram,
-  type GipAccomplishmentRow,
-} from '@/types/common/gipAccomplishment'
+import type { GipAccomplishmentRow } from '@/types/common/gipAccomplishment'
 
-const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
+const PAGE_SIZE = 10
 
-/** One weekday row of the editor */
-interface DayDraft {
-  date: string
-  status: GipAccomplishmentDayStatus
-  entry: string
+/** A term row of Table 1, with its report counts */
+export interface GipTermRow {
+  id: string
+  appointment: MyGipAppointment
+  reportCount: number
+  /** Reports not yet submitted (Draft) or sent back (Returned) */
+  openCount: number
 }
 
-/** One PGAS activity row of the editor (key keeps rows stable while editing) */
-interface ActivityDraft {
-  key: number
-  activity: string
-  output: string
-  remarks: string
+/** Appointment statuses on the term table (DESIGN.md tokens) */
+const TERM_BADGE_CLASS: Record<string, string> = {
+  Active: 'border-success/30 bg-success/10 text-success',
+  Renewed: 'border-info/30 bg-info/10 text-info',
 }
-
-const DEFAULT_DESIGNATION = 'GIP'
-let activityKey = 0
-const newActivity = (row?: Partial<GipAccomplishmentActivity>): ActivityDraft => ({
-  key: ++activityKey,
-  activity: row?.activity ?? '',
-  output: row?.output ?? '',
-  remarks: row?.remarks ?? GIP_ACCOMPLISHMENT_DEFAULT_REMARKS,
-})
 
 /**
- * GIP portal → Accomplishments: one report per half-month (1–15, 16–end) of the intern's Active term, on their
- * funding's form — DOLE: what they did each weekday; PGAS: Activities / Output / Remarks and the pay they computed
- * for the half (figures and words). Drafts save any time; submitting opens once the half ends. The report can be
- * generated as a PDF or printed on the official form at any point. Rules match esmdd.save_gip_accomplishment
- * (migration 112), which enforces them again.
+ * GIP portal → Accomplishments: two data tables (DESIGN.md §13).
+ *   Table 1 — the intern's appointment terms; opening one shows
+ *   Table 2 — that term's reports (filter by month, generate / print, Edit, Discard, bulk discard).
+ * The open term is in the URL (`?term=<appointment id>`), so Back returns to Table 1. "Add Accomplishment" opens the
+ * report form (useGipAccomplishmentForm) on its own page.
  */
 export function useGipAccomplishments() {
-  const toastAlert = useToastAlert()
-  const { user, applicantProfile } = storeToRefs(useAuthStore())
-  const gipStore = useGipApplicationStore()
-  const { internships, isLoading: isLoadingInternship } = storeToRefs(gipStore)
-  const { openDocument } = usePrivateDocuments()
+  const route = useRoute()
+  const router = useRouter()
+  const data = useGipAccomplishmentData()
+  const { appointments, activeAppointment, reports, toastAlert, generating, generateSaved, viewOwnFile } = data
 
-  const applicantId = computed(() => applicantProfile.value?.id ?? null)
-  const today = todayIso()
-
-  // The sidebar reads the same store, so the page loads it (the auth store may still be hydrating)
-  watch(applicantId, (id) => { if (id) void gipStore.fetchMyApplication(id) }, { immediate: true })
-
-  /** "JUAN A. DELA CRUZ JR." style full name for the form */
-  const internName = computed(() => {
-    const p = applicantProfile.value
-    if (!p) return ''
-    const middle = p.middle_name?.trim() ? `${p.middle_name.trim()[0]}.` : ''
-    return [p.first_name, middle, p.surname, p.suffix].map((part) => part?.trim()).filter(Boolean).join(' ')
-  })
-
-  // ─── Terms ───
-  /** Every appointment term, newest first */
-  const appointments = computed<MyGipAppointment[]>(() =>
-    internships.value.flatMap((internship) => internship.appointments).sort((a, b) => b.term_number - a.term_number)
-  )
-  /** Reports can only be written for the term still Active */
-  const activeAppointment = computed(() => appointments.value.find((a) => a.status === 'Active') ?? null)
-  const program = computed<GipAccomplishmentProgram>(() => (activeAppointment.value?.program as GipAccomplishmentProgram) ?? 'PGAS')
-  const requirement = computed(() => accomplishmentRequirement(program.value))
-  const isDole = computed(() => program.value === 'DOLE')
-
-  // ─── Reports ───
-  const reports = ref<GipAccomplishmentRow[]>([])
-  const isLoadingReports = ref(false)
-  const appointmentIds = computed(() => appointments.value.map((a) => a.id))
-
-  async function loadReports() {
-    const ids = appointmentIds.value
-    if (!ids.length) {
-      reports.value = []
-      return
-    }
-    isLoadingReports.value = true
-    try {
-      reports.value = await gipAccomplishmentService.listByAppointments(ids)
-    } catch (error) {
-      toastAlert.error('Could not load your reports', errorMessageOf(error, 'Please try again.'))
-    } finally {
-      isLoadingReports.value = false
-    }
+  // ─── Navigation ───
+  function addAccomplishment() {
+    void router.push({ name: 'gip-accomplishment-new' })
   }
 
-  watch(() => appointmentIds.value.join(','), () => void loadReports(), { immediate: true })
-
-  const isLoading = computed(() => isLoadingInternship.value || isLoadingReports.value)
-  const isEnrolled = computed(() => appointments.value.length > 0)
-
-  const reportOf = (appointmentId: string, periodStart: string) =>
-    reports.value.find((r) => r.appointment_id === appointmentId && r.period_start === periodStart) ?? null
-
-  // ─── Halves of the Active term ───
-  /** Halves that have started, newest first */
-  const halves = computed(() => {
-    const apt = activeAppointment.value
-    return apt ? startedHalves(apt.start_date, apt.end_date, today) : []
-  })
-
-  const halfOptions = computed(() =>
-    halves.value.map((half) => {
-      const report = activeAppointment.value ? reportOf(activeAppointment.value.id, half.start) : null
-      return {
-        value: half.start,
-        label: half.label,
-        description: report ? report.status : half.isComplete ? 'Not started · ready to submit' : 'In progress',
-      }
-    })
-  )
-
-  const selectedHalfStart = ref<string>('')
-
-  // Default: the oldest ended half still waiting to be submitted, else the current half
-  watch(
-    () => [halves.value.map((h) => h.start).join(','), isLoadingReports.value] as const,
-    ([, loading]) => {
-      if (loading || !halves.value.length) return
-      if (halves.value.some((h) => h.start === selectedHalfStart.value)) return
-      const apt = activeAppointment.value
-      const pending = [...halves.value].reverse().find((half) => {
-        const status = apt ? reportOf(apt.id, half.start)?.status : undefined
-        return half.isComplete && (!status || status === 'Draft' || status === 'Returned')
-      })
-      selectedHalfStart.value = (pending ?? halves.value[0]!).start
-    },
-    { immediate: true }
-  )
-
-  const selectedHalf = computed(() => halves.value.find((h) => h.start === selectedHalfStart.value) ?? null)
-  const currentReport = computed(() =>
-    activeAppointment.value && selectedHalf.value ? reportOf(activeAppointment.value.id, selectedHalf.value.start) : null
-  )
-  /** Reviewed reports are final */
-  const isReadOnly = computed(() => currentReport.value?.status === 'Reviewed')
-  /** A Submitted report can only change by submitting it again */
-  const canSaveDraft = computed(() => !isReadOnly.value && currentReport.value?.status !== 'Submitted')
-  const canSubmit = computed(() => !isReadOnly.value && !!selectedHalf.value?.isComplete)
-
-  // ─── Editor ───
-  const days = ref<DayDraft[]>([])
-  const activities = ref<ActivityDraft[]>([])
-  const details = reactive<GipAccomplishmentDetails>({
-    designation: '',
-    supervisor_name: '',
-    approver_name: '',
-    approver_position: '',
-    amount: '',
-    amount_in_words: '',
-  })
-  /** PGAS: daily entries are optional and hidden until opened (shown when the report already has some) */
-  const showDailyOptional = ref(false)
-  const showDaily = computed(() => isDole.value || showDailyOptional.value)
-  const pickedFile = ref<File | null>(null)
-  const fileError = ref<string | null>(null)
-  const keepCurrentFile = ref(true)
-  const dayErrors = reactive<Record<string, string>>({})
-  const activityErrors = reactive<Record<number, string>>({})
-  const detailErrors = reactive<Partial<Record<keyof GipAccomplishmentDetails | 'activities', string>>>({})
-  const savingMode = ref<'draft' | 'submit' | null>(null)
-  const isSaving = computed(() => savingMode.value !== null)
-
-  function clearErrors() {
-    for (const key of Object.keys(dayErrors)) delete dayErrors[key]
-    for (const key of Object.keys(activityErrors)) delete activityErrors[Number(key)]
-    for (const key of Object.keys(detailErrors)) delete detailErrors[key as keyof typeof detailErrors]
+  function openTerm(termId: string) {
+    void router.push({ query: { ...route.query, term: termId } })
   }
 
-  /** The latest saved report of the term: its signatories carry over to a new half */
-  const latestReportOfTerm = computed(() =>
-    activeAppointment.value ? reports.value.find((r) => r.appointment_id === activeAppointment.value!.id) ?? null : null
-  )
-
-  // ─── Office head of the appointed office (office directory) ───
-  // The report is approved by the head of the office the intern is appointed to: "Approved by" (name +
-  // position, migration 113) fills from that office's directory entry. Every signed-in user reads the directory.
-  const appointedOffice = ref<DirectoryRow | null>(null)
-
-  watch(
-    () => activeAppointment.value?.assigned_office,
-    async (officeName) => {
-      appointedOffice.value = null
-      const key = officeName?.trim().toLowerCase()
-      if (!key) return
-      try {
-        const offices = await directoryService.fetchActiveOffices()
-        // Appointments store the office name (older ones may hold its code)
-        appointedOffice.value =
-          offices.find((o) => o.office_name.trim().toLowerCase() === key || o.office_code.trim().toLowerCase() === key) ?? null
-      } catch (error) {
-        // The intern can still type the office head by hand
-        console.warn('[useGipAccomplishments] Could not load the office directory:', errorMessageOf(error, ''))
-      }
-    },
-    { immediate: true }
-  )
-
-  const officeHeadName = computed(() => appointedOffice.value?.office_head?.trim() ?? '')
-  const officeHeadPosition = computed(() => appointedOffice.value?.office_head_position?.trim() ?? '')
-
-  /** Fill "Approved by" from the directory where the report leaves it empty (the directory may load after the form) */
-  function applyOfficeHead() {
-    if (isReadOnly.value) return
-    if (!details.approver_name.trim() && officeHeadName.value) details.approver_name = officeHeadName.value
-    if (!details.approver_position.trim() && officeHeadPosition.value) details.approver_position = officeHeadPosition.value
+  function showAllTerms() {
+    void router.push({ query: Object.fromEntries(Object.entries(route.query).filter(([key]) => key !== 'term')) })
   }
 
-  watch([officeHeadName, officeHeadPosition], applyOfficeHead)
-
-  /** Fill the editor from the selected half's saved report (or a blank form) */
-  function loadEditor() {
-    clearErrors()
-    pickedFile.value = null
-    fileError.value = null
-    const half = selectedHalf.value
-    const report = currentReport.value
-    const previous = latestReportOfTerm.value
-    keepCurrentFile.value = !!report?.file_path
-
-    details.designation = report?.designation ?? previous?.designation ?? DEFAULT_DESIGNATION
-    // The supervisor is not the office head: left for the intern, carried over from their last report of the term
-    // (unless that one still held the office head's name, as earlier reports pre-filled it)
-    const previousSupervisor = previous?.supervisor_name?.trim() ?? ''
-    details.supervisor_name =
-      report?.supervisor_name ??
-      (previousSupervisor && previousSupervisor.toLowerCase() !== officeHeadName.value.toLowerCase() ? previousSupervisor : '')
-    // Office head: the saved report's, else the appointed office's directory entry, else the last report's
-    details.approver_name = report?.approver_name || officeHeadName.value || previous?.approver_name || ''
-    details.approver_position = report?.approver_position || officeHeadPosition.value || previous?.approver_position || ''
-    details.amount = report?.amount != null ? report.amount.toFixed(2) : ''
-    details.amount_in_words = report?.amount_in_words ?? ''
-
-    activities.value = report?.activities.length ? report.activities.map((row) => newActivity(row)) : [newActivity()]
-
-    if (!half) {
-      days.value = []
-      return
-    }
-    const lastDay = half.to < today ? half.to : today
-    const saved = new Map((report?.daily_entries ?? []).map((d) => [d.date, d]))
-    days.value = weekdaysBetween(half.from, lastDay).map((date) => {
-      const day = saved.get(date)
-      return { date, status: day?.status ?? 'Worked', entry: day?.entry ?? '' }
-    })
-    showDailyOptional.value = (report?.daily_entries.length ?? 0) > 0
-  }
-
-  watch(() => [selectedHalfStart.value, currentReport.value?.id, currentReport.value?.updated_at], loadEditor, { immediate: true })
-
-  // ─── Daily entries ───
-  function setDayStatus(day: DayDraft, status: GipAccomplishmentDayStatus) {
-    day.status = status
-    delete dayErrors[day.date]
-  }
-
-  function onDayInput(day: DayDraft) {
-    if (day.entry.trim()) delete dayErrors[day.date]
-  }
-
-  const missingDays = computed(() =>
-    isDole.value ? days.value.filter((day) => day.status === 'Worked' && !day.entry.trim()).length : 0
-  )
-
-  // ─── PGAS activities ───
-  function addActivity() {
-    if (activities.value.length >= GIP_ACCOMPLISHMENT_ACTIVITIES_MAX) return
-    activities.value.push(newActivity())
-    delete detailErrors.activities
-  }
-
-  function removeActivity(key: number) {
-    activities.value = activities.value.filter((row) => row.key !== key)
-    delete activityErrors[key]
-    if (!activities.value.length) activities.value.push(newActivity())
-  }
-
-  function onActivityInput(row: ActivityDraft) {
-    if (row.activity.trim()) delete activityErrors[row.key]
-    delete detailErrors.activities
-  }
-
-  // ─── PGAS payment ───
-  /** Words suggested from the amount; replaced automatically until the intern edits them by hand */
-  let suggestedWords = ''
-  function onAmountInput() {
-    delete detailErrors.amount
-    const words = pesoAmountInWords(details.amount)
-    if (!details.amount_in_words.trim() || details.amount_in_words === suggestedWords) {
-      details.amount_in_words = words
-      if (words) delete detailErrors.amount_in_words
-    }
-    suggestedWords = words
-  }
-
-  function fillAmountInWords() {
-    const words = pesoAmountInWords(details.amount)
-    if (!words) {
-      detailErrors.amount = 'Enter the amount first.'
-      return
-    }
-    details.amount_in_words = words
-    suggestedWords = words
-    delete detailErrors.amount_in_words
-  }
-
-  const amountPreview = computed(() => formatPesoAmount(details.amount))
-
-  // ─── File ───
-  function onFilePicked(event: Event) {
-    const input = event.target as HTMLInputElement
-    const file = input.files?.[0] ?? null
-    input.value = ''
-    fileError.value = null
-    if (!file) return
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-    if (!isPdf) {
-      fileError.value = 'Attach a PDF file.'
-      return
-    }
-    if (file.size > GIP_ACCOMPLISHMENT_FILE_MAX_BYTES) {
-      fileError.value = `The PDF must be ${formatFileSize(GIP_ACCOMPLISHMENT_FILE_MAX_BYTES)} or smaller.`
-      return
-    }
-    pickedFile.value = file
-  }
-
-  function clearFile() {
-    pickedFile.value = null
-    keepCurrentFile.value = false
-    fileError.value = null
-  }
-
-  // ─── Collect & validate ───
-  /** Entries to save: blank Worked days are left out (a draft keeps logging them later) */
-  function collectEntries(): GipAccomplishmentDay[] {
-    if (!showDaily.value) return []
-    return days.value
-      .filter((day) => day.status !== 'Worked' || day.entry.trim())
-      .map((day) => ({ date: day.date, status: day.status, entry: day.entry.trim() || null }))
-  }
-
-  /** Rows to save (PGAS): blank rows are left out */
-  function collectActivities(): GipAccomplishmentActivity[] {
-    if (isDole.value) return []
-    return activities.value
-      .filter((row) => row.activity.trim() || row.output.trim())
-      .map((row) => ({ activity: row.activity.trim(), output: row.output.trim() || null, remarks: row.remarks.trim() || null }))
-  }
-
-  const parsedAmount = computed(() => {
-    const value = Number(details.amount.replace(/,/g, ''))
-    return details.amount.trim() && Number.isFinite(value) ? value : null
-  })
-
-  /** Client copy of the RPC's rules, so mistakes show on the right field */
-  function validate(submit: boolean): boolean {
-    clearErrors()
-    for (const day of days.value) {
-      if (day.entry.length > GIP_ACCOMPLISHMENT_ENTRY_MAX) dayErrors[day.date] = `Keep it under ${GIP_ACCOMPLISHMENT_ENTRY_MAX} characters.`
-    }
-    for (const field of ['designation', 'supervisor_name', 'approver_name', 'approver_position'] as const) {
-      if (details[field].length > GIP_ACCOMPLISHMENT_NAME_MAX) detailErrors[field] = `Keep it under ${GIP_ACCOMPLISHMENT_NAME_MAX} characters.`
-    }
-
-    if (!isDole.value) {
-      for (const row of activities.value) {
-        if (!row.activity.trim() && row.output.trim()) activityErrors[row.key] = 'Write the activity for this output.'
-        else if (row.activity.length > GIP_ACCOMPLISHMENT_ACTIVITY_MAX || row.output.length > GIP_ACCOMPLISHMENT_OUTPUT_MAX || row.remarks.length > GIP_ACCOMPLISHMENT_REMARKS_MAX)
-          activityErrors[row.key] = 'This row is too long.'
-      }
-      if (details.amount.trim() && (parsedAmount.value == null || parsedAmount.value < 0)) detailErrors.amount = 'Enter the amount as a number, e.g. 5300.00.'
-      if (details.amount_in_words.length > GIP_ACCOMPLISHMENT_WORDS_MAX) detailErrors.amount_in_words = `Keep it under ${GIP_ACCOMPLISHMENT_WORDS_MAX} characters.`
-    }
-
-    if (submit) {
-      if (isDole.value) {
-        for (const day of days.value) {
-          if (day.status === 'Worked' && !day.entry.trim()) dayErrors[day.date] = 'Write what you did, or mark the day as a holiday or leave.'
-        }
-      } else {
-        if (!collectActivities().length) detailErrors.activities = 'List at least one activity you accomplished this half.'
-        if (!parsedAmount.value || parsedAmount.value <= 0) detailErrors.amount = 'Enter your pay for this half.'
-        if (!details.amount_in_words.trim()) detailErrors.amount_in_words = 'Write the amount in words.'
-      }
-    }
-
-    return (
-      Object.keys(dayErrors).length === 0 &&
-      Object.keys(activityErrors).length === 0 &&
-      Object.keys(detailErrors).length === 0 &&
-      !fileError.value
-    )
-  }
-
-  // ─── Save / submit ───
-  async function save(submit: boolean) {
-    const appointment = activeAppointment.value
-    const half = selectedHalf.value
-    const uploaderId = user.value?.id
-    if (!appointment || !half || !uploaderId || isSaving.value) return
-    if (!validate(submit)) {
-      toastAlert.error('Check your report', submit ? 'Some required parts are missing.' : 'Some entries need fixing.')
-      return
-    }
-
-    const report = currentReport.value
-    const keepFile =
-      report && keepCurrentFile.value && !pickedFile.value && report.file_path && report.file_name
-        ? { path: report.file_path, name: report.file_name, size: report.file_size }
-        : null
-
-    savingMode.value = submit ? 'submit' : 'draft'
-    try {
-      await gipAccomplishmentService.save({
-        appointmentId: appointment.id,
-        periodStart: half.start,
-        dailyEntries: collectEntries(),
-        activities: collectActivities(),
-        details: { ...details, amount: details.amount.replace(/,/g, '').trim() },
-        submit,
-        file: pickedFile.value,
-        keepFile,
-        uploaderId,
-        previousFilePath: report?.file_path ?? null,
-      })
-      toastAlert.success(
-        submit ? 'Report submitted' : 'Draft saved',
-        submit ? 'PESO will review your accomplishment report.' : 'Keep adding to it until the half ends, then submit it.'
-      )
-      await loadReports()
-    } catch (error) {
-      toastAlert.error(submit ? 'Could not submit your report' : 'Could not save your draft', errorMessageOf(error, 'Please try again.'))
-    } finally {
-      savingMode.value = null
-    }
-  }
-
-  const saveDraft = () => save(false)
-  const submitReport = () => save(true)
-
-  // ─── Generate / print on the official form ───
-  const generating = ref<'download' | 'print' | null>(null)
-
-  /** The days a report covers: its half clipped to its term */
-  function coverage(report: Pick<GipAccomplishmentRow, 'appointment_id' | 'period_start' | 'period_end'>) {
-    const apt = appointments.value.find((a) => a.id === report.appointment_id)
-    const from = apt && apt.start_date > report.period_start ? apt.start_date : report.period_start
-    const to = apt && apt.end_date < report.period_end ? apt.end_date : report.period_end
-    return { from, to, office: apt?.assigned_office ?? '' }
-  }
-
-  /** The editor's current values (saved or not), so a draft prints as it stands */
-  function editorPrintData(): GipAccomplishmentPrintData {
-    return {
-      program: program.value,
-      dailyEntries: days.value
-        .filter((day) => day.status !== 'Worked' || day.entry.trim())
-        .map((day) => ({ date: day.date, status: day.status, entry: day.entry.trim() || null })),
-      activities: collectActivities(),
-      designation: details.designation,
-      supervisorName: details.supervisor_name,
-      approverName: details.approver_name,
-      approverPosition: details.approver_position,
-      amount: parsedAmount.value,
-      amountInWords: details.amount_in_words,
-    }
-  }
-
-  function reportPrintData(report: GipAccomplishmentRow): GipAccomplishmentPrintData {
-    return {
-      program: report.program,
-      dailyEntries: report.daily_entries,
-      activities: report.activities,
-      designation: report.designation,
-      supervisorName: report.supervisor_name,
-      approverName: report.approver_name,
-      approverPosition: report.approver_position,
-      amount: report.amount,
-      amountInWords: report.amount_in_words,
-    }
-  }
-
-  async function generate(mode: 'download' | 'print', data: GipAccomplishmentPrintData, ctx: GipAccomplishmentPrintContext) {
-    if (generating.value) return
-    generating.value = mode
-    try {
-      if (mode === 'download') await downloadGipAccomplishmentPdf(data, ctx)
-      else await printGipAccomplishment(data, ctx)
-    } catch (error) {
-      toastAlert.error('Could not generate the report', errorMessageOf(error, 'Please try again.'))
-    } finally {
-      generating.value = null
-    }
-  }
-
-  function generateCurrent(mode: 'download' | 'print') {
-    const half = selectedHalf.value
-    const apt = activeAppointment.value
-    if (!half || !apt) return
-    void generate(mode, editorPrintData(), { internName: internName.value, office: apt.assigned_office, from: half.from, to: half.to })
-  }
-
-  function generateSaved(report: GipAccomplishmentRow, mode: 'download' | 'print') {
-    const { from, to, office } = coverage(report)
-    void generate(mode, reportPrintData(report), { internName: internName.value, office, from, to })
-  }
-
-  // ─── Discard ───
-  const reportToRemove = ref<GipAccomplishmentRow | null>(null)
-  const isRemoving = ref(false)
-
-  async function confirmRemove() {
-    const report = reportToRemove.value
-    if (!report) return
-    isRemoving.value = true
-    try {
-      await gipAccomplishmentService.remove(report)
-      reports.value = reports.value.filter((r) => r.id !== report.id)
-      reportToRemove.value = null
-      toastAlert.success('Report discarded', 'The accomplishment report was removed.')
-    } catch (error) {
-      toastAlert.error('Could not discard the report', errorMessageOf(error, 'Please try again.'))
-    } finally {
-      isRemoving.value = false
-    }
-  }
-
-  // ─── My reports (every term) ───
-  const termGroups = computed(() =>
-    appointments.value
-      .map((appointment) => ({
-        appointment,
-        reports: reports.value.filter((r) => r.appointment_id === appointment.id),
-      }))
-      .filter((group) => group.reports.length > 0)
-  )
-
-  /** Open a report of the Active term in the editor */
+  /** Reports of any term open in the form; only the Active term's can be changed (the form shows the rest read-only) */
   function openReport(report: GipAccomplishmentRow) {
-    if (report.appointment_id !== activeAppointment.value?.id) return
-    selectedHalfStart.value = report.period_start
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-  const isOpenable = (report: GipAccomplishmentRow) =>
-    report.appointment_id === activeAppointment.value?.id && report.period_start !== selectedHalfStart.value
-
-  // Expand a past report's details
-  const expandedIds = ref<Set<string>>(new Set())
-  function toggleExpanded(id: string) {
-    const next = new Set(expandedIds.value)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    expandedIds.value = next
+    void router.push({ name: 'gip-accomplishment-edit', params: { id: report.id } })
   }
 
-  // ─── Display ───
-  const formatDate = (iso: string | null) => (iso ? formatDisplayDate(iso, iso) : '')
-  const formatSize = (size: number | null) => (size == null ? '' : formatFileSize(size))
-  const termNotStarted = computed(() => !!activeAppointment.value && activeAppointment.value.start_date > today)
+  // ═══ Table 1: terms ═══
+  const termRows = computed<GipTermRow[]>(() =>
+    appointments.value.map((appointment) => {
+      const termReports = reports.value.filter((r) => r.appointment_id === appointment.id)
+      return {
+        id: appointment.id,
+        appointment,
+        reportCount: termReports.length,
+        openCount: termReports.filter((r) => r.status === 'Draft' || r.status === 'Returned').length,
+      }
+    })
+  )
 
-  function viewOwnFile(report: GipAccomplishmentRow) {
-    void openDocument(report.file_path)
+  const sortableHeader = (label: string) =>
+    ({ column }: { column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | 'asc' | 'desc' } }) =>
+      h(
+        Button,
+        { variant: 'ghost', class: '-ml-3', onClick: () => column.toggleSorting(column.getIsSorted() === 'asc') },
+        () => [label, h(ArrowUpDown, { class: 'ml-2 size-4' })]
+      )
+
+  // Read-only for interns: terms are PESO's appointments and can't be deleted here, so this table has no select
+  // column or bulk delete (DESIGN.md §13.1 rule 8)
+  const termColumns: ColumnDef<GipTermRow>[] = [
+    {
+      id: 'term',
+      accessorFn: (row) => row.appointment.term_number,
+      header: sortableHeader('Term'),
+      cell: ({ row }) =>
+        h('div', { class: 'flex items-center gap-2' }, [
+          h('span', { class: 'font-medium' }, `Term ${row.original.appointment.term_number}`),
+          row.original.id === activeAppointment.value?.id
+            ? h(Badge, { variant: 'secondary', class: 'text-xs' }, () => 'Current')
+            : null,
+        ]),
+    },
+    {
+      id: 'program',
+      accessorFn: (row) => row.appointment.program,
+      header: 'Program',
+      enableSorting: false,
+      cell: ({ getValue }) => h('span', { class: 'text-sm' }, String(getValue())),
+    },
+    {
+      id: 'office',
+      accessorFn: (row) => row.appointment.assigned_office,
+      header: 'Office',
+      enableSorting: false,
+      cell: ({ getValue }) => h('div', { class: 'max-w-[220px] truncate text-sm', title: String(getValue()) }, String(getValue())),
+    },
+    {
+      id: 'period',
+      accessorFn: (row) => row.appointment.start_date,
+      header: 'Period',
+      enableSorting: false,
+      cell: ({ row }) =>
+        h('span', { class: 'text-sm whitespace-nowrap tabular-nums' }, data.formatPeriodRange(row.original.appointment.start_date, row.original.appointment.end_date)),
+    },
+    {
+      id: 'status',
+      accessorFn: (row) => row.appointment.status,
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ getValue }) =>
+        h(Badge, { variant: 'outline', class: TERM_BADGE_CLASS[String(getValue())] ?? '' }, () => String(getValue())),
+    },
+    {
+      id: 'reports',
+      accessorFn: (row) => row.reportCount,
+      header: sortableHeader('Reports'),
+      cell: ({ row }) =>
+        h('div', { class: 'text-sm tabular-nums' }, [
+          String(row.original.reportCount),
+          row.original.openCount
+            ? h('span', { class: 'text-muted-foreground' }, ` · ${row.original.openCount} not submitted`)
+            : null,
+        ]),
+    },
+    {
+      id: 'actions',
+      header: () => h('div', { class: 'text-right' }, 'Actions'),
+      enableSorting: false,
+      cell: ({ row }) =>
+        h('div', { class: 'flex justify-end' }, [
+          h(
+            Button,
+            { variant: 'ghost', size: 'sm', class: 'cursor-pointer', onClick: () => openTerm(row.original.id) },
+            () => ['View reports', h(ChevronRight, { class: 'size-4' })]
+          ),
+        ]),
+    },
+  ]
+
+  const termSorting = ref<SortingState>([{ id: 'term', desc: true }])
+
+  const termTable = useVueTable({
+    get data() {
+      return termRows.value
+    },
+    columns: termColumns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, termSorting),
+    state: {
+      get sorting() {
+        return termSorting.value
+      },
+    },
+  })
+
+  /** Mobile card for a term: its number and program, then the office and report count */
+  const getTermCard = (row: GipTermRow): SwipeCard => ({
+    title: `Term ${row.appointment.term_number} · ${row.appointment.program}${row.id === activeAppointment.value?.id ? ' · Current' : ''}`,
+    subtitle: [row.appointment.assigned_office, `${row.reportCount} report${row.reportCount === 1 ? '' : 's'}`].join(' · '),
+  })
+  const getTermSwipeActions = (row: GipTermRow): SwipeAction[] => [
+    { id: 'view', label: 'Reports', icon: Eye, dismiss: false, onSelect: () => openTerm(row.id) },
+  ]
+
+  // ═══ Table 2: the open term's reports ═══
+  const selectedTermId = computed(() => (typeof route.query.term === 'string' ? route.query.term : null))
+  const selectedTerm = computed(() => appointments.value.find((a) => a.id === selectedTermId.value) ?? null)
+  const isSelectedTermActive = computed(() => !!selectedTerm.value && selectedTerm.value.id === activeAppointment.value?.id)
+
+  // Month filter (this year): reports whose dates touch the month
+  const monthFilter = ref<string>(ALL_MONTHS)
+  const monthOptions = monthFilterOptions(new Date().getFullYear())
+
+  const termReports = computed(() =>
+    selectedTerm.value ? reports.value.filter((r) => r.appointment_id === selectedTerm.value!.id) : []
+  )
+  const reportRows = computed(() =>
+    termReports.value.filter((r) => periodInMonth(r.period_start, r.period_end, monthFilter.value))
+  )
+
+  const canDiscard = (report: GipAccomplishmentRow) => report.status !== 'Reviewed'
+
+  /** Shared by the desktop row actions and the mobile swipe actions (DESIGN.md 13.2) */
+  function reportActions(report: GipAccomplishmentRow) {
+    const editable = isSelectedTermActive.value && report.status !== 'Reviewed'
+    return {
+      open: { label: editable ? 'Edit' : 'View', icon: editable ? Pencil : Eye, onSelect: () => openReport(report) },
+      download: { label: 'Download PDF', icon: Download, onSelect: () => generateSaved(report, 'download') },
+      print: { label: 'Print', icon: Printer, onSelect: () => generateSaved(report, 'print') },
+      signedCopy: report.file_path ? { label: 'Signed copy', icon: FileText, onSelect: () => viewOwnFile(report) } : null,
+      discard: canDiscard(report) ? { label: 'Discard', icon: Trash2, onSelect: () => requestDiscard([report]) } : null,
+    }
+  }
+
+  const iconButton = (label: string, icon: typeof Eye, onClick: () => void, extraClass = '', disabled = false) =>
+    h(
+      Button,
+      { variant: 'ghost', size: 'icon', class: `size-8 cursor-pointer ${extraClass}`, title: label, 'aria-label': label, disabled, onClick },
+      () => h(icon, { class: 'size-4' })
+    )
+
+  const reportSummary = (report: GipAccomplishmentRow) =>
+    report.program === 'DOLE'
+      ? `${report.daily_entries.length} daily entr${report.daily_entries.length === 1 ? 'y' : 'ies'}`
+      : [
+          `${report.activities.length} activit${report.activities.length === 1 ? 'y' : 'ies'}`,
+          report.amount != null ? `₱${data.formatPesoAmount(report.amount)}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+
+  const reportColumns: ColumnDef<GipAccomplishmentRow>[] = [
+    {
+      id: 'select',
+      enableSorting: false,
+      enableHiding: false,
+      header: ({ table }) =>
+        h(Checkbox, {
+          modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(value === true),
+          'aria-label': 'Select all reports on this page',
+        }),
+      cell: ({ row }) =>
+        h(Checkbox, {
+          modelValue: row.getIsSelected(),
+          disabled: !row.getCanSelect(),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(value === true),
+          'aria-label': `Select the report for ${data.formatPeriodRange(row.original.period_start, row.original.period_end)}`,
+        }),
+    },
+    {
+      id: 'period',
+      accessorFn: (row) => row.period_start,
+      header: sortableHeader('Period'),
+      cell: ({ row }) =>
+        h('span', { class: 'text-sm font-medium whitespace-nowrap tabular-nums' }, data.formatPeriodRange(row.original.period_start, row.original.period_end)),
+    },
+    {
+      id: 'report',
+      header: 'Report',
+      enableSorting: false,
+      cell: ({ row }) => h('span', { class: 'text-sm whitespace-nowrap text-muted-foreground' }, reportSummary(row.original)),
+    },
+    {
+      id: 'status',
+      accessorFn: (row) => row.status,
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ row }) =>
+        h('div', { class: 'grid gap-1' }, [
+          h(Badge, { variant: 'outline', class: `w-fit ${data.badgeClass[row.original.status]}` }, () => row.original.status),
+          row.original.status === 'Returned' && row.original.review_remarks
+            ? h('span', { class: 'max-w-[220px] truncate text-xs text-warning', title: row.original.review_remarks }, row.original.review_remarks)
+            : null,
+        ]),
+    },
+    {
+      id: 'submitted',
+      accessorFn: (row) => row.submitted_at ?? '',
+      header: sortableHeader('Submitted'),
+      cell: ({ row }) =>
+        h('span', { class: 'text-sm whitespace-nowrap tabular-nums' }, row.original.submitted_at ? data.formatDate(row.original.submitted_at) : '—'),
+    },
+    {
+      id: 'actions',
+      header: () => h('div', { class: 'text-right' }, 'Actions'),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const a = reportActions(row.original)
+        const busy = generating.value !== null
+        return h('div', { class: 'flex items-center justify-end gap-1' }, [
+          iconButton(a.open.label, a.open.icon, a.open.onSelect),
+          iconButton(a.download.label, a.download.icon, a.download.onSelect, '', busy),
+          iconButton(a.print.label, a.print.icon, a.print.onSelect, '', busy),
+          a.signedCopy ? iconButton(a.signedCopy.label, a.signedCopy.icon, a.signedCopy.onSelect) : null,
+          a.discard
+            ? iconButton(a.discard.label, a.discard.icon, a.discard.onSelect, 'text-destructive hover:bg-destructive/10 hover:text-destructive')
+            : null,
+        ])
+      },
+    },
+  ]
+
+  const reportSorting = ref<SortingState>([{ id: 'period', desc: true }])
+  const rowSelection = ref<RowSelectionState>({})
+
+  const reportTable = useVueTable({
+    get data() {
+      return reportRows.value
+    },
+    columns: reportColumns,
+    // Keeps the selection on the right rows across refreshes and sorting
+    getRowId: (row) => row.id,
+    // Reviewed reports are final: they can't be discarded, so they can't be selected for it
+    enableRowSelection: (row) => canDiscard(row.original),
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: PAGE_SIZE } },
+    onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, reportSorting),
+    onRowSelectionChange: (updaterOrValue) => valueUpdater(updaterOrValue, rowSelection),
+    state: {
+      get sorting() {
+        return reportSorting.value
+      },
+      get rowSelection() {
+        return rowSelection.value
+      },
+    },
+  })
+
+  /** Mobile card for a report: its dates, then status and contents */
+  const getReportCard = (report: GipAccomplishmentRow): SwipeCard => ({
+    title: data.formatPeriodRange(report.period_start, report.period_end),
+    subtitle: [report.status, reportSummary(report)].join(' · '),
+  })
+
+  /** Discard first (primary edge) when allowed; none collapses the card (DESIGN.md 13.2) */
+  function getReportSwipeActions(report: GipAccomplishmentRow): SwipeAction[] {
+    const a = reportActions(report)
+    const swipe = (id: string, action: { label: string; icon: typeof Eye; onSelect: () => void }): SwipeAction => ({
+      id,
+      label: action.label.split(' ')[0]!,
+      icon: action.icon,
+      dismiss: false,
+      onSelect: action.onSelect,
+    })
+    return [
+      a.discard ? swipe('discard', a.discard) : null,
+      swipe('open', a.open),
+      swipe('download', a.download),
+      swipe('print', a.print),
+    ].filter((action): action is SwipeAction => action !== null)
+  }
+
+  // ─── Selection & discard ───
+  /** Selected reports that still exist (a refresh or discard can remove rows) */
+  const selectedReports = computed(() => {
+    const ids = new Set(Object.keys(rowSelection.value).filter((id) => rowSelection.value[id]))
+    return reportRows.value.filter((r) => ids.has(r.id))
+  })
+
+  function clearSelection() {
+    rowSelection.value = {}
+  }
+
+  // A different term or month can't keep rows selected
+  watch([selectedTermId, monthFilter], () => {
+    clearSelection()
+    reportTable.setPageIndex(0)
+  })
+
+  const reportsToDiscard = ref<GipAccomplishmentRow[]>([])
+  const isDiscarding = ref(false)
+  const isDiscardDialogOpen = computed({
+    get: () => reportsToDiscard.value.length > 0,
+    set: (open: boolean) => {
+      if (!open && !isDiscarding.value) reportsToDiscard.value = []
+    },
+  })
+
+  function requestDiscard(rows: GipAccomplishmentRow[]) {
+    reportsToDiscard.value = rows.filter(canDiscard)
+  }
+
+  function requestBulkDiscard() {
+    requestDiscard(selectedReports.value)
+  }
+
+  async function confirmDiscard() {
+    const rows = reportsToDiscard.value
+    if (!rows.length) return
+    isDiscarding.value = true
+    try {
+      const deleted = new Set(await gipAccomplishmentService.removeMany(rows))
+      reports.value = reports.value.filter((r) => !deleted.has(r.id))
+      const next = { ...rowSelection.value }
+      for (const id of deleted) delete next[id]
+      rowSelection.value = next
+      reportsToDiscard.value = []
+      if (deleted.size === rows.length) {
+        toastAlert.success(deleted.size === 1 ? 'Report discarded' : `${deleted.size} reports discarded`, 'They were removed with their files.')
+      } else {
+        toastAlert.error('Some reports were not discarded', `${rows.length - deleted.size} could not be removed. Please try again.`)
+      }
+    } catch (error) {
+      // The selection stays so the intern can retry
+      toastAlert.error('Could not discard the reports', errorMessageOf(error, 'Please try again.'))
+    } finally {
+      isDiscarding.value = false
+    }
   }
 
   return {
     // State
-    isLoading,
-    isEnrolled,
+    isLoading: data.isLoading,
+    isEnrolled: data.isEnrolled,
     activeAppointment,
-    termNotStarted,
-    internName,
-    isDole,
-    requirement,
-    // Halves
-    halfOptions,
-    selectedHalfStart,
-    selectedHalf,
-    currentReport,
-    isReadOnly,
-    canSaveDraft,
-    canSubmit,
-    // Daily entries
-    days,
-    dayErrors,
-    showDaily,
-    showDailyOptional,
-    missingDays,
-    dayStatuses: GIP_ACCOMPLISHMENT_DAY_STATUSES,
-    setDayStatus,
-    onDayInput,
-    entryMax: GIP_ACCOMPLISHMENT_ENTRY_MAX,
-    // PGAS activities & payment
-    activities,
-    activityErrors,
-    addActivity,
-    removeActivity,
-    onActivityInput,
-    activitiesMax: GIP_ACCOMPLISHMENT_ACTIVITIES_MAX,
-    activityMax: GIP_ACCOMPLISHMENT_ACTIVITY_MAX,
-    outputMax: GIP_ACCOMPLISHMENT_OUTPUT_MAX,
-    remarksMax: GIP_ACCOMPLISHMENT_REMARKS_MAX,
-    details,
-    detailErrors,
-    onAmountInput,
-    fillAmountInWords,
-    amountPreview,
-    nameMax: GIP_ACCOMPLISHMENT_NAME_MAX,
-    officeHeadName,
-    officeHeadPosition,
-    wordsMax: GIP_ACCOMPLISHMENT_WORDS_MAX,
-    // File
-    pickedFile,
-    fileError,
-    keepCurrentFile,
-    onFilePicked,
-    clearFile,
-    fileAccept: GIP_ACCOMPLISHMENT_FILE_ACCEPT,
-    fileMaxLabel: formatFileSize(GIP_ACCOMPLISHMENT_FILE_MAX_BYTES),
-    // Save
-    savingMode,
-    isSaving,
-    saveDraft,
-    submitReport,
-    // Generate / print
-    generating,
-    generateCurrent,
-    generateSaved,
-    // Discard
-    reportToRemove,
-    isRemoving,
-    confirmRemove,
-    // My reports
-    termGroups,
-    openReport,
-    isOpenable,
-    expandedIds,
-    toggleExpanded,
+    termNotStarted: data.termNotStarted,
+    canAddReport: data.canAddReport,
+    addAccomplishment,
+    // Table 1: terms
+    termTable,
+    termColumns,
+    termRows,
+    getTermCard,
+    getTermSwipeActions,
+    openTerm,
+    // Table 2: the open term's reports
+    selectedTermId,
+    selectedTerm,
+    isSelectedTermActive,
+    showAllTerms,
+    monthFilter,
+    monthOptions,
+    termReports,
+    reportTable,
+    reportColumns,
+    reportRows,
+    getReportCard,
+    getReportSwipeActions,
+    // Selection & discard
+    selectedReports,
+    clearSelection,
+    requestBulkDiscard,
+    reportsToDiscard,
+    isDiscardDialogOpen,
+    isDiscarding,
+    confirmDiscard,
     // Display
-    badgeClass: GIP_ACCOMPLISHMENT_BADGE_CLASS,
-    formatPeriodRange,
-    formatWeekday,
-    formatDate,
-    formatSize,
-    formatPesoAmount,
-    viewOwnFile,
+    formatPeriodRange: data.formatPeriodRange,
+    formatDate: data.formatDate,
   }
 }

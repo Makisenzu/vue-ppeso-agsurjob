@@ -3,6 +3,7 @@ import { toRef } from 'vue'
 import { Check, ChevronDown, Download, Eye, FileDown, Loader2, Printer, RefreshCw, Undo2 } from '@lucide/vue'
 import GipAccomplishmentDays from '@/components/GipAccomplishmentDays.vue'
 import GipAccomplishmentActivities from '@/components/GipAccomplishmentActivities.vue'
+import SearchSelect from '@/components/SearchSelect.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,9 @@ const props = defineProps<{ intern: GipInternRecord | null }>()
 
 const {
   termGroups,
+  monthFilter,
+  monthOptions,
+  hasSubmitted,
   pendingCount,
   draftCount,
   isLoading,
@@ -60,8 +64,8 @@ const {
         <Badge v-if="pendingCount > 0" variant="outline" :class="badgeClass.Submitted">{{ pendingCount }} to review</Badge>
       </CardTitle>
       <CardDescription>
-        Half-month reports from the GIP portal: DOLE interns write what they did each day; PGAS interns list their
-        activities and their pay for the half.
+        Reports from the GIP portal: DOLE interns write what they did each day; PGAS interns list their activities
+        and their pay.
       </CardDescription>
       <CardAction>
         <Button variant="ghost" size="icon-sm" class="cursor-pointer" aria-label="Refresh reports" title="Refresh" :disabled="isLoading" @click="reload">
@@ -71,6 +75,15 @@ const {
     </CardHeader>
 
     <CardContent class="grid gap-4">
+      <SearchSelect
+        v-if="hasSubmitted"
+        v-model="monthFilter"
+        :options="monthOptions"
+        search-placeholder="Search month..."
+        class="w-full sm:w-48"
+        aria-label="Filter reports by month"
+      />
+
       <div v-if="isLoading && !termGroups.length" class="grid gap-2">
         <Skeleton v-for="n in 2" :key="n" class="h-24 w-full" />
       </div>
@@ -79,7 +92,9 @@ const {
         The reports could not be loaded. Use refresh to try again.
       </p>
 
-      <p v-else-if="!termGroups.length" class="text-sm text-muted-foreground">No accomplishment reports submitted yet.</p>
+      <template v-else-if="!termGroups.length">
+        <p class="text-sm text-muted-foreground">{{ hasSubmitted ? 'No reports in this month.' : 'No accomplishment reports submitted yet.' }}</p>
+      </template>
 
       <div v-for="group in termGroups" v-else :key="group.term.id" class="grid gap-2">
         <p class="text-sm font-medium text-muted-foreground">

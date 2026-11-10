@@ -172,11 +172,30 @@ export const applicantRoutes : RouteRecordRaw[] = [
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
       },
       {
-        // Interns only (has an appointment); the page explains itself to anyone else who opens the link
+        // Interns only (has an appointment); the pages explain themselves to anyone else who opens the link.
+        // Accomplishments lists the reports; Add Accomplishment and Edit open the report form on its own page
         path: 'accomplishments',
-        name: 'gip-accomplishments',
-        component: () => import('@/components/applicant/Gip/ApplicantGipAccomplishments.vue'),
-        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Accomplishments' }
+        meta: { breadcrumb: 'Accomplishments', breadcrumbTo: { name: 'gip-accomplishments' } },
+        children: [
+          {
+            path: '',
+            name: 'gip-accomplishments',
+            component: () => import('@/components/applicant/Gip/ApplicantGipAccomplishments.vue'),
+            meta: { requiresAuth: true, role: 'applicant', breadcrumb: false }
+          },
+          {
+            path: 'new',
+            name: 'gip-accomplishment-new',
+            component: () => import('@/components/applicant/Gip/ApplicantGipAccomplishmentForm.vue'),
+            meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Add Accomplishment' }
+          },
+          {
+            path: ':id',
+            name: 'gip-accomplishment-edit',
+            component: () => import('@/components/applicant/Gip/ApplicantGipAccomplishmentForm.vue'),
+            meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Edit Accomplishment' }
+          },
+        ]
       },
     ]
   },

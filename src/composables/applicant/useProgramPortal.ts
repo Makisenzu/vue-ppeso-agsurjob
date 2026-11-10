@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import type { ComputedRef } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { useColorMode } from '@vueuse/core'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -44,6 +44,7 @@ export function useProgramPortalLayout() {
 /** Sidebar of a program portal (ProgramPortalSidebar.vue); call inside the SidebarProvider */
 export function useProgramPortalSidebar() {
   const route = useRoute()
+  const router = useRouter()
   const { state, isMobile, setOpenMobile } = useSidebar()
   const { displayName, userInitials, userEmail, isVerified, isLoading, handleSignOut, profileUsername } = useAuth()
   const { createAvatarSource, profileMedia } = useProfileMedia()
@@ -76,9 +77,15 @@ export function useProgramPortalSidebar() {
     profileUsername.value ? { name: 'profile', params: { username: profileUsername.value } } : { name: 'home' }
   )
 
-  /** Same page and same section: "Overview" and "Requirements" share a route but not a hash */
+  /**
+   * Same page and same section (two links may share a route but not a hash), or a page under the link's page
+   * (e.g. Accomplishments → Add Accomplishment), which keeps its sidebar item highlighted
+   */
   function isActive(link: ProgramPortalLink) {
-    return route.name === link.to.name && (link.to.hash ?? '') === route.hash
+    if (route.name === link.to.name) return (link.to.hash ?? '') === route.hash
+    if (link.to.hash) return false
+    const linkPath = router.resolve(link.to).path.replace(/\/$/, '')
+    return route.path.startsWith(`${linkPath}/`)
   }
 
   /** Closes the mobile sheet after a link is picked; on desktop the sidebar stays as it is */

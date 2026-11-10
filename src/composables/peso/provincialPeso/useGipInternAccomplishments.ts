@@ -6,7 +6,7 @@ import { useToastAlert } from '@/composables/common/useToastAlert'
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import { formatFileSize } from '@/helpers/common/uploadHelpers'
 import { formatPesoAmount } from '@/helpers/common/amountInWordsHelper'
-import { formatPeriodRange } from '@/helpers/common/gipAccomplishmentHelper'
+import { ALL_MONTHS, formatPeriodRange, monthFilterOptions, periodInMonth } from '@/helpers/common/gipAccomplishmentHelper'
 import { downloadGipAccomplishmentPdf, printGipAccomplishment } from '@/helpers/common/gipAccomplishmentReportHelper'
 import type { GipAppointmentRecord, GipInternRecord } from '@/types/peso/provincialPeso/gip'
 import { GIP_ACCOMPLISHMENT_BADGE_CLASS, type GipAccomplishmentRow } from '@/types/common/gipAccomplishment'
@@ -15,7 +15,7 @@ const errorMessageOf = (error: unknown, fallback: string) => (error instanceof E
 const AUDIT_TABLE = 'esmdd.gip_accomplishments'
 
 /**
- * Intern page → Accomplishments (Provincial PESO): the intern's half-month reports per appointment term — DOLE
+ * Intern page → Accomplishments (Provincial PESO): the intern's reports per appointment term — DOLE
  * daily entries, or PGAS activities with the payment receipt — their files (signed only when opened,
  * PRIVACY.md §4), the generated form (PDF / print) and the review: Mark reviewed, or Return with remarks.
  */
@@ -68,12 +68,22 @@ export function useGipInternAccomplishments(intern: Ref<GipInternRecord | null>)
   const submittedReports = computed(() => reports.value.filter((r) => r.status !== 'Draft'))
   const draftCount = computed(() => reports.value.length - submittedReports.value.length)
 
-  /** Terms with at least one submitted report, each with its reports newest half first */
+  // Month filter (this year): reports whose dates touch the month
+  const monthFilter = ref<string>(ALL_MONTHS)
+  const monthOptions = monthFilterOptions(new Date().getFullYear())
+
+  /** Terms with at least one submitted report in the month, each with its reports newest first */
   const termGroups = computed(() =>
     terms.value
-      .map((term) => ({ term, reports: submittedReports.value.filter((r) => r.appointment_id === term.id) }))
+      .map((term) => ({
+        term,
+        reports: submittedReports.value.filter(
+          (r) => r.appointment_id === term.id && periodInMonth(r.period_start, r.period_end, monthFilter.value)
+        ),
+      }))
       .filter((group) => group.reports.length > 0)
   )
+  const hasSubmitted = computed(() => submittedReports.value.length > 0)
   const pendingCount = computed(() => reports.value.filter((r) => r.status === 'Submitted').length)
 
   // A report's activities / daily entries are collapsed until opened
@@ -201,6 +211,9 @@ export function useGipInternAccomplishments(intern: Ref<GipInternRecord | null>)
 
   return {
     termGroups,
+    monthFilter,
+    monthOptions,
+    hasSubmitted,
     pendingCount,
     draftCount,
     isLoading,

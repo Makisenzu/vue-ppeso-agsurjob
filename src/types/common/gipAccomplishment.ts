@@ -1,5 +1,5 @@
-// GIP accomplishment reports (esmdd.gip_accomplishments, migration 112): one report per half-month
-// (1–15, 16–end) of an appointment term, on the intern's funding's form:
+// GIP accomplishment reports (esmdd.gip_accomplishments, migrations 112 / 114): one report per date range the
+// intern picks inside their appointment term (reports don't overlap), on the intern's funding's form:
 //   DOLE — GIP Work Accomplishment Report: the date and what the intern did that day (every weekday)
 //   PGAS — Accomplishment Report: Activities / Output / Remarks, plus the Acknowledgement Receipt of Payment
 // Written by the intern in the GIP portal (and generated / printed there), reviewed by Provincial PESO.
@@ -50,15 +50,15 @@ export interface GipAccomplishmentRow {
   appointment_id: string
   applicant_id: string
   program: GipAccomplishmentProgram
-  period_start: string // YYYY-MM-DD, the 1st or the 16th
-  period_end: string // YYYY-MM-DD, the 15th or the last day of the month
+  period_start: string // YYYY-MM-DD
+  period_end: string // YYYY-MM-DD
   daily_entries: GipAccomplishmentDay[]
   activities: GipAccomplishmentActivity[]
   designation: string | null
   supervisor_name: string | null
   approver_name: string | null
   approver_position: string | null
-  /** PGAS: the pay the intern computed for the half */
+  /** PGAS: the pay the intern computed for the report's dates */
   amount: number | null
   amount_in_words: string | null
   file_name: string | null
@@ -84,9 +84,12 @@ export interface GipAccomplishmentDetails {
 }
 
 export interface GipAccomplishmentSavePayload {
+  /** The report being edited; null creates one */
+  id: string | null
   appointmentId: string
-  /** The half's first day: the 1st or the 16th */
+  /** The dates the report covers (YYYY-MM-DD), inside the term */
   periodStart: string
+  periodEnd: string
   dailyEntries: GipAccomplishmentDay[]
   activities: GipAccomplishmentActivity[]
   details: GipAccomplishmentDetails
@@ -102,7 +105,7 @@ export interface GipAccomplishmentSavePayload {
 export interface GipAccomplishmentPrintContext {
   internName: string
   office: string
-  /** The days the report covers (the half clipped to the term) */
+  /** The days the report covers */
   from: string
   to: string
 }

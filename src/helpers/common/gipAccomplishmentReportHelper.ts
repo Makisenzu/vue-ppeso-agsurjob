@@ -4,7 +4,7 @@ import { printPdf, renderPaginatedPdf, type PaginatedBlock, type PaginatedDocume
 import { formatPesoAmount } from '@/helpers/common/amountInWordsHelper'
 import {
   daysBetween,
-  formatHalfPeriod,
+  formatReportPeriod,
   formatLongDate,
   formatReceiptPeriod,
 } from '@/helpers/common/gipAccomplishmentHelper'
@@ -17,7 +17,7 @@ import type {
 
 /**
  * The printable GIP accomplishment report on the funding's own form (templates in public/templates):
- *   DOLE_GIP.docx — GIP Work Accomplishment Report: DOLE letterhead, every day of the half with what was done
+ *   DOLE_GIP.docx — GIP Work Accomplishment Report: DOLE letterhead, every day of the report's dates with what was done
  *   PGAS_GIP.docx — Accomplishment Report: Activities / Output / Remarks + Acknowledgement Receipt of Payment
  * Built as HTML and laid out on A4 pages by renderPaginatedPdf (long reports continue on the next page).
  */
@@ -98,7 +98,7 @@ function doleDayRow(date: string, day: GipAccomplishmentDay | undefined): string
 
 function buildDoleDocument(data: GipAccomplishmentPrintData, ctx: GipAccomplishmentPrintContext): PaginatedDocument {
   const byDate = new Map(data.dailyEntries.map((day) => [day.date, day]))
-  const period = formatHalfPeriod(ctx.from, ctx.to).toUpperCase()
+  const period = formatReportPeriod(ctx.from, ctx.to).toUpperCase()
 
   const headerHtml = `
     <div class="letterhead">
@@ -189,7 +189,7 @@ function buildPgasDocument(data: GipAccomplishmentPrintData, ctx: GipAccomplishm
       kind: 'html',
       html: `<div>
         <div class="province"><div class="name">PROVINCE OF AGUSAN DEL SUR</div>Gov. Democrito O. Plaza Government Center, Prosperidad</div>
-        <div class="title"><b>ACCOMPLISHMENT REPORT</b><br><i>For the period of <b><u>${escapeHtml(formatHalfPeriod(ctx.from, ctx.to))}</u></b></i></div>
+        <div class="title"><b>ACCOMPLISHMENT REPORT</b><br><i>For the period of <b><u>${escapeHtml(formatReportPeriod(ctx.from, ctx.to))}</u></b></i></div>
         <div class="identity">
           Name: <span class="line">${escapeHtml(ctx.internName)}</span><br>
           Designation: <span class="line">${escapeHtml(data.designation)}</span><br>

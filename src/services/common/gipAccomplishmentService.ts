@@ -41,7 +41,7 @@ const normalize = (row: GipAccomplishmentRow): GipAccomplishmentRow => ({
  * Files sit in the uploader's own folder of the private documents bucket and open only by signed URL.
  */
 export const gipAccomplishmentService = {
-  /** Reports of these appointment terms, newest half first. RLS limits interns to their own. */
+  /** Reports of these appointment terms, newest period first. RLS limits interns to their own. */
   async listByAppointments(appointmentIds: string[]): Promise<GipAccomplishmentRow[]> {
     if (!appointmentIds.length) return []
     const { data, error } = await accomplishmentsTable()
@@ -52,7 +52,7 @@ export const gipAccomplishmentService = {
     return ((data ?? []) as GipAccomplishmentRow[]).map(normalize)
   },
 
-  /** Saves (Draft) or submits the intern's report of a half; a newly picked PDF replaces the previous file. */
+  /** Saves (Draft) or submits the intern's report; a newly picked PDF replaces the previous file. */
   async save(payload: GipAccomplishmentSavePayload & { uploaderId: string; previousFilePath?: string | null }) {
     let file: { path: string; name: string; size: number | null } | null = payload.keepFile ?? null
     let uploadedPath: string | null = null
@@ -68,8 +68,10 @@ export const gipAccomplishmentService = {
     }
 
     const { data, error } = await esmdd().rpc('save_gip_accomplishment', {
+      p_id: payload.id,
       p_appointment_id: payload.appointmentId,
       p_period_start: payload.periodStart,
+      p_period_end: payload.periodEnd,
       p_daily_entries: payload.dailyEntries,
       p_activities: payload.activities,
       p_details: payload.details,
@@ -96,6 +98,26 @@ export const gipAccomplishmentService = {
     const { error } = await accomplishmentsTable().delete().eq('id', report.id)
     if (error) throw new Error(error.message || 'Failed to remove the report.')
     await removeStorageFile(report.file_path)
+  },
+
+  /**
+   * Discards several reports in one request (RLS lets an intern delete only their own, not yet Reviewed). Returns the
+   * ids actually deleted; their files are removed afterwards.
+   */
+  async removeMany(reports: Pick<GipAccomplishmentRow, 'id' | 'file_path'>[]): Promise<string[]> {
+    if (!reports.length) return []
+    const { data, error } = await accomplishmentsTable()
+      .delete()
+      .in('id', reports.map((r) => r.id))
+      .select('id')
+    if (error) throw new Error(error.message || 'Failed to remove the reports.')
+    const deleted = new Set(((data ?? []) as { id: string }[]).map((row) => row.id))
+    const paths = reports.filter((r) => deleted.has(r.id) && r.file_path).map((r) => r.file_path as string)
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from(DOCUMENT_UPLOAD_BUCKET).remove(paths)
+      if (storageError) console.warn('[gipAccomplishmentService] Failed to remove files from storage:', storageError.message)
+    }
+    return [...deleted]
   },
 
   /** Provincial PESO: mark Reviewed, or Return with remarks (required, CHECK in migration 112). */
