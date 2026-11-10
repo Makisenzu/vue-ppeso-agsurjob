@@ -433,6 +433,10 @@ export const useGipStore = defineStore('gipStore', () => {
     period?: string
     status: string
     applicationId?: string
+    /** The current term: its program, office, supervisor and stipend follow the edit */
+    appointmentId?: string
+    /** Only a changed period moves the term's dates */
+    periodChanged?: boolean
   }) => {
     isUpdatingIntern.value = true
     try {
@@ -446,6 +450,16 @@ export const useGipStore = defineStore('gipStore', () => {
         status: payload.status,
         remarks: fullRemarks,
       })
+
+      if (payload.appointmentId && !payload.appointmentId.startsWith('synthetic-')) {
+        await gipService.updateAppointmentTerm(payload.appointmentId, {
+          program: payload.program,
+          assignedOffice: payload.assignedOffice,
+          supervisor: payload.supervisor,
+          stipend: payload.stipend,
+          period: payload.periodChanged ? payload.period : undefined,
+        })
+      }
 
       if (payload.applicationId) {
         try {

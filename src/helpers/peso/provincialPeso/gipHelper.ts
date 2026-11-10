@@ -368,9 +368,12 @@ export function mapToGipInternRecord(
   const createdDate = gip.created_at || application?.created_at || applicant?.created_at || new Date().toISOString()
   const batchYear = new Date(createdDate).getFullYear() || 2026
 
-  // Infer program from remarks or default to PGAS
+  // Program: the "[PGAS] / [DOLE]" tag that deploy and edit write at the start of the remarks. Only older rows
+  // without the tag fall back to looking for "DOLE" in the text (an office like "DOLE AgSur Field Office" would
+  // otherwise keep an intern switched to PGAS on DOLE)
   const remarksText = `${gip.remarks || ''} ${(application?.remarks || []).join(' ')}`.toUpperCase()
-  const program: 'PGAS' | 'DOLE' = remarksText.includes('DOLE') ? 'DOLE' : 'PGAS'
+  const programTag = (gip.remarks || '').match(/^\s*\[(PGAS|DOLE)\]/i)?.[1]?.toUpperCase() as 'PGAS' | 'DOLE' | undefined
+  const program: 'PGAS' | 'DOLE' = programTag ?? (remarksText.includes('DOLE') ? 'DOLE' : 'PGAS')
 
   // Match LPII tag from barangay map or remarks or fallback
   const normalizedBrgy = address.barangay.trim().toLowerCase()

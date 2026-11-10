@@ -999,6 +999,39 @@ export const gipService = {
   },
 
   /**
+   * Provincial PESO: keeps an intern's current appointment term in step with an edit of their deployment
+   * (program/fund, office, supervisor, stipend, and the dates when the period was changed). The appointment row
+   * is what the Appointment Record, accomplishment forms and renewals read.
+   */
+  async updateAppointmentTerm(
+    appointmentId: string,
+    term: { program: 'PGAS' | 'DOLE'; assignedOffice: string; supervisor?: string; stipend?: string; period?: string },
+  ): Promise<void> {
+    const update: Record<string, unknown> = {
+      program: term.program,
+      assigned_office: term.assignedOffice,
+      supervisor: term.supervisor || 'Assigned Coordinator',
+      daily_stipend: term.stipend || (term.program === 'DOLE' ? '₱475.00 / day' : '₱479.35 / day'),
+      updated_at: new Date().toISOString(),
+    }
+    if (term.period) {
+      const dates = parsePeriodDates(term.period)
+      update.start_date = dates.startDate
+      update.end_date = dates.endDate
+    }
+    const { data, error } = await (supabase.schema('esmdd').from('gip_appointments' as any) as any)
+      .update(update)
+      .eq('id', appointmentId)
+      .select('id')
+    if (error) throw new Error(error.message || 'Could not update the appointment term.')
+    // RLS hides a blocked update as "0 rows", not an error
+    if (!data || data.length === 0) {
+      throw new Error('The deployment was saved, but its appointment term could not be updated. Please try again.')
+    }
+    invalidateGipCaches({ all: true })
+  },
+
+  /**
    * Bulk deploys multiple applicants as GIP interns using shared deployment parameters.
    * Applicants that already have a deployment record in esmdd.gips are skipped.
    */

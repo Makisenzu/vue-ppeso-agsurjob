@@ -258,6 +258,8 @@ export function useGipInternDetails() {
       period: editForm.value.period.trim(),
       status: editForm.value.status,
       applicationId: intern.value.rawGip?.application_id || undefined,
+      appointmentId: intern.value.currentAppointment?.id,
+      periodChanged: editForm.value.period.trim() !== intern.value.period.trim(),
     })
     isEditingIntern.value = false
   }
