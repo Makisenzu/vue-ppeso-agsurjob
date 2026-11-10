@@ -40,6 +40,8 @@ import doleLogo from '@/assets/images/dole.png'
 import GipInternAccomplishments from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipInternAccomplishments.vue'
 import { useGipInternDetails } from '@/composables/peso/provincialPeso/useGipInternDetails'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
+import { useTemplateRef } from 'vue'
+import GipAppointmentRecordDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAppointmentRecordDialog.vue'
 
 const {
   intern,
@@ -71,6 +73,8 @@ const {
   formattedPeriod,
   formatCalendarDate,
 } = useGipInternDetails()
+
+const recordDialog = useTemplateRef<InstanceType<typeof GipAppointmentRecordDialog>>('recordDialog')
 
 const programOptions = [
   { value: 'PGAS', label: 'PGAS', logo: pgasLogo, description: 'Provincial · ₱479.35/day' },
@@ -109,6 +113,10 @@ const statusOptions = [
       </div>
 
       <div v-if="intern && !isEditingIntern" class="flex flex-wrap items-center gap-2">
+        <Button variant="outline" class="cursor-pointer" @click="recordDialog?.open([intern.id])">
+          <FileText class="size-4 shrink-0" />
+          Appointment Record
+        </Button>
         <Button variant="outline" class="cursor-pointer" @click="startEdit">
           <Pencil class="size-4 shrink-0" />
           Edit
@@ -412,5 +420,7 @@ const statusOptions = [
         </CardFooter>
       </Card>
     </template>
+
+    <GipAppointmentRecordDialog ref="recordDialog" />
   </div>
 </template>

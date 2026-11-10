@@ -46,6 +46,7 @@ import SearchSelect from '@/components/SearchSelect.vue'
 import { useGipApplicantsPage } from '@/composables/peso/provincialPeso/useGipApplicantsPage'
 import { provideGipApplicantsPage } from '@/composables/peso/provincialPeso/gipApplicantsPageContext'
 import GipApplicantsRegistryTable from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicants/GipApplicantsRegistryTable.vue'
+import GipAppointmentRecordDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAppointmentRecordDialog.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -1357,4 +1358,7 @@ const {
       </Form>
     </SheetContent>
   </Sheet>
+
+  <!-- Opens after a bulk deploy with every deployed name -->
+  <GipAppointmentRecordDialog />
 </template>

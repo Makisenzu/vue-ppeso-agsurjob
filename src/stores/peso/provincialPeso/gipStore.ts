@@ -477,6 +477,9 @@ export const useGipStore = defineStore('gipStore', () => {
     isAddInternModalOpen.value = false
   }
 
+  // Interns just deployed (single or bulk): the page they land on opens their Appointment Record
+  const pendingAppointmentRecordIds = ref<string[]>([])
+
   const deployInternFromApplicant = async (payload: {
     applicationId: string
     program: 'PGAS' | 'DOLE'
@@ -489,7 +492,8 @@ export const useGipStore = defineStore('gipStore', () => {
   }) => {
     isSubmitting.value = true
     try {
-      await gipService.deployGipIntern(payload)
+      const gip = await gipService.deployGipIntern(payload)
+      pendingAppointmentRecordIds.value = [gip.id]
       toastAlert.success('GIP Intern Deployed', 'Intern has been successfully deployed and registered.')
       isAddInternModalOpen.value = false
       await Promise.all([fetchDetailsData(), fetchApplicantsData()])
@@ -513,10 +517,11 @@ export const useGipStore = defineStore('gipStore', () => {
       remarks?: string
     }
   ) => {
-    if (applicationIds.length === 0) return { successCount: 0, skippedCount: 0, failedCount: 0, errors: [] }
+    if (applicationIds.length === 0) return { successCount: 0, skippedCount: 0, failedCount: 0, errors: [], deployedIds: [] }
     isSubmitting.value = true
     try {
       const result = await gipService.bulkDeployGipInterns(applicationIds, payload)
+      pendingAppointmentRecordIds.value = result.deployedIds
       const extras = [
         result.skippedCount > 0 ? `${result.skippedCount} already deployed` : '',
         result.failedCount > 0 ? `${result.failedCount} failed` : '',
@@ -1202,6 +1207,7 @@ export const useGipStore = defineStore('gipStore', () => {
     updateGipIntern,
     openAddInternModal,
     closeAddInternModal,
+    pendingAppointmentRecordIds,
     deployInternFromApplicant,
     bulkDeployInternsFromApplicants,
     openApplicantDetails,

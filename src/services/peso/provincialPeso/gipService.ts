@@ -1013,8 +1013,9 @@ export const gipService = {
       status?: string
       remarks?: string
     }
-  ): Promise<{ successCount: number; skippedCount: number; failedCount: number; errors: string[] }> {
+  ): Promise<{ successCount: number; skippedCount: number; failedCount: number; errors: string[]; deployedIds: string[] }> {
     let successCount = 0
+    const deployedIds: string[] = []
     let failedCount = 0
     const errors: string[] = []
 
@@ -1026,12 +1027,13 @@ export const gipService = {
       throw new Error(existingErr.message || 'Could not verify existing GIP deployments.')
     }
 
-    const deployedIds = new Set((existing ?? []).map((row) => row.application_id))
-    const toDeploy = applicationIds.filter((id) => !deployedIds.has(id))
+    const alreadyDeployed = new Set((existing ?? []).map((row) => row.application_id))
+    const toDeploy = applicationIds.filter((id) => !alreadyDeployed.has(id))
 
     for (const applicationId of toDeploy) {
       try {
-        await gipService.deployGipIntern({ ...deploymentData, applicationId })
+        const gip = await gipService.deployGipIntern({ ...deploymentData, applicationId })
+        deployedIds.push(gip.id)
         successCount++
       } catch (err: any) {
         failedCount++
@@ -1040,7 +1042,7 @@ export const gipService = {
     }
 
     invalidateGipCaches({ all: true })
-    return { successCount, skippedCount: applicationIds.length - toDeploy.length, failedCount, errors }
+    return { successCount, skippedCount: applicationIds.length - toDeploy.length, failedCount, errors, deployedIds }
   },
 
   /**

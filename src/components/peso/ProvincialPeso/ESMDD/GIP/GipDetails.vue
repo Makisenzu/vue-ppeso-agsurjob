@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  FileText,
   Loader2,
   Minus,
   Pencil,
@@ -49,6 +50,8 @@ import SearchSelect from '@/components/SearchSelect.vue'
 // import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDetails } from '@/composables/peso/provincialPeso/useGipDetails'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
+import { useTemplateRef } from 'vue'
+import GipAppointmentRecordDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAppointmentRecordDialog.vue'
 
 const {
   // LPII charts (hidden): pgasLpiiData, doleLpiiData, overallLpiiData, totalOverallLpii, totalPgasLpii, totalDoleLpii
@@ -103,6 +106,8 @@ const {
   handleSingleDelete,
   handleBulkDelete,
 } = useGipDetails()
+
+const recordDialog = useTemplateRef<InstanceType<typeof GipAppointmentRecordDialog>>('recordDialog')
 
 const programTabs = [
   { value: 'ALL', label: 'All Programs' },
@@ -377,9 +382,15 @@ const programTabs = [
               Clear selection
             </Button>
           </div>
-          <Button variant="destructive" size="sm" class="cursor-pointer" @click="isBulkDeleteDialogOpen = true">
-            Delete Selected ({{ selectedInternIds.length }})
-          </Button>
+          <div class="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" class="cursor-pointer" @click="recordDialog?.open(selectedInternIds)">
+              <FileText class="size-4 shrink-0" />
+              Appointment Record ({{ selectedInternIds.length }})
+            </Button>
+            <Button variant="destructive" size="sm" class="cursor-pointer" @click="isBulkDeleteDialogOpen = true">
+              Delete Selected ({{ selectedInternIds.length }})
+            </Button>
+          </div>
         </div>
 
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
@@ -686,5 +697,7 @@ const programTabs = [
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <GipAppointmentRecordDialog ref="recordDialog" />
   </div>
 </template>

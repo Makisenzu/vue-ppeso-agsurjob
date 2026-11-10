@@ -142,6 +142,8 @@ export interface PaginatedDocument {
   headerHtml?: string
   footerHtml?: string
   blocks: PaginatedBlock[]
+  /** A4 portrait (default) or landscape */
+  orientation?: 'portrait' | 'landscape'
 }
 
 // A4 at 96 dpi
@@ -154,13 +156,17 @@ const PAGE_HEIGHT_PX = 1123
  * every page. Each page is then drawn into the PDF at full size (no scaling, unlike renderHtmlPagesToPdf).
  */
 export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF> {
+  const landscape = doc.orientation === 'landscape'
+  const pageWidth = landscape ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX
+  const pageHeight = landscape ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX
+  const orientation = landscape ? 'landscape' : 'portrait'
   const iframe = document.createElement('iframe')
   Object.assign(iframe.style, {
     position: 'fixed',
     left: '-99999px',
     top: '0',
-    width: `${PAGE_WIDTH_PX + 40}px`,
-    height: `${PAGE_HEIGHT_PX + 40}px`,
+    width: `${pageWidth + 40}px`,
+    height: `${pageHeight + 40}px`,
     border: '0',
     opacity: '0',
     pointerEvents: 'none',
@@ -176,7 +182,7 @@ export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF>
     iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #ffffff; }
-      .page { width: ${PAGE_WIDTH_PX}px; height: ${PAGE_HEIGHT_PX}px; display: flex; flex-direction: column; background: #ffffff; overflow: hidden; }
+      .page { width: ${pageWidth}px; height: ${pageHeight}px; display: flex; flex-direction: column; background: #ffffff; overflow: hidden; }
       .page-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
       ${doc.styles}
     </style></head><body></body></html>`)
@@ -260,7 +266,7 @@ export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF>
     if (iframeDoc.fonts) await iframeDoc.fonts.ready
     await new Promise((resolve) => setTimeout(resolve, 100))
 
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
+    const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true })
     for (const [index, page] of pages.entries()) {
       const canvas = await html2canvas(page, {
         scale: 2,
@@ -268,12 +274,12 @@ export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF>
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        width: PAGE_WIDTH_PX,
-        height: PAGE_HEIGHT_PX,
-        windowWidth: PAGE_WIDTH_PX + 40,
+        width: pageWidth,
+        height: pageHeight,
+        windowWidth: pageWidth + 40,
       })
-      if (index > 0) pdf.addPage('a4', 'portrait')
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST')
+      if (index > 0) pdf.addPage('a4', orientation)
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, landscape ? 297 : 210, landscape ? 210 : 297, undefined, 'FAST')
     }
     return pdf
   } finally {
