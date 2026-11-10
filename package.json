@@ -10,7 +10,8 @@
     "typecheck": "vue-tsc -b",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "types:gen": "npx supabase gen types typescript --project-id otixooaxfcvjgrlaxihj --schema public --schema core --schema employers --schema applicants --schema jobs --schema system --schema esmdd > src/types/database.types.ts"
+    "types:gen": "npx supabase gen types typescript --project-id otixooaxfcvjgrlaxihj --schema public --schema core --schema employers --schema applicants --schema jobs --schema system --schema esmdd > src/types/database.types.ts",
+    "compare": "git rev-list --left-right --count master...landing-page"
   },
   "dependencies": {
     "@lucide/vue": "^1.31.0",
