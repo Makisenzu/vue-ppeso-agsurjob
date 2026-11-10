@@ -1,8 +1,11 @@
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 import { privacyService } from '@/services/common/privacyService'
+import { gipAppointmentRecordService } from '@/services/peso/provincialPeso/gipAppointmentRecordService'
+import type { GipAppointmentRecordSavePayload } from '@/types/peso/provincialPeso/gipAppointmentRecord'
 import type { GipInternRecord } from '@/types/peso/provincialPeso/gip'
 import {
   DEFAULT_GIP_DESIGNATION,
@@ -57,6 +60,7 @@ export function useGipAppointmentRecord() {
   const gipStore = useGipStore()
   const { interns, pendingAppointmentRecordIds } = storeToRefs(gipStore)
   const toastAlert = useToastAlert()
+  const router = useRouter()
 
   const isOpen = ref(false)
   const internIds = ref<string[]>([])
@@ -66,6 +70,10 @@ export function useGipAppointmentRecord() {
   const busy = ref<'download' | 'print' | null>(null)
   /** Shown after a deploy ("3 interns deployed") rather than when opened from the list */
   const justDeployed = ref(false)
+  // Saved to GIP → Appointments (migration 117); saving again after an edit updates the same record
+  const isSaving = ref(false)
+  const savedRecordId = ref<string | null>(null)
+  const savedFingerprint = ref<string | null>(null)
 
   const recordInterns = computed<GipInternRecord[]>(() =>
     internIds.value
@@ -87,11 +95,13 @@ export function useGipAppointmentRecord() {
     designation.value = DEFAULT_GIP_DESIGNATION
     sourceOfFunds.value = DEFAULT_SOURCE_OF_FUNDS[programs.value[0] ?? 'PGAS']
     justDeployed.value = afterDeploy
+    savedRecordId.value = null
+    savedFingerprint.value = null
     isOpen.value = true
   }
 
   function onOpenChange(open: boolean) {
-    if (!open && busy.value) return
+    if (!open && (busy.value || isSaving.value)) return
     isOpen.value = open
   }
 
@@ -119,6 +129,47 @@ export function useGipAppointmentRecord() {
       sourceOfFunds: sourceOfFunds.value.trim() || DEFAULT_SOURCE_OF_FUNDS[programs.value[0] ?? 'PGAS'],
       signatories: signatories.value.map((s) => ({ ...s, name: s.name.trim(), position: s.position.trim() })),
     }
+  }
+
+  // ─── Save (GIP → Appointments) ───
+  function savePayload(): GipAppointmentRecordSavePayload {
+    const s = settings()
+    return {
+      program: programs.value.length > 1 ? 'Mixed' : (programs.value[0] ?? 'PGAS'),
+      sourceOfFunds: s.sourceOfFunds,
+      designation: s.designation.trim() || DEFAULT_GIP_DESIGNATION,
+      statement: statement.value,
+      signatories: s.signatories,
+      entries: rows.value,
+      gipIds: recordInterns.value.map((intern) => intern.id),
+    }
+  }
+  const fingerprint = computed(() => (isOpen.value ? JSON.stringify(savePayload()) : ''))
+  /** Saved, and nothing edited since */
+  const isSaved = computed(() => savedRecordId.value !== null && savedFingerprint.value === fingerprint.value)
+
+  async function save() {
+    if (rows.value.length === 0 || isSaving.value || isSaved.value) return
+    isSaving.value = true
+    try {
+      saveSignatories(signatories.value)
+      const payload = savePayload()
+      const record = savedRecordId.value
+        ? await gipAppointmentRecordService.update(savedRecordId.value, payload)
+        : await gipAppointmentRecordService.create(payload)
+      savedRecordId.value = record.id
+      savedFingerprint.value = JSON.stringify(payload)
+      toastAlert.success('Appointment Record Saved', 'It is listed under View Appointments.')
+    } catch (err: any) {
+      toastAlert.error('Appointment Record', err?.message || 'Could not save the appointment record.')
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  function goToAppointments() {
+    isOpen.value = false
+    router.push({ name: 'provincial-peso-gip-appointments' })
   }
 
   async function generate(kind: 'download' | 'print') {
@@ -155,6 +206,11 @@ export function useGipAppointmentRecord() {
     open,
     onOpenChange,
     resetSignatories,
+    isSaving,
+    isSaved,
+    savedRecordId,
+    save,
+    goToAppointments,
     download: () => generate('download'),
     print: () => generate('print'),
   }

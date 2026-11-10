@@ -112,6 +112,11 @@ export function useGipDetails() {
     router.push({ name: 'provincial-peso-gip-add' })
   }
 
+  // Saved Appointment Records
+  function navigateToAppointments() {
+    router.push({ name: 'provincial-peso-gip-appointments' })
+  }
+
   // Viewing (and editing) an intern is its own page, not a dialog; `edit` opens it straight in edit mode
   function openInternPage(intern: GipInternRecord, edit = false) {
     router.push({
@@ -333,6 +338,7 @@ export function useGipDetails() {
     // Actions & Navigation
     goBack,
     navigateToAddIntern,
+    navigateToAppointments,
     openInternPage,
     openRenewalPage,
     resetFilters,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, ChevronDown, Download, FileText, Loader2, Printer } from '@lucide/vue'
+import { AlertTriangle, Check, ChevronDown, Download, FileText, ListChecks, Loader2, Printer, Save } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,13 +20,17 @@ const {
   justDeployed,
   rows,
   hasMixedPrograms,
-  statement,
   designation,
   sourceOfFunds,
   signatories,
   signatoriesChanged,
   busy,
   formatRate,
+  isSaving,
+  isSaved,
+  savedRecordId,
+  save,
+  goToAppointments,
   open,
   onOpenChange,
   resetSignatories,
@@ -41,13 +45,41 @@ defineExpose({ open })
   <Dialog :open="isOpen" @update:open="onOpenChange">
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
       <DialogHeader>
-        <DialogTitle class="flex items-center gap-2">
-          <FileText class="size-5 shrink-0" />
-          Appointment Record
-        </DialogTitle>
+        <div class="flex items-center justify-between gap-2 pr-8">
+          <DialogTitle class="flex items-center gap-2">
+            <FileText class="size-5 shrink-0" />
+            Appointment Record
+          </DialogTitle>
+          <div class="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 cursor-pointer"
+              title="Print"
+              aria-label="Print"
+              :disabled="!!busy || rows.length === 0"
+              @click="print"
+            >
+              <Loader2 v-if="busy === 'print'" class="size-4 shrink-0 animate-spin" />
+              <Printer v-else class="size-4 shrink-0" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 cursor-pointer"
+              title="Download PDF"
+              aria-label="Download PDF"
+              :disabled="!!busy || rows.length === 0"
+              @click="download"
+            >
+              <Loader2 v-if="busy === 'download'" class="size-4 shrink-0 animate-spin" />
+              <Download v-else class="size-4 shrink-0" />
+            </Button>
+          </div>
+        </div>
         <DialogDescription>
           <template v-if="justDeployed">
-            {{ rows.length }} intern{{ rows.length === 1 ? '' : 's' }} deployed. Download or print their appointment record.
+            {{ rows.length }} intern{{ rows.length === 1 ? '' : 's' }} deployed. Save their appointment record.
           </template>
           <template v-else>{{ rows.length }} intern{{ rows.length === 1 ? '' : 's' }} on this record.</template>
         </DialogDescription>
@@ -98,8 +130,6 @@ defineExpose({ open })
           </div>
         </div>
 
-        <p class="text-xs text-muted-foreground">{{ statement }}</p>
-
         <!-- Signatories (defaults; edits are remembered on this device) -->
         <Collapsible v-slot="{ open: signatoriesOpen }">
           <div class="flex items-center justify-between gap-2">
@@ -133,16 +163,16 @@ defineExpose({ open })
       </div>
 
       <DialogFooter class="gap-2">
-        <Button variant="outline" class="cursor-pointer" :disabled="!!busy" @click="onOpenChange(false)">Close</Button>
-        <Button variant="outline" class="cursor-pointer" :disabled="!!busy || rows.length === 0" @click="print">
-          <Loader2 v-if="busy === 'print'" class="size-4 shrink-0 animate-spin" />
-          <Printer v-else class="size-4 shrink-0" />
-          Print
+        <Button variant="outline" class="cursor-pointer" :disabled="!!busy || isSaving" @click="onOpenChange(false)">Close</Button>
+        <Button v-if="savedRecordId" variant="ghost" class="cursor-pointer" :disabled="isSaving" @click="goToAppointments">
+          <ListChecks class="size-4 shrink-0" />
+          View Appointments
         </Button>
-        <Button class="cursor-pointer" :disabled="!!busy || rows.length === 0" @click="download">
-          <Loader2 v-if="busy === 'download'" class="size-4 shrink-0 animate-spin" />
-          <Download v-else class="size-4 shrink-0" />
-          Download
+        <Button class="cursor-pointer" :disabled="isSaving || isSaved || rows.length === 0" @click="save">
+          <Loader2 v-if="isSaving" class="size-4 shrink-0 animate-spin" />
+          <Check v-else-if="isSaved" class="size-4 shrink-0" />
+          <Save v-else class="size-4 shrink-0" />
+          {{ isSaving ? 'Saving...' : isSaved ? 'Saved' : savedRecordId ? 'Save Changes' : 'Save Record' }}
         </Button>
       </DialogFooter>
     </DialogContent>

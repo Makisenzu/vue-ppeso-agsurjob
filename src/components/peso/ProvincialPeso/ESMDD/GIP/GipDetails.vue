@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Check,
   FileText,
+  ListChecks,
   Loader2,
   Minus,
   Pencil,
@@ -86,6 +87,7 @@ const {
   getInitials,
   goBack,
   navigateToAddIntern,
+  navigateToAppointments,
   resetFilters,
   openInternPage,
   openRenewalPage,
@@ -286,6 +288,10 @@ const programTabs = [
             >
               <RefreshCw :class="['size-4 shrink-0', isLoading && 'animate-spin']" />
               {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+            </Button>
+            <Button variant="outline" size="sm" class="cursor-pointer" @click="navigateToAppointments">
+              <ListChecks class="size-4 shrink-0" />
+              View Appointments
             </Button>
             <Button size="sm" class="cursor-pointer" @click="navigateToAddIntern">
               <Plus class="size-4 shrink-0" />
