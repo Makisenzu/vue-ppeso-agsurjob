@@ -39,7 +39,7 @@ defineExpose({ open })
 
 <template>
   <Dialog :open="isOpen" @update:open="onOpenChange">
-    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <FileText class="size-5 shrink-0" />
@@ -69,6 +69,8 @@ defineExpose({ open })
                 <th class="hidden px-3 py-2 text-left font-medium sm:table-cell">Address</th>
                 <th class="px-3 py-2 text-right font-medium">Rate</th>
                 <th class="px-3 py-2 text-left font-medium">Period</th>
+                <th class="hidden px-3 py-2 text-left font-medium md:table-cell">Area of assignment</th>
+                <th class="px-3 py-2 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +80,8 @@ defineExpose({ open })
                 <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell">{{ row.address }}</td>
                 <td class="px-3 py-2 text-right tabular-nums">{{ formatRate(row.rate) }}</td>
                 <td class="px-3 py-2 text-xs whitespace-nowrap">{{ row.periodStart }} –<br>{{ row.periodEnd }}</td>
+                <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">{{ row.areaOfAssignment }}</td>
+                <td class="px-3 py-2 text-xs whitespace-nowrap">{{ row.currentStatus }}</td>
               </tr>
             </tbody>
           </table>

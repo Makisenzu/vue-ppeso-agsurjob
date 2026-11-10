@@ -7,7 +7,7 @@ import type { GipAppointmentRecord, GipInternRecord } from '@/types/peso/provinc
  * The GIP Appointment Record: one landscape page listing the interns appointed together (bulk deploys list every
  * name) with their address, designation, rate per day and employment period, signed by the four provincial officials.
  * Laid out like the Province's own form: provincial seal + PPESO seal letterhead, NO. / NAME/S / ADDRESS /
- * DESIGNATION / RATE PER DAY / EMPLOYMENT PERIOD table, the rate paragraph and the signatories.
+ * DESIGNATION / RATE PER DAY / EMPLOYMENT PERIOD / AREA OF ASSIGNMENT / CURRENT STATUS table, the rate paragraph and the signatories.
  */
 
 export type GipProgramCode = 'PGAS' | 'DOLE'
@@ -19,6 +19,8 @@ export interface GipAppointmentSignatory {
   position: string
 }
 
+export type GipAppointmentCurrentStatus = 'New Enrollment' | 'Renewal'
+
 export interface GipAppointmentRecordRow {
   internId: string
   name: string
@@ -28,6 +30,10 @@ export interface GipAppointmentRecordRow {
   /** "OCTOBER 5, 2026-" / "DECEMBER 30, 2026" */
   periodStart: string
   periodEnd: string
+  /** The office the intern is assigned to on this term */
+  areaOfAssignment: string
+  /** Term 1 is a new enrollment; later terms are renewals */
+  currentStatus: GipAppointmentCurrentStatus
 }
 
 export interface GipAppointmentRecordSettings {
@@ -112,26 +118,35 @@ export function appointmentRecordRow(intern: GipInternRecord, designation: strin
     rate: parseDailyRate(appt?.dailyStipend ?? intern.stipend),
     periodStart: appt?.startDate ? longDate(appt.startDate) : fallbackStart,
     periodEnd: appt?.endDate ? longDate(appt.endDate) : fallbackEnd,
+    areaOfAssignment: (appt?.assignedOffice || intern.assignedOffice || '').trim(),
+    currentStatus: (appt?.termNumber ?? 1) > 1 ? 'Renewal' : 'New Enrollment',
   }
 }
 
 export const formatRate = (rate: number | null) =>
   rate === null ? '' : rate.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-/** The paragraph under the table; the PGAS rate is worded as 75% of SG 1 like the template */
+/** The daily rate the record states: the interns' own rate from their funding (PGAS ₱479.35, DOLE ₱475.00, or what
+ *  their term says); with mixed rates, the one most of them have */
+export function appointmentRecordRate(rows: GipAppointmentRecordRow[]): number {
+  const counts = new Map<number, number>()
+  for (const row of rows) if (row.rate !== null) counts.set(row.rate, (counts.get(row.rate) ?? 0) + 1)
+  let best = PGAS_GIP_DAILY_RATE
+  let bestCount = 0
+  for (const [rate, count] of counts) if (count > bestCount) [best, bestCount] = [rate, count]
+  return best
+}
+
+/** The rate as a share of the SG 1 daily rate: ₱479.35 → "75", ₱475.00 → "74.32" */
+export function sg1Percentage(rate: number): string {
+  const pct = (rate / SG1_DAILY_RATE) * 100
+  return Math.abs(pct - Math.round(pct)) < 0.01 ? String(Math.round(pct)) : pct.toFixed(2).replace(/\.?0+$/, '')
+}
+
+/** The paragraph under the table, worded like the Province's form, with the rate of the interns' funding */
 export function appointmentRecordStatement(rows: GipAppointmentRecordRow[]): string {
-  const plural = rows.length !== 1
-  const subject = plural ? 'The above-named beneficiaries are' : 'The above-named beneficiary is'
-  const rates = [...new Set(rows.map((r) => r.rate).filter((r): r is number => r !== null))]
-  let rateText = 'at the rate per day shown above'
-  if (rates.length === 1) {
-    const rate = rates[0]!
-    rateText =
-      Math.abs(rate - PGAS_GIP_DAILY_RATE) < 0.005
-        ? `with 75% (₱${formatRate(rate)} per day) of Salary Grade 1 (SG 1) basic salary rate of ₱${formatRate(SG1_DAILY_RATE)} per day`
-        : `with ₱${formatRate(rate)} per day`
-  }
-  return `${subject} qualified to avail the Government Internship Program ${rateText}. ${plural ? 'Their' : 'The'} employment will cease automatically at the end of the period.`
+  const rate = appointmentRecordRate(rows)
+  return `The above-named beneficiaries are qualified to avail the Government Internship Program with ${sg1Percentage(rate)}% (₱${formatRate(rate)} per day) of Salary Grade 1 (SG 1) basic salary rate of ₱${formatRate(SG1_DAILY_RATE)} per day.  Their employment will cease automatically at the end of the period.`
 }
 
 // ─── Printable form ────────────────────────────────────────────────────────
@@ -154,12 +169,12 @@ const STYLES = `
   .letterhead .agency b { letter-spacing: 0.3px; }
   .project { display: flex; justify-content: space-between; gap: 24px; font-weight: bold; font-size: 13px; margin: 0 0 14px 3px; padding-right: 160px; }
   table.record { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  table.record th, table.record td { border: 1px solid #000; padding: 4px 4px; vertical-align: middle; line-height: 1.25; }
+  table.record th, table.record td { border: 1px solid #000; padding: 4px 4px; font-size: 12px; vertical-align: middle; line-height: 1.25; }
   table.record th { font-weight: bold; text-align: center; height: 46px; }
   table.record td { height: 38px; }
   table.record .center { text-align: center; }
   table.record .no { border-right-width: 2px; }
-  .statement { font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 2.1; margin: 34px 0 0 3px; }
+  .statement { font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 2.1; white-space: pre-wrap; margin: 34px 0 0 3px; }
   .signatures { display: grid; grid-template-columns: 1.25fr 1.2fr 0.9fr 1fr; column-gap: 18px; margin: 40px 0 0 3px; font-size: 12px; }
   .signatures .label { margin-bottom: 72px; }
   .signatures .name { font-weight: bold; text-transform: uppercase; }
@@ -185,11 +200,11 @@ function buildDocument(rows: GipAppointmentRecordRow[], settings: GipAppointment
 
   const head = `
     <colgroup>
-      <col style="width:44px"><col style="width:250px"><col style="width:290px">
-      <col style="width:150px"><col style="width:100px"><col style="width:169px">
+      <col style="width:36px"><col style="width:170px"><col style="width:190px"><col style="width:112px">
+      <col style="width:68px"><col style="width:150px"><col style="width:177px"><col style="width:100px">
     </colgroup>
     <thead><tr>
-      <th class="no">NO.</th><th>NAME/S</th><th>ADDRESS</th><th>DESIGNATION</th><th>RATE PER DAY</th><th>EMPLOYMENT PERIOD</th>
+      <th class="no">NO.</th><th>NAME/S</th><th>ADDRESS</th><th>DESIGNATION</th><th>RATE PER DAY</th><th>EMPLOYMENT PERIOD</th><th>AREA OF ASSIGNMENT</th><th>CURRENT STATUS</th>
     </tr></thead>`
 
   const tableRows = rows.map(
@@ -201,6 +216,8 @@ function buildDocument(rows: GipAppointmentRecordRow[], settings: GipAppointment
         <td class="center">${escapeHtml(row.designation)}</td>
         <td class="center">${escapeHtml(formatRate(row.rate))}</td>
         <td class="center">${escapeHtml(row.periodStart)}-<br>${escapeHtml(row.periodEnd)}</td>
+        <td class="center">${escapeHtml(row.areaOfAssignment)}</td>
+        <td class="center">${escapeHtml(row.currentStatus)}</td>
       </tr>`,
   )
 
