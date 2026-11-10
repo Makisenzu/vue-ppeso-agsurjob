@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { BookMarked, ClipboardList, FileText, GraduationCap, Hammer, Info, NotebookPen, UserRoundPen } from '@lucide/vue'
+import { BookMarked, FileText, GraduationCap, Hammer, NotebookPen, UserRoundPen } from '@lucide/vue'
 import gipLogo from '@/assets/images/gip.png'
 import tupadLogo from '@/assets/images/tupadLogo.png'
 
@@ -49,10 +49,9 @@ export const PROGRAM_PORTALS: Record<ProgramPortalKey, ProgramPortalConfig> = {
     logo: gipLogo,
     isSealLogo: true,
     home: { name: 'gip-application' },
-    // Not yet an intern (no appointment): only My Application
+    // Not yet an intern (no appointment): only My Application. The program's overview and requirements stay on
+    // its page (the sidebar header links there), so they are not repeated here
     items: [
-      { title: 'Overview', to: { name: 'gip-application' }, icon: Info, requiresEnrollment: true },
-      { title: 'Requirements', to: { name: 'gip-application', hash: '#gip-requirements' }, icon: ClipboardList, requiresEnrollment: true },
       { title: 'My Application', to: { name: 'gip-my-application' }, icon: FileText },
       { title: 'Accomplishments', to: { name: 'gip-accomplishments' }, icon: NotebookPen, requiresEnrollment: true },
     ],
@@ -64,10 +63,8 @@ export const PROGRAM_PORTALS: Record<ProgramPortalKey, ProgramPortalConfig> = {
     icon: Hammer,
     logo: tupadLogo,
     home: { name: 'tupad-application' },
-    // Not yet a beneficiary (in no batch): only My Application
+    // The overview and requirements stay on the program's page (the sidebar header links there)
     items: [
-      { title: 'Overview', to: { name: 'tupad-application' }, icon: Info, requiresEnrollment: true },
-      { title: 'Requirements', to: { name: 'tupad-application', hash: '#tupad-requirements' }, icon: ClipboardList, requiresEnrollment: true },
       { title: 'My Application', to: { name: 'tupad-my-application' }, icon: FileText },
     ],
   },
@@ -78,10 +75,9 @@ export const PROGRAM_PORTALS: Record<ProgramPortalKey, ProgramPortalConfig> = {
     // No SPES logo in src/assets/images yet: add `logo` here once there is one
     icon: BookMarked,
     home: { name: 'spes-application' },
-    // Not yet appointed: only My Application ("Edit details" on it still opens My SPES Details)
+    // Not yet appointed: only My Application ("Edit details" on it still opens My SPES Details). The overview and
+    // requirements stay on the program's page (the sidebar header links there)
     items: [
-      { title: 'Overview', to: { name: 'spes-application' }, icon: Info, requiresEnrollment: true },
-      { title: 'Requirements', to: { name: 'spes-application', hash: '#spes-requirements' }, icon: ClipboardList, requiresEnrollment: true },
       { title: 'My Application', to: { name: 'spes-my-application' }, icon: FileText },
       { title: 'My SPES Details', to: { name: 'spes-details' }, icon: UserRoundPen, requiresEnrollment: true },
     ],
