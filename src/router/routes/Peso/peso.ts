@@ -50,7 +50,7 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
         ],
       },
-      // ─── GIP (breadcrumb hierarchy: GIP > Details > Deploy Intern / GIP > Applicants > Applicant Details / Priority Ranking) ───
+      // ─── GIP (breadcrumb hierarchy: GIP > Details > Deploy Intern | Intern Details > Renew Appointment / GIP > Applicants > Applicant Details / Priority Ranking) ───
       {
         path: 'gip',
         meta: { breadcrumb: 'GIP', breadcrumbTo: { name: 'provincial-peso-gip' } },
@@ -76,6 +76,25 @@ export const pesoRoutes: RouteRecordRaw[] = [
                 name: 'provincial-peso-gip-add',
                 component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipAddIntern.vue'),
                 meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Deploy Intern' },
+              },
+              // An intern's own page (view + edit), with renewal under it: Details > Intern Details > Renew Appointment
+              {
+                path: ':id',
+                meta: { breadcrumb: 'Intern Details', breadcrumbTo: { name: 'provincial-peso-gip-intern' } },
+                children: [
+                  {
+                    path: '',
+                    name: 'provincial-peso-gip-intern',
+                    component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipInternDetails.vue'),
+                    meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+                  },
+                  {
+                    path: 'renew',
+                    name: 'provincial-peso-gip-renew',
+                    component: () => import('@/components/peso/ProvincialPeso/ESMDD/GIP/GipRenewAppointment.vue'),
+                    meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Renew Appointment' },
+                  },
+                ],
               },
             ],
           },

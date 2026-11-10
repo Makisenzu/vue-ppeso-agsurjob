@@ -34,6 +34,15 @@ async function fetchRows(gipApplicantId: string): Promise<GipApplicantDocumentRo
  * bucket; a trigger ticks each uploaded document in gip_applicants.document_submitted.
  */
 export const gipDocumentService = {
+  /**
+   * Current file per document, without signed URLs: for screens that sign a file only when it is opened or
+   * downloaded (PRIVACY.md §4, usePrivateDocuments).
+   */
+  async listDocuments(gipApplicantId: string): Promise<GipApplicantDocumentRow[]> {
+    const rows = await fetchRows(gipApplicantId)
+    return rows.map((row) => ({ ...row, size: row.size == null ? null : Number(row.size) }))
+  },
+
   /** Current file per document name, with signed URLs for viewing. */
   async fetchDocuments(gipApplicantId: string): Promise<GipApplicantDocumentMap> {
     const rows = await fetchRows(gipApplicantId)

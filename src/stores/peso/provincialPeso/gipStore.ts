@@ -37,6 +37,9 @@ import {
   exportPriorityApplicantsCsv,
   extractApplicantAvailableYears,
   extractAvailableYears,
+  extractAppointmentTerms,
+  extractAppointmentPeriods,
+  matchesAppointmentFilters,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
@@ -62,15 +65,10 @@ export const useGipStore = defineStore('gipStore', () => {
   const isLoading = ref<boolean>(false)
   const isSubmitting = ref<boolean>(false)
   const errorMessage = ref<string | null>(null)
-  const selectedIntern = ref<GipInternRecord | null>(null)
-  const isDetailsModalOpen = ref<boolean>(false)
-  const isEditingIntern = ref<boolean>(false)
   const isUpdatingIntern = ref<boolean>(false)
   const isAddInternModalOpen = ref<boolean>(false)
 
-  // ─── Appointment Renewal Dialog State ───
-  const selectedInternForRenewal = ref<GipInternRecord | null>(null)
-  const isRenewalDialogOpen = ref<boolean>(false)
+  // ─── Appointment Renewal State (form lives on its own page) ───
   const isSubmittingRenewal = ref<boolean>(false)
 
   // ─── Filter & Pagination State ───
@@ -81,6 +79,9 @@ export const useGipStore = defineStore('gipStore', () => {
   const selectedGenderFilter = ref<string>('ALL')
   const selectedStatusFilter = ref<string>('ALL')
   const selectedAppointmentFilter = ref<string>('ALL')
+  /** Appointment term ('1', '2', …) and period ('YYYY-MM-DD|YYYY-MM-DD'); 'ALL' for any */
+  const selectedTermFilter = ref<string>('ALL')
+  const selectedPeriodFilter = ref<string>('ALL')
   const currentPage = ref<number>(1)
   const pageSize = ref<number>(8)
 
@@ -94,6 +95,8 @@ export const useGipStore = defineStore('gipStore', () => {
       selectedGenderFilter,
       selectedStatusFilter,
       selectedAppointmentFilter,
+      selectedTermFilter,
+      selectedPeriodFilter,
     ],
     () => {
       currentPage.value = 1
@@ -102,6 +105,8 @@ export const useGipStore = defineStore('gipStore', () => {
 
   // ─── Computed: Available Batch Years ───
   const availableYears = computed<number[]>(() => extractAvailableYears(interns.value))
+  const availableTerms = computed<number[]>(() => extractAppointmentTerms(interns.value))
+  const availablePeriods = computed(() => extractAppointmentPeriods(interns.value))
 
   // ─── Computed: Dashboard Totals ───
   const totalPgasYearly = computed(() => {
@@ -228,6 +233,10 @@ export const useGipStore = defineStore('gipStore', () => {
         if (selectedAppointmentFilter.value === 'COMPLETED' && intern.status !== 'Completed' && intern.status !== 'Hired') {
           return false
         }
+      }
+      // Appointment term & period filter (one appointment matching both)
+      if (!matchesAppointmentFilters(intern, selectedTermFilter.value, selectedPeriodFilter.value)) {
+        return false
       }
       // Search query
       if (searchQuery.value.trim()) {
@@ -411,25 +420,8 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedYearFilter.value = 'ALL'
     selectedGenderFilter.value = 'ALL'
     selectedStatusFilter.value = 'ALL'
-  }
-
-  const openInternDetails = (intern: GipInternRecord) => {
-    selectedIntern.value = intern
-    isEditingIntern.value = false
-    isDetailsModalOpen.value = true
-  }
-
-  const closeInternDetails = () => {
-    isDetailsModalOpen.value = false
-    isEditingIntern.value = false
-  }
-
-  const toggleEditMode = () => {
-    isEditingIntern.value = !isEditingIntern.value
-  }
-
-  const cancelEditMode = () => {
-    isEditingIntern.value = false
+    selectedTermFilter.value = 'ALL'
+    selectedPeriodFilter.value = 'ALL'
   }
 
   const updateGipIntern = async (payload: {
@@ -467,16 +459,8 @@ export const useGipStore = defineStore('gipStore', () => {
 
       toastAlert.success('Intern Updated', 'Intern deployment details updated successfully.')
 
-      // Refresh records so the table and details reflect the change
-      await fetchDetailsData()
-
-      // Re-select the updated intern so the modal displays updated data
-      const updated = interns.value.find((i) => i.id === payload.id)
-      if (updated) {
-        selectedIntern.value = updated
-      }
-
-      isEditingIntern.value = false
+      // Refresh (bypassing the cache) so the registry and the intern's page reflect the change
+      await fetchDetailsData(true)
     } catch (err: any) {
       toastAlert.error('Update Failed', err.message || 'Could not update GIP intern.')
       throw err
@@ -1051,10 +1035,6 @@ export const useGipStore = defineStore('gipStore', () => {
     try {
       await gipService.deleteGipIntern(internId)
       toastAlert.success('Intern Removed', 'The intern deployment has been removed.')
-      if (selectedIntern.value?.id === internId) {
-        selectedIntern.value = null
-        isDetailsModalOpen.value = false
-      }
       await fetchDetailsData(true)
     } catch (err: any) {
       toastAlert.error('Removal Failed', err.message || 'Could not remove intern.')
@@ -1078,10 +1058,6 @@ export const useGipStore = defineStore('gipStore', () => {
       } else {
         toastAlert.error('Bulk Removal Failed', result.errors[0] || 'Could not remove selected interns.')
       }
-      if (selectedIntern.value && internIds.includes(selectedIntern.value.id)) {
-        selectedIntern.value = null
-        isDetailsModalOpen.value = false
-      }
       await fetchDetailsData(true)
       return result
     } catch (err: any) {
@@ -1093,16 +1069,6 @@ export const useGipStore = defineStore('gipStore', () => {
   }
 
   // ─── Appointment Renewal Actions ───
-  const openRenewalDialog = (intern: GipInternRecord) => {
-    selectedInternForRenewal.value = intern
-    isRenewalDialogOpen.value = true
-  }
-
-  const closeRenewalDialog = () => {
-    isRenewalDialogOpen.value = false
-    selectedInternForRenewal.value = null
-  }
-
   const renewInternAppointment = async (payload: GipRenewAppointmentPayload) => {
     isSubmittingRenewal.value = true
     try {
@@ -1111,8 +1077,6 @@ export const useGipStore = defineStore('gipStore', () => {
         'Appointment Renewed',
         `Intern appointment renewed to Term #${payload.nextTermNumber}.`,
       )
-      isRenewalDialogOpen.value = false
-      selectedInternForRenewal.value = null
       await fetchDetailsData(true)
     } catch (err: any) {
       toastAlert.error('Renewal Failed', err.message || 'Could not renew appointment.')
@@ -1130,8 +1094,6 @@ export const useGipStore = defineStore('gipStore', () => {
         'Appointment Concluded',
         `Internship status set to ${payload.action}.`,
       )
-      isRenewalDialogOpen.value = false
-      selectedInternForRenewal.value = null
       await fetchDetailsData(true)
     } catch (err: any) {
       toastAlert.error('Action Failed', err.message || 'Could not update appointment status.')
@@ -1157,10 +1119,7 @@ export const useGipStore = defineStore('gipStore', () => {
     isLoading,
     isSubmitting,
     errorMessage,
-    selectedIntern,
     selectedApplicant,
-    isDetailsModalOpen,
-    isEditingIntern,
     isUpdatingIntern,
     isAddInternModalOpen,
     isApplicantDetailsModalOpen,
@@ -1171,8 +1130,6 @@ export const useGipStore = defineStore('gipStore', () => {
     isSavingApplicantReview,
     applicantToEditDocuments,
     isLoadingApplicantDocuments,
-    selectedInternForRenewal,
-    isRenewalDialogOpen,
     isSubmittingRenewal,
     priorityApplicants,
     isPriorityModalOpen,
@@ -1184,6 +1141,10 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedGenderFilter,
     selectedStatusFilter,
     selectedAppointmentFilter,
+    selectedTermFilter,
+    selectedPeriodFilter,
+    availableTerms,
+    availablePeriods,
     currentPage,
     pageSize,
 
@@ -1238,10 +1199,6 @@ export const useGipStore = defineStore('gipStore', () => {
     setSelectedProgram,
     resetFilters,
     resetApplicantFilters,
-    openInternDetails,
-    closeInternDetails,
-    toggleEditMode,
-    cancelEditMode,
     updateGipIntern,
     openAddInternModal,
     closeAddInternModal,
@@ -1263,8 +1220,6 @@ export const useGipStore = defineStore('gipStore', () => {
     openPriorityModal,
     closePriorityModal,
     exportPriorityCsv,
-    openRenewalDialog,
-    closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,
     addReferredApplicant,

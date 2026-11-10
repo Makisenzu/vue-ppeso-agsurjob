@@ -8,6 +8,7 @@ import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
 import { DOCUMENT_OPTIONS } from '@/composables/peso/provincialPeso/useApplicantNewEntry'
 import type { EditableGipApplicantStatus } from '@/types/peso/provincialPeso/gip'
 import { normalizeStatusRemarks, refineStatusRemarks, requiresStatusRemarks } from '@/helpers/common/statusRemarksHelper'
+import { normalizeDocumentName } from '@/helpers/peso/provincialPeso/gipHelper'
 
 export const GIP_EDITABLE_STATUSES = ['Pending', 'Approved', 'Rejected'] as const satisfies readonly EditableGipApplicantStatus[]
 
@@ -56,15 +57,6 @@ function toOrientationInputs(value: unknown): { orientationDate: string; orienta
     savedOrientationDate: day,
     orientationTime: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
   }
-}
-
-// Older records use longer labels; map them onto the applicant-entry checklist names
-function normalizeDocumentName(doc: string): string {
-  const trimmed = doc.trim()
-  const upper = trimmed.toUpperCase()
-  if (upper.startsWith('NSRP')) return 'NSRP'
-  if (upper.startsWith('RESUME')) return 'Resume'
-  return trimmed
 }
 
 export function useGipEditApplicant() {

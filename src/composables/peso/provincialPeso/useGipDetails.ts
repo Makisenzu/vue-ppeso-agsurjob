@@ -5,17 +5,14 @@ import { Eye, Pencil, RefreshCw, Trash2 } from '@lucide/vue'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
-import { directoryService } from '@/services/common/directoryService'
-import type { DirectoryRow } from '@/types/common/directory'
 import type { GipInternRecord, GipProgram } from '@/types/peso/provincialPeso/gip'
 import {
   LPII_CONFIG,
   donutTooltipTriggers,
   getInitials,
+  formatOrdinal,
+  formatAppointmentPeriodLabel,
 } from '@/helpers/peso/provincialPeso/gipHelper'
-import { GIP_OFFICE_PRESETS } from '@/composables/peso/provincialPeso/useGipAddIntern'
-import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-import { formatDeploymentPeriod } from '@/composables/peso/provincialPeso/useGipBulkDeploy'
 
 export function useGipDetails() {
   const route = useRoute()
@@ -29,10 +26,6 @@ export function useGipDetails() {
     isLoading,
     isSubmitting,
     errorMessage,
-    selectedIntern,
-    isDetailsModalOpen,
-    isEditingIntern,
-    isUpdatingIntern,
     isAddInternModalOpen,
     applicants,
     searchQuery,
@@ -42,6 +35,10 @@ export function useGipDetails() {
     selectedGenderFilter,
     selectedStatusFilter,
     selectedAppointmentFilter,
+    selectedTermFilter,
+    selectedPeriodFilter,
+    availableTerms,
+    availablePeriods,
     currentPage,
     pageSize,
     availableYears,
@@ -52,8 +49,6 @@ export function useGipDetails() {
     filteredInterns,
     totalPages,
     paginatedInterns,
-    selectedInternForRenewal,
-    isRenewalDialogOpen,
     isSubmittingRenewal,
     expiringAppointmentsCount,
     expiredAppointmentsCount,
@@ -69,17 +64,10 @@ export function useGipDetails() {
     deployInternFromApplicant,
     setSelectedProgram,
     resetFilters,
-    openInternDetails,
-    closeInternDetails,
-    toggleEditMode,
-    cancelEditMode,
-    updateGipIntern,
     openAddInternModal,
     closeAddInternModal,
     openBatchUploadModal,
     exportCsv,
-    openRenewalDialog,
-    closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,
     removeGipIntern,
@@ -124,244 +112,19 @@ export function useGipDetails() {
     router.push({ name: 'provincial-peso-gip-add' })
   }
 
-  // ─── Office Directory State ───
-  const offices = ref<DirectoryRow[]>([])
-  const officeSearchQuery = ref<string>('')
-  const selectedOffice = ref<DirectoryRow | null>(null)
-  const isLoadingOffices = ref<boolean>(false)
-
-  const filteredOffices = computed(() => {
-    if (!officeSearchQuery.value.trim()) return offices.value
-    const q = officeSearchQuery.value.toLowerCase().trim()
-    return offices.value.filter(
-      (o) =>
-        o.office_name.toLowerCase().includes(q) ||
-        o.office_code.toLowerCase().includes(q) ||
-        (o.office_head && o.office_head.toLowerCase().includes(q)),
-    )
-  })
-
-  async function fetchOffices() {
-    if (offices.value.length > 0) return // Already loaded
-    isLoadingOffices.value = true
-    try {
-      offices.value = await directoryService.fetchActiveOffices()
-    } catch (err: any) {
-      console.error('Failed to fetch offices:', err.message)
-    } finally {
-      isLoadingOffices.value = false
-    }
-  }
-
-  // ─── Date Range State ───
-  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
-
-  const deploymentStartDate = ref<any>(null)
-  const deploymentEndDate = ref<any>(null)
-
-  /** "09/01/2026 - 02/28/2027" (MM/DD/YYYY); saved as the intern's period text */
-  const formattedPeriod = computed<string>(() => formatDeploymentPeriod(deploymentStartDate.value, deploymentEndDate.value))
-
-  /**
-   * Parse a period string into CalendarDate start/end values.
-   * Supports patterns like:
-   *   - "01/01/2026 - 06/30/2026" (MM/DD/YYYY, how periods are saved now)
-   *   - "Jan 1 - Jun 30, 2026" and "Jan 1, 2026 - Jun 30, 2027" (older records)
-   *   - "Jan 2026 - Jun 2026" (day defaults to 1 and last-day-of-month)
-   */
-  function parsePeriodToDates(period: string): { start: any; end: any } | null {
-    if (!period || !period.trim()) return null
-
-    // Pattern: "MM/DD/YYYY - MM/DD/YYYY"
-    const numericMatch = period.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[-–]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-    if (numericMatch) {
-      const [, sm, sd, sy, em, ed, ey] = numericMatch.map(Number)
-      return { start: new CalendarDate(sy!, sm!, sd!), end: new CalendarDate(ey!, em!, ed!) }
-    }
-
-    const monthMap: Record<string, number> = {}
-    MONTH_NAMES.forEach((m, i) => { monthMap[m.toLowerCase()] = i + 1 })
-
-    // Pattern: "MMM D - MMM D, YYYY" or "MMM D, YYYY - MMM D, YYYY"
-    const rangeMatch = period.match(
-      /^([A-Za-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?\s*[-–]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/
-    )
-    if (rangeMatch) {
-      const [, sm, sd, sy, em, ed, ey] = rangeMatch
-      const startMonth = monthMap[sm.toLowerCase().slice(0, 3)]
-      const endMonth = monthMap[em.toLowerCase().slice(0, 3)]
-      if (startMonth && endMonth) {
-        const startYear = sy ? parseInt(sy) : parseInt(ey)
-        return {
-          start: new CalendarDate(startYear, startMonth, parseInt(sd)),
-          end: new CalendarDate(parseInt(ey), endMonth, parseInt(ed)),
-        }
-      }
-    }
-
-    // Pattern: "MMM YYYY - MMM YYYY" (no day, month-only)
-    const monthYearMatch = period.match(
-      /^([A-Za-z]+)\s+(\d{4})\s*[-–]\s*([A-Za-z]+)\s+(\d{4})$/
-    )
-    if (monthYearMatch) {
-      const [, sm, sy, em, ey] = monthYearMatch
-      const startMonth = monthMap[sm.toLowerCase().slice(0, 3)]
-      const endMonth = monthMap[em.toLowerCase().slice(0, 3)]
-      if (startMonth && endMonth) {
-        const endYear = parseInt(ey)
-        // End date = last day of endMonth
-        const nextMonth = endMonth === 12
-          ? new CalendarDate(endYear + 1, 1, 1)
-          : new CalendarDate(endYear, endMonth + 1, 1)
-        const endDate = nextMonth.subtract({ days: 1 })
-        return {
-          start: new CalendarDate(parseInt(sy), startMonth, 1),
-          end: endDate,
-        }
-      }
-    }
-
-    return null
-  }
-
-  // ─── Auto-fill supervisor when office is selected ───
-  watch(selectedOffice, (office) => {
-    if (office) {
-      editForm.value.assignedOffice = office.office_name
-      editForm.value.supervisor = office.office_head || ''
-    }
-  })
-
-  // ─── Sync period from formatted date range ───
-  watch(formattedPeriod, (fp) => {
-    if (fp) {
-      editForm.value.period = fp
-    }
-  })
-
-  // ─── Inline Edit State & Presets ───
-  const currentYear = new Date().getFullYear()
-  const officePresets = GIP_OFFICE_PRESETS
-  const periodPresets = [
-    `Jan ${currentYear} - Jun ${currentYear}`,
-    `Jul ${currentYear} - Dec ${currentYear}`,
-    `Batch ${currentYear} (3 Months)`,
-    `Batch ${currentYear} (6 Months)`,
-  ]
-
-  const editForm = ref<{
-    program: 'PGAS' | 'DOLE'
-    assignedOffice: string
-    supervisor: string
-    stipend: string
-    period: string
-    status: string
-  }>({
-    program: 'PGAS',
-    assignedOffice: '',
-    supervisor: '',
-    stipend: '₱479.35 / day',
-    period: `Jan ${currentYear} - Jun ${currentYear}`,
-    status: 'Active',
-  })
-
-  function startEdit() {
-    if (selectedIntern.value) {
-      editForm.value = {
-        program: selectedIntern.value.program,
-        assignedOffice: selectedIntern.value.assignedOffice,
-        supervisor: selectedIntern.value.supervisor,
-        stipend: selectedIntern.value.stipend,
-        period: selectedIntern.value.period,
-        status: selectedIntern.value.status,
-      }
-      isEditingIntern.value = true
-
-      // Fetch offices if not already loaded
-      fetchOffices()
-
-      // Match the intern's assigned office with directory entries
-      if (offices.value.length > 0) {
-        const match = offices.value.find(
-          (o) => o.office_name.toLowerCase() === selectedIntern.value!.assignedOffice.toLowerCase(),
-        )
-        selectedOffice.value = match || null
-      } else {
-        // Wait for offices to load, then match
-        const stopWatch = watch(offices, (loaded) => {
-          if (loaded.length > 0) {
-            const match = loaded.find(
-              (o) => o.office_name.toLowerCase() === selectedIntern.value!.assignedOffice.toLowerCase(),
-            )
-            selectedOffice.value = match || null
-            stopWatch()
-          }
-        })
-      }
-
-      // Parse existing period into calendar dates
-      const parsed = parsePeriodToDates(selectedIntern.value.period)
-      if (parsed) {
-        deploymentStartDate.value = parsed.start
-        deploymentEndDate.value = parsed.end
-      } else {
-        // Fallback: set to current month range
-        const td = today(getLocalTimeZone())
-        deploymentStartDate.value = new CalendarDate(td.year, td.month, 1)
-        const nextMonth = td.month === 12
-          ? new CalendarDate(td.year + 1, 1, 1)
-          : new CalendarDate(td.year, td.month + 1, 1)
-        deploymentEndDate.value = nextMonth.subtract({ days: 1 })
-      }
-    }
-  }
-
-  function openInternEdit(intern: GipInternRecord) {
-    openInternDetails(intern)
-    startEdit()
-  }
-
-  function cancelEdit() {
-    cancelEditMode()
-    selectedOffice.value = null
-    officeSearchQuery.value = ''
-    deploymentStartDate.value = null
-    deploymentEndDate.value = null
-  }
-
-  function setEditProgram(prog: 'PGAS' | 'DOLE') {
-    editForm.value.program = prog
-    if (prog === 'PGAS' && (editForm.value.stipend === '₱475.00 / day' || editForm.value.stipend === '₱475 / day')) {
-      editForm.value.stipend = '₱479.35 / day'
-    } else if (prog === 'DOLE' && editForm.value.stipend === '₱479.35 / day') {
-      editForm.value.stipend = '₱475.00 / day'
-    }
-  }
-
-  async function saveEdit() {
-    if (!selectedIntern.value) return
-    const office = editForm.value.assignedOffice.trim() || (editForm.value.program === 'PGAS' ? 'Provincial PESO / PGAS Office' : 'DOLE AgSur Field Office')
-    await updateGipIntern({
-      id: selectedIntern.value.id,
-      program: editForm.value.program,
-      assignedOffice: office,
-      supervisor: editForm.value.supervisor.trim(),
-      stipend: editForm.value.stipend.trim(),
-      period: editForm.value.period.trim(),
-      status: editForm.value.status,
-      applicationId: selectedIntern.value.rawGip?.application_id || undefined,
+  // Viewing (and editing) an intern is its own page, not a dialog; `edit` opens it straight in edit mode
+  function openInternPage(intern: GipInternRecord, edit = false) {
+    router.push({
+      name: 'provincial-peso-gip-intern',
+      params: { id: intern.id },
+      query: edit ? { ...route.query, edit: '1' } : route.query,
     })
   }
 
-  watch(isDetailsModalOpen, (open) => {
-    if (!open) {
-      cancelEditMode()
-      selectedOffice.value = null
-      officeSearchQuery.value = ''
-      deploymentStartDate.value = null
-      deploymentEndDate.value = null
-    }
-  })
+  // Renewing or concluding an appointment is a long form, so it has its own page (not a sheet)
+  function openRenewalPage(intern: GipInternRecord) {
+    router.push({ name: 'provincial-peso-gip-renew', params: { id: intern.id }, query: route.query })
+  }
 
   // ─── Multi-Select State ───
   const selectedInternIds = ref<string[]>([])
@@ -465,26 +228,14 @@ export function useGipDetails() {
   function getInternSwipeActions(intern: GipInternRecord): SwipeAction[] {
     const actions: SwipeAction[] = [
       { id: 'delete', label: 'Delete', icon: Trash2, dismiss: false, onSelect: () => promptDeleteIntern(intern) },
-      { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openInternDetails(intern) },
-      { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openInternEdit(intern) },
+      { id: 'view', label: 'View', icon: Eye, dismiss: false, onSelect: () => openInternPage(intern) },
+      { id: 'edit', label: 'Edit', icon: Pencil, dismiss: false, onSelect: () => openInternPage(intern, true) },
     ]
     if (intern.status === 'Active') {
-      actions.push({ id: 'renew', label: 'Renew', icon: RefreshCw, dismiss: false, onSelect: () => openRenewalDialog(intern) })
+      actions.push({ id: 'renew', label: 'Renew', icon: RefreshCw, dismiss: false, onSelect: () => openRenewalPage(intern) })
     }
     return actions
   }
-
-  // ─── Documents Submitted Extraction ───
-  const internDocumentsSubmitted = computed<string[]>(() => {
-    if (!selectedIntern.value) return []
-    if (selectedIntern.value.rawApplicant?.documents_submitted && selectedIntern.value.rawApplicant.documents_submitted.length > 0) {
-      return selectedIntern.value.rawApplicant.documents_submitted
-    }
-    if (selectedIntern.value.documentsSubmitted && selectedIntern.value.documentsSubmitted.length > 0) {
-      return selectedIntern.value.documentsSubmitted
-    }
-    return []
-  })
 
   watch(interns, (newList) => {
     const validIds = new Set(newList.map((i) => i.id))
@@ -496,6 +247,33 @@ export function useGipDetails() {
     { value: 'ALL', label: 'All Batch Years' },
     ...availableYears.value.map((year) => ({ value: year.toString(), label: `Batch ${year}` })),
   ])
+
+  // Appointment term & period filters (SearchSelect), built from the loaded interns
+  const termFilterOptions = computed(() => [
+    { value: 'ALL', label: 'All Terms' },
+    ...availableTerms.value.map((term) => ({ value: String(term), label: `${formatOrdinal(term)} Appointment` })),
+  ])
+  /** Table's Appointment Period: the current appointment in month names ("Jan 5 – Jun 30, 2026") */
+  function formatInternPeriod(intern: GipInternRecord): string {
+    const appointment = intern.currentAppointment
+    if (!appointment?.startDate || !appointment.endDate) return intern.period
+    return formatAppointmentPeriodLabel(appointment.startDate, appointment.endDate, true)
+  }
+
+  // Month names ("January – June 2026"); periods that would read the same also show their days
+  const periodFilterOptions = computed(() => {
+    const labels = availablePeriods.value.map((period) => formatAppointmentPeriodLabel(period.startDate, period.endDate))
+    return [
+      { value: 'ALL', label: 'All Periods' },
+      ...availablePeriods.value.map((period, index) => ({
+        value: period.key,
+        label:
+          labels.indexOf(labels[index]!) === labels.lastIndexOf(labels[index]!)
+            ? labels[index]!
+            : formatAppointmentPeriodLabel(period.startDate, period.endDate, true),
+      })),
+    ]
+  })
 
   onMounted(() => {
     fetchDetailsData()
@@ -516,36 +294,15 @@ export function useGipDetails() {
     totalPages,
     availableYears,
     yearFilterOptions,
-    selectedIntern,
-    isDetailsModalOpen,
+    termFilterOptions,
+    periodFilterOptions,
+    formatInternPeriod,
+    selectedTermFilter,
+    selectedPeriodFilter,
     isAddInternModalOpen,
-    isEditingIntern,
-    isUpdatingIntern,
     isLoading,
     isSubmitting,
     errorMessage,
-
-    // Edit State & Actions
-    editForm,
-    officePresets,
-    periodPresets,
-    startEdit,
-    cancelEdit,
-    saveEdit,
-    setEditProgram,
-    toggleEditMode,
-    cancelEditMode,
-
-    // Office Directory (Edit Mode)
-    officeSearchQuery,
-    filteredOffices,
-    selectedOffice,
-    isLoadingOffices,
-
-    // Date Range (Edit Mode)
-    deploymentStartDate,
-    deploymentEndDate,
-    formattedPeriod,
 
     // Filter & Pagination Models
     searchQuery,
@@ -560,8 +317,6 @@ export function useGipDetails() {
     pageSize,
 
     // Appointment renewal & metrics
-    selectedInternForRenewal,
-    isRenewalDialogOpen,
     isSubmittingRenewal,
     expiringAppointmentsCount,
     expiredAppointmentsCount,
@@ -574,18 +329,14 @@ export function useGipDetails() {
     LPII_CONFIG,
     donutTooltipTriggers,
     getInitials,
-    internDocumentsSubmitted,
 
     // Actions & Navigation
     goBack,
     navigateToAddIntern,
+    openInternPage,
+    openRenewalPage,
     resetFilters,
-    openInternDetails,
-    openInternEdit,
-    closeInternDetails,
-    openRenewalDialog,
     getInternSwipeActions,
-    closeRenewalDialog,
     renewInternAppointment,
     concludeInternAppointment,
     openAddInternModal,

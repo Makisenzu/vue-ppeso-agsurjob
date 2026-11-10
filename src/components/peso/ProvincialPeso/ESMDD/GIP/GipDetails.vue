@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
-import { computed } from 'vue'
+// LPII charts (hidden): import { computed } from 'vue'
 import {
   AlertTriangle,
   ArrowLeft,
-  CalendarDays,
   Check,
-  CheckCircle2,
-  CheckIcon,
-  ChevronDown,
-  ChevronsUpDownIcon,
   Loader2,
   Minus,
   Pencil,
@@ -20,17 +14,14 @@ import {
   X,
 } from '@lucide/vue'
 import { Checkbox } from '@/components/ui/checkbox'
-import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
+// LPII charts hidden for now (kept to reuse elsewhere): uncomment with the LPII Distribution block in the template
+// import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
-import { ChartContainer } from '@/components/ui/chart'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+// import { ChartContainer } from '@/components/ui/chart'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import {
@@ -42,15 +33,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -59,66 +41,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxInput,
-  ComboboxTrigger,
-  ComboboxViewport,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxGroup,
-  ComboboxItemIndicator,
-} from '@/components/ui/combobox'
-import { Calendar } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import SearchSelect from '@/components/SearchSelect.vue'
-import { cn } from '@/lib/utils'
-import pgasLogo from '@/assets/images/agsur.png'
-import doleLogo from '@/assets/images/dole.png'
-import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
-import type { DirectoryRow } from '@/types/common/directory'
+// LPII charts (hidden): import pgasLogo from '@/assets/images/agsur.png'
+// LPII charts (hidden): import doleLogo from '@/assets/images/dole.png'
+// import type { LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
 import { useGipDetails } from '@/composables/peso/provincialPeso/useGipDetails'
-import { useGipRenewAppointment } from '@/composables/peso/provincialPeso/useGipRenewAppointment'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
 
 const {
-  pgasLpiiData,
-  doleLpiiData,
-  overallLpiiData,
-  totalOverallLpii,
-  totalPgasLpii,
-  totalDoleLpii,
+  // LPII charts (hidden): pgasLpiiData, doleLpiiData, overallLpiiData, totalOverallLpii, totalPgasLpii, totalDoleLpii
   interns,
   filteredInterns,
   paginatedInterns,
   totalPages,
   yearFilterOptions,
-  selectedIntern,
-  isDetailsModalOpen,
-  isEditingIntern,
-  isUpdatingIntern,
-  editForm,
-  startEdit,
-  cancelEdit,
-  saveEdit,
-  setEditProgram,
+  termFilterOptions,
+  periodFilterOptions,
+  formatInternPeriod,
+  selectedTermFilter,
+  selectedPeriodFilter,
   isLoading,
   searchQuery,
   programTab,
@@ -135,16 +78,14 @@ const {
   toggleSelectAll,
   toggleSelectIntern,
   clearSelection,
-  LPII_CONFIG,
-  donutTooltipTriggers,
+  // LPII_CONFIG, (LPII charts, hidden)
+  // donutTooltipTriggers, (LPII charts, hidden)
   getInitials,
   goBack,
   navigateToAddIntern,
   resetFilters,
-  openInternDetails,
-  openInternEdit,
-  closeInternDetails,
-  openRenewalDialog,
+  openInternPage,
+  openRenewalPage,
   getInternSwipeActions,
   getInternCard,
   exportCsv,
@@ -152,17 +93,6 @@ const {
   expiringAppointmentsCount,
   expiredAppointmentsCount,
   pendingDecisionCount,
-
-  // Office directory (edit mode)
-  officeSearchQuery,
-  filteredOffices,
-  selectedOffice,
-  isLoadingOffices,
-
-  // Date range (edit mode)
-  deploymentStartDate,
-  deploymentEndDate,
-  formattedPeriod,
 
   // Delete modal state & actions
   internToDelete,
@@ -172,36 +102,7 @@ const {
   promptDeleteIntern,
   handleSingleDelete,
   handleBulkDelete,
-
-  // Documents
-  internDocumentsSubmitted,
 } = useGipDetails()
-
-const {
-  isRenewalDialogOpen,
-  intern: renewalIntern,
-  isSubmitting: isSubmittingRenewal,
-  actionMode: renewalActionMode,
-  currentTermNumber,
-  nextTermNumber,
-  programOptions: renewalProgramOptions,
-  concludeOptions,
-  durationPresets,
-  officeSearchQuery: renewalOfficeSearchQuery,
-  filteredOffices: renewalFilteredOffices,
-  isLoadingOffices: isLoadingRenewalOffices,
-  findOffice,
-  renewSchema,
-  renewInitialValues,
-  concludeSchema,
-  concludeInitialValues,
-  stipendForProgram,
-  addDurationMonths,
-  formatDeploymentDate,
-  onOpenChange: onRenewalOpenChange,
-  submitRenewal,
-  submitConclusion,
-} = useGipRenewAppointment()
 
 const programTabs = [
   { value: 'ALL', label: 'All Programs' },
@@ -209,63 +110,45 @@ const programTabs = [
   { value: 'DOLE', label: 'DOLE' },
 ] as const
 
-const programOptions = [
-  { value: 'PGAS', label: 'PGAS', logo: pgasLogo, description: 'Provincial · ₱479.35/day' },
-  { value: 'DOLE', label: 'DOLE', logo: doleLogo, description: 'National · ₱475/day' },
-] as const
+// LPII charts hidden for now (kept to reuse elsewhere): uncomment with the LPII Distribution block in the template
+// const lpiiCharts = computed(() => [
+//   {
+//     key: 'overall',
+//     title: 'Combined LPII Distribution',
+//     description: 'Overall Agsur GIP (PGAS + DOLE)',
+//     logo: null,
+//     data: overallLpiiData.value,
+//     total: totalOverallLpii.value,
+//     subLabel: 'Total Interns',
+//     emptyLabel: 'No intern records yet',
+//   },
+//   {
+//     key: 'pgas',
+//     title: 'PGAS',
+//     description: "Provincial Gov't of Agusan del Sur",
+//     logo: pgasLogo,
+//     data: pgasLpiiData.value,
+//     total: totalPgasLpii.value,
+//     subLabel: 'PGAS Interns',
+//     emptyLabel: 'No PGAS interns yet',
+//   },
+//   {
+//     key: 'dole',
+//     title: 'DOLE',
+//     description: 'Department of Labor & Employment',
+//     logo: doleLogo,
+//     data: doleLpiiData.value,
+//     total: totalDoleLpii.value,
+//     subLabel: 'DOLE Interns',
+//     emptyLabel: 'No DOLE interns yet',
+//   },
+// ])
 
-const lpiiCharts = computed(() => [
-  {
-    key: 'overall',
-    title: 'Combined LPII Distribution',
-    description: 'Overall Agsur GIP (PGAS + DOLE)',
-    logo: null,
-    data: overallLpiiData.value,
-    total: totalOverallLpii.value,
-    subLabel: 'Total Interns',
-    emptyLabel: 'No intern records yet',
-  },
-  {
-    key: 'pgas',
-    title: 'PGAS',
-    description: "Provincial Gov't of Agusan del Sur",
-    logo: pgasLogo,
-    data: pgasLpiiData.value,
-    total: totalPgasLpii.value,
-    subLabel: 'PGAS Interns',
-    emptyLabel: 'No PGAS interns yet',
-  },
-  {
-    key: 'dole',
-    title: 'DOLE',
-    description: 'Department of Labor & Employment',
-    logo: doleLogo,
-    data: doleLpiiData.value,
-    total: totalDoleLpii.value,
-    subLabel: 'DOLE Interns',
-    emptyLabel: 'No DOLE interns yet',
-  },
-])
+// LPII charts (hidden)
+// const percentOf = (count: number, total: number) => (total ? ((count / total) * 100).toFixed(1) : '0')
 
-const internDetailFields = computed(() => {
-  const intern = selectedIntern.value
-  if (!intern) return []
-  return [
-    { label: 'Assigned Office / Station', value: intern.assignedOffice },
-    { label: 'Designated Supervisor', value: intern.supervisor },
-    { label: 'Academic Background / Degree', value: intern.course },
-    { label: 'Daily Allowance / Stipend', value: intern.stipend, mono: true },
-    { label: 'Deployment Period', value: intern.period },
-    { label: 'Contact Information', value: intern.contact, mono: true },
-  ]
-})
-
-const percentOf = (count: number, total: number) => (total ? ((count / total) * 100).toFixed(1) : '0')
-
-const formatCalendarDate = (date: { year: number; month: number; day: number }) =>
-  formatDisplayDate(new Date(date.year, date.month - 1, date.day))
-
-const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-label-text-color:var(--foreground)] [--vis-donut-central-sub-label-text-color:var(--muted-foreground)]'
+// LPII charts (hidden)
+// const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-label-text-color:var(--foreground)] [--vis-donut-central-sub-label-text-color:var(--muted-foreground)]'
 </script>
 
 <template>
@@ -279,7 +162,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Records</h1>
         <p class="text-sm text-muted-foreground">
-          Geographic distribution monitoring across Agusan del Sur with intern registry.
+          PGAS and DOLE interns, their deployments and appointments.
         </p>
       </div>
 
@@ -298,7 +181,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
       </div>
     </div>
 
-    <!-- ─── LPII Distribution ─── -->
+    <!-- ─── LPII Distribution: hidden for now, kept to reuse elsewhere (uncomment with the script lines marked "LPII charts") ───
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
       <Card v-for="chart in lpiiCharts" :key="chart.key">
         <CardHeader class="flex flex-row items-center gap-3">
@@ -343,6 +226,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         </CardContent>
       </Card>
     </div>
+    -->
 
     <!-- ─── Appointment Renewal Attention ─── -->
     <Alert v-if="pendingDecisionCount > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
@@ -406,7 +290,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         </div>
 
         <!-- Search & Filters -->
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
           <div class="relative sm:col-span-2">
             <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -432,6 +316,21 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
             :options="[{ value: 'ALL', label: 'All Appointments' }, { value: 'EXPIRING', label: 'Expiring Soon (≤ 30d)' }, { value: 'EXPIRED', label: 'Expired Terms' }, { value: 'ACTIVE', label: 'Active Appointments' }, { value: 'COMPLETED', label: 'Completed / Concluded' }]"
             class="w-full"
             aria-label="Filter by appointment term"
+          />
+
+          <!-- Interns with one appointment matching both: e.g. their 2nd appointment, in that period -->
+          <SearchSelect
+            v-model="selectedTermFilter"
+            :options="termFilterOptions"
+            class="w-full"
+            aria-label="Filter by appointment number"
+          />
+
+          <SearchSelect
+            v-model="selectedPeriodFilter"
+            :options="periodFilterOptions"
+            class="w-full"
+            aria-label="Filter by appointment period"
           />
 
           <SearchSelect
@@ -547,9 +446,8 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                 <TableHead class="min-w-50">Intern</TableHead>
                 <TableHead>Program</TableHead>
                 <TableHead>Municipality & Barangay</TableHead>
-                <TableHead>LPII</TableHead>
                 <TableHead>Assigned Office</TableHead>
-                <TableHead>Period / Term</TableHead>
+                <TableHead>Appointment Period</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
@@ -613,12 +511,6 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                   </TableCell>
 
                   <TableCell>
-                    <Badge variant="outline" :class="LPII_CONFIG[intern.lpiiTag].badgeClass">
-                      {{ LPII_CONFIG[intern.lpiiTag].label }}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell>
                     <div class="flex max-w-50 flex-col">
                       <span class="truncate text-sm" :title="intern.assignedOffice">{{ intern.assignedOffice }}</span>
                       <span class="truncate text-xs text-muted-foreground" :title="intern.course">{{ intern.course }}</span>
@@ -626,12 +518,9 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                   </TableCell>
 
                   <TableCell>
+                    <!-- The appointment's start and end; batch year and term number are left out (the period says both) -->
                     <div class="flex flex-col gap-1">
-                      <span class="text-sm">
-                        {{ intern.batchYear }}
-                        <span class="text-muted-foreground">· Term {{ intern.currentAppointment?.termNumber || 1 }}</span>
-                      </span>
-                      <span class="text-xs text-muted-foreground">{{ intern.period }}</span>
+                      <span class="text-sm">{{ formatInternPeriod(intern) }}</span>
                       <template v-if="intern.currentAppointment && intern.status === 'Active'">
                         <Badge v-if="intern.currentAppointment.isExpired" variant="destructive">
                           Term expired
@@ -661,11 +550,11 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                         size="sm"
                         class="cursor-pointer"
                         title="Renew or conclude appointment"
-                        @click="openRenewalDialog(intern)"
+                        @click="openRenewalPage(intern)"
                       >
                         Renew
                       </Button>
-                      <Button variant="ghost" size="sm" class="cursor-pointer" @click="openInternDetails(intern)">
+                      <Button variant="ghost" size="sm" class="cursor-pointer" @click="openInternPage(intern)">
                         View
                       </Button>
                       <Button
@@ -674,7 +563,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
                         class="size-8 cursor-pointer text-muted-foreground"
                         title="Edit deployment details"
                         :aria-label="'Edit ' + intern.fullName"
-                        @click="openInternEdit(intern)"
+                        @click="openInternPage(intern, true)"
                       >
                         <Pencil class="size-4 shrink-0" />
                       </Button>
@@ -695,7 +584,7 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
 
               <!-- Empty State -->
               <TableRow v-else class="hover:bg-transparent">
-                <TableCell colspan="9" class="p-0 whitespace-normal">
+                <TableCell colspan="8" class="p-0 whitespace-normal">
                   <Empty class="py-10">
                     <EmptyHeader>
                       <EmptyTitle>No matching interns</EmptyTitle>
@@ -756,679 +645,6 @@ const donutClass = 'mx-auto aspect-square h-55 max-w-65 [--vis-donut-central-lab
         </div>
       </CardContent>
     </Card>
-
-    <!-- ─── INTERN DETAILS / EDIT DIALOG ─── -->
-    <Dialog v-model:open="isDetailsModalOpen">
-      <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-140">
-        <DialogHeader>
-          <DialogTitle>{{ selectedIntern?.fullName }}</DialogTitle>
-          <DialogDescription>
-            <span class="font-mono">{{ selectedIntern?.code }}</span>
-            · GIP {{ selectedIntern?.program }} Intern
-            <template v-if="isEditingIntern"> · Editing deployment</template>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="selectedIntern" class="grid gap-6">
-          <!-- Summary -->
-          <div class="flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="outline" :class="getGipStatusBadgeClass(selectedIntern.status)">
-              {{ selectedIntern.status }}
-            </Badge>
-            <Badge variant="outline" :class="LPII_CONFIG[selectedIntern.lpiiTag].badgeClass">
-              {{ LPII_CONFIG[selectedIntern.lpiiTag].label }}
-            </Badge>
-            <span class="text-muted-foreground">
-              Brgy. {{ selectedIntern.barangay }}, {{ selectedIntern.municipality }}
-            </span>
-          </div>
-
-          <!-- ─── Read-only ─── -->
-          <template v-if="!isEditingIntern">
-            <section class="space-y-3">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold">Deployment Information</h3>
-                <Button variant="ghost" size="sm" class="cursor-pointer" @click="startEdit">
-                  Edit
-                </Button>
-              </div>
-              <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                <div v-for="field in internDetailFields" :key="field.label">
-                  <span class="text-xs text-muted-foreground">{{ field.label }}</span>
-                  <p :class="['text-sm font-medium', field.mono && 'font-mono']">{{ field.value || '—' }}</p>
-                </div>
-              </div>
-            </section>
-
-            <Separator />
-
-            <section class="space-y-3">
-              <h3 class="text-sm font-semibold">Documents Submitted</h3>
-              <div v-if="internDocumentsSubmitted.length > 0" class="flex flex-wrap gap-1.5">
-                <Badge v-for="doc in internDocumentsSubmitted" :key="doc" variant="secondary">
-                  {{ doc }}
-                </Badge>
-              </div>
-              <p v-else class="text-sm text-muted-foreground">No documents uploaded yet.</p>
-            </section>
-          </template>
-
-          <!-- ─── Edit Mode ─── -->
-          <div v-else class="grid gap-4">
-            <!-- Funding Program -->
-            <div class="grid gap-2">
-              <Label>Funding Program</Label>
-              <div role="radiogroup" class="grid grid-cols-2 gap-3">
-                <button
-                  v-for="opt in programOptions"
-                  :key="opt.value"
-                  type="button"
-                  role="radio"
-                  :aria-checked="editForm.program === opt.value"
-                  :class="[
-                    'flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-                    editForm.program === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
-                  ]"
-                  @click="setEditProgram(opt.value)"
-                >
-                  <Avatar class="size-8 shrink-0 rounded-md border bg-background">
-                    <img :src="opt.logo" :alt="opt.label" class="object-cover" />
-                  </Avatar>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-2 text-sm font-semibold">
-                      {{ opt.label }}
-                      <CheckCircle2 v-if="editForm.program === opt.value" class="size-4 shrink-0 text-primary" />
-                    </div>
-                    <p class="text-xs text-muted-foreground">{{ opt.description }}</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Assigned Office -->
-            <div class="grid gap-2">
-              <Label>Assigned Office / Station</Label>
-              <Combobox
-                v-model="selectedOffice"
-                v-model:search-term="officeSearchQuery"
-                :ignore-filter="true"
-                by="id"
-              >
-                <ComboboxAnchor as-child>
-                  <ComboboxTrigger as-child>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full justify-between overflow-hidden font-normal"
-                      :disabled="isLoadingOffices"
-                    >
-                      <span class="min-w-0 flex-1 truncate text-left">
-                        <template v-if="isLoadingOffices">Loading offices...</template>
-                        <template v-else-if="selectedOffice">{{ selectedOffice.office_name }}</template>
-                        <span v-else :class="!editForm.assignedOffice && 'text-muted-foreground'">
-                          {{ editForm.assignedOffice || 'Select office...' }}
-                        </span>
-                      </span>
-                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
-                    </Button>
-                  </ComboboxTrigger>
-                </ComboboxAnchor>
-
-                <ComboboxList>
-                  <ComboboxInput
-                    placeholder="Search offices..."
-                    @input="officeSearchQuery = ($event.target as HTMLInputElement).value"
-                  />
-                  <ComboboxViewport>
-                    <ComboboxEmpty>No office found.</ComboboxEmpty>
-                    <ComboboxGroup>
-                      <ComboboxItem v-for="office in filteredOffices" :key="office.id" :value="office">
-                        <span class="min-w-0 flex-1 truncate">{{ office.office_name }}</span>
-                        <Badge variant="secondary" class="shrink-0">{{ office.office_code }}</Badge>
-                        <ComboboxItemIndicator>
-                          <CheckIcon class="size-4 shrink-0" />
-                        </ComboboxItemIndicator>
-                      </ComboboxItem>
-                    </ComboboxGroup>
-                  </ComboboxViewport>
-                </ComboboxList>
-              </Combobox>
-            </div>
-
-            <!-- Supervisor & Stipend -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div class="grid gap-2">
-                <Label for="editSupervisor">Designated Supervisor</Label>
-                <Input
-                  id="editSupervisor"
-                  v-model="editForm.supervisor"
-                  placeholder="e.g. Maria Santos"
-                  :class="selectedOffice?.office_head ? 'bg-muted/40' : ''"
-                  :readonly="!!selectedOffice?.office_head"
-                />
-                <p v-if="selectedOffice?.office_head" class="text-xs text-muted-foreground">
-                  Auto-filled from office directory
-                </p>
-              </div>
-
-              <div class="grid gap-2">
-                <Label for="editStipend">Stipend Rate</Label>
-                <Input id="editStipend" v-model="editForm.stipend" placeholder="e.g. ₱479.35 / day" class="font-mono" />
-              </div>
-            </div>
-
-            <!-- Deployment Period -->
-            <div class="grid grid-cols-2 gap-4">
-              <div class="grid gap-2">
-                <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger as-child>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      :class="cn('w-full justify-start font-normal', !deploymentStartDate && 'text-muted-foreground')"
-                    >
-                      <CalendarDays class="size-4 shrink-0" />
-                      {{ deploymentStartDate ? formatCalendarDate(deploymentStartDate) : 'Pick start date' }}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0" align="start">
-                    <Calendar v-model="deploymentStartDate" initial-focus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div class="grid gap-2">
-                <Label>End Date</Label>
-                <Popover>
-                  <PopoverTrigger as-child>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      :class="cn('w-full justify-start font-normal', !deploymentEndDate && 'text-muted-foreground')"
-                    >
-                      <CalendarDays class="size-4 shrink-0" />
-                      {{ deploymentEndDate ? formatCalendarDate(deploymentEndDate) : 'Pick end date' }}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0" align="start">
-                    <Calendar v-model="deploymentEndDate" :min-value="deploymentStartDate ?? undefined" initial-focus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <p v-if="formattedPeriod" class="col-span-2 text-sm text-muted-foreground">
-                Period: <span class="font-medium text-foreground">{{ formattedPeriod }}</span>
-              </p>
-            </div>
-
-            <!-- Status -->
-            <div class="grid gap-2">
-              <Label for="editStatus">Deployment Status</Label>
-              <SearchSelect
-                v-model="editForm.status"
-                :options="[{ value: 'Active', label: 'Active (Ongoing Deployment)' }, { value: 'Hired', label: 'Hired (Absorbed / Employed)' }, { value: 'Completed', label: 'Completed (Finished Term)' }, { value: 'Resigned', label: 'Resigned (Left Early)' }]"
-                id="editStatus"
-                class="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <template v-if="!isEditingIntern">
-            <Button variant="outline" class="cursor-pointer" @click="closeInternDetails">Close</Button>
-            <Button
-              v-if="selectedIntern?.status === 'Active'"
-              class="cursor-pointer"
-              @click="openRenewalDialog(selectedIntern); closeInternDetails()"
-            >
-              Renew / Conclude Term
-            </Button>
-          </template>
-          <template v-else>
-            <Button variant="outline" class="cursor-pointer" :disabled="isUpdatingIntern" @click="cancelEdit">
-              Cancel
-            </Button>
-            <Button class="cursor-pointer" :disabled="isUpdatingIntern" @click="saveEdit">
-              <Loader2 v-if="isUpdatingIntern" class="size-4 shrink-0 animate-spin" />
-              {{ isUpdatingIntern ? 'Saving...' : 'Save Changes' }}
-            </Button>
-          </template>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- ─── APPOINTMENT RENEWAL / CONCLUSION SIDE SHEET (long form → Sheet, DESIGN.md §5.1) ─── -->
-    <Sheet :open="isRenewalDialogOpen" @update:open="onRenewalOpenChange">
-      <SheetContent class="flex h-full flex-col p-0 sm:max-w-2xl">
-        <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
-          <SheetTitle>Renew or conclude appointment</SheetTitle>
-          <SheetDescription>
-            {{ renewalIntern?.fullName }} · <span class="font-mono">{{ renewalIntern?.code }}</span> · {{ renewalIntern?.municipality }}
-          </SheetDescription>
-        </SheetHeader>
-
-        <!-- Scrolling body; each form's footer sticks to its bottom. grid-cols-1 (minmax(0,1fr)) keeps long
-             one-line rows (appointment history, office names) truncating instead of widening the sheet -->
-        <div v-if="renewalIntern" class="grid min-w-0 flex-1 grid-cols-1 content-start gap-6 overflow-x-hidden overflow-y-auto px-6 pt-4">
-          <!-- ─── Current Appointment ─── -->
-          <section class="space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-base font-semibold">Current Appointment · Term {{ currentTermNumber }}</h3>
-              <Badge v-if="renewalIntern.currentAppointment?.isExpired" variant="destructive">Expired</Badge>
-              <Badge
-                v-else-if="renewalIntern.currentAppointment?.isExpiringSoon"
-                variant="outline"
-                class="border-warning/30 bg-warning/10 text-warning"
-              >
-                Ends in {{ renewalIntern.daysRemaining }} days
-              </Badge>
-              <Badge v-else variant="outline" :class="getGipStatusBadgeClass('Active')">Active</Badge>
-            </div>
-            <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div class="min-w-0">
-                <span class="text-xs text-muted-foreground">Host Office</span>
-                <p class="text-sm font-medium">
-                  {{ renewalIntern.assignedOffice || '—' }}
-                  <span v-if="findOffice(renewalIntern.assignedOffice)" class="font-mono text-xs text-muted-foreground">
-                    ({{ findOffice(renewalIntern.assignedOffice)?.office_code }})
-                  </span>
-                </p>
-              </div>
-              <div class="min-w-0">
-                <span class="text-xs text-muted-foreground">Supervisor</span>
-                <p class="text-sm font-medium">{{ renewalIntern.supervisor || '—' }}</p>
-              </div>
-              <div class="min-w-0">
-                <span class="text-xs text-muted-foreground">Program & Rate</span>
-                <p class="text-sm font-medium">{{ renewalIntern.program }} · {{ renewalIntern.stipend }}</p>
-              </div>
-              <div class="min-w-0">
-                <span class="text-xs text-muted-foreground">Period Coverage</span>
-                <p class="text-sm font-medium">{{ renewalIntern.period }}</p>
-              </div>
-              <div v-if="renewalIntern.currentAppointment?.appointmentCode" class="min-w-0">
-                <span class="text-xs text-muted-foreground">Appointment Code</span>
-                <p class="font-mono text-sm font-medium">{{ renewalIntern.currentAppointment.appointmentCode }}</p>
-              </div>
-            </div>
-
-            <!-- Appointment History -->
-            <Collapsible v-if="renewalIntern.appointmentHistory && renewalIntern.appointmentHistory.length > 0">
-              <CollapsibleTrigger as-child>
-                <Button variant="link" size="sm" class="group h-auto cursor-pointer p-0 text-muted-foreground">
-                  View appointment history ({{ renewalIntern.appointmentHistory.length }} term{{ renewalIntern.appointmentHistory.length > 1 ? 's' : '' }})
-                  <ChevronDown class="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <ul class="mt-3 divide-y rounded-lg border">
-                  <li
-                    v-for="apt in renewalIntern.appointmentHistory"
-                    :key="apt.id"
-                    class="flex items-center justify-between gap-3 px-3 py-2"
-                  >
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate text-sm font-medium" :title="apt.assignedOffice">Term {{ apt.termNumber }} · {{ apt.assignedOffice }}</p>
-                      <p class="text-xs text-muted-foreground">
-                        {{ apt.startDate }} to {{ apt.endDate }} · {{ apt.dailyStipend }}
-                      </p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      class="shrink-0"
-                      :class="apt.status === 'Renewed' ? 'border-info/30 bg-info/10 text-info' : getGipStatusBadgeClass(apt.status)"
-                    >
-                      {{ apt.status }}
-                    </Badge>
-                  </li>
-                </ul>
-              </CollapsibleContent>
-            </Collapsible>
-          </section>
-
-          <Separator />
-
-          <!-- ─── Decision ─── -->
-          <section class="grid min-w-0 grid-cols-1 gap-4">
-            <div class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                role="tab"
-                :aria-selected="renewalActionMode === 'renew'"
-                :disabled="isSubmittingRenewal"
-                :class="['cursor-pointer', renewalActionMode === 'renew' && 'bg-background shadow-xs hover:bg-background']"
-                @click="renewalActionMode = 'renew'"
-              >
-                Renew (Term {{ nextTermNumber }})
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                role="tab"
-                :aria-selected="renewalActionMode === 'conclude'"
-                :disabled="isSubmittingRenewal"
-                :class="['cursor-pointer', renewalActionMode === 'conclude' && 'bg-background shadow-xs hover:bg-background']"
-                @click="renewalActionMode = 'conclude'"
-              >
-                Conclude Internship
-              </Button>
-            </div>
-
-            <!-- Renew -->
-            <template v-if="renewalActionMode === 'renew'">
-              <div v-if="!renewInitialValues" class="grid gap-4">
-                <Skeleton class="h-16 w-full" />
-                <Skeleton class="h-9 w-full" />
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Skeleton class="h-9 w-full" />
-                  <Skeleton class="h-9 w-full" />
-                </div>
-              </div>
-
-              <Form
-                v-else
-                :key="renewalIntern.id"
-                v-slot="{ values, setFieldValue }"
-                :validation-schema="renewSchema"
-                :initial-values="renewInitialValues"
-                class="grid min-w-0 grid-cols-1 gap-4"
-                @submit="submitRenewal"
-              >
-                <!-- Funding program -->
-                <FormField v-slot="{ value, handleChange }" name="program">
-                  <FormItem>
-                    <FormLabel>Funding Program</FormLabel>
-                    <FormControl>
-                      <div role="radiogroup" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <button
-                          v-for="opt in renewalProgramOptions"
-                          :key="opt.value"
-                          type="button"
-                          role="radio"
-                          :aria-checked="value === opt.value"
-                          :disabled="isSubmittingRenewal"
-                          :class="[
-                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-                            value === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
-                          ]"
-                          @click="() => {
-                            handleChange(opt.value)
-                            const stipend = stipendForProgram(opt.value, values.stipend)
-                            if (stipend) setFieldValue('stipend', stipend)
-                          }"
-                        >
-                          <img :src="opt.logo" :alt="opt.value" class="size-8 shrink-0 rounded-md border bg-background object-cover" />
-                          <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-semibold">{{ opt.label }}</p>
-                            <p class="text-xs text-muted-foreground">{{ opt.description }}</p>
-                          </div>
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
-
-                <!-- Term period -->
-                <div class="grid min-w-0 gap-3">
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="text-sm font-medium">Renewed Term Period</span>
-                    <div class="flex items-center gap-1">
-                      <Button
-                        v-for="months in durationPresets"
-                        :key="months"
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="h-7 cursor-pointer"
-                        :disabled="!values.startDate || isSubmittingRenewal"
-                        @click="setFieldValue('endDate', addDurationMonths(values.startDate, months))"
-                      >
-                        {{ months }} months
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField v-slot="{ value, handleChange }" name="startDate">
-                      <FormItem class="min-w-0">
-                        <FormLabel>Start Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger as-child>
-                            <FormControl>
-                              <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isSubmittingRenewal">
-                                <span v-if="value">{{ formatDeploymentDate(value) }}</span>
-                                <span v-else class="text-muted-foreground">Pick start date</span>
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent class="w-auto p-0" align="start">
-                            <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ value, handleChange }" name="endDate">
-                      <FormItem class="min-w-0">
-                        <FormLabel>End Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger as-child>
-                            <FormControl>
-                              <Button type="button" variant="outline" class="w-full justify-start font-normal" :disabled="isSubmittingRenewal">
-                                <span v-if="value">{{ formatDeploymentDate(value) }}</span>
-                                <span v-else class="text-muted-foreground">Pick end date</span>
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent class="w-auto p-0" align="start">
-                            <Calendar :model-value="value" initial-focus @update:model-value="handleChange" />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    </FormField>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <!-- Assigned office (full row so long names never spill into the supervisor field) -->
-                  <FormField v-slot="{ value, handleChange }" name="office">
-                    <FormItem class="min-w-0 sm:col-span-2">
-                      <FormLabel>Assigned Office / Station</FormLabel>
-                      <Combobox
-                        v-model:search-term="renewalOfficeSearchQuery"
-                        class="min-w-0"
-                        :model-value="value"
-                        :ignore-filter="true"
-                        by="id"
-                        @update:model-value="(office) => {
-                          handleChange(office)
-                          setFieldValue('supervisor', (office as DirectoryRow | null)?.office_head ?? '')
-                        }"
-                      >
-                        <ComboboxAnchor as-child>
-                          <ComboboxTrigger as-child>
-                            <FormControl>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                class="w-full min-w-0 justify-between overflow-hidden font-normal"
-                                :disabled="isLoadingRenewalOffices || isSubmittingRenewal"
-                              >
-                                <span v-if="isLoadingRenewalOffices" class="truncate text-muted-foreground">Loading offices...</span>
-                                <span v-else-if="value" class="flex min-w-0 flex-1 items-center gap-2 text-left">
-                                  <span class="truncate">{{ (value as DirectoryRow).office_name }}</span>
-                                  <span class="shrink-0 font-mono text-xs text-muted-foreground">
-                                    {{ (value as DirectoryRow).office_code }}
-                                  </span>
-                                </span>
-                                <span v-else class="truncate text-muted-foreground">Select office...</span>
-                                <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </ComboboxTrigger>
-                        </ComboboxAnchor>
-
-                        <ComboboxList>
-                          <ComboboxInput
-                            placeholder="Search office, abbreviation, or head..."
-                            @input="renewalOfficeSearchQuery = ($event.target as HTMLInputElement).value"
-                          />
-                          <ComboboxViewport>
-                            <ComboboxEmpty>No office found.</ComboboxEmpty>
-                            <ComboboxGroup>
-                              <ComboboxItem v-for="office in renewalFilteredOffices" :key="office.id" :value="office">
-                                <div class="flex min-w-0 flex-1 flex-col">
-                                  <span class="truncate">{{ office.office_name }}</span>
-                                  <span class="truncate text-xs text-muted-foreground">
-                                    {{ office.office_head || 'No head designated' }}
-                                  </span>
-                                </div>
-                                <span class="shrink-0 font-mono text-xs text-muted-foreground">{{ office.office_code }}</span>
-                                <ComboboxItemIndicator>
-                                  <CheckIcon class="size-4 shrink-0" />
-                                </ComboboxItemIndicator>
-                              </ComboboxItem>
-                            </ComboboxGroup>
-                          </ComboboxViewport>
-                        </ComboboxList>
-                      </Combobox>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-
-                  <!-- Supervisor -->
-                  <FormField v-slot="{ componentField }" name="supervisor">
-                    <FormItem class="min-w-0">
-                      <FormLabel>Designated Supervisor</FormLabel>
-                      <FormControl>
-                        <Input
-                          v-bind="componentField"
-                          placeholder="e.g. Maria Santos, Division Head"
-                          :readonly="!!values.office?.office_head"
-                          :class="values.office?.office_head ? 'bg-muted/40' : ''"
-                          :disabled="isSubmittingRenewal"
-                        />
-                      </FormControl>
-                      <FormDescription v-if="values.office?.office_head">Auto-filled from office directory</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-
-                  <!-- Stipend -->
-                  <FormField v-slot="{ componentField }" name="stipend">
-                    <FormItem class="min-w-0">
-                      <FormLabel>Daily Stipend</FormLabel>
-                      <FormControl>
-                        <Input v-bind="componentField" placeholder="e.g. ₱479.35 / day" class="font-mono" :disabled="isSubmittingRenewal" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-                </div>
-
-                <!-- Notes -->
-                <FormField v-slot="{ componentField }" name="notes">
-                  <FormItem>
-                    <FormLabel>Renewal Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        v-bind="componentField"
-                        rows="3"
-                        :placeholder="`e.g. Satisfactory performance in Term ${currentTermNumber}`"
-                        :disabled="isSubmittingRenewal"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
-
-                <!-- Sticky footer -->
-                <div class="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-border bg-background px-6 py-4">
-                  <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
-                    Cancel
-                  </Button>
-                  <Button type="submit" class="cursor-pointer" :disabled="isSubmittingRenewal">
-                    <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
-                    {{ isSubmittingRenewal ? 'Renewing...' : `Renew for Term ${nextTermNumber}` }}
-                  </Button>
-                </div>
-              </Form>
-            </template>
-
-            <!-- Conclude -->
-            <Form
-              v-else
-              :key="`conclude-${renewalIntern.id}`"
-              :validation-schema="concludeSchema"
-              :initial-values="concludeInitialValues"
-              class="grid grid-cols-1 gap-4"
-              @submit="submitConclusion"
-            >
-              <FormField v-slot="{ value, handleChange }" name="action">
-                <FormItem>
-                  <FormLabel>Concluding Status</FormLabel>
-                  <FormControl>
-                    <div role="radiogroup" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <button
-                        v-for="opt in concludeOptions"
-                        :key="opt.value"
-                        type="button"
-                        role="radio"
-                        :aria-checked="value === opt.value"
-                        :disabled="isSubmittingRenewal"
-                        :class="[
-                          'flex cursor-pointer flex-col items-start rounded-lg border p-3 text-left transition-colors',
-                          value === opt.value ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50',
-                        ]"
-                        @click="handleChange(opt.value)"
-                      >
-                        <span class="text-sm font-semibold">{{ opt.label }}</span>
-                        <span class="text-xs text-muted-foreground">{{ opt.description }}</span>
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-
-              <FormField v-slot="{ componentField }" name="notes">
-                <FormItem>
-                  <FormLabel>Exit / Concluding Remarks</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      v-bind="componentField"
-                      rows="3"
-                      placeholder="e.g. Completed standard 6-month GIP program. Certificate issued."
-                      :disabled="isSubmittingRenewal"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-
-              <!-- Sticky footer -->
-              <div class="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-border bg-background px-6 py-4">
-                <Button type="button" variant="outline" class="cursor-pointer" :disabled="isSubmittingRenewal" @click="onRenewalOpenChange(false)">
-                  Cancel
-                </Button>
-                <Button type="submit" variant="destructive" class="cursor-pointer" :disabled="isSubmittingRenewal">
-                  <Loader2 v-if="isSubmittingRenewal" class="size-4 shrink-0 animate-spin" />
-                  {{ isSubmittingRenewal ? 'Concluding...' : 'Conclude Internship' }}
-                </Button>
-              </div>
-            </Form>
-          </section>
-        </div>
-      </SheetContent>
-    </Sheet>
 
     <!-- ─── Single Delete Confirmation ─── -->
     <AlertDialog v-model:open="isSingleDeleteDialogOpen">

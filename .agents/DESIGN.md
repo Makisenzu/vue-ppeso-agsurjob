@@ -199,6 +199,10 @@ A long add or edit form goes in a `Sheet` (side drawer), never a `Dialog`. A for
 
 Short forms (a few fields that always fit) and confirmations stay in a `Dialog` / `AlertDialog`.
 
+> **Exception: GIP appointment renewal is a full page, not a sheet.** Renewing or concluding a GIP intern's appointment (`GipRenewAppointment.vue`, route `provincial-peso-gip-renew` at `/gip/details/:id/renew`) shows the current appointment, its history and the decision form side by side, which is too much for a drawer. Open it with `router.push`, carrying the details page's query so Back / Cancel / Save return to the same filtered list. The intern comes from the route id, so the page also works after a reload or from a shared link. Lay it out like Deploy Intern (`GipAddIntern.vue`): a header with a Back button, then `Card`s, with the form actions in a normal footer row (no sticky sheet footer). Pick-one fields on this page, such as the concluding status, use `SearchSelect` (5.2), not radio cards. The renewed term's start date cannot be before the day after the intern's latest term ends (enforced by the calendar's `min-value` and the form schema).
+>
+> **Viewing a GIP intern is a full page too, not a dialog:** `GipInternDetails.vue`, route `provincial-peso-gip-intern` at `/gip/details/:id` (Renew Appointment is nested under it). It holds the read-only deployment details, documents and the inline edit form; the registry's pencil button opens it with `?edit=1`, which starts edit mode and is then dropped from the URL.
+
 Every form sheet uses the layout of Add New Account (`AuthorizedAccounts.vue`): a fixed header, a body that scrolls on its own, and a footer with the actions that stays put.
 
 ```vue
