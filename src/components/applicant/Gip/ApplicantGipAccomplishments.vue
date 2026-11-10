@@ -48,6 +48,8 @@ const {
   selectedReports,
   clearSelection,
   requestBulkDiscard,
+  removableSelectedCount,
+  skippedCount,
   reportsToDiscard,
   isDiscardDialogOpen,
   isDiscarding,
@@ -191,7 +193,7 @@ const {
         </p>
 
         <template v-else>
-          <!-- Bulk discard for the selected reports -->
+          <!-- Bulk remove for the selected reports -->
           <div
             v-if="selectedReports.length > 0"
             class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
@@ -202,9 +204,17 @@ const {
                 <X class="size-4" /> Clear
               </Button>
             </div>
-            <Button variant="destructive" class="cursor-pointer" :disabled="isDiscarding" @click="requestBulkDiscard">
-              <Trash2 class="size-4" /> Discard
-            </Button>
+            <!-- The wrapper carries the reason: a disabled button ignores the pointer -->
+            <span :title="removableSelectedCount === 0 ? `Reviewed reports can't be removed` : undefined" class="inline-flex">
+              <Button
+                variant="destructive"
+                class="cursor-pointer"
+                :disabled="isDiscarding || removableSelectedCount === 0"
+                @click="requestBulkDiscard"
+              >
+                <Trash2 class="size-4" /> Remove{{ removableSelectedCount ? ` (${removableSelectedCount})` : '' }}
+              </Button>
+            </span>
           </div>
 
           <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
@@ -217,7 +227,7 @@ const {
             :loading="isLoading && termReports.length === 0"
             :is-selected="(row) => row.getIsSelected()"
             :all-selected="reportTable.getIsAllPageRowsSelected() || (reportTable.getIsSomePageRowsSelected() && 'indeterminate')"
-            @toggle="(row, value) => row.getCanSelect() && row.toggleSelected(value)"
+            @toggle="(row, value) => row.toggleSelected(value)"
             @toggle-all="(value) => reportTable.toggleAllPageRowsSelected(value)"
           >
             <template #empty>
@@ -281,12 +291,12 @@ const {
       </section>
     </template>
 
-    <!-- ─── Discard confirmation (one or many) ─── -->
+    <!-- ─── Remove confirmation (one or many) ─── -->
     <AlertDialog v-model:open="isDiscardDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {{ reportsToDiscard.length === 1 ? 'Discard this report?' : `Discard ${reportsToDiscard.length} reports?` }}
+            {{ reportsToDiscard.length === 1 ? 'Remove this report?' : `Remove ${reportsToDiscard.length} reports?` }}
           </AlertDialogTitle>
           <AlertDialogDescription>
             <template v-if="reportsToDiscard.length === 1">
@@ -295,13 +305,14 @@ const {
             </template>
             <template v-else>The selected reports and their attached files will be removed.</template>
             This can't be undone.
+            <template v-if="skippedCount"> {{ skippedCount }} reviewed report{{ skippedCount === 1 ? '' : 's' }} will be kept.</template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel class="cursor-pointer" :disabled="isDiscarding">Cancel</AlertDialogCancel>
           <Button variant="destructive" class="cursor-pointer" :disabled="isDiscarding" @click="confirmDiscard">
             <Loader2 v-if="isDiscarding" class="size-4 animate-spin" />
-            {{ isDiscarding ? 'Discarding...' : 'Discard' }}
+            {{ isDiscarding ? 'Removing...' : 'Remove' }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

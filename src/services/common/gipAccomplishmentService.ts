@@ -130,4 +130,16 @@ export const gipAccomplishmentService = {
     if (error) throw new Error(error.message || 'Failed to update the report.')
     return normalize(data as GipAccomplishmentRow)
   },
+
+  /** Provincial PESO: marks several Submitted reports Reviewed in one request; returns the updated rows */
+  async markManyReviewed(ids: string[]): Promise<GipAccomplishmentRow[]> {
+    if (!ids.length) return []
+    const { data, error } = await accomplishmentsTable()
+      .update({ status: 'Reviewed', review_remarks: null })
+      .in('id', ids)
+      .eq('status', 'Submitted')
+      .select(COLUMNS)
+    if (error) throw new Error(error.message || 'Failed to update the reports.')
+    return ((data ?? []) as GipAccomplishmentRow[]).map(normalize)
+  },
 }

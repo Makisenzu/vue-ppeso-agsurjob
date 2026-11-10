@@ -35,7 +35,7 @@ const TERM_BADGE_CLASS: Record<string, string> = {
 /**
  * GIP portal → Accomplishments: two data tables (DESIGN.md §13).
  *   Table 1 — the intern's appointment terms; opening one shows
- *   Table 2 — that term's reports (filter by month, generate / print, Edit, Discard, bulk discard).
+ *   Table 2 — that term's reports (filter by month, generate / print, Edit, Remove, bulk remove).
  * The open term is in the URL (`?term=<appointment id>`), so Back returns to Table 1. "Add Accomplishment" opens the
  * report form (useGipAccomplishmentForm) on its own page.
  */
@@ -209,16 +209,19 @@ export function useGipAccomplishments() {
       download: { label: 'Download PDF', icon: Download, onSelect: () => generateSaved(report, 'download') },
       print: { label: 'Print', icon: Printer, onSelect: () => generateSaved(report, 'print') },
       signedCopy: report.file_path ? { label: 'Signed copy', icon: FileText, onSelect: () => viewOwnFile(report) } : null,
-      discard: canDiscard(report) ? { label: 'Discard', icon: Trash2, onSelect: () => requestDiscard([report]) } : null,
+      remove: { label: 'Remove', icon: Trash2, onSelect: () => requestDiscard([report]), disabled: !canDiscard(report) },
     }
   }
 
-  const iconButton = (label: string, icon: typeof Eye, onClick: () => void, extraClass = '', disabled = false) =>
-    h(
+  const iconButton = (label: string, icon: typeof Eye, onClick: () => void, extraClass = '', disabled = false) => {
+    const button = h(
       Button,
       { variant: 'ghost', size: 'icon', class: `size-8 cursor-pointer ${extraClass}`, title: label, 'aria-label': label, disabled, onClick },
       () => h(icon, { class: 'size-4' })
     )
+    // A disabled button ignores the pointer, so its reason shows on a wrapper
+    return disabled ? h('span', { class: 'inline-flex cursor-not-allowed', title: label }, [button]) : button
+  }
 
   const reportSummary = (report: GipAccomplishmentRow) =>
     report.program === 'DOLE'
@@ -244,7 +247,6 @@ export function useGipAccomplishments() {
       cell: ({ row }) =>
         h(Checkbox, {
           modelValue: row.getIsSelected(),
-          disabled: !row.getCanSelect(),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(value === true),
           'aria-label': `Select the report for ${data.formatPeriodRange(row.original.period_start, row.original.period_end)}`,
         }),
@@ -294,9 +296,13 @@ export function useGipAccomplishments() {
           iconButton(a.download.label, a.download.icon, a.download.onSelect, '', busy),
           iconButton(a.print.label, a.print.icon, a.print.onSelect, '', busy),
           a.signedCopy ? iconButton(a.signedCopy.label, a.signedCopy.icon, a.signedCopy.onSelect) : null,
-          a.discard
-            ? iconButton(a.discard.label, a.discard.icon, a.discard.onSelect, 'text-destructive hover:bg-destructive/10 hover:text-destructive')
-            : null,
+          iconButton(
+            a.remove.disabled ? "Reviewed reports can't be removed" : a.remove.label,
+            a.remove.icon,
+            a.remove.onSelect,
+            'text-destructive hover:bg-destructive/10 hover:text-destructive',
+            a.remove.disabled
+          ),
         ])
       },
     },
@@ -312,8 +318,6 @@ export function useGipAccomplishments() {
     columns: reportColumns,
     // Keeps the selection on the right rows across refreshes and sorting
     getRowId: (row) => row.id,
-    // Reviewed reports are final: they can't be discarded, so they can't be selected for it
-    enableRowSelection: (row) => canDiscard(row.original),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -336,7 +340,7 @@ export function useGipAccomplishments() {
     subtitle: [report.status, reportSummary(report)].join(' · '),
   })
 
-  /** Discard first (primary edge) when allowed; none collapses the card (DESIGN.md 13.2) */
+  /** Remove first (primary edge) when allowed (Reviewed reports are locked); none collapses the card (DESIGN.md 13.2) */
   function getReportSwipeActions(report: GipAccomplishmentRow): SwipeAction[] {
     const a = reportActions(report)
     const swipe = (id: string, action: { label: string; icon: typeof Eye; onSelect: () => void }): SwipeAction => ({
@@ -347,7 +351,7 @@ export function useGipAccomplishments() {
       onSelect: action.onSelect,
     })
     return [
-      a.discard ? swipe('discard', a.discard) : null,
+      a.remove.disabled ? null : swipe('remove', a.remove),
       swipe('open', a.open),
       swipe('download', a.download),
       swipe('print', a.print),
@@ -380,13 +384,25 @@ export function useGipAccomplishments() {
     },
   })
 
+  /** Selected Reviewed reports a bulk remove leaves in place (they are locked) */
+  const skippedCount = ref(0)
+
   function requestDiscard(rows: GipAccomplishmentRow[]) {
-    reportsToDiscard.value = rows.filter(canDiscard)
+    const removable = rows.filter(canDiscard)
+    skippedCount.value = rows.length - removable.length
+    if (!removable.length) {
+      toastAlert.error("Can't remove reviewed reports", 'PESO has already reviewed the selected reports.')
+      return
+    }
+    reportsToDiscard.value = removable
   }
 
   function requestBulkDiscard() {
     requestDiscard(selectedReports.value)
   }
+
+  /** Selected reports that can be removed (not Reviewed) */
+  const removableSelectedCount = computed(() => selectedReports.value.filter(canDiscard).length)
 
   async function confirmDiscard() {
     const rows = reportsToDiscard.value
@@ -400,13 +416,13 @@ export function useGipAccomplishments() {
       rowSelection.value = next
       reportsToDiscard.value = []
       if (deleted.size === rows.length) {
-        toastAlert.success(deleted.size === 1 ? 'Report discarded' : `${deleted.size} reports discarded`, 'They were removed with their files.')
+        toastAlert.success(deleted.size === 1 ? 'Report removed' : `${deleted.size} reports removed`, 'They were removed with their files.')
       } else {
-        toastAlert.error('Some reports were not discarded', `${rows.length - deleted.size} could not be removed. Please try again.`)
+        toastAlert.error('Some reports were not removed', `${rows.length - deleted.size} could not be removed. Please try again.`)
       }
     } catch (error) {
       // The selection stays so the intern can retry
-      toastAlert.error('Could not discard the reports', errorMessageOf(error, 'Please try again.'))
+      toastAlert.error('Could not remove the reports', errorMessageOf(error, 'Please try again.'))
     } finally {
       isDiscarding.value = false
     }
@@ -444,6 +460,8 @@ export function useGipAccomplishments() {
     selectedReports,
     clearSelection,
     requestBulkDiscard,
+    removableSelectedCount,
+    skippedCount,
     reportsToDiscard,
     isDiscardDialogOpen,
     isDiscarding,
