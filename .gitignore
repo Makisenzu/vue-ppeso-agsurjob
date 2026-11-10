@@ -26,3 +26,6 @@ dist-ssr
 
 # Supabase
 supabase/.temp/
+
+# graphify (generated knowledge graph, rebuild with: graphify update .)
+graphify-out/
