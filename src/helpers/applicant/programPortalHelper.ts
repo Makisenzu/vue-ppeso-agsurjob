@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { BookMarked, ClipboardList, FileText, GraduationCap, Hammer, Info, UserRoundPen } from '@lucide/vue'
+import { BookMarked, ClipboardList, FileText, GraduationCap, Hammer, Info, NotebookPen, UserRoundPen } from '@lucide/vue'
 import gipLogo from '@/assets/images/gip.png'
 import tupadLogo from '@/assets/images/tupadLogo.png'
 
@@ -54,6 +54,7 @@ export const PROGRAM_PORTALS: Record<ProgramPortalKey, ProgramPortalConfig> = {
       { title: 'Overview', to: { name: 'gip-application' }, icon: Info, requiresEnrollment: true },
       { title: 'Requirements', to: { name: 'gip-application', hash: '#gip-requirements' }, icon: ClipboardList, requiresEnrollment: true },
       { title: 'My Application', to: { name: 'gip-my-application' }, icon: FileText },
+      { title: 'Accomplishments', to: { name: 'gip-accomplishments' }, icon: NotebookPen, requiresEnrollment: true },
     ],
   },
   tupad: {

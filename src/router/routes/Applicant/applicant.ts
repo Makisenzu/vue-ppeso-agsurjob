@@ -171,6 +171,13 @@ export const applicantRoutes : RouteRecordRaw[] = [
         component: () => import('@/components/applicant/Gip/ApplicantGipApplicationForm.vue'),
         meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'My Application' }
       },
+      {
+        // Interns only (has an appointment); the page explains itself to anyone else who opens the link
+        path: 'accomplishments',
+        name: 'gip-accomplishments',
+        component: () => import('@/components/applicant/Gip/ApplicantGipAccomplishments.vue'),
+        meta: { requiresAuth: true, role: 'applicant', breadcrumb: 'Accomplishments' }
+      },
     ]
   },
   {

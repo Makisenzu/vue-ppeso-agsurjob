@@ -120,3 +120,190 @@ export async function renderHtmlPagesToPdf(htmlContent: string, pageIds: readonl
     }
   }
 }
+
+// ─── Paginated documents (reports whose length varies) ─────────────────────
+
+/** A chunk of a paginated document: plain HTML kept whole, or a table whose rows may split across pages */
+export type PaginatedBlock =
+  | { kind: 'html'; html: string }
+  | {
+      kind: 'table'
+      /** Opening tag with its classes, e.g. `<table class="report">` */
+      tableTag: string
+      /** `<colgroup>` and `<thead>`, repeated on every page the table continues on */
+      head: string
+      rows: string[]
+    }
+
+export interface PaginatedDocument {
+  /** CSS for the whole document (`.page`, `.page-header`, `.page-body`, `.page-footer` are laid out here) */
+  styles: string
+  /** Repeated at the top / bottom of every page (letterhead, footer address) */
+  headerHtml?: string
+  footerHtml?: string
+  blocks: PaginatedBlock[]
+}
+
+// A4 at 96 dpi
+const PAGE_WIDTH_PX = 794
+const PAGE_HEIGHT_PX = 1123
+
+/**
+ * Lays a document out on as many A4 portrait pages as it needs, in an isolated hidden iframe: blocks flow from
+ * page to page, table rows split between pages with the table head repeated, and the header / footer repeat on
+ * every page. Each page is then drawn into the PDF at full size (no scaling, unlike renderHtmlPagesToPdf).
+ */
+export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF> {
+  const iframe = document.createElement('iframe')
+  Object.assign(iframe.style, {
+    position: 'fixed',
+    left: '-99999px',
+    top: '0',
+    width: `${PAGE_WIDTH_PX + 40}px`,
+    height: `${PAGE_HEIGHT_PX + 40}px`,
+    border: '0',
+    opacity: '0',
+    pointerEvents: 'none',
+    zIndex: '-99999',
+  })
+  document.body.appendChild(iframe)
+
+  try {
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+    if (!iframeDoc) throw new Error('Unable to initialize rendering environment for PDF.')
+
+    iframeDoc.open()
+    iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #ffffff; }
+      .page { width: ${PAGE_WIDTH_PX}px; height: ${PAGE_HEIGHT_PX}px; display: flex; flex-direction: column; background: #ffffff; overflow: hidden; }
+      .page-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+      ${doc.styles}
+    </style></head><body></body></html>`)
+    iframeDoc.close()
+
+    const body = iframeDoc.body
+    const pages: HTMLElement[] = []
+    let pageBody: HTMLElement
+
+    const toElement = (html: string): HTMLElement => {
+      const holder = iframeDoc.createElement('div')
+      holder.innerHTML = html.trim()
+      return (holder.firstElementChild as HTMLElement | null) ?? holder
+    }
+
+    const newPage = () => {
+      const page = iframeDoc.createElement('div')
+      page.className = 'page'
+      if (doc.headerHtml) page.appendChild(toElement(`<div class="page-header">${doc.headerHtml}</div>`))
+      pageBody = toElement('<div class="page-body"></div>')
+      page.appendChild(pageBody)
+      if (doc.footerHtml) page.appendChild(toElement(`<div class="page-footer">${doc.footerHtml}</div>`))
+      body.appendChild(page)
+      pages.push(page)
+    }
+
+    const overflows = () => pageBody.scrollHeight > pageBody.clientHeight + 1
+
+    newPage()
+
+    for (const block of doc.blocks) {
+      if (block.kind === 'html') {
+        const el = toElement(block.html)
+        pageBody!.appendChild(el)
+        // Kept whole: moved to a fresh page when it doesn't fit (a block taller than a page is clipped)
+        if (overflows() && pageBody!.childElementCount > 1) {
+          el.remove()
+          newPage()
+          pageBody!.appendChild(el)
+        }
+        continue
+      }
+
+      const startTable = () => {
+        const table = toElement(`${block.tableTag}${block.head}<tbody></tbody></table>`)
+        pageBody!.appendChild(table)
+        return table.querySelector('tbody') as HTMLElement
+      }
+
+      let tbody = startTable()
+      for (const rowHtml of block.rows) {
+        const holder = iframeDoc.createElement('tbody')
+        holder.innerHTML = rowHtml.trim()
+        const row = holder.firstElementChild as HTMLElement
+        tbody.appendChild(row)
+        if (!overflows()) continue
+
+        row.remove()
+        const tableHasRows = tbody.childElementCount > 0
+        const pageHasOtherContent = pageBody!.childElementCount > 1
+        if (!tableHasRows) tbody.closest('table')?.remove()
+        if (tableHasRows || pageHasOtherContent) newPage()
+        tbody = startTable()
+        tbody.appendChild(row)
+      }
+    }
+
+    // Wait for images (seals, logos) and fonts
+    const images = Array.from(iframeDoc.querySelectorAll('img'))
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete && img.naturalHeight !== 0) return resolve()
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            setTimeout(resolve, 1500)
+          })
+      )
+    )
+    if (iframeDoc.fonts) await iframeDoc.fonts.ready
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
+    for (const [index, page] of pages.entries()) {
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: PAGE_WIDTH_PX,
+        height: PAGE_HEIGHT_PX,
+        windowWidth: PAGE_WIDTH_PX + 40,
+      })
+      if (index > 0) pdf.addPage('a4', 'portrait')
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST')
+    }
+    return pdf
+  } finally {
+    if (document.body.contains(iframe)) document.body.removeChild(iframe)
+  }
+}
+
+/** Opens a generated PDF with the browser's print dialog (a hidden iframe when pop-ups are blocked) */
+export function printPdf(pdf: jsPDF): void {
+  pdf.autoPrint()
+  const blobUrl = URL.createObjectURL(pdf.output('blob'))
+  const printWindow = window.open(blobUrl, '_blank')
+  if (printWindow) {
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+    return
+  }
+  const iframe = document.createElement('iframe')
+  Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' })
+  iframe.src = blobUrl
+  document.body.appendChild(iframe)
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+    } catch (err) {
+      console.error('Error triggering iframe print:', err)
+    }
+    setTimeout(() => {
+      if (document.body.contains(iframe)) document.body.removeChild(iframe)
+      URL.revokeObjectURL(blobUrl)
+    }, 60000)
+  }
+}

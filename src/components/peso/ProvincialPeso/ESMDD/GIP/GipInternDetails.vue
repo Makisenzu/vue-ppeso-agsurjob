@@ -37,6 +37,7 @@ import SearchSelect from '@/components/SearchSelect.vue'
 import { cn } from '@/lib/utils'
 import pgasLogo from '@/assets/images/agsur.png'
 import doleLogo from '@/assets/images/dole.png'
+import GipInternAccomplishments from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipInternAccomplishments.vue'
 import { useGipInternDetails } from '@/composables/peso/provincialPeso/useGipInternDetails'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
 
@@ -227,6 +228,11 @@ const statusOptions = [
             </template>
           </CardContent>
         </Card>
+
+        <!-- Accomplishment reports from the GIP portal (migration 112), full width -->
+        <div class="min-w-0 lg:col-span-3">
+          <GipInternAccomplishments :intern="intern" />
+        </div>
       </div>
 
       <!-- ─── Edit Mode ─── -->
