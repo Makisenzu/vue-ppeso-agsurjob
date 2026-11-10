@@ -67,6 +67,9 @@ const {
   totalPages,
   paginatedApplicants,
   selectedApplicant,
+  selectedApplicants,
+  selectedCount,
+  allOnPageSelected,
   validationError,
 
   // Form fields
@@ -99,9 +102,14 @@ const {
   getInitials,
 
   // Handlers
-  selectApplicant,
+  isSelected,
+  toggleApplicant,
+  toggleAllOnPage,
+  clearSelection,
+  continueToDeployment,
+  removeSelected,
+  clearFilters,
   togglePriorityFilter,
-  resetForm,
   goBack,
   handleDeployIntern,
   getCandidateCard,
@@ -135,8 +143,8 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Deploy GIP Intern</h1>
       <p class="text-sm text-muted-foreground">
         {{ activeStep === 'select-applicant'
-          ? 'Step 1 of 2 · Select an applicant from the registry.'
-          : 'Step 2 of 2 · Assign the applicant to a government station or office.' }}
+          ? 'Step 1 of 2 · Select one or more applicants from the registry.'
+          : `Step 2 of 2 · Assign the ${selectedCount === 1 ? 'applicant' : `${selectedCount} applicants`} to a government station or office.` }}
       </p>
     </div>
 
@@ -225,7 +233,7 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
               variant="link"
               size="sm"
               class="h-auto cursor-pointer p-0 text-muted-foreground"
-              @click="resetForm"
+              @click="clearFilters"
             >
               Clear all
             </Button>
@@ -234,6 +242,22 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
       </CardHeader>
 
       <CardContent class="p-0">
+        <!-- Selection bar: one applicant or a batch, all deployed with the same parameters -->
+        <div
+          v-if="selectedCount > 0"
+          class="flex flex-col gap-2 border-b bg-muted/50 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <span class="font-medium">{{ selectedCount }} applicant{{ selectedCount === 1 ? '' : 's' }} selected</span>
+            <Button variant="link" size="sm" class="h-auto cursor-pointer p-0 text-muted-foreground" @click="clearSelection">
+              Clear selection
+            </Button>
+          </div>
+          <Button size="sm" class="cursor-pointer" @click="continueToDeployment">
+            Continue to Deployment ({{ selectedCount }})
+          </Button>
+        </div>
+
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
         <SwipeCardList
           class="p-3 md:hidden"
@@ -242,7 +266,7 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
           :card="getCandidateCard"
           :actions="getCandidateSwipeActions"
           primary-tone="primary"
-          hint="Swipe left on a candidate to select them."
+          hint="Swipe left on a candidate to select or unselect them."
         >
           <template #empty>
             <p class="py-8 text-center text-sm text-muted-foreground">No candidates match your criteria.</p>
@@ -254,6 +278,14 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
           <Table>
             <TableHeader>
               <TableRow class="bg-muted/40 hover:bg-muted/40">
+                <TableHead class="w-10">
+                  <Checkbox
+                    :model-value="allOnPageSelected"
+                    :disabled="paginatedApplicants.every((a) => isApplicantDeployed(a))"
+                    aria-label="Select all candidates on this page"
+                    @update:model-value="toggleAllOnPage"
+                  />
+                </TableHead>
                 <TableHead class="min-w-64">Candidate</TableHead>
                 <TableHead>Location & LPII</TableHead>
                 <TableHead>Course</TableHead>
@@ -267,8 +299,16 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
                 <TableRow
                   v-for="applicant in paginatedApplicants"
                   :key="applicant.id"
-                  :data-state="selectedApplicant?.id === applicant.id ? 'selected' : undefined"
+                  :data-state="isSelected(applicant) ? 'selected' : undefined"
                 >
+                  <TableCell>
+                    <Checkbox
+                      :model-value="isSelected(applicant)"
+                      :disabled="isApplicantDeployed(applicant)"
+                      :aria-label="`Select ${applicant.fullName}`"
+                      @update:model-value="(value) => toggleApplicant(applicant, value === true)"
+                    />
+                  </TableCell>
                   <TableCell>
                     <div class="flex items-center gap-2.5">
                       <Avatar class="size-8 shrink-0 border">
@@ -321,18 +361,19 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
                   <TableCell class="text-right">
                     <Button
                       size="sm"
-                      :variant="selectedApplicant?.id === applicant.id ? 'default' : 'outline'"
+                      :variant="isSelected(applicant) ? 'default' : 'outline'"
                       class="cursor-pointer"
-                      @click="selectApplicant(applicant)"
+                      :disabled="isApplicantDeployed(applicant)"
+                      @click="toggleApplicant(applicant)"
                     >
-                      {{ selectedApplicant?.id === applicant.id ? 'Selected' : 'Select' }}
+                      {{ isSelected(applicant) ? 'Selected' : 'Select' }}
                     </Button>
                   </TableCell>
                 </TableRow>
               </template>
 
               <TableRow v-else class="hover:bg-transparent">
-                <TableCell colspan="6" class="p-0 whitespace-normal">
+                <TableCell colspan="7" class="p-0 whitespace-normal">
                   <Empty class="py-10">
                     <EmptyHeader>
                       <EmptyTitle>No candidates match your criteria</EmptyTitle>
@@ -341,7 +382,7 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
-                      <Button variant="outline" size="sm" class="cursor-pointer" @click="resetForm">
+                      <Button variant="outline" size="sm" class="cursor-pointer" @click="clearFilters">
                         Clear All Filters
                       </Button>
                     </EmptyContent>
@@ -399,8 +440,40 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
 
     <!-- ═══ STEP 2: CONFIGURE DEPLOYMENT ═══ -->
     <template v-else-if="activeStep === 'configure-deployment'">
+      <!-- Selected Candidates (batch): everyone below gets the same deployment parameters -->
+      <Card v-if="selectedCount > 1">
+        <CardHeader class="flex flex-row items-start justify-between gap-3">
+          <div class="space-y-1">
+            <CardTitle class="text-base">{{ selectedCount }} applicants selected</CardTitle>
+            <CardDescription>They will all be deployed with the parameters below.</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" class="shrink-0 cursor-pointer" @click="activeStep = 'select-applicant'">
+            Change Selection
+          </Button>
+        </CardHeader>
+        <CardContent class="flex flex-wrap gap-2">
+          <Badge
+            v-for="applicant in selectedApplicants"
+            :key="applicant.id"
+            variant="secondary"
+            class="gap-1 py-1 pr-1 pl-2.5 text-sm font-normal"
+          >
+            {{ applicant.fullName }}
+            <span class="text-muted-foreground">· {{ applicant.municipality }}</span>
+            <button
+              type="button"
+              class="ml-0.5 cursor-pointer rounded-full p-0.5 hover:bg-muted-foreground/20"
+              :aria-label="`Remove ${applicant.fullName}`"
+              @click="removeSelected(applicant)"
+            >
+              <X class="size-3.5 shrink-0" />
+            </button>
+          </Badge>
+        </CardContent>
+      </Card>
+
       <!-- Selected Candidate Summary -->
-      <Card v-if="selectedApplicant">
+      <Card v-else-if="selectedApplicant">
         <CardContent class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3">
             <Avatar class="size-10 shrink-0 border">
@@ -614,7 +687,7 @@ const formatCalendarDate = (date: { year: number; month: number; day: number }) 
             </Button>
             <Button class="cursor-pointer" :disabled="isSubmitting" @click="handleDeployIntern">
               <Loader2 v-if="isSubmitting" class="size-4 shrink-0 animate-spin" />
-              {{ isSubmitting ? 'Deploying...' : 'Deploy Intern' }}
+              {{ isSubmitting ? 'Deploying...' : selectedCount > 1 ? `Deploy ${selectedCount} Interns` : 'Deploy Intern' }}
             </Button>
           </div>
         </CardFooter>

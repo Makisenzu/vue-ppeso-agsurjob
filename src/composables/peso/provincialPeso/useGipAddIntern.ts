@@ -1,7 +1,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { UserCheck } from '@lucide/vue'
+import { UserCheck, X } from '@lucide/vue'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useGipStore } from '@/stores/peso/provincialPeso/gipStore'
@@ -96,8 +96,11 @@ export function useGipAddIntern() {
   const currentPage = ref<number>(1)
   const pageSize = ref<number>(10)
 
-  // Selected applicant
-  const selectedApplicant = ref<GipApplicantRecord | null>(null)
+  // Selected applicants: one is a single deploy, several deploy together with the same parameters (batch)
+  const selectedApplicants = ref<GipApplicantRecord[]>([])
+  /** The first pick; the summary card shows it in full when only one is selected */
+  const selectedApplicant = computed<GipApplicantRecord | null>(() => selectedApplicants.value[0] ?? null)
+  const selectedCount = computed(() => selectedApplicants.value.length)
 
   // Deployment form fields (PGAS ₱479.35/day, DOLE ₱475.00/day)
   const program = ref<'PGAS' | 'DOLE'>('PGAS')
@@ -216,6 +219,74 @@ export function useGipAddIntern() {
     isPriorityFilter.value = !isPriorityFilter.value
   }
 
+  // ─── Selection (checkbox per candidate; deployed applicants can't be picked) ───
+  // Picker table (DESIGN.md 13.1 exemption): the selection feeds "Continue to deployment", not bulk delete;
+  // applicants are removed on the Applicants page.
+  function isSelected(applicant: GipApplicantRecord): boolean {
+    return selectedApplicants.value.some((a) => a.id === applicant.id)
+  }
+
+  function toggleApplicant(applicant: GipApplicantRecord, value?: boolean) {
+    const shouldSelect = value ?? !isSelected(applicant)
+    validationError.value = null
+    if (shouldSelect) {
+      if (!isSelected(applicant) && !isApplicantDeployed(applicant)) selectedApplicants.value.push(applicant)
+    } else {
+      selectedApplicants.value = selectedApplicants.value.filter((a) => a.id !== applicant.id)
+    }
+  }
+
+  const selectableOnPage = computed(() => paginatedApplicants.value.filter((a) => !isApplicantDeployed(a)))
+  const allOnPageSelected = computed<boolean | 'indeterminate'>(() => {
+    const page = selectableOnPage.value
+    if (page.length === 0) return false
+    const picked = page.filter(isSelected).length
+    if (picked === page.length) return true
+    return picked > 0 ? 'indeterminate' : false
+  })
+
+  function toggleAllOnPage(value: boolean | 'indeterminate') {
+    for (const applicant of selectableOnPage.value) toggleApplicant(applicant, value === true)
+  }
+
+  function clearSelection() {
+    selectedApplicants.value = []
+  }
+
+  /** Step 2 with the picked applicants; PGAS unless every one of them was referred for DOLE */
+  function continueToDeployment() {
+    if (selectedApplicants.value.length === 0) {
+      validationError.value = 'Select at least one applicant to deploy.'
+      return
+    }
+    validationError.value = null
+    selectedOffice.value = null
+    assignedOffice.value = ''
+    supervisor.value = ''
+
+    const allDole = selectedApplicants.value.every((a) => (a.remarks || []).join(' ').toUpperCase().includes('DOLE'))
+    program.value = allDole ? 'DOLE' : 'PGAS'
+    stipend.value = allDole ? '₱475.00 / day' : '₱479.35 / day'
+
+    activeStep.value = 'configure-deployment'
+  }
+
+  /** Removing the last one goes back to the candidate list */
+  function removeSelected(applicant: GipApplicantRecord) {
+    toggleApplicant(applicant, false)
+    if (selectedApplicants.value.length === 0) activeStep.value = 'select-applicant'
+  }
+
+  /** Filters only; the picked applicants stay picked */
+  function clearFilters() {
+    searchQuery.value = ''
+    selectedLpiiFilter.value = 'ALL'
+    selectedStatusFilter.value = 'ALL'
+    onlyAvailable.value = true
+    isPriorityFilter.value = false
+    currentPage.value = 1
+  }
+
   // ─── Fetch offices from directory ───
   async function fetchOffices() {
     if (offices.value.length > 0) return // Already loaded
@@ -250,7 +321,7 @@ export function useGipAddIntern() {
     onlyAvailable.value = true
     isPriorityFilter.value = false
     currentPage.value = 1
-    selectedApplicant.value = null
+    selectedApplicants.value = []
     program.value = 'PGAS'
     selectedOffice.value = null
     officeSearchQuery.value = ''
@@ -295,26 +366,10 @@ export function useGipAddIntern() {
     }
   })
 
+  /** Deploy just this applicant (deep link ?applicantId=…) */
   function selectApplicant(applicant: GipApplicantRecord) {
-    selectedApplicant.value = applicant
-    validationError.value = null
-
-    // Reset station assignment for new candidate
-    selectedOffice.value = null
-    assignedOffice.value = ''
-    supervisor.value = ''
-
-    // If applicant has DOLE in remarks, auto-suggest DOLE
-    const appRemarks = (applicant.remarks || []).join(' ').toUpperCase()
-    if (appRemarks.includes('DOLE')) {
-      program.value = 'DOLE'
-      stipend.value = '₱475.00 / day'
-    } else {
-      program.value = 'PGAS'
-      stipend.value = '₱479.35 / day'
-    }
-
-    activeStep.value = 'configure-deployment'
+    selectedApplicants.value = [applicant]
+    continueToDeployment()
   }
 
   function goBack() {
@@ -329,7 +384,7 @@ export function useGipAddIntern() {
   async function handleDeployIntern() {
     validationError.value = null
 
-    if (!selectedApplicant.value) {
+    if (selectedApplicants.value.length === 0) {
       validationError.value = 'Please select an applicant to deploy.'
       activeStep.value = 'select-applicant'
       return
@@ -340,18 +395,31 @@ export function useGipAddIntern() {
       return
     }
 
+    const params = {
+      program: program.value,
+      assignedOffice: assignedOffice.value.trim(),
+      supervisor: supervisor.value.trim() || undefined,
+      stipend: stipend.value.trim() || undefined,
+      period: period.value.trim() || undefined,
+      status: status.value,
+      remarks: deploymentNotes.value.trim() || undefined,
+    }
+
     try {
-      await gipStore.deployInternFromApplicant({
-        applicationId: selectedApplicant.value.id,
-        program: program.value,
-        assignedOffice: assignedOffice.value.trim(),
-        supervisor: supervisor.value.trim() || undefined,
-        stipend: stipend.value.trim() || undefined,
-        period: period.value.trim() || undefined,
-        status: status.value,
-        remarks: deploymentNotes.value.trim() || undefined,
-      })
-      // Navigate to details page upon successful deployment
+      if (selectedApplicants.value.length === 1) {
+        await gipStore.deployInternFromApplicant({ ...params, applicationId: selectedApplicants.value[0]!.id })
+      } else {
+        // Batch: everyone gets the same parameters; already-deployed applicants are skipped
+        const result = await gipStore.bulkDeployInternsFromApplicants(
+          selectedApplicants.value.map((a) => a.id),
+          params,
+        )
+        if (result.successCount === 0) {
+          validationError.value = result.errors[0] || 'None of the selected applicants could be deployed.'
+          return
+        }
+      }
+      // The interns page opens the Appointment Record for everyone just deployed
       router.push({ name: 'provincial-peso-gip-details' })
     } catch (err: any) {
       validationError.value = err.message || 'Failed to deploy intern.'
@@ -360,7 +428,7 @@ export function useGipAddIntern() {
 
   // ─── Mobile Card View (DESIGN.md 13.2) ───
   function getCandidateCard(applicant: GipApplicantRecord): SwipeCard {
-    const state = selectedApplicant.value?.id === applicant.id
+    const state = isSelected(applicant)
       ? 'Selected'
       : isApplicantDeployed(applicant) ? 'Deployed' : applicant.status || 'Pending'
     return {
@@ -371,9 +439,12 @@ export function useGipAddIntern() {
     }
   }
 
-  /** Select is the only action; it fills the deployment form, so the card stays */
+  /** Select / Unselect toggles the candidate into the batch, so the card stays; deployed ones have no action */
   function getCandidateSwipeActions(applicant: GipApplicantRecord): SwipeAction[] {
-    return [{ id: 'select', label: 'Select', icon: UserCheck, dismiss: false, onSelect: () => selectApplicant(applicant) }]
+    if (isApplicantDeployed(applicant)) return []
+    return isSelected(applicant)
+      ? [{ id: 'unselect', label: 'Unselect', icon: X, dismiss: false, onSelect: () => toggleApplicant(applicant, false) }]
+      : [{ id: 'select', label: 'Select', icon: UserCheck, dismiss: false, onSelect: () => toggleApplicant(applicant, true) }]
   }
 
   return {
@@ -400,6 +471,9 @@ export function useGipAddIntern() {
     totalPages,
     paginatedApplicants,
     selectedApplicant,
+    selectedApplicants,
+    selectedCount,
+    allOnPageSelected,
     validationError,
 
     // Form fields
@@ -437,6 +511,13 @@ export function useGipAddIntern() {
 
     // Handlers
     selectApplicant,
+    isSelected,
+    toggleApplicant,
+    toggleAllOnPage,
+    clearSelection,
+    continueToDeployment,
+    removeSelected,
+    clearFilters,
     togglePriorityFilter,
     resetForm,
     goBack,
