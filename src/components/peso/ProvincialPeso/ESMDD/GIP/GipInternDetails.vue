@@ -8,8 +8,12 @@ import {
   Download,
   Eye,
   FileText,
+  IdCard,
+  ImageOff,
   Loader2,
   Pencil,
+  Printer,
+  Upload,
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,7 +45,8 @@ import GipInternAccomplishments from '@/components/peso/ProvincialPeso/ESMDD/GIP
 import { useGipInternDetails } from '@/composables/peso/provincialPeso/useGipInternDetails'
 import { getGipStatusBadgeClass } from '@/helpers/peso/provincialPeso/gipHelper'
 import { useTemplateRef } from 'vue'
-import GipAppointmentRecordDialog from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipAppointmentRecordDialog.vue'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useGipIdCard } from '@/composables/peso/provincialPeso/useGipIdCard'
 
 const {
   intern,
@@ -74,7 +79,30 @@ const {
   formatCalendarDate,
 } = useGipInternDetails()
 
-const recordDialog = useTemplateRef<InstanceType<typeof GipAppointmentRecordDialog>>('recordDialog')
+// Generate ID: nickname + optional photo, then a print preview laid out like GIP_ID.docx
+const {
+  isOpen: isIdOpen,
+  step: idStep,
+  nickname: idNickname,
+  nicknameMax: idNicknameMax,
+  nicknameError: idNicknameError,
+  profilePhotoUrl: idProfilePhotoUrl,
+  photoSource: idPhotoSource,
+  photoUrl: idPhotoUrl,
+  photoError: idPhotoError,
+  isLoadingPhoto: isLoadingIdPhoto,
+  previewSvg: idPreviewSvg,
+  isGenerating: isGeneratingId,
+  isPrinting: isPrintingId,
+  open: openIdDialog,
+  onPhotoSelected: onIdPhotoSelected,
+  setPhotoSource: setIdPhotoSource,
+  generate: generateId,
+  print: printId,
+  backToForm: backToIdForm,
+} = useGipIdCard(intern)
+
+const idPhotoInput = useTemplateRef<HTMLInputElement>('idPhotoInput')
 
 const programOptions = [
   { value: 'PGAS', label: 'PGAS', logo: pgasLogo, description: 'Provincial · ₱479.35/day' },
@@ -113,9 +141,9 @@ const statusOptions = [
       </div>
 
       <div v-if="intern && !isEditingIntern" class="flex flex-wrap items-center gap-2">
-        <Button variant="outline" class="cursor-pointer" @click="recordDialog?.open([intern.id])">
-          <FileText class="size-4 shrink-0" />
-          Appointment Record
+        <Button variant="outline" class="cursor-pointer" @click="openIdDialog">
+          <IdCard class="size-4 shrink-0" />
+          Generate ID
         </Button>
         <Button variant="outline" class="cursor-pointer" @click="startEdit">
           <Pencil class="size-4 shrink-0" />
@@ -421,6 +449,89 @@ const statusOptions = [
       </Card>
     </template>
 
-    <GipAppointmentRecordDialog ref="recordDialog" />
+    <!-- ─── Generate ID: nickname and photo, then the printable ID ─── -->
+    <Dialog v-model:open="isIdOpen">
+      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Generate ID</DialogTitle>
+          <DialogDescription class="sr-only">The intern's nickname and photo for the GIP ID.</DialogDescription>
+        </DialogHeader>
+
+        <form v-if="idStep === 'form'" class="grid gap-4" novalidate @submit.prevent="generateId">
+          <div class="grid gap-2">
+            <Label for="gip-id-nickname">Nickname</Label>
+            <Input
+              id="gip-id-nickname"
+              v-model="idNickname"
+              :maxlength="idNicknameMax"
+              autocomplete="off"
+              placeholder="e.g. Kate"
+              :aria-invalid="!!idNicknameError"
+            />
+            <p v-if="idNicknameError" class="text-sm text-destructive">{{ idNicknameError }}</p>
+          </div>
+
+          <div class="grid gap-2">
+            <Label>Photo <span class="font-normal text-muted-foreground">(optional)</span></Label>
+            <div class="flex items-center gap-4">
+              <div class="flex h-28 w-[5.6rem] shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                <img v-if="idPhotoUrl" :src="idPhotoUrl" alt="ID photo" class="size-full object-cover" />
+                <Loader2 v-else-if="isLoadingIdPhoto" class="size-5 animate-spin text-muted-foreground" />
+                <ImageOff v-else class="size-5 text-muted-foreground" />
+              </div>
+              <div class="flex flex-col items-start gap-2">
+                <Button type="button" variant="outline" size="sm" class="cursor-pointer" @click="idPhotoInput?.click()">
+                  <Upload class="size-4 shrink-0" />
+                  Upload Photo
+                </Button>
+                <Button
+                  v-if="idProfilePhotoUrl && idPhotoSource !== 'profile'"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="cursor-pointer"
+                  @click="setIdPhotoSource('profile')"
+                >
+                  Use Profile Picture
+                </Button>
+                <Button v-if="idPhotoSource !== 'none'" type="button" variant="ghost" size="sm" class="cursor-pointer" @click="setIdPhotoSource('none')">
+                  No Photo
+                </Button>
+              </div>
+              <input
+                ref="idPhotoInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                @change="onIdPhotoSelected"
+              />
+            </div>
+            <p v-if="idPhotoError" class="text-sm text-destructive">{{ idPhotoError }}</p>
+          </div>
+
+          <DialogFooter class="gap-2">
+            <Button type="button" variant="outline" class="cursor-pointer" @click="isIdOpen = false">Cancel</Button>
+            <Button type="submit" class="cursor-pointer" :disabled="isGeneratingId || isLoadingIdPhoto">
+              <Loader2 v-if="isGeneratingId" class="size-4 shrink-0 animate-spin" />
+              Generate
+            </Button>
+          </DialogFooter>
+        </form>
+
+        <template v-else>
+          <!-- Built from escaped text and app asset URLs only (gipIdHelper) -->
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div class="mx-auto w-full max-w-[280px] border shadow-sm [&_svg]:h-auto [&_svg]:w-full" v-html="idPreviewSvg" />
+          <DialogFooter class="gap-2">
+            <Button type="button" variant="outline" class="cursor-pointer" :disabled="isPrintingId" @click="backToIdForm">Back</Button>
+            <Button type="button" class="cursor-pointer" :disabled="isPrintingId" @click="printId">
+              <Loader2 v-if="isPrintingId" class="size-4 shrink-0 animate-spin" />
+              <Printer v-else class="size-4 shrink-0" />
+              Print
+            </Button>
+          </DialogFooter>
+        </template>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
