@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -175,19 +175,17 @@ const {
         </CardContent>
       </Card>
 
-      <!-- ─── Participants ─── -->
+      <!-- ─── Participants: the heading and Add sit above the table, the card holds filters and rows ─── -->
+      <section class="grid gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-base font-semibold">Participants</h2>
+        <Button size="sm" class="cursor-pointer" @click="openAddDialog">
+          <UserPlus class="size-4 shrink-0" />
+          Add Participants
+        </Button>
+      </div>
       <Card class="gap-0 py-0">
-        <CardHeader class="gap-4 border-b py-4 [.border-b]:pb-4">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="space-y-1">
-              <CardTitle class="text-base">Participants</CardTitle>
-            </div>
-            <Button size="sm" class="cursor-pointer self-start sm:self-auto" @click="openAddDialog">
-              <UserPlus class="size-4 shrink-0" />
-              Add Participants
-            </Button>
-          </div>
-
+        <CardHeader class="border-b py-4 [.border-b]:pb-4">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div class="relative sm:col-span-2">
               <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -308,6 +306,7 @@ const {
           </div>
         </CardContent>
       </Card>
+      </section>
     </template>
 
     <!-- ─── Add / edit training (a long form, so a Sheet: DESIGN.md 5.1) ─── -->

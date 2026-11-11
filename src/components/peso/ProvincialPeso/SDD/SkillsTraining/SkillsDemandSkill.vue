@@ -209,17 +209,53 @@ const {
           <Skeleton v-for="i in 4" :key="i" class="h-10 w-full" />
         </div>
         <p v-else-if="suppliers.length === 0" class="p-8 text-center text-sm text-muted-foreground">No jobseeker here has this skill.</p>
-        <ul v-else class="divide-y border-b">
-          <li v-for="person in suppliers" :key="person.applicant_id" class="flex items-center justify-between gap-3 px-4 py-2.5">
-            <div class="grid min-w-0 gap-0.5">
-              <span class="truncate text-sm font-medium">{{ person.full_name }}</span>
-              <span class="truncate text-xs text-muted-foreground">
-                {{ [person.municipality, person.employment_status].filter(Boolean).join(' · ') }}
-              </span>
-            </div>
-            <Badge v-if="person.from_training" variant="outline" class="shrink-0 border-info/30 bg-info/10 text-info">From training</Badge>
-          </li>
-        </ul>
+        <template v-else>
+          <!-- Mobile: one line per person -->
+          <ul class="divide-y border-b md:hidden">
+            <li v-for="person in suppliers" :key="person.applicant_id" class="flex items-center justify-between gap-3 px-4 py-2.5">
+              <div class="grid min-w-0 gap-0.5">
+                <span class="truncate text-sm font-medium">
+                  {{ person.surname }}, {{ [person.first_name, person.middle_name, person.suffix].filter(Boolean).join(' ') }}
+                </span>
+                <span class="truncate text-xs text-muted-foreground">
+                  {{ [person.contact_number, person.email, person.municipality].filter(Boolean).join(' · ') || '—' }}
+                </span>
+              </div>
+              <Badge v-if="person.from_training" variant="outline" class="shrink-0 border-info/30 bg-info/10 text-info">From training</Badge>
+            </li>
+          </ul>
+
+          <!-- Desktop: table -->
+          <div class="hidden overflow-x-auto border-b md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Last Name</TableHead>
+                  <TableHead>First Name</TableHead>
+                  <TableHead>Middle Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Municipality</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="person in suppliers" :key="person.applicant_id">
+                  <TableCell class="font-medium">
+                    {{ person.surname }}
+                    <Badge v-if="person.from_training" variant="outline" class="ml-2 border-info/30 bg-info/10 text-info">From training</Badge>
+                  </TableCell>
+                  <TableCell>{{ [person.first_name, person.suffix].filter(Boolean).join(' ') }}</TableCell>
+                  <TableCell>{{ person.middle_name ?? '—' }}</TableCell>
+                  <TableCell class="whitespace-nowrap tabular-nums">{{ person.contact_number ?? '—' }}</TableCell>
+                  <TableCell>
+                    <span class="block max-w-[240px] truncate" :title="person.email ?? undefined">{{ person.email ?? '—' }}</span>
+                  </TableCell>
+                  <TableCell>{{ person.municipality ?? '—' }}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
 
         <div class="flex flex-col-reverse gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-center text-xs text-muted-foreground tabular-nums sm:text-left sm:text-sm">{{ supplierRangeLabel }}</p>

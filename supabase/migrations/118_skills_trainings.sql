@@ -941,8 +941,11 @@ $$;
 
 -- Who the supply of one skill is, by name (same rules as skills_demand_grid). p_municipality: NULL / 'ALL' for
 -- the whole province, 'NEEDED' for the municipalities whose vacancies require it, or a municipality name.
--- from_training marks those counted because they completed a training that teaches it.
-CREATE OR REPLACE FUNCTION esmdd.skills_demand_supply(
+-- from_training marks those counted because they completed a training that teaches it. Lists names and
+-- contacts so PESO can reach them for a referral: staff only, one page at a time.
+-- Earlier drafts returned a single full name: drop them so the return type can change.
+DROP FUNCTION IF EXISTS esmdd.skills_demand_supply(INT, TEXT, TEXT, INT, INT);
+CREATE FUNCTION esmdd.skills_demand_supply(
   p_skill_id INT,
   p_municipality TEXT DEFAULT NULL,
   p_supply TEXT DEFAULT 'UNEMPLOYED',
@@ -951,9 +954,13 @@ CREATE OR REPLACE FUNCTION esmdd.skills_demand_supply(
 )
 RETURNS TABLE (
   applicant_id UUID,
-  full_name TEXT,
+  surname TEXT,
+  first_name TEXT,
+  middle_name TEXT,
+  suffix TEXT,
+  contact_number TEXT,
+  email TEXT,
   municipality TEXT,
-  employment_status TEXT,
   from_training BOOLEAN,
   total_count BIGINT
 )
@@ -991,9 +998,13 @@ AS $$
   )
   SELECT
     a.id,
-    esmdd.skills_training_person_name(a.surname, a.first_name, a.middle_name, a.suffix),
+    upper(btrim(a.surname))::TEXT,
+    btrim(a.first_name)::TEXT,
+    nullif(btrim(coalesce(a.middle_name, '')), '')::TEXT,
+    nullif(btrim(coalesce(a.suffix, '')), '')::TEXT,
+    nullif(array_to_string(a.contact_numbers, ', '), '')::TEXT,
+    nullif(btrim(coalesce(a.email, '')), '')::TEXT,
     sp.municipality::TEXT,
-    coalesce(nullif(btrim(a.employment_status), ''), 'Unemployed')::TEXT,
     h.from_training,
     count(*) OVER ()
   FROM holders h

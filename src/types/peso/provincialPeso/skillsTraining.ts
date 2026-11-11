@@ -171,9 +171,15 @@ export interface SkillsDemandVacancy {
 /** A jobseeker counted in a skill's supply (esmdd.skills_demand_supply) */
 export interface SkillsDemandSupplier {
   applicant_id: string
-  full_name: string
+  /** Upper case, as on the NSRP */
+  surname: string
+  first_name: string
+  middle_name: string | null
+  suffix: string | null
+  /** Contact numbers, comma-separated */
+  contact_number: string | null
+  email: string | null
   municipality: string | null
-  employment_status: string
   /** Counted because they completed a training that teaches the skill */
   from_training: boolean
 }
