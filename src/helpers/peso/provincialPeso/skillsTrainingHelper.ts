@@ -1,6 +1,8 @@
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import type {
   ParticipantStatusFormValues,
+  SkillsDemandCourseLevel,
+  SkillsDemandCourseRow,
   SkillsDemandRow,
   SkillsTraining,
   SkillsTrainingFormValues,
@@ -158,3 +160,14 @@ export function formatPlaces(places: string[], max = 2): string {
 
 /** Supply as shown: record holders plus training completers */
 export const demandSupplyTotal = (row: Pick<SkillsDemandRow, 'supply' | 'trained'>): number => row.supply + row.trained
+
+/** Course levels as shown on Skills Demand → By Course */
+export const COURSE_LEVEL_LABEL: Record<SkillsDemandCourseLevel, string> = {
+  shs_strand: 'SHS strand',
+  techvoc: 'TESDA',
+  tertiary: 'College',
+  graduate: 'Graduate',
+}
+
+/** A course's level; "Other" for a course only vacancies name */
+export const courseLevelLabel = (row: Pick<SkillsDemandCourseRow, 'level'>): string => (row.level ? COURSE_LEVEL_LABEL[row.level] : 'Other')

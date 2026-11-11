@@ -80,6 +80,13 @@ export const pesoRoutes: RouteRecordRaw[] = [
                 component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsDemandSkill.vue'),
                 meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Skill Details' },
               },
+              // One course: each municipality's demand and supply, and the jobseekers who have it
+              {
+                path: 'course/:courseKey',
+                name: 'provincial-peso-skills-demand-course',
+                component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsDemandCourse.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Course Details' },
+              },
             ],
           },
           {

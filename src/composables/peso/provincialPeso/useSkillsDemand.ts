@@ -8,6 +8,7 @@ import { Eye } from '@lucide/vue'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useSkillsDemandStore } from '@/stores/peso/provincialPeso/skillsDemandStore'
+import { useSkillsDemandCoursesStore } from '@/stores/peso/provincialPeso/skillsDemandCoursesStore'
 import { rowActionButton } from '@/composables/peso/provincialPeso/useSkillsTrainingTable'
 import { LANDING_MUNICIPALITIES } from '@/types/common/siteContent'
 import { SKILLS_TRAINING_PAGE_SIZE, demandSupplyTotal, formatPlaces } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
@@ -30,7 +31,18 @@ const GAP_OPTIONS = [
 export function useSkillsDemand() {
   const router = useRouter()
   const store = useSkillsDemandStore()
-  const { rows, total, page, filters, summary, isLoading, loadError } = storeToRefs(store)
+  const { rows, total, page, filters, summary, isLoading, loadError, tab } = storeToRefs(store)
+  const coursesStore = useSkillsDemandCoursesStore()
+  const { isLoading: isLoadingCourses } = storeToRefs(coursesStore)
+
+  // ─── Tabs: By Skill (this composable) and By Course (useSkillsDemandCourses) ───
+  const tabs = [
+    { key: 'skills', label: 'By Skill' },
+    { key: 'courses', label: 'By Course' },
+  ] as const
+  /** Refresh reloads the open tab */
+  const isRefreshing = computed(() => (tab.value === 'courses' ? isLoadingCourses.value : isLoading.value))
+  const refresh = () => (tab.value === 'courses' ? coursesStore.loadAll() : store.loadAll())
 
   onMounted(() => void store.loadAll())
 
@@ -193,6 +205,10 @@ export function useSkillsDemand() {
     isLoading,
     loadError,
     reload: store.loadAll,
+    tab,
+    tabs,
+    isRefreshing,
+    refresh,
     municipalityOptions,
     categoryOptions,
     supplyOptions: SUPPLY_OPTIONS,

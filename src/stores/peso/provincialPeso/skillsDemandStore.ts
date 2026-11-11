@@ -33,6 +33,8 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
   const summary = ref<SkillsDemandSummary>(EMPTY_SUMMARY())
   const isLoading = ref(false)
   const loadError = ref<string | null>(null)
+  /** The page's open tab, kept while a skill page is visited and back */
+  const tab = ref<'skills' | 'courses'>('skills')
   let request = 0
 
   async function loadRows(): Promise<void> {
@@ -195,6 +197,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     summary,
     isLoading,
     loadError,
+    tab,
     loadRows,
     loadSummary,
     loadAll,

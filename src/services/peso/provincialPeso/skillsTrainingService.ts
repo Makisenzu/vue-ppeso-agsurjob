@@ -3,6 +3,11 @@ import { supabase } from '@/lib/supabaseClient'
 import type {
   Paged,
   ParticipantStatusFormValues,
+  SkillsDemandCourseFilters,
+  SkillsDemandCoursePlace,
+  SkillsDemandCourseRow,
+  SkillsDemandCourseSummary,
+  SkillsDemandCourseSupplier,
   SkillsDemandFilters,
   SkillsDemandPlace,
   SkillsDemandRow,
@@ -269,5 +274,72 @@ export const skillsTrainingService = {
     const { data, error } = await esmdd().rpc('skills_trainings_search', { p_skill_id: skillId, p_limit: 20, p_offset: 0 })
     if (error) throw new Error(error.message || 'Could not load the trainings.')
     return toTrainingPage(data).rows
+  },
+
+  // ─── Skills Demand → By Course (migration 119) ───
+
+  async searchDemandCourses(filters: SkillsDemandCourseFilters, page: number, pageSize: number): Promise<Paged<SkillsDemandCourseRow>> {
+    const { data, error } = await esmdd().rpc('skills_demand_courses_search', {
+      p_supply: filters.supply,
+      p_search: blankToNull(filters.search),
+      p_level: allToNull(filters.level),
+      p_municipality: allToNull(filters.municipality),
+      p_limit: pageSize,
+      p_offset: page * pageSize,
+    })
+    if (error) throw new Error(error.message || 'Could not load the courses.')
+    const result = toPage<SkillsDemandCourseRow>(data)
+    return { ...result, rows: result.rows.map((row) => ({ ...row, places: row.places ?? [] })) }
+  },
+
+  async fetchDemandCourseSummary(supply: SkillsDemandSupply): Promise<SkillsDemandCourseSummary> {
+    const { data, error } = await esmdd().rpc('skills_demand_courses_summary', { p_supply: supply })
+    if (error) throw new Error(error.message || 'Could not load the course totals.')
+    const summary = (data ?? {}) as Partial<SkillsDemandCourseSummary>
+    return {
+      courses_on_record: Number(summary.courses_on_record ?? 0),
+      courses_in_demand: Number(summary.courses_in_demand ?? 0),
+      courses_without_supply: Number(summary.courses_without_supply ?? 0),
+      total_demand: Number(summary.total_demand ?? 0),
+    }
+  },
+
+  /** One course's row, counted the same way as the table; null when no jobseeker or vacancy names it */
+  async fetchDemandCourse(courseKey: string, supply: SkillsDemandSupply): Promise<SkillsDemandCourseRow | null> {
+    const { data, error } = await esmdd().rpc('skills_demand_courses_search', {
+      p_supply: supply,
+      p_course_key: courseKey,
+      p_limit: 1,
+      p_offset: 0,
+    })
+    if (error) throw new Error(error.message || 'Could not load the course.')
+    const row = toPage<SkillsDemandCourseRow>(data).rows[0]
+    return row ? { ...row, places: row.places ?? [] } : null
+  },
+
+  /** One course by municipality: demand, supply, gap and surplus of each */
+  async fetchDemandCoursePlaces(courseKey: string, supply: SkillsDemandSupply): Promise<SkillsDemandCoursePlace[]> {
+    const { data, error } = await esmdd().rpc('skills_demand_course_places', { p_course_key: courseKey, p_supply: supply })
+    if (error) throw new Error(error.message || 'Could not load the municipalities.')
+    return (data ?? []) as SkillsDemandCoursePlace[]
+  },
+
+  /** The jobseekers who have the course, one page */
+  async searchDemandCourseSupply(
+    courseKey: string,
+    municipality: string,
+    supply: SkillsDemandSupply,
+    page: number,
+    pageSize: number,
+  ): Promise<Paged<SkillsDemandCourseSupplier>> {
+    const { data, error } = await esmdd().rpc('skills_demand_course_supply', {
+      p_course_key: courseKey,
+      p_municipality: allToNull(municipality),
+      p_supply: supply,
+      p_limit: pageSize,
+      p_offset: page * pageSize,
+    })
+    if (error) throw new Error(error.message || 'Could not load the jobseekers.')
+    return toPage<SkillsDemandCourseSupplier>(data)
   },
 }

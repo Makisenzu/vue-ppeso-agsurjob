@@ -4554,18 +4554,134 @@ export type Database = {
         Args: { p_job_vacancy_id: string; p_stages: Json }
         Returns: undefined
       }
+      skills_demand_course_grid: {
+        Args: { p_course_key?: string; p_supply?: string }
+        Returns: {
+          course_key: string
+          demand: number
+          level: string
+          place: string
+          place_key: string
+          raw_course: string
+          supply: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_course_places: {
+        Args: { p_course_key: string; p_supply?: string }
+        Returns: {
+          demand: number
+          gap: number
+          place: string
+          place_key: string
+          supply: number
+          surplus: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_course_rows: {
+        Args: { p_course_key?: string; p_supply?: string }
+        Returns: {
+          applicants: number
+          course: string
+          course_key: string
+          demand_slots: number
+          gap: number
+          level: string
+          places: number[]
+          vacancies: number
+        }[]
+      }
+      skills_demand_course_supply: {
+        Args: {
+          p_course_key: string
+          p_limit?: number
+          p_municipality?: string
+          p_offset?: number
+          p_supply?: string
+        }
+        Returns: {
+          applicant_id: string
+          contact_number: string
+          email: string
+          first_name: string
+          middle_name: string
+          municipality: string
+          suffix: string
+          surname: string
+          total_count: number
+        }[]
+      }
+      skills_demand_courses_search: {
+        Args: {
+          p_course_key?: string
+          p_level?: string
+          p_limit?: number
+          p_municipality?: string
+          p_offset?: number
+          p_search?: string
+          p_supply?: string
+        }
+        Returns: {
+          applicants: number
+          course: string
+          course_key: string
+          demand_slots: number
+          gap: number
+          level: string
+          places: number[]
+          total_count: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_courses_summary: {
+        Args: { p_supply?: string }
+        Returns: Json
+      }
+      skills_demand_grid: {
+        Args: { p_skill_id?: number; p_supply?: string }
+        Returns: {
+          demand: number
+          place: string
+          place_key: string
+          skill_id: number
+          supply: number
+          trained: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_place_name: {
+        Args: { p_fallback: string; p_key: string }
+        Returns: string
+      }
+      skills_demand_places: {
+        Args: { p_skill_id: number; p_supply?: string }
+        Returns: {
+          demand: number
+          gap: number
+          place: string
+          place_key: string
+          supply: number
+          surplus: number
+          trained: number
+          vacancies: number
+        }[]
+      }
       skills_demand_rows: {
-        Args: { p_municipality?: string; p_supply?: string }
+        Args: {
+          p_municipality?: string
+          p_skill_id?: number
+          p_supply?: string
+        }
         Returns: {
           category: string
           demand_slots: number
           gap: number
+          places: string[]
           skill_id: number
           skill_name: string
           supply: number
-          top_places: string[]
           trained: number
-          trainings: number
           vacancies: number
         }[]
       }
@@ -4584,13 +4700,12 @@ export type Database = {
           category: string
           demand_slots: number
           gap: number
+          places: string[]
           skill_id: number
           skill_name: string
           supply: number
-          top_places: string[]
           total_count: number
           trained: number
-          trainings: number
           vacancies: number
         }[]
       }
@@ -4608,10 +4723,14 @@ export type Database = {
         }
         Returns: {
           applicant_id: string
-          employment_status: string
+          contact_number: string
+          email: string
+          first_name: string
           from_training: boolean
-          full_name: string
+          middle_name: string
           municipality: string
+          suffix: string
+          surname: string
           total_count: number
         }[]
       }

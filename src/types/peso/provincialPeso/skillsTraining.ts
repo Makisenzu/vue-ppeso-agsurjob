@@ -183,3 +183,47 @@ export interface SkillsDemandSupplier {
   /** Counted because they completed a training that teaches the skill */
   from_training: boolean
 }
+
+// ─── Skills Demand → By Course (migration 119) ───
+
+/** core.courses level, or null for a course only vacancies name */
+export type SkillsDemandCourseLevel = 'shs_strand' | 'techvoc' | 'tertiary' | 'graduate'
+
+/** One course of the By Course table (esmdd.skills_demand_courses_search) */
+export interface SkillsDemandCourseRow {
+  course_key: string
+  course: string
+  level: SkillsDemandCourseLevel | null
+  /** Agusan del Sur jobseekers with the course on their education record, province-wide */
+  applicants: number
+  /** The same count per municipality, in LANDING_MUNICIPALITIES order (Bayugan … Veruela) */
+  places: number[]
+  /** Open vacancies that ask for the course, and their slots */
+  vacancies: number
+  demand_slots: number
+  /** The municipalities' own shortages added up: each one's demand minus the jobseekers living there */
+  gap: number
+}
+
+export interface SkillsDemandCourseFilters {
+  search: string
+  /** 'ALL', a course level, or 'OTHER' (no level) */
+  level: string
+  municipality: string
+  supply: SkillsDemandSupply
+}
+
+/** Totals above the course table (esmdd.skills_demand_courses_summary) */
+export interface SkillsDemandCourseSummary {
+  courses_on_record: number
+  courses_in_demand: number
+  /** Asked for by open vacancies, and no jobseeker in the province has it */
+  courses_without_supply: number
+  total_demand: number
+}
+
+/** One municipality of a course (esmdd.skills_demand_course_places) */
+export type SkillsDemandCoursePlace = Omit<SkillsDemandPlace, 'trained'>
+
+/** A jobseeker who has a course (esmdd.skills_demand_course_supply) */
+export type SkillsDemandCourseSupplier = Omit<SkillsDemandSupplier, 'from_training'>
