@@ -50,6 +50,46 @@ export const pesoRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      // ─── Skills Training (breadcrumb hierarchy: Skills Training > Skills Demand > Skill Details | Training Details) ───
+      {
+        path: 'skills-training',
+        meta: { breadcrumb: 'Skills Training', breadcrumbTo: { name: 'provincial-peso-skills-training' } },
+        children: [
+          // Trainings Conducted: the module's main page
+          {
+            path: '',
+            name: 'provincial-peso-skills-training',
+            component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsTrainings.vue'),
+            meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+          },
+          // Declared before ':id' so "demand" is not read as a training id
+          {
+            path: 'demand',
+            meta: { breadcrumb: 'Skills Demand', breadcrumbTo: { name: 'provincial-peso-skills-demand' } },
+            children: [
+              {
+                path: '',
+                name: 'provincial-peso-skills-demand',
+                component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsDemand.vue'),
+                meta: { breadcrumb: false, requiresAuth: true, role: 'provincial_peso' },
+              },
+              // One skill: who has it, the vacancies that need it, the trainings conducted for it
+              {
+                path: ':skillId(\\d+)',
+                name: 'provincial-peso-skills-demand-skill',
+                component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsDemandSkill.vue'),
+                meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Skill Details' },
+              },
+            ],
+          },
+          {
+            path: ':id',
+            name: 'provincial-peso-skills-training-details',
+            component: () => import('@/components/peso/ProvincialPeso/SDD/SkillsTraining/SkillsTrainingDetails.vue'),
+            meta: { requiresAuth: true, role: 'provincial_peso', breadcrumb: 'Training Details' },
+          },
+        ],
+      },
       // ─── GIP (breadcrumb hierarchy: GIP > Details > Deploy Intern | Appointments | Intern Details > Renew Appointment / GIP > Applicants > Applicant Details / Priority Ranking) ───
       {
         path: 'gip',

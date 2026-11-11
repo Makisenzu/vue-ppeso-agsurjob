@@ -18,6 +18,7 @@ export type NotificationType =
   | 'job_fair'
   | 'privacy_request'
   | 'job_posting'
+  | 'skills_training'
 
 /** Tabs of the notification list */
 export type NotificationFilter = 'all' | 'unread' | 'starred'

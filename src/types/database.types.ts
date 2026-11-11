@@ -663,6 +663,82 @@ export type Database = {
           },
         ]
       }
+      sr_profiles: {
+        Row: {
+          applicant_id: string
+          barangay: string
+          barangay_key: string
+          is_agusan: boolean
+          lpii_tag: Database["public"]["Enums"]["lpii_type"] | null
+          municipality: string
+          municipality_key: string
+          province: string
+          sort_at: string | null
+        }
+        Insert: {
+          applicant_id: string
+          barangay: string
+          barangay_key: string
+          is_agusan: boolean
+          lpii_tag?: Database["public"]["Enums"]["lpii_type"] | null
+          municipality: string
+          municipality_key: string
+          province: string
+          sort_at?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          barangay?: string
+          barangay_key?: string
+          is_agusan?: boolean
+          lpii_tag?: Database["public"]["Enums"]["lpii_type"] | null
+          municipality?: string
+          municipality_key?: string
+          province?: string
+          sort_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_profiles_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: true
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sr_skills: {
+        Row: {
+          applicant_id: string
+          category: string
+          ord: number
+          skill_key: string
+          skill_name: string
+        }
+        Insert: {
+          applicant_id: string
+          category: string
+          ord: number
+          skill_key: string
+          skill_name: string
+        }
+        Update: {
+          applicant_id?: string
+          category?: string
+          ord?: number
+          skill_key?: string
+          skill_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_skills_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -863,6 +939,51 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      skill_repository_applicants: {
+        Args: {
+          p_limit?: number
+          p_lpii?: string
+          p_municipality: string
+          p_offset?: number
+          p_search?: string
+          p_skill?: string
+        }
+        Returns: {
+          barangay: string
+          contact_number: string
+          email: string
+          employment_status: string
+          first_name: string
+          highest_education: string
+          id: string
+          lpii_tag: string
+          middle_name: string
+          municipality: string
+          profile_id: string
+          province: string
+          skills: Json
+          suffix: string
+          surname: string
+          total_count: number
+        }[]
+      }
+      skill_repository_municipality: { Args: { p_name: string }; Returns: Json }
+      skill_repository_summary: { Args: never; Returns: Json }
+      sr_agusan_municipalities: { Args: never; Returns: string[] }
+      sr_assert_staff: { Args: never; Returns: undefined }
+      sr_barangay_tag: {
+        Args: { p_barangay: string; p_municipality_id: string }
+        Returns: Database["public"]["Enums"]["lpii_type"]
+      }
+      sr_categorize_skill: { Args: { p_name: string }; Returns: string }
+      sr_clean_skill: { Args: { p_raw: string }; Returns: string }
+      sr_normalize_barangay: { Args: { p_value: string }; Returns: string }
+      sr_normalize_geo: { Args: { p_value: string }; Returns: string }
+      sr_refresh: { Args: { p_ids?: string[] }; Returns: undefined }
+      sr_skill_counts: {
+        Args: { p_applicant_ids: string[]; p_limit?: number }
+        Returns: Json
       }
     }
     Enums: {
@@ -2048,6 +2169,102 @@ export type Database = {
   }
   esmdd: {
     Tables: {
+      gip_accomplishments: {
+        Row: {
+          activities: Json
+          amount: number | null
+          amount_in_words: string | null
+          applicant_id: string
+          appointment_id: string
+          approver_name: string | null
+          approver_position: string | null
+          created_at: string
+          daily_entries: Json
+          designation: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          period_end: string
+          period_start: string
+          program: string
+          review_remarks: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          supervisor_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          activities?: Json
+          amount?: number | null
+          amount_in_words?: string | null
+          applicant_id: string
+          appointment_id: string
+          approver_name?: string | null
+          approver_position?: string | null
+          created_at?: string
+          daily_entries?: Json
+          designation?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          program: string
+          review_remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activities?: Json
+          amount?: number | null
+          amount_in_words?: string | null
+          applicant_id?: string
+          appointment_id?: string
+          approver_name?: string | null
+          approver_position?: string | null
+          created_at?: string
+          daily_entries?: Json
+          designation?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          program?: string
+          review_remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gip_accomplishments_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
+            foreignKeyName: "gip_accomplishments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "gip_appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gip_applicant_documents: {
         Row: {
           created_at: string
@@ -2148,6 +2365,51 @@ export type Database = {
             referencedColumns: ["applicant_id"]
           },
         ]
+      }
+      gip_appointment_records: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          designation: string
+          entries: Json
+          gip_ids: string[]
+          id: string
+          intern_count: number | null
+          program: string
+          signatories: Json
+          source_of_funds: string
+          statement: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          designation: string
+          entries: Json
+          gip_ids?: string[]
+          id?: string
+          intern_count?: number | null
+          program: string
+          signatories?: Json
+          source_of_funds: string
+          statement: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          designation?: string
+          entries?: Json
+          gip_ids?: string[]
+          id?: string
+          intern_count?: number | null
+          program?: string
+          signatories?: Json
+          source_of_funds?: string
+          statement?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       gip_appointments: {
         Row: {
@@ -3231,6 +3493,131 @@ export type Database = {
           },
         ]
       }
+      skills_training_participants: {
+        Row: {
+          added_by: string | null
+          applicant_id: string
+          completion_status: string
+          created_at: string
+          date_hired: string | null
+          employer_name: string | null
+          employment_status: string
+          id: string
+          status_remarks: string | null
+          status_updated_at: string | null
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          applicant_id: string
+          completion_status?: string
+          created_at?: string
+          date_hired?: string | null
+          employer_name?: string | null
+          employment_status?: string
+          id?: string
+          status_remarks?: string | null
+          status_updated_at?: string | null
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          applicant_id?: string
+          completion_status?: string
+          created_at?: string
+          date_hired?: string | null
+          employer_name?: string | null
+          employment_status?: string
+          id?: string
+          status_remarks?: string | null
+          status_updated_at?: string | null
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_training_participants_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "gip_applicant_priority_scores"
+            referencedColumns: ["applicant_id"]
+          },
+          {
+            foreignKeyName: "skills_training_participants_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "skills_trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills_training_skills: {
+        Row: {
+          skill_id: number
+          training_id: string
+        }
+        Insert: {
+          skill_id: number
+          training_id: string
+        }
+        Update: {
+          skill_id?: number
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_training_skills_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "skills_trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills_trainings: {
+        Row: {
+          agency: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          municipality: string | null
+          remarks: string | null
+          start_date: string
+          title: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          agency: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          municipality?: string | null
+          remarks?: string | null
+          start_date: string
+          title: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          agency?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          municipality?: string | null
+          remarks?: string | null
+          start_date?: string
+          title?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
       spes: {
         Row: {
           application_id: string | null
@@ -3827,6 +4214,10 @@ export type Database = {
         Args: { p_job_vacancy_id: string }
         Returns: boolean
       }
+      cancel_job_fair_registration: {
+        Args: { p_job_fair_id: string }
+        Returns: undefined
+      }
       clean_related_courses: {
         Args: { p_courses: string[] }
         Returns: string[]
@@ -3858,9 +4249,14 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: Json
       }
+      gip_yearly_demographics: { Args: never; Returns: Json }
       is_job_vacancy_application_requirement: {
         Args: { p_application_id: string; p_document_name: string }
         Returns: boolean
+      }
+      job_fair_live_status: {
+        Args: { p_job_fair: Database["esmdd"]["Tables"]["job_fairs"]["Row"] }
+        Returns: string
       }
       job_fair_status_for: {
         Args: { p_end_date: string; p_start_date: string; p_status: string }
@@ -3893,12 +4289,113 @@ export type Database = {
         Args: { p_job_vacancy_id: string }
         Returns: Json
       }
+      join_job_fair: {
+        Args: { p_job_fair_id: string }
+        Returns: {
+          created_at: string | null
+          establishment_id: string
+          id: string
+          job_fair_id: string
+          registered_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_fair_participants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      list_job_fair_companies: {
+        Args: { p_job_fair_id: string }
+        Returns: {
+          business_name: string
+          city_municipality: string
+          industry_line: string
+          opening_count: number
+          participant_id: string
+          province: string
+          trade_name: string
+          vacancy_count: number
+        }[]
+      }
+      list_job_fair_events: {
+        Args: { p_include_past?: boolean; p_job_fair_id?: string }
+        Returns: {
+          company_count: number
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          image_paths: string[]
+          latitude: number
+          location: string
+          longitude: number
+          my_participant_id: string
+          my_participant_status: string
+          my_registration_status: string
+          opening_count: number
+          start_date: string
+          status: string
+          status_remarks: string
+          title: string
+        }[]
+      }
+      list_job_fair_vacancies: {
+        Args: { p_job_fair_id: string }
+        Returns: {
+          accepts_pwd: boolean
+          certification: string
+          course_shs_strand: string
+          educational_level: string
+          eligibility: string
+          id: string
+          job_description: string
+          job_vacancy_id: string
+          license: string
+          nature_of_work: string
+          opening_count: number
+          other_qualifications: string[]
+          participant_id: string
+          place_of_work: string
+          position_title: string
+          salary: string
+          training_hours: number
+          work_experience_months: number
+        }[]
+      }
       manila_today: { Args: never; Returns: string }
       match_jsonb_array: { Args: { p_value: Json }; Returns: Json }
       my_job_vacancy_fit: { Args: { p_job_vacancy_id: string }; Returns: Json }
+      my_owned_establishment_id: { Args: never; Returns: string }
       normalize_match_key: { Args: { p_value: string }; Returns: string }
+      owns_active_job_fair_participant: {
+        Args: { p_participant_id: string }
+        Returns: boolean
+      }
       refresh_date_statuses: { Args: never; Returns: Json }
       refresh_job_fair_statuses: { Args: never; Returns: number }
+      register_for_job_fair: {
+        Args: { p_job_fair_id: string }
+        Returns: {
+          applicant_id: string
+          attended_at: string | null
+          created_at: string
+          id: string
+          job_fair_id: string
+          recorded_by: string | null
+          remarks: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_fair_applicants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       replace_job_vacancy_requirements: {
         Args: { p_job_vacancy_id: string; p_requirements: Json }
         Returns: undefined
@@ -3906,6 +4403,53 @@ export type Database = {
       replace_job_vacancy_skills: {
         Args: { p_job_vacancy_id: string; p_skills: Json }
         Returns: undefined
+      }
+      save_gip_accomplishment: {
+        Args: {
+          p_activities: Json
+          p_appointment_id: string
+          p_daily_entries: Json
+          p_details: Json
+          p_file_name?: string
+          p_file_path?: string
+          p_file_size?: number
+          p_id: string
+          p_period_end: string
+          p_period_start: string
+          p_submit?: boolean
+        }
+        Returns: {
+          activities: Json
+          amount: number | null
+          amount_in_words: string | null
+          applicant_id: string
+          appointment_id: string
+          approver_name: string | null
+          approver_position: string | null
+          created_at: string
+          daily_entries: Json
+          designation: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          period_end: string
+          period_start: string
+          program: string
+          review_remarks: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          supervisor_name: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "gip_accomplishments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_job_vacancy:
         | {
@@ -3938,6 +4482,10 @@ export type Database = {
             }
             Returns: string
           }
+      save_skills_training: {
+        Args: { p_skill_ids: number[]; p_training: Json; p_training_id: string }
+        Returns: string
+      }
       search_job_vacancy_applications: {
         Args: {
           p_fit_band?: string
@@ -4006,12 +4554,168 @@ export type Database = {
         Args: { p_job_vacancy_id: string; p_stages: Json }
         Returns: undefined
       }
+      skills_demand_rows: {
+        Args: { p_municipality?: string; p_supply?: string }
+        Returns: {
+          category: string
+          demand_slots: number
+          gap: number
+          skill_id: number
+          skill_name: string
+          supply: number
+          top_places: string[]
+          trained: number
+          trainings: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_search: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_municipality?: string
+          p_offset?: number
+          p_only_gaps?: boolean
+          p_search?: string
+          p_skill_id?: number
+          p_supply?: string
+        }
+        Returns: {
+          category: string
+          demand_slots: number
+          gap: number
+          skill_id: number
+          skill_name: string
+          supply: number
+          top_places: string[]
+          total_count: number
+          trained: number
+          trainings: number
+          vacancies: number
+        }[]
+      }
+      skills_demand_summary: {
+        Args: { p_municipality?: string; p_supply?: string }
+        Returns: Json
+      }
+      skills_demand_supply: {
+        Args: {
+          p_limit?: number
+          p_municipality?: string
+          p_offset?: number
+          p_skill_id: number
+          p_supply?: string
+        }
+        Returns: {
+          applicant_id: string
+          employment_status: string
+          from_training: boolean
+          full_name: string
+          municipality: string
+          total_count: number
+        }[]
+      }
+      skills_demand_vacancies: {
+        Args: { p_municipality?: string; p_skill_id: number }
+        Returns: {
+          employer_name: string
+          place: string
+          position_title: string
+          slots: number
+          vacancy_id: string
+          valid_until: string
+        }[]
+      }
+      skills_training_candidates: {
+        Args: {
+          p_limit?: number
+          p_municipality?: string
+          p_offset?: number
+          p_search?: string
+          p_training_id: string
+        }
+        Returns: {
+          applicant_id: string
+          employment_status: string
+          full_name: string
+          has_skill: boolean
+          municipality: string
+          total_count: number
+        }[]
+      }
+      skills_training_filters: { Args: never; Returns: Json }
+      skills_training_is_staff: { Args: never; Returns: boolean }
+      skills_training_participants_search: {
+        Args: {
+          p_completion?: string
+          p_employment?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_training_id: string
+        }
+        Returns: {
+          applicant_id: string
+          completion_status: string
+          created_at: string
+          date_hired: string
+          employer_name: string
+          employment_status: string
+          full_name: string
+          id: string
+          municipality: string
+          status_remarks: string
+          status_updated_at: string
+          total_count: number
+        }[]
+      }
+      skills_training_person_name: {
+        Args: {
+          p_first: string
+          p_middle: string
+          p_suffix: string
+          p_surname: string
+        }
+        Returns: string
+      }
+      skills_trainings_search: {
+        Args: {
+          p_agency?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_skill_id?: number
+          p_training_id?: string
+          p_year?: number
+        }
+        Returns: {
+          agency: string
+          completed_count: number
+          created_at: string
+          employed_count: number
+          end_date: string
+          id: string
+          municipality: string
+          participant_count: number
+          remarks: string
+          skill_ids: number[]
+          skill_names: string[]
+          start_date: string
+          title: string
+          total_count: number
+          venue: string
+        }[]
+      }
       training_duration_hours: { Args: { p_duration: string }; Returns: number }
       tupad_batch_status_for: {
         Args: { p_end: string; p_start: string; p_status: string }
         Returns: string
       }
       vacancy_education_rank: { Args: { p_level: string }; Returns: number }
+      withdraw_from_job_fair: {
+        Args: { p_job_fair_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       disability_type_enum:
@@ -4286,6 +4990,7 @@ export type Database = {
           id: string
           office_code: string
           office_head: string | null
+          office_head_position: string | null
           office_name: string
           status: string
         }
@@ -4294,6 +4999,7 @@ export type Database = {
           id?: string
           office_code: string
           office_head?: string | null
+          office_head_position?: string | null
           office_name: string
           status?: string
         }
@@ -4302,6 +5008,7 @@ export type Database = {
           id?: string
           office_code?: string
           office_head?: string | null
+          office_head_position?: string | null
           office_name?: string
           status?: string
         }
@@ -5219,6 +5926,7 @@ export type Database = {
         Args: { p_status: string }
         Returns: boolean
       }
+      job_fair_label: { Args: { p_job_fair_id: string }; Returns: string }
       log_personal_data_access: {
         Args: {
           p_action: string
@@ -5236,6 +5944,10 @@ export type Database = {
           p_title: string
           p_type: string
         }
+        Returns: undefined
+      }
+      notify_job_fair_staff: {
+        Args: { p_message: string; p_title: string }
         Returns: undefined
       }
       notify_spes_staff_new_application: {
@@ -5297,7 +6009,7 @@ export type Database = {
         | "spes"
         | "skills_training"
       org_employment_status: "elected" | "permanent" | "casual" | "job_order"
-      public_page: "what_is_peso"
+      public_page: "what_is_peso" | "job_fairs_applicant" | "job_fairs_employer"
       site_content_media_type: "image" | "video"
       site_content_placement: "hero_carousel"
     }
@@ -5610,7 +6322,11 @@ export const Constants = {
         "skills_training",
       ],
       org_employment_status: ["elected", "permanent", "casual", "job_order"],
-      public_page: ["what_is_peso"],
+      public_page: [
+        "what_is_peso",
+        "job_fairs_applicant",
+        "job_fairs_employer",
+      ],
       site_content_media_type: ["image", "video"],
       site_content_placement: ["hero_carousel"],
     },

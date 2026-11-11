@@ -37,7 +37,7 @@ export interface ProvincialPesoSidebarItem {
 // Items without a page yet point at the dashboard (or company profile) for now
 const sddItems: ProvincialPesoSidebarItem[] = [
   { title: 'Job Start', to: { name: 'provincial-peso-dashboard' }, icon: TrendingUp },
-  { title: 'Skills Training', to: { name: 'provincial-peso-dashboard' }, icon: SportShoe },
+  { title: 'Skills Training', to: { name: 'provincial-peso-skills-training' }, icon: SportShoe },
   { title: 'Free Wellness Services', to: { name: 'provincial-peso-dashboard' }, icon: Leaf },
 ]
 const contactSubItems: ProvincialPesoSidebarItem[] = [
