@@ -2,10 +2,10 @@ import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas-pro'
 
 /**
- * Renders the pages of a printable form (a full HTML document) into an A4 portrait PDF, one element
- * per page, in an isolated hidden iframe. Shared by the NSRP Form 1 and TUPAD profiling form templates.
+ * Renders the pages of a printable form (a full HTML document), one element per page, to canvases in an
+ * isolated hidden iframe. Shared by the PDF and the on-screen preview so both show the same pages.
  */
-export async function renderHtmlPagesToPdf(htmlContent: string, pageIds: readonly string[]): Promise<jsPDF> {
+async function renderHtmlPageCanvases(htmlContent: string, pageIds: readonly string[]): Promise<HTMLCanvasElement[]> {
   // Use an isolated hidden iframe so no styles, Tailwind v4 CSS variables or oklch colors bleed into the renderer
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
@@ -71,54 +71,69 @@ export async function renderHtmlPagesToPdf(htmlContent: string, pageIds: readonl
       throw new Error(`Form pages (${pageIds.map((id) => `#${id}`).join(', ')}) could not be located.`)
     }
 
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true,
-    })
-
-    const pdfWidth = 210
-    const pdfHeight = 297
-
-    const addElementToPdfPage = async (element: HTMLElement, isFirst: boolean) => {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: 1200,
-      })
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.98)
-      if (!isFirst) {
-        pdf.addPage('a4', 'portrait')
-      }
-
-      const ratio = canvas.width / canvas.height
-      let targetWidth = 195
-      let targetHeight = targetWidth / ratio
-      if (targetHeight > 287) {
-        targetHeight = 287
-        targetWidth = targetHeight * ratio
-      }
-      const marginX = (pdfWidth - targetWidth) / 2
-      const marginY = (pdfHeight - targetHeight) / 2
-
-      pdf.addImage(imgData, 'JPEG', marginX, marginY, targetWidth, targetHeight, undefined, 'FAST')
+    const canvases: HTMLCanvasElement[] = []
+    for (const page of pages) {
+      canvases.push(
+        await html2canvas(page!, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: 1200,
+        }),
+      )
     }
-
-    for (const [index, page] of pages.entries()) {
-      await addElementToPdfPage(page!, index === 0)
-    }
-
-    return pdf
+    return canvases
   } finally {
     if (document.body.contains(iframe)) {
       document.body.removeChild(iframe)
     }
   }
+}
+
+/**
+ * Renders the pages of a printable form (a full HTML document) into an A4 portrait PDF, one element
+ * per page. Shared by the NSRP Form 1 and TUPAD profiling form templates.
+ */
+export async function renderHtmlPagesToPdf(htmlContent: string, pageIds: readonly string[]): Promise<jsPDF> {
+  const canvases = await renderHtmlPageCanvases(htmlContent, pageIds)
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+  })
+
+  const pdfWidth = 210
+  const pdfHeight = 297
+
+  for (const [index, canvas] of canvases.entries()) {
+    const imgData = canvas.toDataURL('image/jpeg', 0.98)
+    if (index > 0) {
+      pdf.addPage('a4', 'portrait')
+    }
+
+    const ratio = canvas.width / canvas.height
+    let targetWidth = 195
+    let targetHeight = targetWidth / ratio
+    if (targetHeight > 287) {
+      targetHeight = 287
+      targetWidth = targetHeight * ratio
+    }
+    const marginX = (pdfWidth - targetWidth) / 2
+    const marginY = (pdfHeight - targetHeight) / 2
+
+    pdf.addImage(imgData, 'JPEG', marginX, marginY, targetWidth, targetHeight, undefined, 'FAST')
+  }
+
+  return pdf
+}
+
+/** The same pages as images (data URLs), to show the form on screen as it prints */
+export async function renderHtmlPagesToImages(htmlContent: string, pageIds: readonly string[]): Promise<string[]> {
+  const canvases = await renderHtmlPageCanvases(htmlContent, pageIds)
+  return canvases.map((canvas) => canvas.toDataURL('image/jpeg', 0.92))
 }
 
 // ─── Paginated documents (reports whose length varies) ─────────────────────

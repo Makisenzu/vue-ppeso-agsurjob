@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertCircle, ArrowLeft } from '@lucide/vue'
+import { AlertCircle, ArrowLeft, Download, Eye, Loader2, Printer } from '@lucide/vue'
 import SearchSelect from '@/components/SearchSelect.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSkillsDemandCourse } from '@/composables/peso/provincialPeso/useSkillsDemandCourse'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useApplicantNsrpPreview } from '@/composables/peso/provincialPeso/useApplicantNsrpPreview'
 
 const {
   filters,
@@ -34,6 +36,20 @@ const {
   supplierRangeLabel,
   goBack,
 } = useSkillsDemandCourse()
+
+const {
+  isOpen: isNsrpOpen,
+  applicant: nsrpApplicant,
+  fullName: nsrpName,
+  pages: nsrpPages,
+  isRendering: isNsrpRendering,
+  error: nsrpError,
+  busy: nsrpBusy,
+  open: openNsrp,
+  retry: retryNsrp,
+  print: printNsrp,
+  download: downloadNsrp,
+} = useApplicantNsrpPreview()
 </script>
 
 <template>
@@ -191,13 +207,19 @@ const {
           <template v-else>
             <!-- Mobile: one line per person -->
             <ul class="divide-y border-b md:hidden">
-              <li v-for="person in suppliers" :key="person.applicant_id" class="grid gap-0.5 px-4 py-2.5">
-                <span class="truncate text-sm font-medium">
-                  {{ person.surname }}, {{ [person.first_name, person.middle_name, person.suffix].filter(Boolean).join(' ') }}
-                </span>
-                <span class="truncate text-xs text-muted-foreground">
-                  {{ [person.contact_number, person.email, person.municipality].filter(Boolean).join(' · ') || '—' }}
-                </span>
+              <li v-for="person in suppliers" :key="person.applicant_id">
+                <button
+                  type="button"
+                  class="grid w-full cursor-pointer gap-0.5 px-4 py-2.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  @click="openNsrp(person.applicant_id)"
+                >
+                  <span class="truncate text-sm font-medium">
+                    {{ person.surname }}, {{ [person.first_name, person.middle_name, person.suffix].filter(Boolean).join(' ') }}
+                  </span>
+                  <span class="truncate text-xs text-muted-foreground">
+                    {{ [person.contact_number, person.email, person.municipality].filter(Boolean).join(' · ') || '—' }}
+                  </span>
+                </button>
               </li>
             </ul>
 
@@ -212,10 +234,11 @@ const {
                     <TableHead>Contact</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Municipality</TableHead>
+                    <TableHead class="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow v-for="person in suppliers" :key="person.applicant_id">
+                  <TableRow v-for="person in suppliers" :key="person.applicant_id" class="cursor-pointer" @click="openNsrp(person.applicant_id)">
                     <TableCell class="font-medium">{{ person.surname }}</TableCell>
                     <TableCell>{{ [person.first_name, person.suffix].filter(Boolean).join(' ') }}</TableCell>
                     <TableCell>{{ person.middle_name ?? '—' }}</TableCell>
@@ -224,6 +247,18 @@ const {
                       <span class="block max-w-[240px] truncate" :title="person.email ?? undefined">{{ person.email ?? '—' }}</span>
                     </TableCell>
                     <TableCell>{{ person.municipality ?? '—' }}</TableCell>
+                    <TableCell class="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-8 cursor-pointer"
+                        title="View NSRP form"
+                        aria-label="View NSRP form"
+                        @click.stop="openNsrp(person.applicant_id)"
+                      >
+                        <Eye class="size-4 shrink-0" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -244,5 +279,67 @@ const {
         </CardContent>
       </Card>
     </section>
+
+    <!-- ─── A jobseeker's NSRP Form 1, as it prints ─── -->
+    <Dialog v-model:open="isNsrpOpen">
+      <DialogContent class="flex max-h-[90vh] flex-col sm:max-w-5xl">
+        <DialogHeader class="shrink-0">
+          <div class="flex items-center justify-between gap-2 pr-8">
+            <DialogTitle>NSRP Form 1</DialogTitle>
+            <div class="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 cursor-pointer"
+                title="Print"
+                aria-label="Print"
+                :disabled="!!nsrpBusy || !nsrpApplicant || nsrpPages.length === 0"
+                @click="printNsrp"
+              >
+                <Loader2 v-if="nsrpBusy === 'print'" class="size-4 shrink-0 animate-spin" />
+                <Printer v-else class="size-4 shrink-0" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 cursor-pointer"
+                title="Download PDF"
+                aria-label="Download PDF"
+                :disabled="!!nsrpBusy || !nsrpApplicant || nsrpPages.length === 0"
+                @click="downloadNsrp"
+              >
+                <Loader2 v-if="nsrpBusy === 'download'" class="size-4 shrink-0 animate-spin" />
+                <Download v-else class="size-4 shrink-0" />
+              </Button>
+            </div>
+          </div>
+          <DialogDescription>{{ nsrpName || 'Loading the jobseeker...' }}</DialogDescription>
+        </DialogHeader>
+
+        <!-- The pages the PDF has; only this part scrolls, so the buttons stay in view -->
+        <div class="grid min-h-0 gap-4 overflow-y-auto">
+          <Alert v-if="nsrpError" variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Couldn't show the NSRP form</AlertTitle>
+            <AlertDescription>
+              {{ nsrpError }}
+              <Button variant="link" size="sm" class="h-auto cursor-pointer p-0" @click="retryNsrp">Try again</Button>
+            </AlertDescription>
+          </Alert>
+          <Skeleton v-else-if="isNsrpRendering || nsrpPages.length === 0" class="aspect-[210/297] w-full rounded-md" />
+          <div v-else class="overflow-x-auto rounded-md border bg-muted/40 p-2 sm:p-4">
+            <div class="mx-auto grid max-w-[860px] min-w-[600px] gap-4">
+              <img
+                v-for="(page, index) in nsrpPages"
+                :key="index"
+                :src="page"
+                :alt="`NSRP Form 1 of ${nsrpName}, page ${index + 1} of ${nsrpPages.length}`"
+                class="block h-auto w-full border bg-white shadow-sm"
+              >
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

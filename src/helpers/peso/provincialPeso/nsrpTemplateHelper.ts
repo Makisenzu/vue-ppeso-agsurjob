@@ -1,6 +1,6 @@
 import type { ApplicantEntryRecord } from '@/types/peso/provincialPeso/applicantEntry'
 import type { jsPDF } from 'jspdf'
-import { renderHtmlPagesToPdf } from '@/helpers/common/htmlPdfHelper'
+import { renderHtmlPagesToImages, renderHtmlPagesToPdf } from '@/helpers/common/htmlPdfHelper'
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return ''
@@ -1286,6 +1286,13 @@ export function generateNsrpFormHtml(applicant?: Partial<ApplicantEntryRecord>):
  */
 async function createNsrpFormJsPdf(applicant: Partial<ApplicantEntryRecord>): Promise<jsPDF> {
   return renderHtmlPagesToPdf(generateNsrpFormHtml(applicant), ['page-1', 'page-2'])
+}
+
+/**
+ * The filled NSRP form's two pages as images, to show it on screen exactly as the PDF prints it.
+ */
+export async function renderNsrpFormPages(applicant: Partial<ApplicantEntryRecord>): Promise<string[]> {
+  return renderHtmlPagesToImages(generateNsrpFormHtml(applicant), ['page-1', 'page-2'])
 }
 
 /**
