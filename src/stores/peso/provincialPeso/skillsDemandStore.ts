@@ -4,6 +4,7 @@ import { skillsTrainingService } from '@/services/peso/provincialPeso/skillsTrai
 import { SKILLS_TRAINING_PAGE_SIZE, errorMessageOf } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 import type {
   SkillsDemandFilters,
+  SkillsDemandPlace,
   SkillsDemandRow,
   SkillsDemandSummary,
   SkillsDemandSupplier,
@@ -71,7 +72,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     return loadRows()
   }
 
-  // ─── One skill (its own page) ───
+  // ─── One skill (its own page): the whole province, broken down by municipality ───
   const skill = ref<SkillsDemandRow | null>(null)
   const isLoadingSkill = ref(false)
   const skillError = ref<string | null>(null)
@@ -83,10 +84,10 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     isLoadingSkill.value = true
     skillError.value = null
     try {
-      const row = await skillsTrainingService.fetchDemandSkill(skillId, filters.municipality, filters.supply)
+      const row = await skillsTrainingService.fetchDemandSkill(skillId, 'ALL', filters.supply)
       if (current !== skillRequest) return
       skill.value = row
-      if (!row) skillError.value = 'No open vacancy requires this skill here.'
+      if (!row) skillError.value = 'No open vacancy requires this skill.'
     } catch (error) {
       if (current === skillRequest) skillError.value = errorMessageOf(error, 'Could not load the skill.')
     } finally {
@@ -94,8 +95,31 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     }
   }
 
-  /** Everything the skill page shows */
-  const openSkill = (skillId: number) => Promise.all([loadSkill(skillId), loadEvidence(skillId), loadSuppliers(skillId)])
+  const places = ref<SkillsDemandPlace[]>([])
+  const isLoadingPlaces = ref(false)
+  const placesError = ref<string | null>(null)
+  let placesRequest = 0
+
+  async function loadPlaces(skillId: number): Promise<void> {
+    const current = ++placesRequest
+    isLoadingPlaces.value = true
+    placesError.value = null
+    try {
+      const rowsByPlace = await skillsTrainingService.fetchDemandPlaces(skillId, filters.supply)
+      if (current === placesRequest) places.value = rowsByPlace
+    } catch (error) {
+      if (current === placesRequest) placesError.value = errorMessageOf(error, 'Could not load the municipalities.')
+    } finally {
+      if (current === placesRequest) isLoadingPlaces.value = false
+    }
+  }
+
+  /** Everything the skill page shows; the jobseekers list starts on the municipalities that need it */
+  function openSkill(skillId: number) {
+    if (skill.value?.skill_id !== skillId) places.value = []
+    supplierMunicipality.value = 'NEEDED'
+    return Promise.all([loadSkill(skillId), loadPlaces(skillId), loadEvidence(skillId), loadSuppliers(skillId)])
+  }
 
   // ─── Evidence behind one skill ───
   const vacancies = ref<SkillsDemandVacancy[]>([])
@@ -112,7 +136,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     skillTrainings.value = []
     try {
       const [vacancyRows, trainingRows] = await Promise.all([
-        skillsTrainingService.fetchDemandVacancies(skillId, filters.municipality),
+        skillsTrainingService.fetchDemandVacancies(skillId, 'ALL'),
         skillsTrainingService.fetchTrainingsForSkill(skillId),
       ])
       if (current !== evidenceRequest) return
@@ -131,9 +155,11 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
   const supplierPage = ref(0)
   const isLoadingSuppliers = ref(false)
   const suppliersError = ref<string | null>(null)
+  /** 'NEEDED' (the municipalities whose vacancies require it), 'ALL' (the province) or a municipality name */
+  const supplierMunicipality = ref('NEEDED')
   let suppliersRequest = 0
 
-  /** Same municipality and "who counts" as the table, so the list matches the Supply figure */
+  /** Same "who counts" as the table, in the municipality picked on the skill page */
   async function loadSuppliers(skillId: number, pageNumber = 0): Promise<void> {
     const current = ++suppliersRequest
     supplierPage.value = Math.max(0, pageNumber)
@@ -146,7 +172,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     try {
       const result = await skillsTrainingService.searchDemandSupply(
         skillId,
-        filters.municipality,
+        supplierMunicipality.value,
         filters.supply,
         supplierPage.value,
         SKILLS_TRAINING_PAGE_SIZE,
@@ -178,6 +204,9 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     isLoadingSkill,
     skillError,
     openSkill,
+    places,
+    isLoadingPlaces,
+    placesError,
     vacancies,
     skillTrainings,
     isLoadingEvidence,
@@ -188,6 +217,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     supplierPage,
     isLoadingSuppliers,
     suppliersError,
+    supplierMunicipality,
     loadSuppliers,
   }
 })

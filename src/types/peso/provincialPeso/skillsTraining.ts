@@ -111,18 +111,32 @@ export interface SkillsDemandRow {
   skill_id: number
   skill_name: string
   category: string
-  /** Open vacancies that require the skill, and their slots */
+  /** Open vacancies that require the skill, and their slots (in the municipality filtered, else everywhere) */
   vacancies: number
   demand_slots: number
-  /** Jobseekers with the skill on their record */
+  /** Agusan del Sur jobseekers with the skill on their record, province-wide */
   supply: number
-  /** Training completers who don't have it on their record yet (counted as supply too) */
+  /** Training completers who don't have it on their record yet (counted as supply too), province-wide */
   trained: number
-  /** Trainings already conducted for the skill */
-  trainings: number
+  /** The municipalities' own shortages added up: each one's demand minus the jobseekers living there */
   gap: number
-  /** Up to 3 municipalities with the most slots */
-  top_places: string[]
+  /** The municipalities that need it, biggest gap first */
+  places: string[]
+}
+
+/** One municipality of a skill (esmdd.skills_demand_places) */
+export interface SkillsDemandPlace {
+  place_key: string
+  place: string
+  vacancies: number
+  demand: number
+  /** Jobseekers living there with the skill, and training completers */
+  supply: number
+  trained: number
+  /** Demand not covered by its own jobseekers */
+  gap: number
+  /** Its jobseekers beyond its own demand: people other municipalities could draw on */
+  surplus: number
 }
 
 export interface SkillsDemandFilters {

@@ -25,6 +25,7 @@
 --   esmdd.skills_training_participants_search(...)   one training's participants, filtered and paged
 --   esmdd.skills_training_candidates(...)            registry applicants not in the training yet, paged
 --   esmdd.skills_demand_search(...)                  the demand / supply / gap table, filtered and paged
+--   esmdd.skills_demand_places(...)                  one skill by municipality: where it is short, where it is in surplus
 --   esmdd.skills_demand_summary(...)                 its totals
 --   esmdd.skills_demand_vacancies(...)               the open vacancies behind one skill's demand
 --   esmdd.skills_demand_supply(...)                  the jobseekers behind one skill's supply, paged
@@ -617,15 +618,134 @@ $$;
 
 
 -- ─── 7. Skills Demand and Gap ───────────────────────────────────────────────
+-- Counted per skill AND municipality, because a vacancy is filled by people who can get there:
+--   demand   slots of open vacancies (approved company, posted, not expired) in the municipality that list the
+--            skill as required (the vacancy's place is its establishment's municipality)
+--   supply   Agusan del Sur residents of the municipality with the skill on their record (unemployed only
+--            unless p_supply = 'ALL'), plus participants who completed a training that teaches it and don't
+--            have it on their record yet
+--   gap      demand - supply of that municipality, never below 0 (the local shortage)
+--   surplus  supply - demand of that municipality, never below 0 (people another municipality could draw on)
+-- A skill's gap is the sum of its municipalities' gaps; its supply is the whole province's. So a skill whose
+-- supply covers its demand but still has a gap can be filled by referring people from other municipalities;
+-- one whose supply falls short needs a training. Places are matched with applicants.sr_normalize_geo
+-- ("City of Bayugan" = "Bayugan City"). Counts only: no personal data.
 
--- One row per skill that open vacancies require:
---   demand   slots of open vacancies (approved company, posted, not expired) that list the skill as required
---   supply   jobseekers with the skill on their record (unemployed only unless p_supply = 'ALL'), plus
---            participants who completed a training for it and don't have it on their record yet (trained)
---   gap      demand - supply, never below 0: how many people a training should produce
--- p_municipality narrows the vacancies (the establishment's municipality), the jobseekers (their address) and
--- the trainings counted; NULL / 'ALL' is the whole province. Counts only: no personal data.
-CREATE OR REPLACE FUNCTION esmdd.skills_demand_rows(p_municipality TEXT DEFAULT NULL, p_supply TEXT DEFAULT 'UNEMPLOYED')
+-- A place key as shown: the canonical municipality name, else what was typed
+CREATE OR REPLACE FUNCTION esmdd.skills_demand_place_name(p_key TEXT, p_fallback TEXT)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SET search_path = ''
+AS $$
+  SELECT coalesce(
+    (SELECT n FROM unnest(applicants.sr_agusan_municipalities()) AS n WHERE applicants.sr_normalize_geo(n) = p_key LIMIT 1),
+    nullif(btrim(coalesce(p_fallback, '')), ''),
+    'Unspecified'
+  );
+$$;
+REVOKE ALL ON FUNCTION esmdd.skills_demand_place_name(TEXT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION esmdd.skills_demand_place_name(TEXT, TEXT) TO authenticated;
+
+-- One row per skill in demand and municipality with demand or supply for it (p_skill_id: that skill only)
+CREATE OR REPLACE FUNCTION esmdd.skills_demand_grid(p_supply TEXT DEFAULT 'UNEMPLOYED', p_skill_id INT DEFAULT NULL)
+RETURNS TABLE (
+  skill_id INT,
+  place_key TEXT,
+  place TEXT,
+  vacancies INT,
+  demand INT,
+  supply INT,
+  trained INT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  WITH today AS (
+    SELECT (now() AT TIME ZONE 'Asia/Manila')::DATE AS d
+  ),
+  -- One row per open vacancy and required skill (two wordings of one skill on a vacancy count once)
+  vacancy_skills AS (
+    SELECT DISTINCT
+      v.id AS vacancy_id,
+      ks.skill_id AS sid,
+      greatest(coalesce(v.vacancy_count, 1), 1) AS slots,
+      coalesce(nullif(applicants.sr_normalize_geo(e.city_municipality), ''), 'unspecified') AS pkey,
+      e.city_municipality AS raw_place
+    FROM esmdd.job_vacancies v
+    JOIN employers.establishments e ON e.id = v.establishment_id
+    JOIN employers.companies c ON c.id = e.company_id
+    JOIN esmdd.job_vacancy_skills ks ON ks.job_vacancy_id = v.id AND ks.is_required AND ks.skill_id IS NOT NULL
+    CROSS JOIN today
+    WHERE coalesce(v.status::TEXT, 'open') = 'open'
+      AND c.verification_status::TEXT = 'approved'
+      AND (v.posting_date IS NULL OR v.posting_date::DATE <= today.d)
+      AND (v.valid_until IS NULL OR v.valid_until::DATE >= today.d)
+      AND (p_skill_id IS NULL OR ks.skill_id = p_skill_id)
+  ),
+  demand AS (
+    SELECT vs.sid, vs.pkey, min(vs.raw_place) AS raw_place, count(*)::INT AS vacancies, sum(vs.slots)::INT AS slots
+    FROM vacancy_skills vs
+    GROUP BY vs.sid, vs.pkey
+  ),
+  -- Only the skills in demand are counted, so the index is never aggregated whole
+  wanted AS (
+    SELECT DISTINCT d.sid FROM demand d
+  ),
+  holders AS (
+    SELECT i.skill_id AS sid, sp.municipality_key AS pkey, count(DISTINCT i.applicant_id)::INT AS n
+    FROM applicants.applicant_skill_index i
+    JOIN applicants.sr_profiles sp ON sp.applicant_id = i.applicant_id AND sp.is_agusan
+    JOIN applicants.applicants a ON a.id = i.applicant_id
+    WHERE i.skill_id IN (SELECT w.sid FROM wanted w)
+      AND (coalesce(p_supply, 'UNEMPLOYED') = 'ALL' OR lower(coalesce(a.employment_status, 'Unemployed')) LIKE '%unemployed%')
+    GROUP BY i.skill_id, sp.municipality_key
+  ),
+  trained AS (
+    SELECT ts.skill_id AS sid, sp.municipality_key AS pkey, count(DISTINCT p.applicant_id)::INT AS n
+    FROM esmdd.skills_training_skills ts
+    JOIN esmdd.skills_training_participants p ON p.training_id = ts.training_id AND p.completion_status = 'Completed'
+    JOIN applicants.sr_profiles sp ON sp.applicant_id = p.applicant_id AND sp.is_agusan
+    WHERE ts.skill_id IN (SELECT w.sid FROM wanted w)
+      AND (coalesce(p_supply, 'UNEMPLOYED') = 'ALL' OR p.employment_status NOT IN ('Hired', 'Self-Employed'))
+      AND NOT EXISTS (
+        SELECT 1 FROM applicants.applicant_skill_index i
+        WHERE i.applicant_id = p.applicant_id AND i.skill_id = ts.skill_id
+      )
+    GROUP BY ts.skill_id, sp.municipality_key
+  ),
+  cells AS (
+    SELECT d.sid, d.pkey FROM demand d
+    UNION SELECT h.sid, h.pkey FROM holders h
+    UNION SELECT t.sid, t.pkey FROM trained t
+  )
+  SELECT
+    k.sid,
+    k.pkey,
+    esmdd.skills_demand_place_name(k.pkey, d.raw_place),
+    coalesce(d.vacancies, 0),
+    coalesce(d.slots, 0),
+    coalesce(h.n, 0),
+    coalesce(t.n, 0)
+  FROM cells k
+  LEFT JOIN demand d ON d.sid = k.sid AND d.pkey = k.pkey
+  LEFT JOIN holders h ON h.sid = k.sid AND h.pkey = k.pkey
+  LEFT JOIN trained t ON t.sid = k.sid AND t.pkey = k.pkey
+  WHERE (SELECT esmdd.skills_training_is_staff());
+$$;
+REVOKE ALL ON FUNCTION esmdd.skills_demand_grid(TEXT, INT) FROM PUBLIC, anon, authenticated;
+
+-- One row per skill in demand. p_municipality narrows the demand and the gap to that municipality ("where
+-- needed"); the supply is always the whole province's. places: the municipalities that need it, biggest gap first.
+-- The first draft returned the old columns: drop it so the return type can change.
+DROP FUNCTION IF EXISTS esmdd.skills_demand_rows(TEXT, TEXT);
+CREATE OR REPLACE FUNCTION esmdd.skills_demand_rows(
+  p_municipality TEXT DEFAULT NULL,
+  p_supply TEXT DEFAULT 'UNEMPLOYED',
+  p_skill_id INT DEFAULT NULL
+)
 RETURNS TABLE (
   skill_id INT,
   skill_name TEXT,
@@ -634,9 +754,8 @@ RETURNS TABLE (
   demand_slots INT,
   supply INT,
   trained INT,
-  trainings INT,
   gap INT,
-  top_places TEXT[]
+  places TEXT[]
 )
 LANGUAGE sql
 STABLE
@@ -644,106 +763,39 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
   WITH m AS (
-    SELECT
-      nullif(applicants.sr_normalize_geo(CASE WHEN coalesce(p_municipality, 'ALL') = 'ALL' THEN '' ELSE p_municipality END), '') AS q,
-      (now() AT TIME ZONE 'Asia/Manila')::DATE AS today
+    SELECT nullif(applicants.sr_normalize_geo(CASE WHEN coalesce(p_municipality, 'ALL') = 'ALL' THEN '' ELSE p_municipality END), '') AS q
   ),
-  -- One row per open vacancy and required skill (two wordings of one skill on a vacancy count once)
-  vacancy_skills AS (
-    SELECT DISTINCT
-      v.id AS vacancy_id,
-      ks.skill_id,
-      greatest(coalesce(v.vacancy_count, 1), 1) AS slots,
-      coalesce(nullif(btrim(e.city_municipality), ''), 'Unspecified') AS place
-    FROM esmdd.job_vacancies v
-    JOIN employers.establishments e ON e.id = v.establishment_id
-    JOIN employers.companies c ON c.id = e.company_id
-    JOIN esmdd.job_vacancy_skills ks ON ks.job_vacancy_id = v.id AND ks.is_required AND ks.skill_id IS NOT NULL
-    CROSS JOIN m
-    WHERE coalesce(v.status::TEXT, 'open') = 'open'
-      AND c.verification_status::TEXT = 'approved'
-      AND (v.posting_date IS NULL OR v.posting_date::DATE <= m.today)
-      AND (v.valid_until IS NULL OR v.valid_until::DATE >= m.today)
-      AND (m.q IS NULL OR applicants.sr_normalize_geo(e.city_municipality) = m.q)
-  ),
-  demand AS (
-    SELECT vs.skill_id, count(*)::INT AS vacancies, sum(vs.slots)::INT AS slots
-    FROM vacancy_skills vs
-    GROUP BY vs.skill_id
-  ),
-  places AS (
-    SELECT r.skill_id, array_agg(r.place ORDER BY r.slots DESC, r.place) AS top_places
-    FROM (
-      SELECT vs.skill_id, vs.place, sum(vs.slots) AS slots,
-             row_number() OVER (PARTITION BY vs.skill_id ORDER BY sum(vs.slots) DESC, vs.place) AS rn
-      FROM vacancy_skills vs
-      GROUP BY vs.skill_id, vs.place
-    ) r
-    WHERE r.rn <= 3
-    GROUP BY r.skill_id
-  ),
-  -- Only the skills in demand are counted, so the index is never aggregated whole
-  supply AS (
-    SELECT i.skill_id, count(DISTINCT i.applicant_id)::INT AS n
-    FROM applicants.applicant_skill_index i
-    JOIN applicants.applicants a ON a.id = i.applicant_id
-    CROSS JOIN m
-    WHERE i.skill_id IN (SELECT d.skill_id FROM demand d)
-      AND (p_supply = 'ALL' OR lower(coalesce(a.employment_status, 'Unemployed')) LIKE '%unemployed%')
-      AND (m.q IS NULL OR EXISTS (
-        SELECT 1 FROM applicants.sr_profiles sp WHERE sp.applicant_id = a.id AND sp.municipality_key = m.q
-      ))
-    GROUP BY i.skill_id
-  ),
-  trained AS (
-    SELECT ts.skill_id, count(DISTINCT p.applicant_id)::INT AS n
-    FROM esmdd.skills_training_skills ts
-    JOIN esmdd.skills_training_participants p ON p.training_id = ts.training_id AND p.completion_status = 'Completed'
-    CROSS JOIN m
-    WHERE ts.skill_id IN (SELECT d.skill_id FROM demand d)
-      AND (p_supply = 'ALL' OR p.employment_status NOT IN ('Hired', 'Self-Employed'))
-      AND NOT EXISTS (
-        SELECT 1 FROM applicants.applicant_skill_index i
-        WHERE i.applicant_id = p.applicant_id AND i.skill_id = ts.skill_id
-      )
-      AND (m.q IS NULL OR EXISTS (
-        SELECT 1 FROM applicants.sr_profiles sp WHERE sp.applicant_id = p.applicant_id AND sp.municipality_key = m.q
-      ))
-    GROUP BY ts.skill_id
-  ),
-  conducted AS (
-    SELECT ts.skill_id, count(*)::INT AS n
-    FROM esmdd.skills_training_skills ts
-    JOIN esmdd.skills_trainings t ON t.id = ts.training_id
-    CROSS JOIN m
-    WHERE ts.skill_id IN (SELECT d.skill_id FROM demand d)
-      AND (m.q IS NULL OR applicants.sr_normalize_geo(t.municipality) = m.q)
-    GROUP BY ts.skill_id
+  g AS (
+    SELECT x.*, greatest(x.demand - x.supply - x.trained, 0) AS local_gap
+    FROM esmdd.skills_demand_grid(coalesce(p_supply, 'UNEMPLOYED'), p_skill_id) x
   )
   SELECT
-    d.skill_id,
+    g.skill_id,
     s.name::TEXT,
     coalesce(nullif(btrim(s.category), ''), 'Uncategorized')::TEXT,
-    d.vacancies,
-    d.slots,
-    coalesce(su.n, 0),
-    coalesce(tr.n, 0),
-    coalesce(co.n, 0),
-    greatest(d.slots - coalesce(su.n, 0) - coalesce(tr.n, 0), 0),
-    coalesce(pl.top_places, '{}'::TEXT[])
-  FROM demand d
-  JOIN core.skills s ON s.id = d.skill_id
-  LEFT JOIN supply su ON su.skill_id = d.skill_id
-  LEFT JOIN trained tr ON tr.skill_id = d.skill_id
-  LEFT JOIN conducted co ON co.skill_id = d.skill_id
-  LEFT JOIN places pl ON pl.skill_id = d.skill_id;
+    coalesce((sum(g.vacancies) FILTER (WHERE m.q IS NULL OR g.place_key = m.q))::INT, 0),
+    coalesce((sum(g.demand) FILTER (WHERE m.q IS NULL OR g.place_key = m.q))::INT, 0),
+    sum(g.supply)::INT,
+    sum(g.trained)::INT,
+    coalesce((sum(g.local_gap) FILTER (WHERE g.demand > 0 AND (m.q IS NULL OR g.place_key = m.q)))::INT, 0),
+    coalesce(
+      array_agg(g.place ORDER BY g.local_gap DESC, g.demand DESC, g.place)
+        FILTER (WHERE g.demand > 0 AND (m.q IS NULL OR g.place_key = m.q)),
+      '{}'::TEXT[]
+    )
+  FROM g
+  CROSS JOIN m
+  JOIN core.skills s ON s.id = g.skill_id
+  GROUP BY g.skill_id, s.name, s.category
+  HAVING coalesce(sum(g.demand) FILTER (WHERE m.q IS NULL OR g.place_key = m.q), 0) > 0;
 $$;
-REVOKE ALL ON FUNCTION esmdd.skills_demand_rows(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION esmdd.skills_demand_rows(TEXT, TEXT, INT) FROM PUBLIC, anon, authenticated;
 
--- The gap table: biggest gap first. With p_skill_id, that skill's row alone (the skill page).
--- The first draft had no p_skill_id: drop it so the two signatures don't overlap.
+-- The gap table: biggest local gap first. With p_skill_id, that skill's row alone (the skill page).
+-- Earlier drafts returned other columns: drop them so the return type can change.
 DROP FUNCTION IF EXISTS esmdd.skills_demand_search(TEXT, TEXT, TEXT, TEXT, BOOLEAN, INT, INT);
-CREATE OR REPLACE FUNCTION esmdd.skills_demand_search(
+DROP FUNCTION IF EXISTS esmdd.skills_demand_search(TEXT, TEXT, TEXT, TEXT, BOOLEAN, INT, INT, INT);
+CREATE FUNCTION esmdd.skills_demand_search(
   p_municipality TEXT DEFAULT NULL,
   p_supply TEXT DEFAULT 'UNEMPLOYED',
   p_search TEXT DEFAULT NULL,
@@ -761,9 +813,8 @@ RETURNS TABLE (
   demand_slots INT,
   supply INT,
   trained INT,
-  trainings INT,
   gap INT,
-  top_places TEXT[],
+  places TEXT[],
   total_count BIGINT
 )
 LANGUAGE sql
@@ -771,18 +822,49 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT r.skill_id, r.skill_name, r.category, r.vacancies, r.demand_slots, r.supply, r.trained, r.trainings, r.gap,
-         r.top_places, count(*) OVER ()
-  FROM esmdd.skills_demand_rows(p_municipality, coalesce(p_supply, 'UNEMPLOYED')) r
+  SELECT r.skill_id, r.skill_name, r.category, r.vacancies, r.demand_slots, r.supply, r.trained, r.gap, r.places,
+         count(*) OVER ()
+  FROM esmdd.skills_demand_rows(p_municipality, coalesce(p_supply, 'UNEMPLOYED'), p_skill_id) r
   CROSS JOIN LATERAL (SELECT nullif(btrim(coalesce(p_search, '')), '') AS q) f
   WHERE (SELECT esmdd.skills_training_is_staff())
     AND (f.q IS NULL OR r.skill_name ILIKE '%' || f.q || '%')
     AND (coalesce(p_category, 'ALL') = 'ALL' OR r.category = p_category)
     AND (NOT coalesce(p_only_gaps, false) OR r.gap > 0)
-    AND (p_skill_id IS NULL OR r.skill_id = p_skill_id)
   ORDER BY r.gap DESC, r.demand_slots DESC, r.skill_name
   LIMIT least(greatest(coalesce(p_limit, 10), 1), 100)
   OFFSET greatest(coalesce(p_offset, 0), 0);
+$$;
+
+-- One skill, by municipality: where it is short (gap: train or refer) and where jobseekers could come from
+-- (surplus). Bounded by the municipalities with demand or supply for it.
+CREATE OR REPLACE FUNCTION esmdd.skills_demand_places(p_skill_id INT, p_supply TEXT DEFAULT 'UNEMPLOYED')
+RETURNS TABLE (
+  place_key TEXT,
+  place TEXT,
+  vacancies INT,
+  demand INT,
+  supply INT,
+  trained INT,
+  gap INT,
+  surplus INT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT
+    g.place_key,
+    g.place,
+    g.vacancies,
+    g.demand,
+    g.supply,
+    g.trained,
+    greatest(g.demand - g.supply - g.trained, 0),
+    greatest(g.supply + g.trained - g.demand, 0)
+  FROM esmdd.skills_demand_grid(coalesce(p_supply, 'UNEMPLOYED'), p_skill_id) g
+  ORDER BY greatest(g.demand - g.supply - g.trained, 0) DESC, g.demand DESC,
+           greatest(g.supply + g.trained - g.demand, 0) DESC, g.place;
 $$;
 
 -- Totals above the table. unlinked_wordings: required vacancy skills not on the Skill List yet, which the gap
@@ -857,7 +939,8 @@ AS $$
 $$;
 
 
--- Who the supply of one skill is: the jobseekers counted by skills_demand_rows for it (same rules), by name.
+-- Who the supply of one skill is, by name (same rules as skills_demand_grid). p_municipality: NULL / 'ALL' for
+-- the whole province, 'NEEDED' for the municipalities whose vacancies require it, or a municipality name.
 -- from_training marks those counted because they completed a training that teaches it.
 CREATE OR REPLACE FUNCTION esmdd.skills_demand_supply(
   p_skill_id INT,
@@ -880,7 +963,12 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
   WITH m AS (
-    SELECT nullif(applicants.sr_normalize_geo(CASE WHEN coalesce(p_municipality, 'ALL') = 'ALL' THEN '' ELSE p_municipality END), '') AS q
+    SELECT coalesce(nullif(btrim(coalesce(p_municipality, '')), ''), 'ALL') AS mode
+  ),
+  needed AS (
+    SELECT DISTINCT g.place_key
+    FROM esmdd.skills_demand_grid(coalesce(p_supply, 'UNEMPLOYED'), p_skill_id) g
+    WHERE g.demand > 0 AND (SELECT m.mode FROM m) = 'NEEDED'
   ),
   holders AS (
     -- Has the skill on their record
@@ -904,18 +992,21 @@ AS $$
   SELECT
     a.id,
     esmdd.skills_training_person_name(a.surname, a.first_name, a.middle_name, a.suffix),
-    nullif(applicants.applicant_municipality(a.address), 'Agusan del Sur')::TEXT,
+    sp.municipality::TEXT,
     coalesce(nullif(btrim(a.employment_status), ''), 'Unemployed')::TEXT,
     h.from_training,
     count(*) OVER ()
   FROM holders h
   JOIN applicants.applicants a ON a.id = h.holder_id
+  JOIN applicants.sr_profiles sp ON sp.applicant_id = a.id AND sp.is_agusan
   CROSS JOIN m
   WHERE (SELECT esmdd.skills_training_is_staff())
-    AND (m.q IS NULL OR EXISTS (
-      SELECT 1 FROM applicants.sr_profiles sp WHERE sp.applicant_id = a.id AND sp.municipality_key = m.q
-    ))
-  ORDER BY upper(a.surname), upper(a.first_name), a.id
+    AND (
+      m.mode = 'ALL'
+      OR (m.mode = 'NEEDED' AND sp.municipality_key IN (SELECT n.place_key FROM needed n))
+      OR (m.mode NOT IN ('ALL', 'NEEDED') AND sp.municipality_key = applicants.sr_normalize_geo(m.mode))
+    )
+  ORDER BY sp.municipality, upper(a.surname), upper(a.first_name), a.id
   LIMIT least(greatest(coalesce(p_limit, 10), 1), 100)
   OFFSET greatest(coalesce(p_offset, 0), 0);
 $$;
@@ -932,6 +1023,7 @@ REVOKE ALL ON FUNCTION esmdd.skills_demand_search(TEXT, TEXT, TEXT, TEXT, BOOLEA
 REVOKE ALL ON FUNCTION esmdd.skills_demand_summary(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION esmdd.skills_demand_vacancies(INT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION esmdd.skills_demand_supply(INT, TEXT, TEXT, INT, INT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION esmdd.skills_demand_places(INT, TEXT) FROM PUBLIC, anon;
 
 GRANT EXECUTE ON FUNCTION esmdd.save_skills_training(UUID, JSONB, INT[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION esmdd.skills_trainings_search(TEXT, TEXT, INT, INT, INT, INT, UUID) TO authenticated;
@@ -942,5 +1034,6 @@ GRANT EXECUTE ON FUNCTION esmdd.skills_demand_search(TEXT, TEXT, TEXT, TEXT, BOO
 GRANT EXECUTE ON FUNCTION esmdd.skills_demand_summary(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION esmdd.skills_demand_vacancies(INT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION esmdd.skills_demand_supply(INT, TEXT, TEXT, INT, INT) TO authenticated;
+GRANT EXECUTE ON FUNCTION esmdd.skills_demand_places(INT, TEXT) TO authenticated;
 
 COMMIT;

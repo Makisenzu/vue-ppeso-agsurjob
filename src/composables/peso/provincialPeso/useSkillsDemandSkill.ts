@@ -2,7 +2,6 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSkillsDemandStore } from '@/stores/peso/provincialPeso/skillsDemandStore'
-import { LANDING_MUNICIPALITIES } from '@/types/common/siteContent'
 import {
   SKILLS_TRAINING_PAGE_SIZE,
   demandSupplyTotal,
@@ -10,6 +9,7 @@ import {
   trainingRecommendation,
 } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
+import type { SkillsDemandPlace } from '@/types/peso/provincialPeso/skillsTraining'
 
 const SUPPLY_OPTIONS = [
   { value: 'UNEMPLOYED', label: 'Unemployed Jobseekers' },
@@ -17,9 +17,10 @@ const SUPPLY_OPTIONS = [
 ]
 
 /**
- * Skills Demand → one skill: its demand, supply and gap, the jobseekers who have it (the supply, by name),
- * the open vacancies that require it and the trainings already conducted for it. The municipality and
- * "who counts" filters are the Skills Demand page's, so the figures match the row that was opened.
+ * Skills Demand → one skill, for the whole province: its demand, supply and gap; each municipality's gap
+ * (train or refer there) and surplus (people other municipalities could draw on); the jobseekers who have it,
+ * starting with those in the municipalities that need it; the open vacancies; the trainings conducted.
+ * "Who counts" is the Skills Demand page's filter, so the totals match the row that was opened.
  */
 export function useSkillsDemandSkill() {
   const route = useRoute()
@@ -30,6 +31,9 @@ export function useSkillsDemandSkill() {
     skill,
     isLoadingSkill,
     skillError,
+    places,
+    isLoadingPlaces,
+    placesError,
     vacancies,
     skillTrainings,
     isLoadingEvidence,
@@ -37,6 +41,7 @@ export function useSkillsDemandSkill() {
     suppliers,
     supplierTotal,
     supplierPage,
+    supplierMunicipality,
     isLoadingSuppliers,
     suppliersError,
   } = storeToRefs(store)
@@ -46,17 +51,12 @@ export function useSkillsDemandSkill() {
     return Number.isInteger(id) && id > 0 ? id : null
   })
 
-  // The skill, or where / who is counted, changed: everything on the page is counted again
+  // The skill, or who is counted, changed: everything on the page is counted again
   watch(
-    () => [skillId.value, filters.value.municipality, filters.value.supply] as const,
+    () => [skillId.value, filters.value.supply] as const,
     ([id]) => id && void store.openSkill(id),
     { immediate: true },
   )
-
-  const municipalityOptions = [
-    { value: 'ALL', label: 'All Municipalities' },
-    ...LANDING_MUNICIPALITIES.map((municipality) => ({ value: municipality.name, label: municipality.name })),
-  ]
 
   const recommendation = computed(() => (skill.value ? trainingRecommendation(skill.value) : ''))
   const stats = computed(() =>
@@ -64,17 +64,40 @@ export function useSkillsDemandSkill() {
       ? [
           { label: 'Demand', value: skill.value.demand_slots, hint: `${skill.value.vacancies} vacanc${skill.value.vacancies === 1 ? 'y' : 'ies'}`, alert: false },
           {
-            label: 'Supply',
+            label: 'Supply (Agusan del Sur)',
             value: demandSupplyTotal(skill.value),
             hint: skill.value.trained > 0 ? `${skill.value.trained.toLocaleString()} from trainings` : 'jobseekers',
             alert: false,
           },
-          { label: 'Gap', value: skill.value.gap, hint: 'people to train', alert: skill.value.gap > 0 },
+          { label: 'Gap (where needed)', value: skill.value.gap, hint: 'not covered locally', alert: skill.value.gap > 0 },
         ]
       : [],
   )
 
+  // ─── By municipality ───
+  /** What PESO can do in a municipality, from its own gap / surplus */
+  function placeAction(place: SkillsDemandPlace): { label: string; tone: 'gap' | 'surplus' | 'even' } {
+    if (place.gap > 0) return { label: `Short ${place.gap.toLocaleString()}`, tone: 'gap' }
+    if (place.surplus > 0) return { label: `Can supply ${place.surplus.toLocaleString()}`, tone: 'surplus' }
+    return { label: 'Covered', tone: 'even' }
+  }
+
+  /** A municipality's row shows its jobseekers below */
+  function showPlaceSuppliers(place: SkillsDemandPlace) {
+    supplierMunicipality.value = place.place
+  }
+
   // ─── Supply: the jobseekers, one page at a time ───
+  const supplierMunicipalityOptions = computed(() => [
+    { value: 'NEEDED', label: 'Where needed' },
+    { value: 'ALL', label: 'All of Agusan del Sur' },
+    ...places.value
+      .filter((place) => place.supply + place.trained > 0)
+      .map((place) => ({ value: place.place, label: place.place, description: `${(place.supply + place.trained).toLocaleString()} with the skill` })),
+  ])
+
+  watch(supplierMunicipality, () => skillId.value && void store.loadSuppliers(skillId.value, 0))
+
   const supplierPageCount = computed(() => Math.max(1, Math.ceil(supplierTotal.value / SKILLS_TRAINING_PAGE_SIZE)))
   const canPreviousSuppliers = computed(() => supplierPage.value > 0)
   const canNextSuppliers = computed(() => supplierPage.value + 1 < supplierPageCount.value)
@@ -102,14 +125,20 @@ export function useSkillsDemandSkill() {
 
   return {
     filters,
-    municipalityOptions,
     supplyOptions: SUPPLY_OPTIONS,
     skill,
     isLoadingSkill,
     skillError,
     recommendation,
     stats,
+    places,
+    isLoadingPlaces,
+    placesError,
+    placeAction,
+    showPlaceSuppliers,
     suppliers,
+    supplierMunicipality,
+    supplierMunicipalityOptions,
     isLoadingSuppliers,
     suppliersError,
     canPreviousSuppliers,

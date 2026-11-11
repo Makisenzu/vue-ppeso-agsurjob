@@ -51,7 +51,6 @@ const {
           Trainings Conducted
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Skills Demand</h1>
-        <p class="text-sm text-muted-foreground">Vacancy skill demand versus jobseeker supply.</p>
       </div>
       <Button variant="outline" size="sm" class="cursor-pointer self-start sm:self-auto" :disabled="isLoading" @click="reload">
         <RefreshCw :class="['size-4 shrink-0', isLoading && 'animate-spin']" />

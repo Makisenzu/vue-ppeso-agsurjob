@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -181,7 +181,6 @@ const {
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="space-y-1">
               <CardTitle class="text-base">Participants</CardTitle>
-              <CardDescription>Update each participant's status as it changes.</CardDescription>
             </div>
             <Button size="sm" class="cursor-pointer self-start sm:self-auto" @click="openAddDialog">
               <UserPlus class="size-4 shrink-0" />
@@ -316,7 +315,7 @@ const {
       <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
         <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
           <SheetTitle>{{ trainingFormTitle }}</SheetTitle>
-          <SheetDescription>A training conducted with a training agency.</SheetDescription>
+          <SheetDescription class="sr-only">The training's title, skills, agency, dates and venue.</SheetDescription>
         </SheetHeader>
 
         <form class="contents" novalidate @submit.prevent="submitTraining">
@@ -363,7 +362,6 @@ const {
                 </li>
               </ul>
               <p v-if="trainingForm.errors.skillIds" class="text-sm text-destructive">{{ trainingForm.errors.skillIds }}</p>
-              <p v-else class="text-xs text-muted-foreground">Add every skill the training covers.</p>
             </div>
 
             <div class="grid gap-2">
@@ -443,7 +441,7 @@ const {
       <DialogContent class="flex max-h-[90vh] flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Participants</DialogTitle>
-          <DialogDescription>Pick from the applicants in Entry of Applicants.</DialogDescription>
+          <DialogDescription class="sr-only">Pick applicants from Entry of Applicants.</DialogDescription>
         </DialogHeader>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">

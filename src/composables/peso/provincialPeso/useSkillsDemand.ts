@@ -4,13 +4,13 @@ import { storeToRefs } from 'pinia'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { getCoreRowModel, useVueTable } from '@tanstack/vue-table'
-import { Eye, Plus } from '@lucide/vue'
+import { Eye } from '@lucide/vue'
 import type { SwipeAction } from '@/components/SwipeRow.vue'
 import type { SwipeCard } from '@/types/common/swipeCard'
 import { useSkillsDemandStore } from '@/stores/peso/provincialPeso/skillsDemandStore'
 import { rowActionButton } from '@/composables/peso/provincialPeso/useSkillsTrainingTable'
 import { LANDING_MUNICIPALITIES } from '@/types/common/siteContent'
-import { SKILLS_TRAINING_PAGE_SIZE, demandSupplyTotal } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
+import { SKILLS_TRAINING_PAGE_SIZE, demandSupplyTotal, formatPlaces } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 import type { SkillsDemandRow } from '@/types/peso/provincialPeso/skillsTraining'
 
 const SUPPLY_OPTIONS = [
@@ -23,8 +23,9 @@ const GAP_OPTIONS = [
 ]
 
 /**
- * Skills Training → Skills Demand: for each skill open vacancies require, the slots (demand) against the
- * jobseekers who have it (supply). The gap is the training to conduct. Counted in SQL, one page at a time.
+ * Skills Training → Skills Demand: for each skill open vacancies require, the slots (demand), the jobseekers
+ * across Agusan del Sur who have it (supply), and the shortage where it is needed (each municipality's demand
+ * against its own jobseekers). Counted in SQL, one page at a time.
  */
 export function useSkillsDemand() {
   const router = useRouter()
@@ -80,7 +81,7 @@ export function useSkillsDemand() {
     { label: 'Skills in demand', value: summary.value.skills_in_demand },
     { label: 'Skills with a gap', value: summary.value.skills_with_gap },
     { label: 'Slots needing a skill', value: summary.value.total_demand },
-    { label: 'People to train', value: summary.value.total_gap },
+    { label: 'Short where needed', value: summary.value.total_gap },
   ])
 
   /** A skill opens on its own page: who has it, the vacancies that need it, the trainings conducted */
@@ -88,14 +89,8 @@ export function useSkillsDemand() {
     void router.push({ name: 'provincial-peso-skills-demand-skill', params: { skillId: String(row.skill_id) } })
   }
 
-  /** Trainings Conducted opens its Add Training form with the skill filled in */
-  function addTrainingFor(row: SkillsDemandRow) {
-    void router.push({ name: 'provincial-peso-skills-training', query: { skill: String(row.skill_id) } })
-  }
-
   const rowActions = (row: SkillsDemandRow) => ({
     view: { label: 'View skill details', icon: Eye, onSelect: () => viewSkill(row) },
-    add: { label: 'Add a training for this skill', icon: Plus, onSelect: () => addTrainingFor(row) },
   })
 
   // ─── Table ───
@@ -125,7 +120,7 @@ export function useSkillsDemand() {
     },
     {
       id: 'supply',
-      header: rightHeader('Supply'),
+      header: rightHeader('Supply (Agusan del Sur)'),
       cell: ({ row }) =>
         h('div', { class: 'grid justify-items-end gap-0.5' }, [
           h('span', { class: 'text-sm tabular-nums' }, demandSupplyTotal(row.original).toLocaleString()),
@@ -136,31 +131,21 @@ export function useSkillsDemand() {
     },
     {
       id: 'gap',
-      header: rightHeader('Gap'),
+      header: rightHeader('Gap (where needed)'),
       cell: ({ row }) => numberCell(row.original.gap, row.original.gap > 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'),
     },
     {
       id: 'places',
       header: 'Where needed',
-      cell: ({ row }) => {
-        const places = row.original.top_places.join(', ')
-        return h('span', { class: 'block max-w-[240px] truncate text-sm', title: places }, places || '—')
-      },
-    },
-    {
-      id: 'trainings',
-      header: rightHeader('Trainings'),
-      cell: ({ row }) => numberCell(row.original.trainings, row.original.trainings === 0 ? 'text-muted-foreground' : ''),
+      cell: ({ row }) =>
+        h('span', { class: 'block max-w-[240px] truncate text-sm', title: row.original.places.join(', ') }, formatPlaces(row.original.places)),
     },
     {
       id: 'actions',
       header: () => h('div', { class: 'text-right' }, 'Actions'),
       cell: ({ row }) => {
         const a = rowActions(row.original)
-        return h('div', { class: 'flex items-center justify-end gap-1' }, [
-          rowActionButton(a.view.label, a.view.icon, a.view.onSelect),
-          rowActionButton(a.add.label, a.add.icon, a.add.onSelect),
-        ])
+        return h('div', { class: 'flex items-center justify-end gap-1' }, [rowActionButton(a.view.label, a.view.icon, a.view.onSelect)])
       },
     },
   ]
@@ -189,15 +174,12 @@ export function useSkillsDemand() {
   // ─── Mobile cards (DESIGN.md §13.2) ───
   const getCard = (row: SkillsDemandRow): SwipeCard => ({
     title: row.skill_name,
-    subtitle: `Demand ${row.demand_slots.toLocaleString()} · Supply ${demandSupplyTotal(row).toLocaleString()} · Gap ${row.gap.toLocaleString()}`,
+    subtitle: `Demand ${row.demand_slots.toLocaleString()} · Supply ${demandSupplyTotal(row).toLocaleString()} · Gap ${row.gap.toLocaleString()} · ${formatPlaces(row.places, 1)}`,
   })
 
   function getSwipeActions(row: SkillsDemandRow): SwipeAction[] {
     const a = rowActions(row)
-    return [
-      { id: 'add', label: 'Train', icon: a.add.icon, onSelect: a.add.onSelect, dismiss: false },
-      { id: 'view', label: 'View', icon: a.view.icon, onSelect: a.view.onSelect, dismiss: false },
-    ]
+    return [{ id: 'view', label: 'View', icon: a.view.icon, onSelect: a.view.onSelect, dismiss: false }]
   }
 
   const goToTrainings = () => router.push({ name: 'provincial-peso-skills-training' })

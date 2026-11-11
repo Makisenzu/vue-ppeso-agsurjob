@@ -4,6 +4,7 @@ import type {
   Paged,
   ParticipantStatusFormValues,
   SkillsDemandFilters,
+  SkillsDemandPlace,
   SkillsDemandRow,
   SkillsDemandSummary,
   SkillsDemandSupplier,
@@ -199,7 +200,7 @@ export const skillsTrainingService = {
     })
     if (error) throw new Error(error.message || 'Could not load the skills demand.')
     const result = toPage<SkillsDemandRow>(data)
-    return { ...result, rows: result.rows.map((row) => ({ ...row, top_places: row.top_places ?? [] })) }
+    return { ...result, rows: result.rows.map((row) => ({ ...row, places: row.places ?? [] })) }
   },
 
   /** One skill's demand / supply / gap, counted the same way as the table; null when nothing requires it */
@@ -213,7 +214,7 @@ export const skillsTrainingService = {
     })
     if (error) throw new Error(error.message || 'Could not load the skill.')
     const row = toPage<SkillsDemandRow>(data).rows[0]
-    return row ? { ...row, top_places: row.top_places ?? [] } : null
+    return row ? { ...row, places: row.places ?? [] } : null
   },
 
   async fetchDemandSummary(municipality: string, supply: SkillsDemandSupply): Promise<SkillsDemandSummary> {
@@ -254,6 +255,13 @@ export const skillsTrainingService = {
     })
     if (error) throw new Error(error.message || 'Could not load the jobseekers.')
     return toPage<SkillsDemandSupplier>(data)
+  },
+
+  /** One skill by municipality: gap and surplus of each (bounded by the province's municipalities) */
+  async fetchDemandPlaces(skillId: number, supply: SkillsDemandSupply): Promise<SkillsDemandPlace[]> {
+    const { data, error } = await esmdd().rpc('skills_demand_places', { p_skill_id: skillId, p_supply: supply })
+    if (error) throw new Error(error.message || 'Could not load the municipalities.')
+    return (data ?? []) as SkillsDemandPlace[]
   },
 
   /** Trainings already conducted for a skill (newest first) */

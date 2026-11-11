@@ -76,7 +76,6 @@ const {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="space-y-1">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Trainings Conducted</h1>
-        <p class="text-sm text-muted-foreground">Skills trainings and where their participants are now.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" class="cursor-pointer" @click="goToDemand">Skills Demand</Button>
@@ -226,7 +225,7 @@ const {
       <SheetContent class="flex h-full flex-col p-0 sm:max-w-lg">
         <SheetHeader class="shrink-0 px-6 pt-6 pb-2">
           <SheetTitle>{{ trainingFormTitle }}</SheetTitle>
-          <SheetDescription>A training conducted with a training agency.</SheetDescription>
+          <SheetDescription class="sr-only">The training's title, skills, agency, dates and venue.</SheetDescription>
         </SheetHeader>
 
         <form class="contents" novalidate @submit.prevent="submitTraining">
@@ -273,7 +272,6 @@ const {
                 </li>
               </ul>
               <p v-if="trainingForm.errors.skillIds" class="text-sm text-destructive">{{ trainingForm.errors.skillIds }}</p>
-              <p v-else class="text-xs text-muted-foreground">Add every skill the training covers.</p>
             </div>
 
             <div class="grid gap-2">

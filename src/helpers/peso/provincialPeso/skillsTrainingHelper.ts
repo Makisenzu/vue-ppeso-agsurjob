@@ -133,11 +133,27 @@ export function validateStatusForm(values: ParticipantStatusFormValues, today: s
 
 // ─── Skills Demand ───
 
-/** "Conduct training for about 28 people in Bayugan City, San Francisco." */
+/**
+ * What to do about a skill, from the province's supply against the municipalities' own gaps:
+ * every municipality covered, or refer people from municipalities with a surplus, or train the rest.
+ */
 export function trainingRecommendation(row: SkillsDemandRow): string {
-  if (row.gap <= 0) return 'Enough jobseekers have this skill.'
-  const places = row.top_places.filter((place) => place !== 'Unspecified')
-  return `Train about ${row.gap.toLocaleString()} ${row.gap === 1 ? 'person' : 'people'}${places.length ? ` for ${places.join(', ')}` : ''}.`
+  if (row.gap <= 0) return 'Each municipality that needs it has enough jobseekers.'
+  const shortfall = Math.max(row.demand_slots - demandSupplyTotal(row), 0)
+  const people = (count: number) => `${count.toLocaleString()} ${count === 1 ? 'person' : 'people'}`
+  if (shortfall === 0) return `Short of ${people(row.gap)} where needed; refer jobseekers from other municipalities.`
+  if (shortfall < row.gap) {
+    return `Train about ${people(shortfall)}; refer the other ${row.gap - shortfall} from other municipalities.`
+  }
+  const places = row.places.filter((place) => place !== 'Unspecified').slice(0, 3)
+  return `Train about ${people(row.gap)}${places.length ? ` in ${places.join(', ')}` : ''}.`
+}
+
+/** "Bayugan, San Francisco +2" */
+export function formatPlaces(places: string[], max = 2): string {
+  if (places.length === 0) return '—'
+  const shown = places.slice(0, max).join(', ')
+  return places.length > max ? `${shown} +${places.length - max}` : shown
 }
 
 /** Supply as shown: record holders plus training completers */
