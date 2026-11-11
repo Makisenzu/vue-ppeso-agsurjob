@@ -16,14 +16,10 @@
  */
 
 export interface GipIdCardData {
-  /** Shown in quotes and capitals: “KATE” */
   nickname: string
-  /** CHARLENE KATE A. CABUSAS */
   fullName: string
   position: string
-  /** The office's code when it has one (PPESO), else its name */
   office: string
-  /** Photo URL (profile picture or an uploaded file's data URL); empty leaves the frame white */
   photoUrl: string | null
 }
 
