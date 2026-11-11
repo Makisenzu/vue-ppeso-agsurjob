@@ -31,6 +31,10 @@ const {
   searchQuery,
   programFilter,
   programFilterOptions,
+  termFilter,
+  termFilterOptions,
+  periodFilter,
+  periodFilterOptions,
   hasFilters,
   clearFilters,
   table,
@@ -43,13 +47,15 @@ const {
   generate,
   viewedRecord,
   isViewOpen,
+  viewPages,
+  isViewRendering,
+  viewError,
+  retryView,
   pendingDelete,
   isDeleteDialogOpen,
   isDeleting,
   requestDelete,
   confirmDelete,
-  formatRate,
-  formatDisplayDateTime,
   programBadgeClass,
   goBack,
 } = useGipAppointmentRecords()
@@ -65,7 +71,6 @@ const {
           Back to Interns
         </Button>
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Appointments</h1>
-        <p class="text-sm text-muted-foreground">Saved appointment records.</p>
       </div>
       <Button variant="outline" size="sm" class="self-start cursor-pointer sm:self-auto" :disabled="isLoading" @click="load">
         <RefreshCw :class="['size-4 shrink-0', isLoading && 'animate-spin']" />
@@ -81,8 +86,8 @@ const {
 
     <Card class="gap-0 py-0">
       <CardHeader class="gap-3 border-b py-4 [.border-b]:pb-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div class="relative flex-1">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div class="relative sm:col-span-2">
             <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               v-model="searchQuery"
@@ -104,18 +109,30 @@ const {
           <SearchSelect
             v-model="programFilter"
             :options="programFilterOptions"
-            size="sm"
-            class="w-full sm:w-44"
+            class="w-full"
             aria-label="Filter by program"
+          />
+          <!-- Records listing an intern matching both: e.g. a renewal, in that period -->
+          <SearchSelect
+            v-model="termFilter"
+            :options="termFilterOptions"
+            class="w-full"
+            aria-label="Filter by appointment term"
+          />
+          <SearchSelect
+            v-model="periodFilter"
+            :options="periodFilterOptions"
+            class="w-full"
+            aria-label="Filter by employment period"
           />
         </div>
       </CardHeader>
 
-      <CardContent class="grid gap-4 p-4">
+      <CardContent class="grid gap-0 p-0">
         <!-- Bulk delete -->
         <div
           v-if="selectedRecords.length > 0"
-          class="flex flex-col gap-2 rounded-md border bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+          class="flex flex-col gap-2 border-b bg-muted/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <div class="flex items-center gap-2 text-sm">
             <span class="font-medium">{{ selectedRecords.length }} selected</span>
@@ -130,7 +147,7 @@ const {
 
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
         <SwipeCardList
-          class="md:hidden"
+          class="m-4 md:hidden"
           :items="table.getRowModel().rows"
           :item-key="(row) => row.id"
           :card="(row) => getRecordCard(row.original)"
@@ -149,7 +166,7 @@ const {
         </SwipeCardList>
 
         <!-- Desktop: table -->
-        <div class="hidden overflow-x-auto rounded-md border md:block">
+        <div class="hidden overflow-x-auto border-b md:block">
           <Table>
             <TableHeader>
               <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
@@ -184,7 +201,7 @@ const {
           </Table>
         </div>
 
-        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col-reverse gap-3 px-4 pb-4 sm:flex-row sm:items-center sm:justify-between md:pt-4">
           <p class="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
             {{ filteredRecords.length }} record{{ filteredRecords.length === 1 ? '' : 's' }}
           </p>
@@ -202,7 +219,7 @@ const {
 
     <!-- ─── View a saved record ─── -->
     <Dialog v-model:open="isViewOpen">
-      <DialogContent v-if="viewedRecord" class="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent v-if="viewedRecord" class="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <div class="flex items-center justify-between gap-2 pr-8">
             <DialogTitle class="flex flex-wrap items-center gap-2">
@@ -239,55 +256,36 @@ const {
             </div>
           </div>
           <DialogDescription>
-            Saved {{ formatDisplayDateTime(viewedRecord.created_at) }} · {{ viewedRecord.intern_count }}
-            intern{{ viewedRecord.intern_count === 1 ? '' : 's' }}
+            {{ viewedRecord.intern_count }} intern{{ viewedRecord.intern_count === 1 ? '' : 's' }}
           </DialogDescription>
         </DialogHeader>
 
+        <!-- The record as its printable form (the pages the PDF has) -->
         <div class="grid gap-4">
-          <div class="grid gap-1 text-sm sm:grid-cols-2">
-            <p><span class="text-muted-foreground">Source of funds:</span> {{ viewedRecord.source_of_funds }}</p>
-            <p><span class="text-muted-foreground">Designation:</span> {{ viewedRecord.designation }}</p>
-          </div>
-
-          <div class="max-h-72 overflow-auto rounded-md border">
-            <table class="w-full text-sm">
-              <thead class="sticky top-0 bg-muted text-xs text-muted-foreground">
-                <tr>
-                  <th class="px-3 py-2 text-left font-medium">No.</th>
-                  <th class="px-3 py-2 text-left font-medium">Name</th>
-                  <th class="hidden px-3 py-2 text-left font-medium sm:table-cell">Address</th>
-                  <th class="px-3 py-2 text-right font-medium">Rate</th>
-                  <th class="px-3 py-2 text-left font-medium">Period</th>
-                  <th class="hidden px-3 py-2 text-left font-medium md:table-cell">Area of assignment</th>
-                  <th class="px-3 py-2 text-left font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(entry, index) in viewedRecord.entries" :key="`${entry.internId}-${index}`" class="border-t">
-                  <td class="px-3 py-2 tabular-nums text-muted-foreground">{{ index + 1 }}</td>
-                  <td class="px-3 py-2 font-medium">{{ entry.name }}</td>
-                  <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell">{{ entry.address }}</td>
-                  <td class="px-3 py-2 text-right tabular-nums">{{ formatRate(entry.rate) }}</td>
-                  <td class="px-3 py-2 text-xs whitespace-nowrap">{{ entry.periodStart }} –<br>{{ entry.periodEnd }}</td>
-                  <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">{{ entry.areaOfAssignment }}</td>
-                  <td class="px-3 py-2 text-xs whitespace-nowrap">{{ entry.currentStatus }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="grid gap-3 text-sm sm:grid-cols-4">
-            <div v-for="signatory in viewedRecord.signatories" :key="signatory.label">
-              <p class="text-xs text-muted-foreground">{{ signatory.label }}</p>
-              <p class="font-semibold uppercase">{{ signatory.name }}</p>
-              <p class="text-xs">{{ signatory.position }}</p>
+          <Alert v-if="viewError" variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Couldn't show the record</AlertTitle>
+            <AlertDescription>
+              {{ viewError }}
+              <Button variant="link" size="sm" class="h-auto cursor-pointer p-0" @click="retryView">Try again</Button>
+            </AlertDescription>
+          </Alert>
+          <Skeleton v-else-if="isViewRendering || viewPages.length === 0" class="aspect-[297/210] w-full rounded-md" />
+          <div v-else class="overflow-x-auto rounded-md border bg-muted/40 p-2 sm:p-4">
+            <div class="grid min-w-[720px] gap-4">
+              <img
+                v-for="(page, index) in viewPages"
+                :key="index"
+                :src="page"
+                :alt="`Appointment record, page ${index + 1} of ${viewPages.length}`"
+                class="block h-auto w-full border bg-white shadow-sm"
+              >
             </div>
           </div>
         </div>
 
         <DialogFooter class="gap-2">
-          <Button variant="outline" class="cursor-pointer" :disabled="isDeleting" @click="requestDelete([viewedRecord])">
+          <Button variant="destructive" class="cursor-pointer" :disabled="isDeleting" @click="requestDelete([viewedRecord])">
             <Trash2 class="size-4 shrink-0" />
             Delete
           </Button>

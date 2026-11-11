@@ -157,9 +157,25 @@ const PAGE_HEIGHT_PX = 1123
  */
 export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF> {
   const landscape = doc.orientation === 'landscape'
+  const orientation = landscape ? 'landscape' : 'portrait'
+  const canvases = await renderPaginatedCanvases(doc)
+  const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true })
+  for (const [index, canvas] of canvases.entries()) {
+    if (index > 0) pdf.addPage('a4', orientation)
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, landscape ? 297 : 210, landscape ? 210 : 297, undefined, 'FAST')
+  }
+  return pdf
+}
+
+/** The same pages as renderPaginatedPdf, as images (one data URL per page) for showing the form on screen */
+export async function renderPaginatedImages(doc: PaginatedDocument): Promise<string[]> {
+  return (await renderPaginatedCanvases(doc)).map((canvas) => canvas.toDataURL('image/png'))
+}
+
+async function renderPaginatedCanvases(doc: PaginatedDocument): Promise<HTMLCanvasElement[]> {
+  const landscape = doc.orientation === 'landscape'
   const pageWidth = landscape ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX
   const pageHeight = landscape ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX
-  const orientation = landscape ? 'landscape' : 'portrait'
   const iframe = document.createElement('iframe')
   Object.assign(iframe.style, {
     position: 'fixed',
@@ -266,22 +282,22 @@ export async function renderPaginatedPdf(doc: PaginatedDocument): Promise<jsPDF>
     if (iframeDoc.fonts) await iframeDoc.fonts.ready
     await new Promise((resolve) => setTimeout(resolve, 100))
 
-    const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true })
-    for (const [index, page] of pages.entries()) {
-      const canvas = await html2canvas(page, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: pageWidth,
-        height: pageHeight,
-        windowWidth: pageWidth + 40,
-      })
-      if (index > 0) pdf.addPage('a4', orientation)
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, landscape ? 297 : 210, landscape ? 210 : 297, undefined, 'FAST')
+    const canvases: HTMLCanvasElement[] = []
+    for (const page of pages) {
+      canvases.push(
+        await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: pageWidth,
+          height: pageHeight,
+          windowWidth: pageWidth + 40,
+        }),
+      )
     }
-    return pdf
+    return canvases
   } finally {
     if (document.body.contains(iframe)) document.body.removeChild(iframe)
   }

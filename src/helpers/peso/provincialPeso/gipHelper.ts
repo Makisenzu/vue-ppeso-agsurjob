@@ -634,26 +634,8 @@ export function computeLpiiBreakdown(records: GipInternRecord[]): {
 }
 
 // ─── Extract Unique Batch Years ───
-/** Every appointment of an intern: the history, or just the current one when there is no history */
-function appointmentsOf(intern: GipInternRecord): GipAppointmentRecord[] {
-  if (intern.appointmentHistory?.length) return intern.appointmentHistory
-  return intern.currentAppointment ? [intern.currentAppointment] : []
-}
-
-/** Filter value of an appointment period: "YYYY-MM-DD|YYYY-MM-DD" */
-export function appointmentPeriodKey(appointment: Pick<GipAppointmentRecord, 'startDate' | 'endDate'>): string {
-  return `${appointment.startDate}|${appointment.endDate}`
-}
-
-/** "1st", "2nd", "3rd", "4th", … "11th", "12th", "13th", "21st" */
-export function formatOrdinal(n: number): string {
-  const lastTwo = n % 100
-  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`
-  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
-}
-
 /**
- * Appointment period in month names for the GIP Records filter (asked for over MM/DD/YYYY there):
+ * Appointment period in month names for the GIP Tracker (asked for over MM/DD/YYYY there):
  * "January – June 2026", "December 2025 – May 2026", "March 2026". With `withDays` (two periods
  * that would read the same): "Jan 5 – Jun 30, 2026".
  */
@@ -671,37 +653,6 @@ export function formatAppointmentPeriodLabel(startDate: string, endDate: string,
   return sameYear
     ? `${format(start, 'MMMM')} – ${format(end, 'MMMM yyyy')}`
     : `${format(start, 'MMMM yyyy')} – ${format(end, 'MMMM yyyy')}`
-}
-
-/** Appointment terms present in the records (1, 2, 3, …), ascending */
-export function extractAppointmentTerms(records: GipInternRecord[]): number[] {
-  const terms = new Set<number>()
-  for (const r of records) for (const a of appointmentsOf(r)) if (a.termNumber) terms.add(a.termNumber)
-  return Array.from(terms).sort((a, b) => a - b)
-}
-
-/** Distinct appointment periods in the records, newest start first */
-export function extractAppointmentPeriods(records: GipInternRecord[]): Array<{ key: string; startDate: string; endDate: string }> {
-  const periods = new Map<string, { key: string; startDate: string; endDate: string }>()
-  for (const r of records) {
-    for (const a of appointmentsOf(r)) {
-      if (!a.startDate || !a.endDate) continue
-      const key = appointmentPeriodKey(a)
-      if (!periods.has(key)) periods.set(key, { key, startDate: a.startDate, endDate: a.endDate })
-    }
-  }
-  return Array.from(periods.values()).sort((a, b) => b.startDate.localeCompare(a.startDate) || b.endDate.localeCompare(a.endDate))
-}
-
-/**
- * Term and period filters of GIP Records: the intern has one appointment matching both ('ALL' matches
- * any), so "2nd" + a period lists the interns whose 2nd appointment ran in that period.
- */
-export function matchesAppointmentFilters(intern: GipInternRecord, term: string, period: string): boolean {
-  if (term === 'ALL' && period === 'ALL') return true
-  return appointmentsOf(intern).some(
-    (a) => (term === 'ALL' || String(a.termNumber) === term) && (period === 'ALL' || appointmentPeriodKey(a) === period)
-  )
 }
 
 export function extractAvailableYears(records: GipInternRecord[]): number[] {

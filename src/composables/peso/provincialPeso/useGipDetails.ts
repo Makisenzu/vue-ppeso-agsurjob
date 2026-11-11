@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { Eye, Pencil, RefreshCw, Trash2 } from '@lucide/vue'
@@ -10,7 +10,6 @@ import {
   LPII_CONFIG,
   donutTooltipTriggers,
   getInitials,
-  formatOrdinal,
   formatAppointmentPeriodLabel,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 
@@ -30,15 +29,10 @@ export function useGipDetails() {
     applicants,
     searchQuery,
     selectedProgram,
-    selectedLpiiFilter,
     selectedYearFilter,
     selectedGenderFilter,
     selectedStatusFilter,
     selectedAppointmentFilter,
-    selectedTermFilter,
-    selectedPeriodFilter,
-    availableTerms,
-    availablePeriods,
     currentPage,
     pageSize,
     availableYears,
@@ -54,6 +48,22 @@ export function useGipDetails() {
     expiredAppointmentsCount,
     pendingDecisionCount,
   } = storeToRefs(store)
+
+  // The "appointments pending decision" notice shows for 5 seconds each time there is something pending
+  // (the page keeps it up while its "View Pending Interns" filter is on, so the list can be switched back)
+  const PENDING_NOTICE_MS = 5000
+  const showPendingNotice = ref(false)
+  let pendingNoticeTimer: ReturnType<typeof setTimeout> | undefined
+  watch(
+    () => pendingDecisionCount.value > 0,
+    (hasPending) => {
+      clearTimeout(pendingNoticeTimer)
+      showPendingNotice.value = hasPending
+      if (hasPending) pendingNoticeTimer = setTimeout(() => (showPendingNotice.value = false), PENDING_NOTICE_MS)
+    },
+    { immediate: true },
+  )
+  onBeforeUnmount(() => clearTimeout(pendingNoticeTimer))
 
   const {
     fetchDetailsData,
@@ -253,32 +263,12 @@ export function useGipDetails() {
     ...availableYears.value.map((year) => ({ value: year.toString(), label: `Batch ${year}` })),
   ])
 
-  // Appointment term & period filters (SearchSelect), built from the loaded interns
-  const termFilterOptions = computed(() => [
-    { value: 'ALL', label: 'All Terms' },
-    ...availableTerms.value.map((term) => ({ value: String(term), label: `${formatOrdinal(term)} Appointment` })),
-  ])
   /** Table's Appointment Period: the current appointment in month names ("Jan 5 – Jun 30, 2026") */
   function formatInternPeriod(intern: GipInternRecord): string {
     const appointment = intern.currentAppointment
     if (!appointment?.startDate || !appointment.endDate) return intern.period
     return formatAppointmentPeriodLabel(appointment.startDate, appointment.endDate, true)
   }
-
-  // Month names ("January – June 2026"); periods that would read the same also show their days
-  const periodFilterOptions = computed(() => {
-    const labels = availablePeriods.value.map((period) => formatAppointmentPeriodLabel(period.startDate, period.endDate))
-    return [
-      { value: 'ALL', label: 'All Periods' },
-      ...availablePeriods.value.map((period, index) => ({
-        value: period.key,
-        label:
-          labels.indexOf(labels[index]!) === labels.lastIndexOf(labels[index]!)
-            ? labels[index]!
-            : formatAppointmentPeriodLabel(period.startDate, period.endDate, true),
-      })),
-    ]
-  })
 
   onMounted(() => {
     fetchDetailsData()
@@ -299,11 +289,7 @@ export function useGipDetails() {
     totalPages,
     availableYears,
     yearFilterOptions,
-    termFilterOptions,
-    periodFilterOptions,
     formatInternPeriod,
-    selectedTermFilter,
-    selectedPeriodFilter,
     isAddInternModalOpen,
     isLoading,
     isSubmitting,
@@ -313,7 +299,6 @@ export function useGipDetails() {
     searchQuery,
     selectedProgram,
     programTab,
-    selectedLpiiFilter,
     selectedYearFilter,
     selectedGenderFilter,
     selectedStatusFilter,
@@ -326,6 +311,7 @@ export function useGipDetails() {
     expiringAppointmentsCount,
     expiredAppointmentsCount,
     pendingDecisionCount,
+    showPendingNotice,
 
     // Applicants pool
     applicants,

@@ -61,15 +61,10 @@ const {
   paginatedInterns,
   totalPages,
   yearFilterOptions,
-  termFilterOptions,
-  periodFilterOptions,
   formatInternPeriod,
-  selectedTermFilter,
-  selectedPeriodFilter,
   isLoading,
   searchQuery,
   programTab,
-  selectedLpiiFilter,
   selectedYearFilter,
   selectedGenderFilter,
   selectedStatusFilter,
@@ -98,6 +93,7 @@ const {
   expiringAppointmentsCount,
   expiredAppointmentsCount,
   pendingDecisionCount,
+  showPendingNotice,
 
   // Delete modal state & actions
   internToDelete,
@@ -167,7 +163,7 @@ const programTabs = [
           <ArrowLeft class="size-4 shrink-0" />
           Back to Dashboard
         </Button>
-        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Records</h1>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Tracker</h1>
         <p class="text-sm text-muted-foreground">
           PGAS and DOLE interns, their deployments and appointments.
         </p>
@@ -236,7 +232,7 @@ const programTabs = [
     -->
 
     <!-- ─── Appointment Renewal Attention ─── -->
-    <Alert v-if="pendingDecisionCount > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
+    <Alert v-if="(showPendingNotice || selectedAppointmentFilter !== 'ALL') && pendingDecisionCount > 0" class="border-warning/40 bg-warning/10 *:[svg]:text-warning">
       <AlertTriangle />
       <AlertTitle>
         {{ pendingDecisionCount }} intern appointment{{ pendingDecisionCount > 1 ? 's' : '' }} pending Provincial PESO decision
@@ -301,7 +297,7 @@ const programTabs = [
         </div>
 
         <!-- Search & Filters -->
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div class="relative sm:col-span-2">
             <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -321,35 +317,6 @@ const programTabs = [
               <X class="size-4 shrink-0" />
             </Button>
           </div>
-
-          <SearchSelect
-            v-model="selectedAppointmentFilter"
-            :options="[{ value: 'ALL', label: 'All Appointments' }, { value: 'EXPIRING', label: 'Expiring Soon (≤ 30d)' }, { value: 'EXPIRED', label: 'Expired Terms' }, { value: 'ACTIVE', label: 'Active Appointments' }, { value: 'COMPLETED', label: 'Completed / Concluded' }]"
-            class="w-full"
-            aria-label="Filter by appointment term"
-          />
-
-          <!-- Interns with one appointment matching both: e.g. their 2nd appointment, in that period -->
-          <SearchSelect
-            v-model="selectedTermFilter"
-            :options="termFilterOptions"
-            class="w-full"
-            aria-label="Filter by appointment number"
-          />
-
-          <SearchSelect
-            v-model="selectedPeriodFilter"
-            :options="periodFilterOptions"
-            class="w-full"
-            aria-label="Filter by appointment period"
-          />
-
-          <SearchSelect
-            v-model="selectedLpiiFilter"
-            :options="[{ value: 'ALL', label: 'All LPII Zones' }, { value: 'LOWLAND', label: 'Lowland' }, { value: 'UPLAND', label: 'Upland' }, { value: 'WETLAND', label: 'Wetland' }]"
-            class="w-full"
-            aria-label="Filter by LPII zone"
-          />
 
           <SearchSelect
             v-model="selectedYearFilter"

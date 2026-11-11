@@ -1,3 +1,4 @@
+import { format, isValid, parse } from 'date-fns'
 import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ColumnDef, RowSelectionState, SortingState } from '@tanstack/vue-table'
@@ -12,11 +13,13 @@ import type { SwipeCard } from '@/types/common/swipeCard'
 import { gipAppointmentRecordService } from '@/services/peso/provincialPeso/gipAppointmentRecordService'
 import { privacyService } from '@/services/common/privacyService'
 import { useToastAlert } from '@/composables/common/useToastAlert'
-import { formatDisplayDate, formatDisplayDateTime } from '@/helpers/common/dateFormatHelper'
+import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
+import { formatAppointmentPeriodLabel } from '@/helpers/peso/provincialPeso/gipHelper'
 import {
   downloadGipAppointmentRecord,
-  formatRate,
   printGipAppointmentRecord,
+  renderGipAppointmentRecordPages,
+  type GipAppointmentRecordRow,
   type GipAppointmentRecordSettings,
 } from '@/helpers/peso/provincialPeso/gipAppointmentRecordHelper'
 import type { SavedGipAppointmentRecord } from '@/types/peso/provincialPeso/gipAppointmentRecord'
@@ -35,6 +38,22 @@ export const APPOINTMENT_PROGRAM_BADGE_CLASS: Record<SavedGipAppointmentRecord['
   PGAS: 'border-primary/30 bg-primary/10 text-primary',
   DOLE: 'border-info/30 bg-info/10 text-info',
   Mixed: 'border-warning/30 bg-warning/10 text-warning',
+}
+
+/** Appointment term of the listed interns: a first appointment or a renewal */
+export const APPOINTMENT_TERM_FILTERS = [
+  { value: 'ALL', label: 'All Terms' },
+  { value: 'New Enrollment', label: 'New Enrollment' },
+  { value: 'Renewal', label: 'Renewal' },
+] as const
+
+/** Filter value of an entry's employment period, as printed: "NOVEMBER 1, 2026|NOVEMBER 30, 2026" */
+const entryPeriodKey = (entry: GipAppointmentRecordRow) => `${entry.periodStart}|${entry.periodEnd}`
+
+/** "NOVEMBER 1, 2026" → "2026-11-01"; null when the printed date can't be read */
+function printedDateToIso(value: string): string | null {
+  const date = parse(value.trim(), 'MMMM d, yyyy', new Date())
+  return isValid(date) ? format(date, 'yyyy-MM-dd') : null
 }
 
 const errorMessageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback
@@ -85,11 +104,48 @@ export function useGipAppointmentRecords() {
   // ─── Filters ───
   const searchQuery = ref('')
   const programFilter = ref<string>('ALL')
+  /** Term ('New Enrollment' / 'Renewal') and employment period of the listed interns; 'ALL' for any */
+  const termFilter = ref<string>('ALL')
+  const periodFilter = ref<string>('ALL')
+
+  // Employment periods on the saved records, newest first, in month names ("Nov 1 – Nov 30, 2026")
+  const periodFilterOptions = computed(() => {
+    const periods = new Map<string, { label: string; sort: string }>()
+    for (const record of records.value) {
+      for (const entry of record.entries) {
+        const key = entryPeriodKey(entry)
+        if (!entry.periodStart || !entry.periodEnd || periods.has(key)) continue
+        const start = printedDateToIso(entry.periodStart)
+        const end = printedDateToIso(entry.periodEnd)
+        periods.set(key, {
+          label: start && end ? formatAppointmentPeriodLabel(start, end, true) : `${entry.periodStart} – ${entry.periodEnd}`,
+          sort: `${start ?? ''}|${end ?? ''}`,
+        })
+      }
+    }
+    return [
+      { value: 'ALL', label: 'All Periods' },
+      ...[...periods.entries()]
+        .sort(([, a], [, b]) => b.sort.localeCompare(a.sort))
+        .map(([value, { label }]) => ({ value, label })),
+    ]
+  })
 
   const filteredRecords = computed(() => {
     const q = searchQuery.value.trim().toLowerCase()
     return records.value.filter((record) => {
       if (programFilter.value !== 'ALL' && record.program !== programFilter.value) return false
+      // One listed intern matching both: e.g. a renewal, in that period
+      if (
+        (termFilter.value !== 'ALL' || periodFilter.value !== 'ALL') &&
+        !record.entries.some(
+          (e) =>
+            (termFilter.value === 'ALL' || e.currentStatus === termFilter.value) &&
+            (periodFilter.value === 'ALL' || entryPeriodKey(e) === periodFilter.value),
+        )
+      ) {
+        return false
+      }
       if (!q) return true
       return (
         record.source_of_funds.toLowerCase().includes(q) ||
@@ -102,11 +158,15 @@ export function useGipAppointmentRecords() {
       )
     })
   })
-  const hasFilters = computed(() => !!searchQuery.value.trim() || programFilter.value !== 'ALL')
+  const hasFilters = computed(
+    () => !!searchQuery.value.trim() || programFilter.value !== 'ALL' || termFilter.value !== 'ALL' || periodFilter.value !== 'ALL',
+  )
 
   function clearFilters() {
     searchQuery.value = ''
     programFilter.value = 'ALL'
+    termFilter.value = 'ALL'
+    periodFilter.value = 'ALL'
   }
 
   // ─── Actions ───
@@ -141,9 +201,33 @@ export function useGipAppointmentRecords() {
     },
   })
 
+  // The record is shown as its printable form: the same pages the PDF has, rendered as images
+  const viewPages = ref<string[]>([])
+  const isViewRendering = ref(false)
+  const viewError = ref<string | null>(null)
+
+  async function renderViewPages(record: SavedGipAppointmentRecord) {
+    viewPages.value = []
+    viewError.value = null
+    isViewRendering.value = true
+    try {
+      const pages = await renderGipAppointmentRecordPages(record.entries, settingsOf(record))
+      if (viewedRecord.value?.id === record.id) viewPages.value = pages
+    } catch (error) {
+      if (viewedRecord.value?.id === record.id) viewError.value = errorMessageOf(error, 'Could not show the appointment record.')
+    } finally {
+      if (viewedRecord.value?.id === record.id || viewedRecord.value === null) isViewRendering.value = false
+    }
+  }
+
   function viewRecord(record: SavedGipAppointmentRecord) {
     viewedRecord.value = record
+    void renderViewPages(record)
     void privacyService.logPersonalDataAccess('VIEW', AUDIT_TABLE, record.id)
+  }
+
+  const retryView = () => {
+    if (viewedRecord.value) void renderViewPages(viewedRecord.value)
   }
 
   // Delete (one or many)
@@ -227,12 +311,6 @@ export function useGipAppointmentRecords() {
         }),
     },
     {
-      id: 'saved',
-      accessorFn: (row) => row.created_at,
-      header: sortableHeader('Saved'),
-      cell: ({ row }) => h('span', { class: 'text-sm whitespace-nowrap tabular-nums' }, formatDisplayDateTime(row.original.created_at)),
-    },
-    {
       id: 'interns',
       accessorFn: (row) => row.intern_count,
       header: sortableHeader('Interns'),
@@ -282,7 +360,8 @@ export function useGipAppointmentRecords() {
     },
   ]
 
-  const sorting = ref<SortingState>([{ id: 'saved', desc: true }])
+  // Unsorted, the list keeps the service's order: newest saved first
+  const sorting = ref<SortingState>([])
   const rowSelection = ref<RowSelectionState>({})
 
   const table = useVueTable({
@@ -316,7 +395,7 @@ export function useGipAppointmentRecords() {
     rowSelection.value = {}
   }
 
-  watch([searchQuery, programFilter], () => {
+  watch([searchQuery, programFilter, termFilter, periodFilter], () => {
     clearSelection()
     table.setPageIndex(0)
   })
@@ -351,6 +430,10 @@ export function useGipAppointmentRecords() {
     searchQuery,
     programFilter,
     programFilterOptions: APPOINTMENT_PROGRAM_FILTERS,
+    termFilter,
+    termFilterOptions: APPOINTMENT_TERM_FILTERS,
+    periodFilter,
+    periodFilterOptions,
     hasFilters,
     clearFilters,
     table,
@@ -363,13 +446,15 @@ export function useGipAppointmentRecords() {
     generate,
     viewedRecord,
     isViewOpen,
+    viewPages,
+    isViewRendering,
+    viewError,
+    retryView,
     pendingDelete,
     isDeleteDialogOpen,
     isDeleting,
     requestDelete,
     confirmDelete,
-    formatRate,
-    formatDisplayDateTime,
     programBadgeClass: APPOINTMENT_PROGRAM_BADGE_CLASS,
     goBack,
   }

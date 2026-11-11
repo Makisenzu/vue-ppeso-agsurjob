@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import type { jsPDF } from 'jspdf'
-import { printPdf, renderPaginatedPdf, type PaginatedDocument } from '@/helpers/common/htmlPdfHelper'
+import { printPdf, renderPaginatedImages, renderPaginatedPdf, type PaginatedDocument } from '@/helpers/common/htmlPdfHelper'
 import type { GipAppointmentRecord, GipInternRecord } from '@/types/peso/provincialPeso/gip'
 
 /**
@@ -252,6 +252,14 @@ export function createGipAppointmentRecordPdf(
   settings: GipAppointmentRecordSettings,
 ): Promise<jsPDF> {
   return renderPaginatedPdf(buildDocument(rows, settings))
+}
+
+/** The printable form as page images, to show the record on screen exactly as it prints */
+export function renderGipAppointmentRecordPages(
+  rows: GipAppointmentRecordRow[],
+  settings: GipAppointmentRecordSettings,
+): Promise<string[]> {
+  return renderPaginatedImages(buildDocument(rows, settings))
 }
 
 /** "GIP_Appointment_Record_2026-11-10.pdf", or the intern's name when there is only one */

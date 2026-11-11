@@ -37,9 +37,6 @@ import {
   exportPriorityApplicantsCsv,
   extractApplicantAvailableYears,
   extractAvailableYears,
-  extractAppointmentTerms,
-  extractAppointmentPeriods,
-  matchesAppointmentFilters,
 } from '@/helpers/peso/provincialPeso/gipHelper'
 import { useToastAlert } from '@/composables/common/useToastAlert'
 
@@ -79,9 +76,6 @@ export const useGipStore = defineStore('gipStore', () => {
   const selectedGenderFilter = ref<string>('ALL')
   const selectedStatusFilter = ref<string>('ALL')
   const selectedAppointmentFilter = ref<string>('ALL')
-  /** Appointment term ('1', '2', …) and period ('YYYY-MM-DD|YYYY-MM-DD'); 'ALL' for any */
-  const selectedTermFilter = ref<string>('ALL')
-  const selectedPeriodFilter = ref<string>('ALL')
   const currentPage = ref<number>(1)
   const pageSize = ref<number>(8)
 
@@ -95,8 +89,6 @@ export const useGipStore = defineStore('gipStore', () => {
       selectedGenderFilter,
       selectedStatusFilter,
       selectedAppointmentFilter,
-      selectedTermFilter,
-      selectedPeriodFilter,
     ],
     () => {
       currentPage.value = 1
@@ -105,8 +97,6 @@ export const useGipStore = defineStore('gipStore', () => {
 
   // ─── Computed: Available Batch Years ───
   const availableYears = computed<number[]>(() => extractAvailableYears(interns.value))
-  const availableTerms = computed<number[]>(() => extractAppointmentTerms(interns.value))
-  const availablePeriods = computed(() => extractAppointmentPeriods(interns.value))
 
   // ─── Computed: Dashboard Totals ───
   const totalPgasYearly = computed(() => {
@@ -233,10 +223,6 @@ export const useGipStore = defineStore('gipStore', () => {
         if (selectedAppointmentFilter.value === 'COMPLETED' && intern.status !== 'Completed' && intern.status !== 'Hired') {
           return false
         }
-      }
-      // Appointment term & period filter (one appointment matching both)
-      if (!matchesAppointmentFilters(intern, selectedTermFilter.value, selectedPeriodFilter.value)) {
-        return false
       }
       // Search query
       if (searchQuery.value.trim()) {
@@ -420,8 +406,6 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedYearFilter.value = 'ALL'
     selectedGenderFilter.value = 'ALL'
     selectedStatusFilter.value = 'ALL'
-    selectedTermFilter.value = 'ALL'
-    selectedPeriodFilter.value = 'ALL'
   }
 
   const updateGipIntern = async (payload: {
@@ -1160,10 +1144,6 @@ export const useGipStore = defineStore('gipStore', () => {
     selectedGenderFilter,
     selectedStatusFilter,
     selectedAppointmentFilter,
-    selectedTermFilter,
-    selectedPeriodFilter,
-    availableTerms,
-    availablePeriods,
     currentPage,
     pageSize,
 
