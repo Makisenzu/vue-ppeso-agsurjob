@@ -15,12 +15,8 @@ import {
   ChevronsUpDownIcon,
   Users,
 } from '@lucide/vue'
-import { VisDonut, VisSingleContainer, VisTooltip } from '@unovis/vue'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ChartContainer } from '@/components/ui/chart'
 import {
   Dialog,
   DialogContent,
@@ -38,8 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import type { ApplicantStatusDataPoint, LpiiDataPoint } from '@/types/peso/provincialPeso/gip'
-import { getGipStatusDotClass } from '@/helpers/peso/provincialPeso/gipHelper'
 import GipApplicantNsrpDetails from '@/components/peso/ProvincialPeso/ESMDD/GIP/GipApplicantNsrpDetails.vue'
 import { Label } from '@/components/ui/label'
 import SearchSelect from '@/components/SearchSelect.vue'
@@ -68,15 +62,9 @@ const page = useGipApplicantsPage()
 provideGipApplicantsPage(page)
 
 const {
-  applicantStatusData,
-  totalApplicantStatus,
   selectedApplicantForDetails,
-  isLoading,
   statusTab,
-  toggleStatusTab,
   selectedApplicantIds,
-  donutTooltipTriggers,
-  statusDonutTooltipTriggers,
   goBack,
   closeApplicantDetails,
   applicantToRemove,
@@ -96,9 +84,6 @@ const {
   duplicateProgramOptions,
   confirmDuplicateResolution,
   statusTabs,
-  lpiiCharts,
-  percentOf,
-  donutClass,
   triggerFileInput,
   isDragging,
   isParsing,
@@ -182,7 +167,7 @@ const {
     @back="closeApplicantDetails"
   />
 
-  <!-- ─── REGISTRY MASTER VIEW (CHARTS & TABLE) ─── -->
+  <!-- ─── REGISTRY MASTER VIEW ─── -->
   <div v-else class="flex flex-col gap-6 pb-12">
     <!-- ─── Header ─── -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -191,10 +176,8 @@ const {
           <ArrowLeft class="size-4 shrink-0" />
           Back to Dashboard
         </Button>
-        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP — Applicant Registry</h1>
-        <p class="text-sm text-muted-foreground">
-          Tracks GIP applicant allocation, slot availability, and partner agency distribution across Agusan del Sur.
-        </p>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">GIP Applicant Registry</h1>
+        <p class="text-sm text-muted-foreground">GIP applicants across Agusan del Sur.</p>
       </div>
 
       <!-- Quick Status Filter -->
@@ -210,99 +193,6 @@ const {
           {{ tab === 'ALL' ? 'All' : tab }}
         </Button>
       </div>
-    </div>
-
-    <!-- ─── Applicant Status & LPII Breakdown ─── -->
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <!-- Combined Applicant Status -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="text-base">Applicant Status</CardTitle>
-          <CardDescription>
-            {{ totalApplicantStatus.toLocaleString() }} total · select a status to filter
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="flex flex-col gap-4">
-          <Skeleton v-if="isLoading" class="mx-auto aspect-square h-55 rounded-full" />
-          <ChartContainer v-else-if="totalApplicantStatus > 0" :config="{}" :class="donutClass">
-            <VisSingleContainer :data="applicantStatusData" :height="220">
-              <VisDonut
-                :value="(d: ApplicantStatusDataPoint) => d.count"
-                :color="(d: ApplicantStatusDataPoint) => d.color"
-                :pad-angle="0.03"
-                :corner-radius="4"
-                :arc-width="38"
-                :central-label="totalApplicantStatus.toLocaleString()"
-                central-sub-label="Total Applicants"
-              />
-              <VisTooltip :triggers="statusDonutTooltipTriggers" />
-            </VisSingleContainer>
-          </ChartContainer>
-          <p v-else class="flex h-55 items-center justify-center text-sm text-muted-foreground">
-            No applicant records yet
-          </p>
-
-          <div class="grid grid-cols-2 gap-2 border-t pt-4 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
-            <button
-              v-for="item in applicantStatusData"
-              :key="item.status"
-              type="button"
-              :aria-pressed="statusTab === item.status"
-              :class="[
-                'flex cursor-pointer flex-col items-start rounded-md px-2 py-1.5 text-left transition-colors',
-                statusTab === item.status ? 'bg-muted ring-1 ring-ring' : 'hover:bg-muted/60',
-              ]"
-              @click="toggleStatusTab(item.status)"
-            >
-              <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span :class="['size-2 shrink-0 rounded-full', getGipStatusDotClass(item.status)]" />
-                {{ item.label }}
-              </span>
-              <span class="text-sm font-semibold tabular-nums">{{ item.count.toLocaleString() }}</span>
-              <span class="text-xs text-muted-foreground tabular-nums">{{ percentOf(item.count, totalApplicantStatus) }}%</span>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Male / Female LPII Breakdown -->
-      <Card v-for="chart in lpiiCharts" :key="chart.key">
-        <CardHeader>
-          <CardTitle class="text-base">{{ chart.title }}</CardTitle>
-          <CardDescription>{{ chart.total.toLocaleString() }} total · LPII breakdown by zone</CardDescription>
-        </CardHeader>
-        <CardContent class="flex flex-col gap-4">
-          <Skeleton v-if="isLoading" class="mx-auto aspect-square h-55 rounded-full" />
-          <ChartContainer v-else-if="chart.total > 0" :config="{}" :class="donutClass">
-            <VisSingleContainer :data="chart.data" :height="220">
-              <VisDonut
-                :value="(d: LpiiDataPoint) => d.count"
-                :color="(d: LpiiDataPoint) => d.color"
-                :pad-angle="0.03"
-                :corner-radius="4"
-                :arc-width="38"
-                :central-label="chart.total.toLocaleString()"
-                :central-sub-label="chart.title"
-              />
-              <VisTooltip :triggers="donutTooltipTriggers" />
-            </VisSingleContainer>
-          </ChartContainer>
-          <p v-else class="flex h-55 items-center justify-center text-sm text-muted-foreground">
-            No {{ chart.key }} applicant records yet
-          </p>
-
-          <div class="grid grid-cols-3 gap-2 border-t pt-4">
-            <div v-for="item in chart.data" :key="item.category" class="flex flex-col px-2 py-1.5">
-              <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span :class="['size-2 shrink-0 rounded-full', LPII_CONFIG[item.category].dotClass]" />
-                {{ item.label }}
-              </span>
-              <span class="text-sm font-semibold tabular-nums">{{ item.count.toLocaleString() }}</span>
-              <span class="text-xs text-muted-foreground tabular-nums">{{ percentOf(item.count, chart.total) }}%</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
 
     <!-- ─── Master Registry Table ─── -->

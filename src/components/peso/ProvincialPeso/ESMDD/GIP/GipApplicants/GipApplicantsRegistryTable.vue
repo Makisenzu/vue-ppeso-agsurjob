@@ -28,7 +28,6 @@ const {
   selectedLpiiFilter,
   selectedMonthFilter,
   selectedGenderFilter,
-  selectedStatusFilter,
   currentPage,
   pageSize,
   selectedApplicantIds,
@@ -122,7 +121,7 @@ const {
       </div>
 
       <!-- Search & Filters -->
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div class="relative sm:col-span-2">
           <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -162,13 +161,6 @@ const {
           :options="[{ value: 'ALL', label: 'All Genders' }, { value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]"
           class="w-full"
           aria-label="Filter by gender"
-        />
-
-        <SearchSelect
-          v-model="selectedStatusFilter"
-          :options="[{ value: 'ALL', label: 'All Statuses' }, { value: 'Pending', label: 'Pending' }, { value: 'Approved', label: 'Approved' }, { value: 'Hired', label: 'Hired' }, { value: 'Rejected', label: 'Rejected' }]"
-          class="w-full"
-          aria-label="Filter by status"
         />
       </div>
     </CardHeader>
