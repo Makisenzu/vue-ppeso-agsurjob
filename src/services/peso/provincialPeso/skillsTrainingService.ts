@@ -15,6 +15,8 @@ import type {
   SkillsDemandSupplier,
   SkillsDemandSupply,
   SkillsDemandVacancy,
+  SkillsDemandVacancyOption,
+  SkillsDemandVacancySkill,
   SkillsTraining,
   SkillsTrainingCandidate,
   SkillsTrainingFilterOptions,
@@ -267,6 +269,20 @@ export const skillsTrainingService = {
     const { data, error } = await esmdd().rpc('skills_demand_places', { p_skill_id: skillId, p_supply: supply })
     if (error) throw new Error(error.message || 'Could not load the municipalities.')
     return (data ?? []) as SkillsDemandPlace[]
+  },
+
+  /** Open vacancies with a required skill on the Skill List, for the By Skill vacancy picker (up to 500) */
+  async fetchDemandVacancyOptions(municipality: string): Promise<SkillsDemandVacancyOption[]> {
+    const { data, error } = await esmdd().rpc('skills_demand_vacancy_options', { p_municipality: allToNull(municipality) })
+    if (error) throw new Error(error.message || 'Could not load the job vacancies.')
+    return (data ?? []) as SkillsDemandVacancyOption[]
+  },
+
+  /** One vacancy's required skills: demand, supply and surplus where the vacancy is */
+  async fetchDemandVacancySkills(vacancyId: string, supply: SkillsDemandSupply): Promise<SkillsDemandVacancySkill[]> {
+    const { data, error } = await esmdd().rpc('skills_demand_vacancy_skills', { p_vacancy_id: vacancyId, p_supply: supply })
+    if (error) throw new Error(error.message || "Could not load the vacancy's skills.")
+    return (data ?? []) as SkillsDemandVacancySkill[]
   },
 
   /** Trainings already conducted for a skill (newest first) */

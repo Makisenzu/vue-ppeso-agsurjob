@@ -31,7 +31,7 @@ const GAP_OPTIONS = [
 export function useSkillsDemand() {
   const router = useRouter()
   const store = useSkillsDemandStore()
-  const { rows, total, page, filters, summary, isLoading, loadError, tab } = storeToRefs(store)
+  const { rows, total, page, filters, summary, isLoading, loadError, tab, vacancyOptions, isLoadingVacancyOptions } = storeToRefs(store)
   const coursesStore = useSkillsDemandCoursesStore()
   const { isLoading: isLoadingCourses } = storeToRefs(coursesStore)
 
@@ -43,6 +43,8 @@ export function useSkillsDemand() {
   /** Refresh reloads the open tab */
   const isRefreshing = computed(() => (tab.value === 'courses' ? isLoadingCourses.value : isLoading.value))
   const refresh = () => (tab.value === 'courses' ? coursesStore.loadAll() : store.loadAll())
+  /** A job vacancy is picked: the tab lists that vacancy's skills (useSkillsDemandVacancy) */
+  const isVacancyPicked = computed(() => filters.value.vacancy !== 'ALL')
 
   onMounted(() => void store.loadAll())
 
@@ -60,6 +62,15 @@ export function useSkillsDemand() {
       void store.loadSummary()
     },
   )
+  // The vacancies to pick follow the municipality; a picked vacancy's counts follow who counts as supply
+  watch(
+    () => filters.value.municipality,
+    () => void store.loadVacancyOptions(),
+  )
+  watch(
+    () => [filters.value.vacancy, filters.value.supply],
+    () => void store.loadVacancySkills(),
+  )
 
   const municipalityOptions = [
     { value: 'ALL', label: 'All Municipalities' },
@@ -68,6 +79,14 @@ export function useSkillsDemand() {
   const categoryOptions = computed(() => [
     { value: 'ALL', label: 'All Categories' },
     ...summary.value.categories.map((category) => ({ value: category, label: category })),
+  ])
+  const vacancyPickerOptions = computed(() => [
+    { value: 'ALL', label: 'All Job Vacancies' },
+    ...vacancyOptions.value.map((option) => ({
+      value: option.vacancy_id,
+      label: option.position_title,
+      description: `${option.employer_name} · ${option.place} · ${option.slots.toLocaleString()} slot${option.slots === 1 ? '' : 's'} · ${option.skills} skill${option.skills === 1 ? '' : 's'}`,
+    })),
   ])
   const gapModel = computed({
     get: () => (filters.value.onlyGaps ? 'GAPS' : 'ALL'),
@@ -82,11 +101,12 @@ export function useSkillsDemand() {
       filters.value.municipality !== 'ALL' ||
       filters.value.category !== 'ALL' ||
       filters.value.supply !== 'UNEMPLOYED' ||
-      filters.value.onlyGaps,
+      filters.value.onlyGaps ||
+      filters.value.vacancy !== 'ALL',
   )
 
   function clearFilters() {
-    Object.assign(filters.value, { search: '', municipality: 'ALL', category: 'ALL', supply: 'UNEMPLOYED', onlyGaps: false })
+    Object.assign(filters.value, { search: '', municipality: 'ALL', category: 'ALL', supply: 'UNEMPLOYED', onlyGaps: false, vacancy: 'ALL' })
   }
 
   const stats = computed(() => [
@@ -211,6 +231,9 @@ export function useSkillsDemand() {
     refresh,
     municipalityOptions,
     categoryOptions,
+    vacancyPickerOptions,
+    isLoadingVacancyOptions,
+    isVacancyPicked,
     supplyOptions: SUPPLY_OPTIONS,
     gapOptions: GAP_OPTIONS,
     gapModel,

@@ -145,6 +145,8 @@ export interface SkillsDemandFilters {
   category: string
   supply: SkillsDemandSupply
   onlyGaps: boolean
+  /** 'ALL', or one open vacancy's id: the table lists that vacancy's skills instead */
+  vacancy: string
 }
 
 /** Totals above the table (esmdd.skills_demand_summary) */
@@ -166,6 +168,30 @@ export interface SkillsDemandVacancy {
   place: string
   slots: number
   valid_until: string | null
+}
+
+/** An open vacancy to pick on the By Skill tab (esmdd.skills_demand_vacancy_options, migration 120) */
+export interface SkillsDemandVacancyOption extends SkillsDemandVacancy {
+  /** Its required skills that are on the Skill List */
+  skills: number
+}
+
+/** One required skill of a picked vacancy, counted in the vacancy's municipality (esmdd.skills_demand_vacancy_skills) */
+export interface SkillsDemandVacancySkill {
+  skill_id: number
+  skill_name: string
+  category: string
+  /** The vacancy's slots */
+  demand: number
+  /** Jobseekers living in the vacancy's municipality with the skill, and training completers there */
+  supply: number
+  trained: number
+  /** Jobseekers there beyond the vacancy's slots */
+  surplus: number
+  /** Slots its municipality's jobseekers can't cover */
+  gap: number
+  /** Jobseekers with it across the province (record + training) */
+  province_supply: number
 }
 
 /** A jobseeker counted in a skill's supply (esmdd.skills_demand_supply) */

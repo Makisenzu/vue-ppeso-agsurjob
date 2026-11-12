@@ -9,6 +9,8 @@ import type {
   SkillsDemandSummary,
   SkillsDemandSupplier,
   SkillsDemandVacancy,
+  SkillsDemandVacancyOption,
+  SkillsDemandVacancySkill,
   SkillsTraining,
 } from '@/types/peso/provincialPeso/skillsTraining'
 
@@ -29,7 +31,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
   const rows = ref<SkillsDemandRow[]>([])
   const total = ref(0)
   const page = ref(0)
-  const filters = reactive<SkillsDemandFilters>({ search: '', municipality: 'ALL', category: 'ALL', supply: 'UNEMPLOYED', onlyGaps: false })
+  const filters = reactive<SkillsDemandFilters>({ search: '', municipality: 'ALL', category: 'ALL', supply: 'UNEMPLOYED', onlyGaps: false, vacancy: 'ALL' })
   const summary = ref<SkillsDemandSummary>(EMPTY_SUMMARY())
   const isLoading = ref(false)
   const loadError = ref<string | null>(null)
@@ -62,7 +64,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     }
   }
 
-  const loadAll = () => Promise.all([loadRows(), loadSummary()])
+  const loadAll = () => Promise.all([loadRows(), loadSummary(), loadVacancyOptions(), loadVacancySkills()])
 
   function setPage(value: number) {
     page.value = Math.max(0, value)
@@ -72,6 +74,54 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
   function reloadFromStart() {
     page.value = 0
     return loadRows()
+  }
+
+  // ─── By Skill → one job vacancy: its required skills, counted where the vacancy is (migration 120) ───
+  const vacancyOptions = ref<SkillsDemandVacancyOption[]>([])
+  const isLoadingVacancyOptions = ref(false)
+  let vacancyOptionsRequest = 0
+
+  /** The open vacancies to pick from, in the municipality filtered */
+  async function loadVacancyOptions(): Promise<void> {
+    const current = ++vacancyOptionsRequest
+    isLoadingVacancyOptions.value = true
+    try {
+      const options = await skillsTrainingService.fetchDemandVacancyOptions(filters.municipality)
+      if (current !== vacancyOptionsRequest) return
+      vacancyOptions.value = options
+      // The picked vacancy isn't in this municipality: back to every skill
+      if (filters.vacancy !== 'ALL' && !options.some((option) => option.vacancy_id === filters.vacancy)) filters.vacancy = 'ALL'
+    } catch {
+      // The picker just keeps its last list; the table shows its own errors
+    } finally {
+      if (current === vacancyOptionsRequest) isLoadingVacancyOptions.value = false
+    }
+  }
+
+  const vacancySkills = ref<SkillsDemandVacancySkill[]>([])
+  const isLoadingVacancySkills = ref(false)
+  const vacancySkillsError = ref<string | null>(null)
+  let vacancySkillsRequest = 0
+
+  async function loadVacancySkills(): Promise<void> {
+    const current = ++vacancySkillsRequest
+    const vacancyId = filters.vacancy
+    if (vacancyId === 'ALL') {
+      vacancySkills.value = []
+      vacancySkillsError.value = null
+      isLoadingVacancySkills.value = false
+      return
+    }
+    isLoadingVacancySkills.value = true
+    vacancySkillsError.value = null
+    try {
+      const skills = await skillsTrainingService.fetchDemandVacancySkills(vacancyId, filters.supply)
+      if (current === vacancySkillsRequest) vacancySkills.value = skills
+    } catch (error) {
+      if (current === vacancySkillsRequest) vacancySkillsError.value = errorMessageOf(error, "Could not load the vacancy's skills.")
+    } finally {
+      if (current === vacancySkillsRequest) isLoadingVacancySkills.value = false
+    }
   }
 
   // ─── One skill (its own page): the whole province, broken down by municipality ───
@@ -203,6 +253,13 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
     loadAll,
     setPage,
     reloadFromStart,
+    vacancyOptions,
+    isLoadingVacancyOptions,
+    loadVacancyOptions,
+    vacancySkills,
+    isLoadingVacancySkills,
+    vacancySkillsError,
+    loadVacancySkills,
     skill,
     isLoadingSkill,
     skillError,

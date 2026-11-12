@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSkillsDemand } from '@/composables/peso/provincialPeso/useSkillsDemand'
 import SkillsDemandCourses from './SkillsDemandCourses.vue'
+import SkillsDemandVacancySkills from './SkillsDemandVacancySkills.vue'
 
 const {
   rows,
@@ -25,6 +26,9 @@ const {
   refresh,
   municipalityOptions,
   categoryOptions,
+  vacancyPickerOptions,
+  isLoadingVacancyOptions,
+  isVacancyPicked,
   supplyOptions,
   gapOptions,
   gapModel,
@@ -134,10 +138,26 @@ const {
             <SearchSelect v-model="filters.category" :options="categoryOptions" class="w-full" aria-label="Filter by skill category" />
             <SearchSelect v-model="filters.supply" :options="supplyOptions" class="w-full" aria-label="Who counts as supply" />
             <SearchSelect v-model="gapModel" :options="gapOptions" class="w-full" aria-label="Show all skills or only gaps" />
+            <!-- Pick one open vacancy to see its own skills -->
+            <SearchSelect
+              v-model="filters.vacancy"
+              :options="vacancyPickerOptions"
+              :disabled="isLoadingVacancyOptions && vacancyPickerOptions.length === 1"
+              search-placeholder="Search position or employer..."
+              empty-text="No open vacancy lists a skill."
+              content-class="sm:min-w-96"
+              class="w-full sm:col-span-2 lg:col-span-6"
+              aria-label="Show the skills of one job vacancy"
+            />
           </div>
         </CardHeader>
 
-        <CardContent class="grid gap-0 p-0">
+        <!-- One job vacancy's skills -->
+        <CardContent v-if="isVacancyPicked" class="p-0">
+          <SkillsDemandVacancySkills />
+        </CardContent>
+
+        <CardContent v-else class="grid gap-0 p-0">
           <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
           <SwipeCardList
             class="m-4 md:hidden"
