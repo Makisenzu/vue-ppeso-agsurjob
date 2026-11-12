@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FlexRender } from '@tanstack/vue-table'
-import { AlertCircle, Briefcase, X } from '@lucide/vue'
+import { AlertCircle, X } from '@lucide/vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
