@@ -40,6 +40,8 @@ const {
   evidenceError,
   formatTrainingDates,
   formatDisplayDate,
+  vacancyStatusLabel,
+  vacancyStatusBadgeClass,
   goBack,
   addTraining,
   openTraining,
@@ -317,18 +319,21 @@ const {
       <!-- ─── Demand: the vacancies that require it ─── -->
       <section class="grid content-start gap-3">
         <div class="space-y-1">
-          <h2 class="text-base font-semibold">Open vacancies that require it</h2>
+          <h2 class="text-base font-semibold">Vacancies that require it</h2>
         </div>
       <Card class="gap-0 overflow-hidden py-0">
         <CardContent class="p-0">
           <div v-if="isLoadingEvidence" class="grid gap-2 p-4" aria-busy="true">
             <Skeleton v-for="i in 3" :key="i" class="h-10 w-full" />
           </div>
-          <p v-else-if="vacancies.length === 0" class="p-8 text-center text-sm text-muted-foreground">No open vacancies.</p>
+          <p v-else-if="vacancies.length === 0" class="p-8 text-center text-sm text-muted-foreground">No vacancies.</p>
           <ul v-else class="divide-y">
             <li v-for="vacancy in vacancies" :key="vacancy.vacancy_id" class="flex items-center justify-between gap-3 px-4 py-2.5">
               <div class="grid min-w-0 gap-0.5">
-                <span class="truncate text-sm font-medium">{{ vacancy.position_title }}</span>
+                <span class="flex min-w-0 items-center gap-2">
+                  <span class="truncate text-sm font-medium">{{ vacancy.position_title }}</span>
+                  <Badge variant="outline" :class="['shrink-0', vacancyStatusBadgeClass(vacancy.is_open)]">{{ vacancyStatusLabel(vacancy.is_open) }}</Badge>
+                </span>
                 <span class="truncate text-xs text-muted-foreground">
                   {{ vacancy.employer_name }} · {{ vacancy.place }}
                   <template v-if="vacancy.valid_until"> · until {{ formatDisplayDate(vacancy.valid_until) }}</template>

@@ -32,6 +32,11 @@ export const COMPLETION_BADGE_CLASS: Record<TrainingCompletionStatus, string> = 
   'Did Not Finish': 'border-destructive/30 bg-destructive/10 text-destructive',
 }
 
+/** A vacancy's Open / Closed badge on the Skills Demand page (only open vacancies count as demand) */
+export const vacancyStatusLabel = (isOpen: boolean) => (isOpen ? 'Open' : 'Closed')
+export const vacancyStatusBadgeClass = (isOpen: boolean) =>
+  isOpen ? 'border-success/30 bg-success/10 text-success' : 'border-border bg-muted text-muted-foreground'
+
 export const EMPLOYMENT_BADGE_CLASS: Record<TrainingEmploymentStatus, string> = {
   'Not Yet Employed': 'border-warning/30 bg-warning/10 text-warning',
   Hired: 'border-success/30 bg-success/10 text-success',

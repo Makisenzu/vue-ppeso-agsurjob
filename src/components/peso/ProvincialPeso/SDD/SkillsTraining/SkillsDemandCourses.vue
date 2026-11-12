@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSkillsDemandCourses } from '@/composables/peso/provincialPeso/useSkillsDemandCourses'
 
@@ -53,29 +53,28 @@ const {
       </Card>
     </dl>
 
-    <Card class="gap-0 py-0">
-      <CardHeader class="gap-3 border-b py-4 [.border-b]:pb-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <div class="relative sm:col-span-2">
-            <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input v-model="filters.search" placeholder="Search course..." class="pr-9 pl-8" aria-label="Search courses" />
-            <Button
-              v-if="filters.search"
-              variant="ghost"
-              size="icon"
-              class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
-              aria-label="Clear search"
-              @click="filters.search = ''"
-            >
-              <X class="size-4 shrink-0" />
-            </Button>
-          </div>
-          <SearchSelect v-model="filters.level" :options="levelOptions" class="w-full" aria-label="Filter by course level" />
-          <SearchSelect v-model="filters.municipality" :options="municipalityOptions" class="w-full" aria-label="Filter by municipality" />
-          <SearchSelect v-model="filters.supply" :options="supplyOptions" class="w-full" aria-label="Who counts as supply" />
-        </div>
-      </CardHeader>
+    <!-- Search and filters sit above the table -->
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="relative sm:col-span-2">
+        <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input v-model="filters.search" placeholder="Search course..." class="pr-9 pl-8" aria-label="Search courses" />
+        <Button
+          v-if="filters.search"
+          variant="ghost"
+          size="icon"
+          class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
+          aria-label="Clear search"
+          @click="filters.search = ''"
+        >
+          <X class="size-4 shrink-0" />
+        </Button>
+      </div>
+      <SearchSelect v-model="filters.level" :options="levelOptions" class="w-full" aria-label="Filter by course level" />
+      <SearchSelect v-model="filters.municipality" :options="municipalityOptions" class="w-full" aria-label="Filter by municipality" />
+      <SearchSelect v-model="filters.supply" :options="supplyOptions" class="w-full" aria-label="Who counts as supply" />
+    </div>
 
+    <Card class="gap-0 py-0">
       <CardContent class="grid gap-0 p-0">
         <!-- Mobile: swipeable cards (DESIGN.md 13.2) -->
         <SwipeCardList

@@ -11,7 +11,11 @@ import { useSkillsDemandStore } from '@/stores/peso/provincialPeso/skillsDemandS
 import { useSkillsDemandCoursesStore } from '@/stores/peso/provincialPeso/skillsDemandCoursesStore'
 import { rowActionButton } from '@/composables/peso/provincialPeso/useSkillsTrainingTable'
 import { LANDING_MUNICIPALITIES } from '@/types/common/siteContent'
-import { SKILLS_TRAINING_PAGE_SIZE, demandSupplyTotal, formatPlaces } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
+import {
+  SKILLS_TRAINING_PAGE_SIZE,
+  demandSupplyTotal,
+  vacancyStatusLabel,
+} from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 import type { SkillsDemandRow } from '@/types/peso/provincialPeso/skillsTraining'
 
 const SUPPLY_OPTIONS = [
@@ -26,7 +30,8 @@ const GAP_OPTIONS = [
 /**
  * Skills Training → Skills Demand: for each skill open vacancies require, the slots (demand), the jobseekers
  * across Agusan del Sur who have it (supply), and the shortage where it is needed (each municipality's demand
- * against its own jobseekers). Counted in SQL, one page at a time.
+ * against its own jobseekers). Closed vacancies count too, so a skill keeps its data after its postings
+ * close. Counted in SQL, one page at a time.
  */
 export function useSkillsDemand() {
   const router = useRouter()
@@ -85,7 +90,7 @@ export function useSkillsDemand() {
     ...vacancyOptions.value.map((option) => ({
       value: option.vacancy_id,
       label: option.position_title,
-      description: `${option.employer_name} · ${option.place} · ${option.slots.toLocaleString()} slot${option.slots === 1 ? '' : 's'} · ${option.skills} skill${option.skills === 1 ? '' : 's'}`,
+      description: `${vacancyStatusLabel(option.is_open)} · ${option.employer_name} · ${option.place} · ${option.slots.toLocaleString()} slot${option.slots === 1 ? '' : 's'} · ${option.skills} skill${option.skills === 1 ? '' : 's'}`,
     })),
   ])
   const gapModel = computed({
@@ -128,6 +133,12 @@ export function useSkillsDemand() {
   // ─── Table ───
   // Read-only analysis: the rows are computed from vacancies and applicant records and can't be deleted,
   // so there is no select column or bulk delete (DESIGN.md §13.1 rule 8).
+  /** "3 open · 2 closed vacancies": demand counts both */
+  const vacancyBreakdown = (row: SkillsDemandRow) => {
+    const open = row.vacancies - row.closed_vacancies
+    const noun = `vacanc${row.vacancies === 1 ? 'y' : 'ies'}`
+    return row.closed_vacancies > 0 ? `${open} open · ${row.closed_vacancies} closed ${noun}` : `${row.vacancies} ${noun}`
+  }
   const numberCell = (value: number, extraClass = '') => h('div', { class: `text-right text-sm tabular-nums ${extraClass}` }, value.toLocaleString())
   const rightHeader = (label: string) => () => h('div', { class: 'text-right' }, label)
 
@@ -147,7 +158,7 @@ export function useSkillsDemand() {
       cell: ({ row }) =>
         h('div', { class: 'grid justify-items-end gap-0.5' }, [
           h('span', { class: 'text-sm tabular-nums' }, row.original.demand_slots.toLocaleString()),
-          h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, `${row.original.vacancies} vacanc${row.original.vacancies === 1 ? 'y' : 'ies'}`),
+          h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, vacancyBreakdown(row.original)),
         ]),
     },
     {
@@ -165,12 +176,6 @@ export function useSkillsDemand() {
       id: 'gap',
       header: rightHeader('Gap (where needed)'),
       cell: ({ row }) => numberCell(row.original.gap, row.original.gap > 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'),
-    },
-    {
-      id: 'places',
-      header: 'Where needed',
-      cell: ({ row }) =>
-        h('span', { class: 'block max-w-[240px] truncate text-sm', title: row.original.places.join(', ') }, formatPlaces(row.original.places)),
     },
     {
       id: 'actions',
@@ -206,7 +211,7 @@ export function useSkillsDemand() {
   // ─── Mobile cards (DESIGN.md §13.2) ───
   const getCard = (row: SkillsDemandRow): SwipeCard => ({
     title: row.skill_name,
-    subtitle: `Demand ${row.demand_slots.toLocaleString()} · Supply ${demandSupplyTotal(row).toLocaleString()} · Gap ${row.gap.toLocaleString()} · ${formatPlaces(row.places, 1)}`,
+    subtitle: `Demand ${row.demand_slots.toLocaleString()} · Supply ${demandSupplyTotal(row).toLocaleString()} · Gap ${row.gap.toLocaleString()} · ${vacancyBreakdown(row)}`,
   })
 
   function getSwipeActions(row: SkillsDemandRow): SwipeAction[] {

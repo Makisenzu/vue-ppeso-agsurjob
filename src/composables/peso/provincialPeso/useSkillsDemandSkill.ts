@@ -7,6 +7,8 @@ import {
   demandSupplyTotal,
   formatTrainingDates,
   trainingRecommendation,
+  vacancyStatusBadgeClass,
+  vacancyStatusLabel,
 } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 import { formatDisplayDate } from '@/helpers/common/dateFormatHelper'
 import type { SkillsDemandPlace } from '@/types/peso/provincialPeso/skillsTraining'
@@ -62,7 +64,11 @@ export function useSkillsDemandSkill() {
   const stats = computed(() =>
     skill.value
       ? [
-          { label: 'Demand', value: skill.value.demand_slots, hint: `${skill.value.vacancies} vacanc${skill.value.vacancies === 1 ? 'y' : 'ies'}`, alert: false },
+          { label: 'Demand', value: skill.value.demand_slots, hint: `${skill.value.vacancies} vacanc${skill.value.vacancies === 1 ? 'y' : 'ies'}${
+              skill.value.closed_vacancies > 0 ? ` · ${skill.value.closed_vacancies} closed` : ''
+            }`,
+            alert: false,
+          },
           {
             label: 'Supply (Agusan del Sur)',
             value: demandSupplyTotal(skill.value),
@@ -152,6 +158,8 @@ export function useSkillsDemandSkill() {
     evidenceError,
     formatTrainingDates,
     formatDisplayDate,
+    vacancyStatusLabel,
+    vacancyStatusBadgeClass,
     goBack,
     addTraining,
     openTraining,

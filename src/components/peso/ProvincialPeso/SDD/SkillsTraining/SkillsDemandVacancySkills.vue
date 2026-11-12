@@ -2,11 +2,13 @@
 import { FlexRender } from '@tanstack/vue-table'
 import { AlertCircle, Briefcase, X } from '@lucide/vue'
 import SwipeCardList from '@/components/SwipeCardList.vue'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSkillsDemandVacancy } from '@/composables/peso/provincialPeso/useSkillsDemandVacancy'
+import { vacancyStatusBadgeClass, vacancyStatusLabel } from '@/helpers/peso/provincialPeso/skillsTrainingHelper'
 
 const {
   vacancy,
@@ -32,7 +34,12 @@ const {
     <div class="flex items-start justify-between gap-3 border-b px-4 py-3">
       <div class="flex min-w-0 items-start gap-2.5">
         <div class="min-w-0">
-          <p class="truncate text-sm font-semibold">{{ vacancy?.position_title ?? 'Job vacancy' }}</p>
+          <div class="flex min-w-0 items-center gap-2">
+            <p class="truncate text-sm font-semibold">{{ vacancy?.position_title ?? 'Job vacancy' }}</p>
+            <Badge v-if="vacancy" variant="outline" :class="['shrink-0', vacancyStatusBadgeClass(vacancy.is_open)]">
+              {{ vacancyStatusLabel(vacancy.is_open) }}
+            </Badge>
+          </div>
           <p class="text-xs text-muted-foreground">{{ vacancyDetails }}</p>
         </div>
       </div>

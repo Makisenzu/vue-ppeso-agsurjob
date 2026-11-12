@@ -111,7 +111,7 @@ export interface SkillsDemandRow {
   skill_id: number
   skill_name: string
   category: string
-  /** Open vacancies that require the skill, and their slots (in the municipality filtered, else everywhere) */
+  /** Vacancies that require the skill, open or closed, and their slots (in the municipality filtered, else everywhere) */
   vacancies: number
   demand_slots: number
   /** Agusan del Sur jobseekers with the skill on their record, province-wide */
@@ -122,6 +122,9 @@ export interface SkillsDemandRow {
   gap: number
   /** The municipalities that need it, biggest gap first */
   places: string[]
+  /** The closed share (closed, filled, cancelled, expired) of vacancies / demand_slots (migrations 122, 123) */
+  closed_vacancies: number
+  closed_slots: number
 }
 
 /** One municipality of a skill (esmdd.skills_demand_places) */
@@ -168,6 +171,8 @@ export interface SkillsDemandVacancy {
   place: string
   slots: number
   valid_until: string | null
+  /** Open (status open, not expired); closed, filled, cancelled or expired postings are listed too (migration 121) */
+  is_open: boolean
 }
 
 /** An open vacancy to pick on the By Skill tab (esmdd.skills_demand_vacancy_options, migration 120) */

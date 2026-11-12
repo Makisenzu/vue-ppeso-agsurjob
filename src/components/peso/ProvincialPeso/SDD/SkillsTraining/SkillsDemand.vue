@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSkillsDemand } from '@/composables/peso/provincialPeso/useSkillsDemand'
 import SkillsDemandCourses from './SkillsDemandCourses.vue'
@@ -117,41 +117,40 @@ const {
         </Card>
       </dl>
 
-      <Card class="gap-0 py-0">
-        <CardHeader class="gap-3 border-b py-4 [.border-b]:pb-4">
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div class="relative sm:col-span-2">
-              <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input v-model="filters.search" placeholder="Search skill..." class="pr-9 pl-8" aria-label="Search skills" />
-              <Button
-                v-if="filters.search"
-                variant="ghost"
-                size="icon"
-                class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
-                aria-label="Clear search"
-                @click="filters.search = ''"
-              >
-                <X class="size-4 shrink-0" />
-              </Button>
-            </div>
-            <SearchSelect v-model="filters.municipality" :options="municipalityOptions" class="w-full" aria-label="Filter by municipality" />
-            <SearchSelect v-model="filters.category" :options="categoryOptions" class="w-full" aria-label="Filter by skill category" />
-            <SearchSelect v-model="filters.supply" :options="supplyOptions" class="w-full" aria-label="Who counts as supply" />
-            <SearchSelect v-model="gapModel" :options="gapOptions" class="w-full" aria-label="Show all skills or only gaps" />
-            <!-- Pick one open vacancy to see its own skills -->
-            <SearchSelect
-              v-model="filters.vacancy"
-              :options="vacancyPickerOptions"
-              :disabled="isLoadingVacancyOptions && vacancyPickerOptions.length === 1"
-              search-placeholder="Search position or employer..."
-              empty-text="No open vacancy lists a skill."
-              content-class="sm:min-w-96"
-              class="w-full sm:col-span-2 lg:col-span-6"
-              aria-label="Show the skills of one job vacancy"
-            />
-          </div>
-        </CardHeader>
+      <!-- Search and filters sit above the table -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div class="relative sm:col-span-2">
+          <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="filters.search" placeholder="Search skill..." class="pr-9 pl-8" aria-label="Search skills" />
+          <Button
+            v-if="filters.search"
+            variant="ghost"
+            size="icon"
+            class="absolute top-1/2 right-1 size-7 -translate-y-1/2 cursor-pointer"
+            aria-label="Clear search"
+            @click="filters.search = ''"
+          >
+            <X class="size-4 shrink-0" />
+          </Button>
+        </div>
+        <SearchSelect v-model="filters.municipality" :options="municipalityOptions" class="w-full" aria-label="Filter by municipality" />
+        <SearchSelect v-model="filters.category" :options="categoryOptions" class="w-full" aria-label="Filter by skill category" />
+        <SearchSelect v-model="filters.supply" :options="supplyOptions" class="w-full" aria-label="Who counts as supply" />
+        <SearchSelect v-model="gapModel" :options="gapOptions" class="w-full" aria-label="Show all skills or only gaps" />
+        <!-- Pick one open vacancy to see its own skills -->
+        <SearchSelect
+          v-model="filters.vacancy"
+          :options="vacancyPickerOptions"
+          :disabled="isLoadingVacancyOptions && vacancyPickerOptions.length === 1"
+          search-placeholder="Search position or employer..."
+          empty-text="No vacancy lists a skill."
+          content-class="sm:min-w-96"
+          class="w-full sm:col-span-2 lg:col-span-6"
+          aria-label="Show the skills of one job vacancy"
+        />
+      </div>
 
+      <Card class="gap-0 py-0">
         <!-- One job vacancy's skills -->
         <CardContent v-if="isVacancyPicked" class="p-0">
           <SkillsDemandVacancySkills />
@@ -170,7 +169,7 @@ const {
           >
             <template #empty>
               <p class="rounded-md border py-8 text-center text-sm text-muted-foreground">
-                {{ hasFilters ? 'No skills match your filters.' : 'No open vacancy lists a required skill yet.' }}
+                {{ hasFilters ? 'No skills match your filters.' : 'No vacancy lists a required skill yet.' }}
               </p>
             </template>
           </SwipeCardList>
@@ -204,7 +203,7 @@ const {
                       No skills match your filters.
                       <Button variant="link" size="sm" class="cursor-pointer" @click="clearFilters">Clear filters</Button>
                     </template>
-                    <template v-else>No open vacancy lists a required skill yet.</template>
+                    <template v-else>No vacancy lists a required skill yet.</template>
                   </TableCell>
                 </TableRow>
               </TableBody>

@@ -139,7 +139,7 @@ export const useSkillsDemandStore = defineStore('pesoSkillsDemand', () => {
       const row = await skillsTrainingService.fetchDemandSkill(skillId, 'ALL', filters.supply)
       if (current !== skillRequest) return
       skill.value = row
-      if (!row) skillError.value = 'No open vacancy requires this skill.'
+      if (!row) skillError.value = 'No vacancy requires this skill.'
     } catch (error) {
       if (current === skillRequest) skillError.value = errorMessageOf(error, 'Could not load the skill.')
     } finally {
